@@ -4,6 +4,7 @@
 1. [个性化推荐](recommender_system/README.md)
 1. [识别数字](recognize_digits/README.md)
 1. [图像分类](classify_images/README.md)
+1. [词向量](word2vec/README.md)
 1. [情感分析](understand_sentiment/README.md)
 1. [理解单词的语义](label_semantic_roles/README.md)
 1. [机器翻译](machine_translation/README.md)
