@@ -1,27 +1,24 @@
-TODO: Base on [this tutorial](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/tutorials/embedding_model/index_en.md).
-
 # 背景介绍
 
-本章我们主要讲如何训练词语的向量表征，即词语在向量空间模型（vector space models）中的特征表示。首先我们来熟悉词向量和语言模型。
+本章我们词的向量表征，也称为word embedding。Word embedding是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
 
-- 词向量：word embedding是指将词语映射到的高维向量，如
-	<center>E(football) = [0.3, 4.2, -1.5, ...]</center>
-	<center>E(baseball) = [0.2, 5.6, -2.3, ...]</center>
-向量空间模型中，每个词/句子/文档 都有自己的向量表示，可以通过该向量来计算两个词/句子/文档之间的距离。学习词向量的目标就是希望训练出来这样一个映射矩阵，能够将相同语义的词语(如"football"和"baseball")映射到相近的特征向量。
-在信息检索中，我们可以根据query和文档关键词向量间的夹角判断相关性；在句法分析和语义分析等自然语言处理任务中，训练好的词向量可以用来初始化模型，以得到更好的效果；有了词向量之后我们同样可以用聚类的方法将文档中同义词进行分组，从而进行文档分类。
+在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于 vector space model。在这种方式里，每个词被表示成一个实数向量，其长度为字典大小，其中每个维度对应一个字典里的每个词。任何一个单词对应一个向量，其中绝大多数元素都是0，只有这个词对应的维度上的值是1。这样的向量有个术语名字——one-hot vector。
 
-- 语言模型：语言模型旨在为语句的联合概率函数建模。统计语言模型中，一句话的联合概率可以表示为其中所有词语条件概率的乘积，即
-$$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
-其中$w_i$表示句子中的第i个词。
-语言模型有很多应用领域，如机器翻译、语音识别、信息检索、词性标注、手写识别等。这些应用有个共同的特点，就是希望能得到一个连续序列的概率。拿信息检索为例，当你在搜索“how long is a football bame”时（bame是一个医学名词），搜索引擎会提示你是否希望搜索"how long is a football game", 这是因为根据语言模型计算出“how long is a football bame”的概率很低，而与bame近似的，可能引起typo的词中，game会使该句生成的概率最大。
+One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨。但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是cosine similarity，都认为这两个词毫无相关性。
 
-- 语言模型与词向量的关系：
-	在实际应用中, 语言模型和词向量密不可分。如下图所示，语言模型希望得到一句话的概率时，训练模型的输入是词语映射到的词向量。
-	<p align="center">	
-		<img src="image/sentence_emb.png"></center>
-	</p>
-	相反，词向量的训练也基于语言模型。我们希望训练出来的词向量能够将相同语义的词语映射到相近的特征向量，而语言模型的训练语料中经常出现"how long is a football game" 和"how long is a baseball game"，即可通过语言模型学到相近特征的"football"和"baseball"了。本章中，我们就主要介绍语言模型和词向量的关系，以及如何训练词向量。
-	
+这样与我们认识相悖的结论的根本原因是，每个词本身的信息量都很小，所以仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识！
+
+在机器学习领域里，各种“知识库”被用各种模型表示。其中有一类模型被称为word embedding model。通过word embedding model可以得到词语的向量表示，如
+<p align="center">
+	E(母亲节) = [0.3, 4.2, -1.5, ...]<br/>
+	E(康乃馨) = [0.2, 5.6, -2.3, ...]
+</p>
+
+word embedding model可能是概率模型、也可能是co-occurrence matrix模型，也可能是神经元网络模型；它们的作用是可以把一个 one-hot vector 映射到一个实数向量（embedding vector），通常更短（维度更低），而且两个语义上（或者用法上）相似的词对应的 embedding vectors 通常“更像”。比如我们希望“母亲节”和“康乃馨”对应的embedding vectors的cosine similarity不再为零了。
+
+在本章里，我们展示神经元 word embedding model 的细节，以及如何用Paddle 训练一个 word embedding model，把语义相近的词表示成距离相近的向量。
+
+
 
 #效果展示
 
@@ -48,10 +45,27 @@ similarity: -0.0997506977351
 please input two words: year he
 similarity: 0.0558745388603
 ```
-以上结果可以通过运行`caldis.py`, 加载字典里的单词和对应训练特征结果得到，我们将在[应用模型](#应用模型)中详细描述用法。
+以上结果可以通过运行`calculate_dis.py`, 加载字典里的单词和对应训练特征结果得到，我们将在[应用模型](#应用模型)中详细描述用法。
+
+
+# 术语介绍
+
+- 语言模型：语言模型旨在为语句的联合概率函数建模。统计语言模型中，一句话的联合概率可以表示为其中所有词语条件概率的乘积，即
+$$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
+其中$w_i$表示句子中的第i个词。
+语言模型有很多应用领域，如机器翻译、语音识别、信息检索、词性标注、手写识别等。这些应用有个共同的特点，就是希望能得到一个连续序列的概率。拿信息检索为例，当你在搜索“how long is a football bame”时（bame是一个医学名词），搜索引擎会提示你是否希望搜索"how long is a football game", 这是因为根据语言模型计算出“how long is a football bame”的概率很低，而与bame近似的，可能引起typo的词中，game会使该句生成的概率最大。
+
+- 语言模型与词向量的关系：
+	在实际应用中, 语言模型和词向量密不可分。如下图所示，语言模型希望得到一句话的概率时，训练模型的输入是词语映射到的词向量。
+	<p align="center">	
+		<img src="image/sentence_emb.png"></center>
+	</p>
+	相反，词向量的训练也基于语言模型。我们希望训练出来的词向量能够将相同语义的词语映射到相近的特征向量，而语言模型的训练语料中经常出现"how long is a football game" 和"how long is a baseball game"，即可通过语言模型学到相近特征的"football"和"baseball"了。本章中，我们就主要介绍语言模型和词向量的关系，以及如何训练词向量。
+	
 
 #模型概览
-在这里我们介绍4个训练词向量的模型。
+
+Word embedding 的研究从2000年开始。Yoshua Bengio等科学家于2003年发表了著名的论文 Neural Probabilistic Language Models介绍如何学习一个神经元网络表示的embedding model。而近年来最有名的神经元网络 word embedding model 恐怕是 Tomas Mikolov 在Google 研发的 wordvec。在这里我们介绍4个训练词向量的模型。
 
 - **N-gram neural model**\[[1](#参考文献)\]
 	在计算语言学中，n-gram表示一个文本中连续的n个项。基于具体的应用场景，每一项可以是一个字母、单词或者音节。本模型中用每个n-gram的历史n-1个词语组成的内容来预测第n个词。
@@ -67,7 +81,7 @@ similarity: 0.0558745388603
 
 
 
-### N-gram neural model
+## N-gram neural model
 n-gram模型是统计语言模型中的一种重要方法，
 
 Bengio等人在2003年的一篇经典工作A Neural Probabilistic Language Model中\[[1](#参考文献)\]提出，可以通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度诅咒（curse of dimensionality）,即训练和测试数据不同导致的模型不准。
@@ -95,6 +109,12 @@ $$P(w_t | w_1, ..., w_{t-n+1}) = \frac{e^{g_{w_t}}}{\sum_i^{|V|} e^{g_i}}$$
 $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$ 
 
 其中$y_k^i$表示第i个样本第k类的真实label(0或1)，$softmax(g_k^i)$表示第i个样本第k类softmax输出的概率。
+
+## Continuous Bag-of-Words model(CBOW)
+
+## Skip-gram model
+
+## RNNLM
 
 
 
@@ -162,7 +182,7 @@ $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 	
 	> `<s> <s> <s> <s> I `
 	> `<s> <s> <s> I have`
-	> `<s> <s> I have a 
+	> `<s> <s> I have a`
 	> `<s> I have a dream`
 	> `I have a dream <e>`
 
@@ -172,7 +192,7 @@ $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 
 #训练模型
 
-1. 首先将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$通过|V|*D的矩阵映射到D维词向量（本例config中取D=32），
+1. 首先将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$通过`|V|*D`的矩阵映射到D维词向量（本例config中取`D=32`），
 	```
 	embsize = 32
 	Efirst = wordemb(firstword)  
@@ -241,27 +261,31 @@ $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 	 - 二进制转文本
 
 		```
-		python paraconvert.py --b2t -i INPUT -o OUTPUT -d DIM
+		python format_convert.py --b2t -i INPUT -o OUTPUT -d DIM
 		```
 		转换后得到的文本文件中，第一行为文件信息，之后每一行都按顺序表示字典里一个词的特征，用逗号分隔。用法如：
 		```
-		python paraconvert.py --b2t -i model/pass-00029/_proj -o model/pass-00029/_proj.txt -d 32
+		python format_convert.py --b2t -i model/pass-00029/_proj -o model/pass-00029/_proj.txt -d 32
 		```
 		
 	 - 文本转二进制
 		
 		```
-		python paraconvert.py --t2b -i INPUT -o OUTPUT
+		python format_convert.py --t2b -i INPUT -o OUTPUT
 		```
 
 3. 计算词语之间的余弦距离
 
-	两个向量之间的余弦值通常用来计算向量之间的距离。这里我们在`caldis.py`中实现不同词语的距离度量。
+	两个向量之间的余弦值通常用来计算向量之间的距离。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
 	用法：
- `python caldis.py VOCABULARY EMBEDDINGLAYER` <br/>
+ `python calculate_dis.py VOCABULARY EMBEDDINGLAYER` <br/>
 其中，VOCABULARY是dataprovider中生成的字典，EMBEDDINGLAYER是模型训练出来的词向量，如
- `python caldis.py data/vocabulary.txt model/pass-00029/_proj.txt`。
+ `python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt`。
 
+ 
+ 
+# 总结
+本章中，我们主要讲了词向量，词向量和语言模型的关系，以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据query和文档关键词向量间的夹角判断相关性；在句法分析和语义分析等自然语言处理任务中，训练好的词向量可以用来初始化模型，以得到更好的效果；有了词向量之后我们同样可以用聚类的方法将文档中同义词进行分组，从而进行文档分类。希望大家在本章后能够自行运用词向量进行相关领域的开拓研究。
 
 
 #参考文献
