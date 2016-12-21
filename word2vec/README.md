@@ -18,7 +18,7 @@ $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
 - 语言模型与词向量的关系：
 	在实际应用中, 语言模型和词向量密不可分。如下图所示，语言模型希望得到一句话的概率时，训练模型的输入是词语映射到的词向量。
 	<p align="center">	
-	<center>![sentence_emb](image/sentence_emb.png)</center>
+		<img src="image/sentence_emb.png"></center>
 	</p>
 	相反，词向量的训练也基于语言模型。我们希望训练出来的词向量能够将相同语义的词语映射到相近的特征向量，而语言模型的训练语料中经常出现"how long is a football game" 和"how long is a baseball game"，即可通过语言模型学到相近特征的"football"和"baseball"了。本章中，我们就主要介绍语言模型和词向量的关系，以及如何训练词向量。
 	
@@ -158,13 +158,13 @@ $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 	                yield line[i-N: i]
 	```
 
-	具体来说，将每句话前面补上N-1个开始符号 <s> 末尾补上一个结束符号<e>，然后以N为窗口大小，从头到尾每次向右滑动窗口并生成一条数据。如"I have a dream" 一句提供了5条数据：
+	具体来说，将每句话前面补上N-1个开始符号 `<s>`, 末尾补上一个结束符号`<e>`，然后以N为窗口大小，从头到尾每次向右滑动窗口并生成一条数据。如"I have a dream" 一句提供了5条数据：
 	
-	> 	<s> <s> <s> <s> I 	
-	> <s> <s> <s> I have
-	> <s> <s> I have a 
-	> <s> I have a dream
-	> I have a dream <e>
+	> `<s> <s> <s> <s> I `
+	> `<s> <s> <s> I have`
+	> `<s> <s> I have a 
+	> `<s> I have a dream`
+	> `I have a dream <e>`
 
 	在paddle训练时，每条数据的前4个词用来预测第5个词。
 
