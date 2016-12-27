@@ -469,7 +469,7 @@ cat ./data/aclImdb/test/pos/10007_10.txt | python predict.py \
 * `--model=$model` : 设置模型路径。
 * `--label=$label` : 设置标签类别字典，这个字典是整数标签和字符串标签的一个对应。
 * `--dict=data/pre-imdb/dict.txt` : 设置文本数据字典文件。
-* `--batch_size=1` : 预测时将batch size设置为1。
+* `--batch_size=1` : 预测时的batch size大小。
 
 注意应该确保默认模型路径`model_output / pass-00002`存在或更改为其它模型路径。
 
