@@ -120,6 +120,9 @@ if not is_predict:
 settings(
     batch_size=128,
     learning_rate=0.1 / 128.0,
+    learning_rate_decay_a=0.1,
+    learning_rate_decay_b=50000 * 100,
+    learning_rate_schedule='discexp',
     learning_method=MomentumOptimizer(0.9),
     regularization=L2Regularization(0.0005 * 128))
 
