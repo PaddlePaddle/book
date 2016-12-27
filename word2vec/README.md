@@ -66,14 +66,16 @@ similarity: 0.0558745388603
 
 
 在用神经网络求word embedding之前，传统做法是统计一个word co-occurrence矩阵$X$。$X$是一个`|V|*|V|`大小的矩阵，$X_{ij}$表示在所有语料中，词汇表(vocabulary)中第i个词和第j个词同时出现的词数，`|V|`为词汇表的大小。对$X$做矩阵分解（如Singular Value Decomposition），即
+
 $$X = USV^T$$
-其中得到的$U$即视为所有词的word embedding. 这样做有很多问题：
-1) 很多词没有出现，导致矩阵极其稀疏，也需要对词频做额外tricks来达到好的SVD效果；
-2) 矩阵非常大，维度太高(通常达到$10^6*10^6$的数量级)；
+
+其中得到的$U$即视为所有词的word embedding. 这样做有很多问题：<br/>
+1) 很多词没有出现，导致矩阵极其稀疏，也需要对词频做额外tricks来达到好的SVD效果；<br/>
+2) 矩阵非常大，维度太高(通常达到$10^6*10^6$的数量级)；<br/>
 3) 需要手动去掉停用词（如although, a,...）
 
 
-而基于神经网络的模型就可以很好的解决以上问题，而不需要计算存储一个在全语料上统计的大表。在这里我们介绍4个训练词向量的模型，中心思想都是通过上下文得到一个词出现的概率。
+而基于神经网络的模型就可以很好的解决以上问题，而不需要计算存储一个在全语料上统计的大表。在这里我们介绍3个训练词向量的模型，中心思想都是通过上下文得到一个词出现的概率。
 
 
 ### N-gram neural model 
@@ -82,7 +84,7 @@ Word embedding 的研究从2000年开始。Yoshua Bengio等科学家于2003年�
 	PS：由于下面介绍的也是神经网络语言模型，我们在这里不用其NNLM的本名，考虑到其具体做法，本文中称该模型为N-gram neural model。
 
 
-n-gram模型是统计语言模型中的一种重要方法，文中 \[[1](#参考文献)\] 提出，可以通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度诅咒（curse of dimensionality）,即训练和测试数据不同导致的模型不准。在上文中我们已经讲到语言模型的目标是对$P(w_1, ..., w_T)$建模, 如果假设文本中每个词都是相互独立的，则句话的联合概率可以表示为其中所有词语条件概率的乘积，即
+n-gram模型是统计语言模型中的一种重要方法，文\[[1](#参考文献)\] 中提出，可以通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度灾难（curse of dimensionality）,即训练和测试数据不同导致的模型不准。在上文中我们已经讲到语言模型的目标是对$P(w_1, ..., w_T)$建模, 如果假设文本中每个词都是相互独立的，则整句话的联合概率可以表示为其中所有词语条件概率的乘积，即
 
 $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t)$$
 
@@ -90,26 +92,26 @@ $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t)$$
 
 $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
 
-可是越远的词语其实对该词的影响越小，那么如果考虑一个n-gram, 每个词都只受其前`n-1`个词的影响，则有
+可是越远的词语其实对该词的影响越小，那么如果考虑一个n-gram, 每个词都只受其前面`n-1`个词的影响，则有
 $$P(w_1, ..., w_T) = \prod_{t=n}^TP(w_t|w_{t-1}, w_{t-2}, ..., w_{t-n+1})$$
 
 给定了一些真实语料，这些语料中都是有意义的句子，语言模型的优化目标则是最大化
 
 $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
-其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$, 表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示正则项。
+其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$, 表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
 
 函数$f$的网络示意图如下：
 <p align="center">	
 	<img src="image/ngram.png"><br/>
 	图3. n-gram神经网络模型
 </p>
-对于每个样本，模型输入$w_{t-n+1},...w_{t-1}$, 输出第t个词时字典中|V|个词的概率，V表示训练语料词汇表（vocabulary），本例中n取5。
+对于每个样本，模型输入$w_{t-n+1},...w_{t-1}$, 输出句子第t个词为字典中`|V|`个词的概率，`V`表示训练语料词汇表（vocabulary）。
 
 
 根据softmax的定义，生成目标词$w_t$的概率为：
 $$P(w_t | w_1, ..., w_{t-n+1}) = \frac{e^{g_{w_t}}}{\sum_i^{|V|} e^{g_i}}$$
-其中$g_i$为预测当前词的层中，第i个输出词节点的值，$g_i = \theta_i^Tx + b$, $x$为隐层特征（一个线性映射`embedding`投影到的非线性隐层`fully connect`）, $\theta$和$b$为隐层特征层到词预测层的全连接参数。
+其中$g_i$为预测当前词的层中，第i个输出词节点的值，$g_i = \theta_i^Tx + b$, $x$为隐层特征（一个线性映射`embedding`通过全连接`fully connect`投影到的非线性隐层）, $\theta$和$b$为隐层特征层到词预测层的全连接参数。
 
 整个网络的cost为多类分类交叉熵，用公式表示为
 
@@ -120,26 +122,23 @@ $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 
 ### Continuous Bag-of-Words model(CBOW) 
 
-近年来最有名的神经元网络 word embedding model 恐怕是 Tomas Mikolov 在Google 研发的 wordvec\[[4](#参考文献)\]。其中介绍了两个模型，Continuous Bag-of-Words model和Skip-Gram model，这两个网络很浅很简单，但训练效果非常好。CBOW模型通过一个词的上下文（各N个词）预测当前词，而Skip-gram模型用一个词预测其上下文。
+近年来最有名的神经元网络 word embedding model 恐怕是 Tomas Mikolov 在Google 研发的 wordvec\[[4](#参考文献)\]。其中介绍了两个模型，Continuous Bag-of-Words model和Skip-Gram model，这两个网络很浅很简单，但训练效果非常好。和N-gram neural model 类似，这两个模型同样利用了上下文信息。 CBOW模型通过一个词的上下文（各N个词）预测当前词，而Skip-gram模型用一个词预测其上下文。
 <p align="center">	
 	<img src="image/cbow.png"><br/>
 	图4. CBOW模型
 </p>
-如上图所示，不考虑上下文的词语输入顺序，CBOW用上下文词语的词向量的均值来预测当前词，即
+N=2时，CBOW模型如上图所示，不考虑上下文的词语输入顺序，CBOW用上下文词语的词向量的均值来预测当前词，即
 $$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
-其中$x_t$为第t个词的词向量，分类score向量 $z=U*context$，最终的分类依然用softmax, $y=softmax(z)$，loss还是cross entropy。
+其中$x_t$为第t个词的词向量，分类score向量 $z=U*context$，最终的分类依然用softmax, $y=softmax(z)$，loss同样采用多类分类交叉熵。
 
 ### Skip-gram model 
 
-CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效，而skip-gram的方法得到了当前词上下文的很多样本，因此可用于更大的数据集。
+CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效，而skip-gram的方法用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
 <p align="center">	
 	<img src="image/ngram.png"><br/>
 	图5. skip-gram模型
 </p>
-如上图所示，skip-gram模型的具体做法是，将一个词的词向量映射到$2n$个词的词向量（`2n`表示当前输入词的前后各n个词），分别通过softmax得到这2n个词。
-
-最终loss为所有`2n`个词的分类loss的和。
-在\[[4](#参考文献)\]的基础上，\[[2](#参考文献)\]在一些具体做法上对Skip-gram方法进行了改进。
+如上图所示，skip-gram模型的具体做法是，将一个词的词向量映射到$2n$个词的词向量（`2n`表示当前输入词的前后各n个词），分别通过softmax分别得到这2n个词。最终loss为所有`2n`个词的分类loss的和。在\[[4](#参考文献)\]的基础上，\[[2](#参考文献)\]在一些具体做法上对Skip-gram方法进行了进一步改进。
 
 
 
@@ -202,7 +201,7 @@ def initializer(settings, srcText, dictfile, **xargs):
     settings.input_types = input_types
 ```
 
-这里N为模型N-gram, `dataprovider.py`中定义N=5,大家也可以根据新的数据和需求自行调整N。但注意调整的同时要在模型配置文件中加入/减少相应输入字段。
+这里N为模型N-gram neural model中的N,  在`dataprovider.py`中定义N=5,大家也可以根据新的数据和需求自行调整N。但注意调整的同时要在模型配置文件中加入/减少相应输入字段。
 接下来，在`process`函数中将数据逐一提供给PaddlePaddle。
 
 ```python
@@ -232,7 +231,7 @@ def process(settings, filename):
 
 ### 数据定义
 
-在模型配置中，首先定义通过define_py_data_sources2从dataprovider中读入数据，其中args指定了训练文本(`srcText`)和词汇表(`dictfile`)。
+在模型配置中，首先定义通过`define_py_data_sources2`从dataprovider中读入数据，其中args指定了训练文本(`srcText`)和词汇表(`dictfile`)。
 
 ```python
 args = {'srcText': 'data/simple-examples/data/ptb.train.txt',
@@ -279,12 +278,12 @@ settings(
 	Efourth = wordemb(fourthword)
 	```
 
-2. 将这n-1个词向量经过concat_layer连接成一个大向量作为文本上文特征contextemb层。
+2. 将这n-1个词向量经过`concat_layer`连接成一个大向量作为文本上文特征contextemb层。
 
 	```python
 	contextemb = concat_layer(input = [Efirst, Esecond, Ethird, Efourth])
 	```
-3. 将contextemb全连接到hidden1层作为文本隐层特征，再经过一个全连接映射到|V|维向量predictword层，并softmax得到|V|个词的生成概率。
+3. 将contextemb全连接到hidden1层作为文本隐层特征，再经过一个全连接映射到`|V|`维向量predictword层，并softmax得到`|V|`个词的生成概率。
 
 	```python
 	# concatentate Ngram embeddings into context embedding
@@ -307,7 +306,7 @@ settings(
 	        act = SoftmaxActivation())
 	```
 
-4. 网络的loss function为多类交叉熵，在PaddlePaddle中用`classification_cost`实现。
+4. 网络的loss function为多分类交叉熵，在PaddlePaddle中用`classification_cost`实现。
 
 	```python
 	cost = classification_cost(
@@ -358,7 +357,7 @@ I1222 09:27:29.631752 12590 Util.cpp:219] copy Ngram.py to model/pass-00000
 	
 2. 转换二进制词向量到文本格式
 
-	我们提供了文件`paraconvert.py`用来互转PaddlePaddle训练结果的二进制文件和文本格式特征文件。
+	PaddlePaddle训练出来的参数存储在对应训练pass文件夹下，为二进制格式，这里我们提供了文件`paraconvert.py`用来互转PaddlePaddle训练结果的二进制文件和文本格式特征文件。
 	 - 二进制转文本
 		```shell
 		python format_convert.py --b2t -i INPUT -o OUTPUT -d DIM
@@ -367,6 +366,7 @@ I1222 09:27:29.631752 12590 Util.cpp:219] copy Ngram.py to model/pass-00000
 		```shell
 		python format_convert.py --b2t -i model/pass-00029/_proj -o model/pass-00029/_proj.txt -d 32
 		```
+		这里`-d 32`表示该参数维度。
 		
 	 - 文本转二进制
 		```shell
@@ -378,7 +378,9 @@ I1222 09:27:29.631752 12590 Util.cpp:219] copy Ngram.py to model/pass-00000
 	两个向量之间的余弦值通常用来计算向量之间的距离。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
 	用法：
  `python calculate_dis.py VOCABULARY EMBEDDINGLAYER` <br/>
-其中，VOCABULARY是dataprovider中生成的字典，EMBEDDINGLAYER是模型训练出来的词向量，如
+
+ 其中，`VOCABULARY`是dataprovider中生成的字典，`EMBEDDINGLAYER`是模型训练出来的词向量，用法示例如
+
  `python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt`。
 
  
