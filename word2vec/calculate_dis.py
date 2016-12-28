@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 """
 Example:
-    python caldis.py DICTIONARYTXT FEATURETXT
+    python calculate_dis.py DICTIONARYTXT FEATURETXT
 
 Required arguments:
     DICTIONARYTXT    the dictionary generated in dataprovider
@@ -25,10 +23,12 @@ Required arguments:
 import numpy as np
 from argparse import ArgumentParser
 
+
 def load_dict(fdict):
     words = [line.strip() for line in fdict.readlines()]
     dictionary = dict(zip(words, xrange(len(words))))
     return dictionary
+
 
 def load_emb(femb):
     feaBank = []
@@ -42,21 +42,24 @@ def load_emb(femb):
         feaBank.append(normfea)
     return feaBank
 
+
 def calcos(id1, id2, Fea):
     f1 = Fea[id1]
     f2 = Fea[id2]
     return np.dot(f1.transpose(), f2)
 
+
 def get_wordidx(w, Dict):
     if w not in Dict:
-        print 'ERROR: %s not in the dictionary' %w
+        print 'ERROR: %s not in the dictionary' % w
         return -1
     return Dict[w]
 
+
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('dict',help = 'dictionary file')
-    parser.add_argument('fea', help = 'feature file')
+    parser.add_argument('dict', help='dictionary file')
+    parser.add_argument('fea', help='feature file')
     args = parser.parse_args()
 
     with open(args.dict) as fdict:
@@ -71,4 +74,4 @@ if __name__ == '__main__':
         w2_id = get_wordidx(w2, word_dict)
         if w1_id == -1 or w2_id == -1:
             continue
-        print 'similarity: %s' %(calcos(w1_id, w2_id, word_fea))
+        print 'similarity: %s' % (calcos(w1_id, w2_id, word_fea))

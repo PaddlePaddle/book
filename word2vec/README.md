@@ -6,17 +6,17 @@
 
 在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。 在这种方式里，每个词被表示成一个实数向量，其长度为字典大小，其中每个维度对应一个字典里的每个词。任何一个单词对应一个向量，其中绝大多数元素都是0，只有这个词对应的维度上的值是1。这样的向量有个术语名字——one-hot vector。
 
-One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨。但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是余弦相似度(cosine similarity)，由于其向量正交，都认为这两个词毫无相关性。 这样与我们认识相悖的结论的根本原因是，每个词本身的信息量都很小，所以仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识！
+One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨。但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是余弦相似度(cosine similarity)，由于其向量正交，都认为这两个词毫无相关性。 这样与我们认识相悖的结论的根本原因是，每个词本身的信息量都很小，所以仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识。
 
-在机器学习领域里，各种“知识库”被用各种模型表示。其中有一类模型被称为词向量模型(word embedding model)。通过词向量模型可以得到词语的向量表示，如E(母亲节) = [0.3, 4.2, -1.5, ...], E(康乃馨) = [0.2, 5.6, -2.3, ...]。词向量模型可能是概率模型, 也可能是co-occurrence matrix模型或神经元网络模型；它们的作用是可以把一个 one-hot vector 映射到一个实数向量（embedding vector），通常更短（维度更低），而且两个语义上（或者用法上）相似的词对应的 embedding vectors 通常“更像”。 比如我们希望“母亲节”和“康乃馨”对应的embedding vectors的余弦相似度不再为零了。
+在机器学习领域里，各种“知识”被用各种模型表示。其中有一类模型被称为词向量模型(word embedding model)。通过词向量模型可以得到词语的向量表示，如$embedding(母亲节) = [0.3, 4.2, -1.5, ...], embedding(康乃馨) = [0.2, 5.6, -2.3, ...]$。词向量模型可能是概率模型, 也可能是co-occurrence matrix模型或神经元网络模型；它们的作用是可以把一个 one-hot vector 映射到一个实数向量（embedding vector），通常更短（维度更低），而且两个语义上（或者用法上）相似的词对应的 embedding vectors 通常“更像”。 比如我们希望“母亲节”和“康乃馨”对应的embedding vectors的余弦相似度不再为零了。
 
-在本章里，我们展示神经元 word embedding model 的细节，以及如何用PaddlePaddle 训练一个 word embedding model，把语义相近的词表示成距离相近的向量。
+在本章里，我们展示神经元词向量模型的细节，以及如何用PaddlePaddle 训练一个词向量模型，把语义相近的词表示成距离相近的向量。
 
 
 
 ## 效果展示
 
-本例中，当语言模型训练好后，我们可以用t-SNE将词语特征在二维上的投影画在下图，可见语义相关的词语（如a, the, these; big, huge）在投影上距离也很近， 语意无关的词（如say, business; decision, japan）在投影上的距离也很远。
+本例中，当词向量训练好后，我们可以用t-SNE将词语特征在二维上的投影画在下图，可见语义相关的词语（如a, the, these; big, huge）在投影上距离也很近， 语意无关的词（如say, business; decision, japan）在投影上的距离也很远。
 
 <p align="center">
 	<img src = "image/2d_similarity.png"><br/>
@@ -57,12 +57,12 @@ similarity: 0.0558745388603
 
 
 - 语言模型与词向量的关系：
-	在实际应用中, 语言模型和词向量密不可分。如下图所示，语言模型希望得到一句话的概率时，训练模型的输入是词语映射到的词向量。通过这些词向量，和语料中词语/短语/句子出现的频率，就可以得到给定的一句话的概率（我们将在模型概览中详细讲述）。
+	在实际应用中, 可以同时学习语言模型和词向量。比如下图所示，语言模型希望得到一句话的概率时，训练模型的输入可以是词语，也可以是词语映射到的词向量。通过这些词向量，和语料中词语/短语/句子出现的频率，就可以得到给定的一句话的概率（我们将在模型概览中详细讲述）。
 	<p align="center">	
 		<img src="image/sentence_emb.png"><br/>
 		图2. 语言模型与词向量模型
 	</p>
-	相反，词向量的训练也基于语言模型。我们希望训练出来的词向量能够将相同语义的词语映射到相近的特征向量，而语言模型的训练语料中经常出现"how long is a football game" 和"how long is a baseball game"，即可通过语言模型学到相近特征的"football"和"baseball"了。下面，我们就主要介绍如何结合语言模型训练词向量。
+	相反，词向量的训练也可以基于语言模型。我们希望训练出来的词向量能够将相似语义的词语映射到相近的特征向量，而语言模型的训练语料中经常出现"how long is a football game" 和"how long is a baseball game"，即可通过语言模型学到相近向量特征的"football"和"baseball"了。下面，我们就主要介绍如何结合语言模型训练词向量。
 
 
 在用神经网络求word embedding之前，传统做法是统计一个word co-occurrence矩阵$X$。$X$是一个`|V|*|V|`大小的矩阵，$X_{ij}$表示在所有语料中，词汇表(vocabulary)中第i个词和第j个词同时出现的词数，`|V|`为词汇表的大小。对$X$做矩阵分解（如Singular Value Decomposition），即
@@ -72,16 +72,16 @@ $$X = USV^T$$
 其中得到的$U$即视为所有词的word embedding. 这样做有很多问题：<br/>
 1) 很多词没有出现，导致矩阵极其稀疏，也需要对词频做额外tricks来达到好的SVD效果；<br/>
 2) 矩阵非常大，维度太高(通常达到$10^6*10^6$的数量级)；<br/>
-3) 需要手动去掉停用词（如although, a,...）
+3) 需要手动去掉停用词（如although, a,...），不然这些频繁出现的词会影响SVD效果
 
 
-而基于神经网络的模型就可以很好的解决以上问题，而不需要计算存储一个在全语料上统计的大表。在这里我们介绍3个训练词向量的模型，中心思想都是通过上下文得到一个词出现的概率。
+而基于神经网络的模型就可以很好的解决以上问题，而不需要计算存储一个在全语料上统计的大表。在这里我们介绍3个训练词向量的模型，中心思想都是通过上下文得到一个词出现的概率。之后本章tutorial会带大家用PaddlePaddle实现N-gram neural model。
 
 
 ### N-gram neural model 
 
 Word embedding 的研究从2000年开始。Yoshua Bengio等科学家于2003年发表了著名的论文 Neural Probabilistic Language Models \[[1](#参考文献)\] 介绍如何学习一个神经元网络表示的embedding model，文中neural network language model(NNLM)通过一个线性映射和一个非线性隐层连接，同时学习了语言模型和词向量。
-	PS：由于下面介绍的也是神经网络语言模型，我们在这里不用其NNLM的本名，考虑到其具体做法，本文中称该模型为N-gram neural model。
+	PS：由于“神经概率语言模型”说法较为泛泛，我们在这里不用其NNLM的本名，考虑到其具体做法，本文中称该模型为N-gram neural model。
 
 
 n-gram模型是统计语言模型中的一种重要方法，文\[[1](#参考文献)\] 中提出，可以通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度灾难（curse of dimensionality）,即训练和测试数据不同导致的模型不准。在上文中我们已经讲到语言模型的目标是对$P(w_1, ..., w_T)$建模, 如果假设文本中每个词都是相互独立的，则整句话的联合概率可以表示为其中所有词语条件概率的乘积，即
@@ -168,7 +168,7 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 </table>
 </p>
 
-执行data/getdata.sh下载该数据，并分别将训练数据和验证数据输入train.list和test.list文件中，供PaddlePaddle训练时使用。<br/>
+执行data/getdata.sh：下载该数据，并分别将训练数据和验证数据输入train.list和test.list文件中，供PaddlePaddle训练时使用。<br/>
 	
 ### 提供数据给PaddlePaddle
 
@@ -234,6 +234,9 @@ def process(settings, filename):
 在模型配置中，首先定义通过`define_py_data_sources2`从dataprovider中读入数据，其中args指定了训练文本(`srcText`)和词汇表(`dictfile`)。
 
 ```python
+from paddle.trainer_config_helpers import *
+import math
+
 args = {'srcText': 'data/simple-examples/data/ptb.train.txt',
         'dictfile': 'data/vocabulary.txt'}
 		
@@ -243,6 +246,17 @@ define_py_data_sources2(
     module="dataprovider",
     obj="process",
     args=args)
+
+dictsize = 1953
+embsize = 32
+hiddensize = 256
+	
+	
+firstword = data_layer(name = "firstw", size = dictsize)
+secondword = data_layer(name = "secondw", size = dictsize)
+thirdword = data_layer(name = "thirdw", size = dictsize)
+fourthword = data_layer(name = "fourthw", size = dictsize)
+nextword = data_layer(name = "fifthw", size = dictsize)
 ```
 
 ### 算法配置
@@ -250,9 +264,8 @@ define_py_data_sources2(
 在这里，我们指定了模型的训练参数, 选择L2正则项稀疏、学习率和batch size。
 
 ```python
-batch_size = 100
 settings(
-    batch_size=batch_size,
+    batch_size=100,
     regularization=L2Regularization(8e-4),
     learning_rate=3e-3)
 
@@ -262,8 +275,9 @@ settings(
 1. 首先将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$通过`|V|*D`的矩阵映射到D维词向量（本例config中取`D=32`），
 	
 	```python
+
 	def wordemb(inlayer):
-    wordemb = table_projection(
+		wordemb = table_projection(
         input = inlayer,
         size = embsize,
         param_attr=ParamAttr(name = "_proj",
@@ -286,8 +300,6 @@ settings(
 3. 将contextemb全连接到hidden1层作为文本隐层特征，再经过一个全连接映射到`|V|`维向量predictword层，并softmax得到`|V|`个词的生成概率。
 
 	```python
-	# concatentate Ngram embeddings into context embedding
-	contextemb = concat_layer(input = [Efirst, Esecond, Ethird, Efourth])
 	hidden1 = fc_layer(
 	        input = contextemb,
 	        size = hiddensize,
@@ -312,6 +324,8 @@ settings(
 	cost = classification_cost(
 	        input = predictword,
 	        label = nextword)
+	# network input and output
+	outputs(cost)
 	```
 	
 ##训练模型
@@ -320,7 +334,7 @@ settings(
 
 ```bash
 paddle train \
-       --config Ngram.py \
+       --config ngram.py \
        --use_gpu=1 \
        --dot_period=100 \
        --log_period=3000 \
@@ -393,6 +407,4 @@ I1222 09:27:29.631752 12590 Util.cpp:219] copy Ngram.py to model/pass-00000
 1. Bengio Y, Ducharme R, Vincent P, et al. [A neural probabilistic language model](http://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)[J]. journal of machine learning research, 2003, 3(Feb): 1137-1155.
 2. Mikolov T, Sutskever I, Chen K, et al. [Distributed representations of words and phrases and their compositionality](http://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf)[C]//Advances in neural information processing systems. 2013: 3111-3119.
 3. Mikolov T, Kombrink S, Deoras A, et al. [Rnnlm-recurrent neural network language modeling toolkit](http://www.fit.vutbr.cz/~imikolov/rnnlm/rnnlm-demo.pdf)[C]//Proc. of the 2011 ASRU Workshop. 2011: 196-201.
-4. Mikolov T, Chen K, Corrado G, et al. [Efficient estimation of word representations in vector space\[J\]](https://arxiv.org/pdf/1301.3781.pdf). arXiv preprint arXiv:1301.3781, 2013.
-<!-- 5. Mikolov T, Karafiát M, Burget L, et al. [Recurrent neural network based language model](http://www.fit.vutbr.cz/research/groups/speech/publi/2010/mikolov_interspeech2010_IS100722.pdf)[C]//Interspeech. 2010, 2: 3. -->
-
+4. Mikolov T, Chen K, Corrado G, et al. [Efficient estimation of word representations in vector space](https://arxiv.org/pdf/1301.3781.pdf)[J]. arXiv preprint arXiv:1301.3781, 2013.

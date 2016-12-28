@@ -22,8 +22,9 @@ logging.basicConfig(
 logger = logging.getLogger('paddle')
 logger.setLevel(logging.INFO)
 
-N = 5 # Ngram
+N = 5  # Ngram
 cutoff = 50
+
 
 def build_dict(ftrain, fdict):
     sentences = []
@@ -33,13 +34,14 @@ def build_dict(ftrain, fdict):
             sentences += line
     wordfreq = collections.Counter(sentences)
     wordfreq = filter(lambda x: x[1] > cutoff, wordfreq.items())
-    dictionary = sorted(wordfreq, key = lambda x: (-x[1], x[0]))
+    dictionary = sorted(wordfreq, key=lambda x: (-x[1], x[0]))
     words, _ = list(zip(*dictionary))
     for word in words:
         print >> fdict, word
     word_idx = dict(zip(words, xrange(len(words))))
-    logger.info("Dictionary size=%s" %len(words))
+    logger.info("Dictionary size=%s" % len(words))
     return word_idx
+
 
 def initializer(settings, srcText, dictfile, **xargs):
     with open(dictfile, 'w') as fdict:
@@ -49,13 +51,13 @@ def initializer(settings, srcText, dictfile, **xargs):
         input_types.append(integer_value(len(settings.dicts)))
     settings.input_types = input_types
 
+
 @provider(init_hook=initializer)
 def process(settings, filename):
     UNKID = settings.dicts['<unk>']
     with open(filename) as fin:
         for line in fin:
-            line = ['<s>']*(N-1)  + line.strip().split() + ['<e>']
+            line = ['<s>'] * (N - 1) + line.strip().split() + ['<e>']
             line = [settings.dicts.get(w, UNKID) for w in line]
             for i in range(N, len(line) + 1):
-                yield line[i-N: i]
-
+                yield line[i - N:i]

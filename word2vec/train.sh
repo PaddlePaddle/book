@@ -1,7 +1,7 @@
 #!/bin/bash
 
 paddle train \
-       --config Ngram.py \
+       --config ngram.py \
        --use_gpu=1 \
        --dot_period=100 \
        --log_period=3000 \
