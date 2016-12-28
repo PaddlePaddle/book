@@ -56,6 +56,7 @@ def sentiment_data(data_dir=None,
 
     return dict_dim, class_dim
 
+
 def convolution_net(input_dim,
                     class_dim=2,
                     emb_dim=128,
@@ -65,7 +66,8 @@ def convolution_net(input_dim,
     emb = embedding_layer(input=data, size=emb_dim)
     conv_3 = sequence_conv_pool(input=emb, context_len=3, hidden_size=hid_dim)
     conv_4 = sequence_conv_pool(input=emb, context_len=4, hidden_size=hid_dim)
-    output = fc_layer(input=[conv_3,conv_4], size=class_dim, act=SoftmaxActivation())
+    output = fc_layer(
+        input=[conv_3, conv_4], size=class_dim, act=SoftmaxActivation())
 
     if not is_predict:
         lbl = data_layer("label", 1)

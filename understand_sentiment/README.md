@@ -28,7 +28,7 @@ $$c=[c_1,c_2,\ldots,c_{n-h+1}]$$
 <br/>&emsp;&emsp;其中$c \in \mathbb{R}^{n-h+1}$。接下来我们对feature map采用max pooling over time操作得到此filter对应的特征：
 $$\hat c=max(c)$$
 <br/>&emsp;&emsp;即，$\hat c$是feature map中所有元素的最大值。pooling机制自动处理了句子长度不一的问题。在实际应用中，我们会使用多个filter来处理句子，窗口大小相同的filters堆叠起来形成一个矩阵（上文中的单个filter参数$w$相当于矩阵的某一行），这样可以更高效的完成运算。另外，我们也可使用窗口大小不同的filters来处理句子，最后，将所有filters得到的特征拼接起来即为文本的定长向量表示。对于文本分类问题，将其连接至softmax即构建出完整的模型。
-<br/>&emsp;&emsp;可以将上文所述的卷积神经网络的filter理解为特定语义n-gram的探测器（detector），其优点是避免了传统n-gram的高维稀疏表示问题，运算和训练速度十分快，准确率也很高（ref）。但是它难以扩展为深层文本卷积网络，基于此，N. Kalchbrenner, et al.(2014)提出了k-max pooling，使用其可以构建出深层文本卷积网络，有兴趣的读者可以参考相关文献。
+
 ### 循环神经网络
 #### 简单的循环神经网络
 <br/>&emsp;&emsp;循环神经网络是一种能对序列数据进行精确建模的有力工具。实际上，循环神经网络的理论计算能力是图灵完备的(Siegelmann, H. T. and Sontag, E. D., 1995)。
