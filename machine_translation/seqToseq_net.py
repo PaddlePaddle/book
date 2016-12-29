@@ -43,20 +43,20 @@ define_py_data_sources2(
 
 ### Algorithm Configuration
 settings(
-    learning_method = AdamOptimizer(),
-    batch_size = 50 if not is_generating else 1,
-    learning_rate = 5e-4 if not is_generating else 0)
+    learning_method=AdamOptimizer(),
+    batch_size=50 if not is_generating else 1,
+    learning_rate=5e-4 if not is_generating else 0)
 
 ### Network Architecture
 source_dict_dim = len(open(src_lang_dict, "r").readlines())
 target_dict_dim = len(open(trg_lang_dict, "r").readlines())
-word_vector_dim = 512 # dimension of word vector
-decoder_size = 512 # dimension of hidden unit in GRU Decoder network
-encoder_size = 512 # dimension of hidden unit in GRU Encoder network
+word_vector_dim = 512  # dimension of word vector
+decoder_size = 512  # dimension of hidden unit in GRU Decoder network
+encoder_size = 512  # dimension of hidden unit in GRU Encoder network
 
 if is_generating:
-    beam_size=3 # expand width in beam search
-    max_length=250 # a stop condition of sequence generation
+    beam_size = 3  # expand width in beam search
+    max_length = 250  # a stop condition of sequence generation
     gen_trans_file = get_config_arg("gen_trans_file", str, None)
 
 #### Encoder
@@ -66,10 +66,10 @@ src_embedding = embedding_layer(
     size=word_vector_dim,
     param_attr=ParamAttr(name='_source_language_embedding'))
 src_forward = simple_gru(input=src_embedding, size=encoder_size)
-src_backward = simple_gru(
-    input=src_embedding, size=encoder_size, reverse=True)
+src_backward = simple_gru(input=src_embedding, size=encoder_size, reverse=True)
 encoded_vector = concat_layer(input=[src_forward, src_backward])
 
+#### Decoder
 with mixed_layer(size=decoder_size) as encoded_proj:
     encoded_proj += full_matrix_projection(input=encoded_vector)
 
@@ -79,7 +79,7 @@ with mixed_layer(
         act=TanhActivation(), ) as decoder_boot:
     decoder_boot += full_matrix_projection(input=backward_first)
 
-#### Decoder
+
 def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
     decoder_mem = memory(
         name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
@@ -105,12 +105,11 @@ def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
         out += full_matrix_projection(input=gru_step)
     return out
 
+
 decoder_group_name = "decoder_group"
-group_inputs = [
-    StaticInput(
-        input=encoded_vector, is_seq=True), StaticInput(
-            input=encoded_proj, is_seq=True)
-]
+group_input1 = StaticInput(input=encoded_vector, is_seq=True)
+group_input2 = StaticInput(input=encoded_proj, is_seq=True)
+group_inputs = [group_input1, group_input2]
 
 if not is_generating:
     trg_embedding = embedding_layer(
@@ -142,7 +141,6 @@ else:
     # Embedding of the last generated word is automatically gotten by
     # GeneratedInputs, which is initialized by a start mark, such as <s>,
     # and must be included in generation.
-
 
     trg_embedding = GeneratedInput(
         size=target_dict_dim,
