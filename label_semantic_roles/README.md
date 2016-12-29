@@ -2,7 +2,7 @@
 
 ## 背景介绍
 
-语义角色标注（Semantic Role Labeling，SRL）是一种以句子为单位浅层语义分析技术。SRL以句子的谓词为中心，不对句子所包含的语义信息进行深入分析，只分析句子中各成分与谓词之间的关系，即：句子的谓词（Predicate）- 论元（argument）结构，并用语义角色来描述这些结构关系。请看下面的例子：
+语义角色标注（Semantic Role Labeling，SRL）是一种以句子为单位的浅层语义分析技术。SRL以句子的谓词为中心，不对句子所包含的语义信息进行深入分析，只分析句子中各成分与谓词之间的关系，即：句子的谓词（Predicate）- 论元（Argument）结构，并用语义角色来描述这些结构关系。请看下面的例子：
 
 $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{在[公园]}_{\mbox{Location}}\mbox{[遇到]}_{\mbox{Predicate}}\mbox{了[小红]}_{\mbox{Patient}}\mbox{。}$$
 
@@ -14,32 +14,36 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{在[公园]}_
 
 为了回避无法获得准确率较高的结构树或依存结构树所造成的困难，研究提出了基于语块的语义角色标注方法，也是我们这篇文章所要介绍的方法。基于语块的语义角色标注方法将语义标注方法作为一个序列标注问题来解决，是一个相对简单的过程。一般采用 BIO 表示方式来定义序列标注的标签集，将不同的语块赋予不同的标签。即：对于一个角色为 A 的论元，将它所包含的第一个语块赋予标签 B-A，将它所包含的其它语块赋予标签 I-A，不属于任何论元的语块赋予标签 O。
 
-我们继续以上面的这句话为例，下图展示了 BIO 表示方法的执行过程，可以看到，根据序列标注的结果可以直接得到语义角色标注的结果，因此，论元识别和论元标注通常作为一个过程同时实现。
+我们继续以上面的这句话为例，图1展示了 BIO 表示方法的执行过程，可以看到，根据序列标注的结果可以直接得到语义角色标注的结果，因此，论元识别和论元标注通常作为一个过程同时实现。
 
 <div  align="center">    
 <img src="image/bio_example.png" width = "90%" height = "90%" align=center />
 </div>
-<center>  图. BIO标注方法示例 </center> 
 
-下面，我们以 [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) 公共任务中 SRL 任务的公开数据集为例，实践下面的任务：给定谓词和一句话，通过序列标注的方式，从句子中找到谓词对应的论元和它们的语义角色。在这个过程中，我们的目标是：只依赖输入文本序列，不依赖任何额外的语法解析结果或是复杂的人造特征，构建一个端对端学习的 SRL 系统。
+<center>图1. BIO标注方法示例</center> 
+
+下面，我们以 [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) 公共任务中 SRL 任务公开数据集为例，实践下面的任务：
+
+给定谓词和一句话，通过序列标注的方式，从句子中找到谓词对应的论元，标注它们的语义角色。
+
+在这个过程中，我们的目标是：只依赖输入文本序列，不依赖任何额外的语法解析结果或是复杂的人造特征，构建一个端到端学习的 SRL 系统。
 
 # 模型概览
 
-循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于传统的前馈神经网络（Feed-forward Neural Networks），RNN 引入了循环，能够处理输入之间前后关联的问题。在语言中，由于句子前后单词并不是独立存在，标记句子中下一个词的语义角色，通常都依赖句子前面的词。很自然地，我们选择利用循环神经网络的 “记忆历史” 的能力来构建我们的 SRL 系统。
+循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于传统的前馈神经网络（Feed-forward Neural Network），RNN 引入了循环，能够处理输入之间前后关联的问题。在语言中，由于句子前后单词并不是独立存在，标记句子中下一个词的语义角色，通常都依赖句子前面的词。很自然地，我们选择利用循环神经网络 “记忆历史” 的能力来构建我们的 SRL 系统。
 
 在开始构建我们的序列标注模型之前，我们首先介绍三个重要的积木。
 
 ## 重要的积木
-### Stacked Recurrent Neural Network
+### 栈式循环神经网络（Stacked Recurrent Neural Network）
 
 深度网络能够帮助我们学习层次化特征，网络的上层在下层已经学习到的初级特征基础上，学习更复杂的高级特征。
 
-RNN 等价于一个展开地前向网络，于是，通常人们会认为 RNN 在时间轴上是一个真正的“深层网络”。然而，在循环神经网络中，对网络层数的定义并非如此直接。输入特征经过一次非线性映射，我们称之为神经网络的一层。按照这样的约定，可以看到，尽管 RNN 沿时间轴展开后等价于一个非常“深”的前馈网络，但由于 RNN 各个时间步参数共享，$t-1$ 时刻隐藏层输出到 $t$ 时刻的映射，始终只经过了一次非线性映射，也就是说 ：RNN 对状态转移的建模是 “浅” 的。
+RNN 等价于一个展开地前向网络，于是，通常人们会认为 RNN 在时间轴上是一个真正的“深层网络”。然而，在循环神经网络中，对网络层数的定义并非如此直接。输入特征经过一次非线性映射，我们称之为神经网络的一层。按照这样的约定，可以看到，尽管 RNN 沿时间轴展开后等价于一个非常“深”的前馈网络，但由于 RNN 各个时间步参数共享，$t-1$ 时刻状态到 $t$ 时刻的映射，始终只经过了一次非线性映射，也就是说 ：RNN 对状态转移的建模是 “浅” 的。
 
 堆叠多个 RNN 单元（可以是：Simple RNN ， LSTM 或者 GRU）构成深层网络，令前一个 RNN $t$ 时刻的输出，成为下一个 RNN 单元 $t$ 时刻的输入，帮助我们构建起一个深层的 RNN 网络。和单层 RNN 网络相比，极大地提高了模型拟合复杂模式的能力，能够更好地建模跨不同时间步的模式\[[3](#参考文献)\]。
 
-### 双向循环神经网络模型（Bidirectional Recurrent Neural Network）
-
+### 双向循环神经网络（Bidirectional Recurrent Neural Network）
 
 在 RNN 模型中，$t$ 时刻输出的隐藏层向量编码了到 $t$ 时刻为止所有输入的信息，但由于 RNN 串行计算，$t$ 时刻 RNN 可以看到历史，却无法看到未来。
 
@@ -65,11 +69,12 @@ CRF 用于序列标注由 Lafferty 等人 \[[4](#参考文献)\] 于2001年提�
 <div  align="center">    
 <img src="./image/linear_chain_crf.png" width = "35%" height = "35%" align=center />
 </div>
-<center>  图2. $X$ 和 $Y$ 具有相同结构的线性链条件随机场 </center> 
+
+<center>图2. $X$ 和 $Y$ 具有相同结构的线性链条件随机场</center> 
 
 **线性链条件随机场** ：设 $X = (X_{1}, X_{2}, ... , X_{n})$，$Y = (Y_{1}, Y_{2}, ... , Y_{n})$ 均为线性链表示的随机变量序列，若在给定随机变量序列 $X$ 的条件下，随机变量序列 $Y$ 的条件概率分布 $P(Y|X)$ 满足马尔科夫性：
 
-$$p(Y_{i}|X, Y_{1}, ... , Y_{i - 1}, Y_{i + 1}, ... , Y_{n}) = p(Y_{i} | X, Y_{i - 1}, Y_{i + 1})$$
+$$p\left(Y_{i}|X, Y_{1}, ... , Y_{i - 1}, Y_{i + 1}, ... , Y_{n}\right) = p\left(Y_{i} | X, Y_{i - 1}, Y_{i + 1}\right)$$
 
 $$i = 1, 2, ..., n \mbox{（在} i = 1 \mbox{和} n \mbox{时只考虑单边）}$$
 
@@ -77,11 +82,12 @@ $$i = 1, 2, ..., n \mbox{（在} i = 1 \mbox{和} n \mbox{时只考虑单边）}
 
 根据线性链条件随机场上的因子分解定理 \[[5](#参考文献)\]，在给定观测序列 $X$ 时，一个特定标记序列 $Y$ 的概率可以定义为：
 
-$$p(Y | X) = \frac{1}{Z(x)} \text{exp}(\sum_{i=1}^{n}\sum_{j} \lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} (\mu_k s_k (y_i, X, i)))$$ 
+$$p(Y | X) = \frac{1}{Z(X)} \text{exp}\sum_{i=1}^{n}\sum_{j}\left( \lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} \mu_k s_k (y_i, X, i)\right)$$ 
+
 
 其中：
 
-$$Z(x) = \sum_{y \in Y} \text{exp}(\sum_{i = 1}^ {n}\sum_{k} \lambda_kt_k(y_{i-1}, y_i, x, i) + \sum_{i, l}\mu_l s_l (y_i, x, i))$$ 
+$$Z(X) = \sum_{y \in Y} \text{exp}\left(\sum_{i = 1}^ {n}\sum_{k} \lambda_kt_k(y_{i-1}, y_i, x, i) + \sum_{i, l}\mu_l s_l (y_i, x, i)\right)$$ 
 
 是规范化因子。
 
@@ -101,9 +107,9 @@ $$p(Y|X, \lambda) = \frac{1}{Z(X)}\text{exp}\sum_{j}\lambda_{j}f_{j}(y_{i - 1}, 
 
 其中，$f$ 是特征函数，$\lambda$ 是特征函数对应的权值，是 CRF 模型要求解的参数。
 
-学习时，对于给定的输入序列和对应的标记序列的集合  $D = [(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)]$ ，通过正则化的极大似然估计，可以得到如下优化目标：
+学习时，对于给定的输入序列和对应的标记序列的集合  $D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$ ，通过正则化的极大似然估计，可以得到如下优化目标：
 
-$$L(\lambda, D) = - \text{log}(\prod_{m=1}^{N}p(Y_m|X_m, \lambda))) + C \frac{1}{2}\lVert\lambda\rVert^{2}$$
+$$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, \lambda)\right) + C \frac{1}{2}\lVert\lambda\rVert^{2}$$
 
 解码时，对于给定的输入序列 $X$，通过解码算法求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{y}$。
 
@@ -122,15 +128,15 @@ $$L(\lambda, D) = - \text{log}(\prod_{m=1}^{N}p(Y_m|X_m, \lambda))) + C \frac{1}
 ```text
 conll05st-release/
 ├── test.brown
-│   ├── ne
-│   ├── null
-│   ├── props
-│   ├── synt.cha
-│   ├── synt.col2
-│   ├── synt.col2h
-│   ├── synt.upc
-│   ├── targets
-│   └── words
+│   ├── ne
+│   ├── null
+│   ├── props
+│   ├── synt.cha
+│   ├── synt.col2
+│   ├── synt.col2h
+│   ├── synt.upc
+│   ├── targets
+│   └── words
 └── test.wsj
     ├── ne
     ├── null
