@@ -23,7 +23,7 @@ logger = logging.getLogger('paddle')
 logger.setLevel(logging.INFO)
 
 N = 5  # Ngram
-cutoff = 50
+cutoff = 50  # select words with frequency > cutoff to dictionary
 
 
 def build_dict(ftrain, fdict):

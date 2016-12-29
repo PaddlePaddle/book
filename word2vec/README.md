@@ -2,70 +2,16 @@
 
 ## 背景介绍
 
-本章我们词的向量表征，也称为word embedding。词向量是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
+本章我们介绍词的向量表征，也称为word embedding。词向量是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
 
-在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。 在这种方式里，每个词被表示成一个实数向量，其长度为字典大小，其中每个维度对应一个字典里的每个词。任何一个单词对应一个向量，其中绝大多数元素都是0，只有这个词对应的维度上的值是1。这样的向量有个术语名字——one-hot vector。
+在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。 
+在这种方式里，每个词被表示成一个实数向量（one-hot vector），其长度为字典大小，每个维度对应一个字典里的每个词，除了这个词对应维度上的值是1，其他元素都是0。
 
-One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨。但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是余弦相似度(cosine similarity)，由于其向量正交，都认为这两个词毫无相关性。 这样与我们认识相悖的结论的根本原因是，每个词本身的信息量都很小，所以仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识。
+One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。虽然按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨；但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是余弦相似度(cosine similarity)，由于其向量正交，都认为这两个词毫无相关性。 得出这种与我们相悖的结论的根本原因是：每个词本身的信息量都太小。所以，仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识。
 
-在机器学习领域里，各种“知识”被用各种模型表示。其中有一类模型被称为词向量模型(word embedding model)。通过词向量模型可以得到词语的向量表示，如$embedding(母亲节) = [0.3, 4.2, -1.5, ...], embedding(康乃馨) = [0.2, 5.6, -2.3, ...]$。词向量模型可能是概率模型, 也可能是co-occurrence matrix模型或神经元网络模型；它们的作用是可以把一个 one-hot vector 映射到一个实数向量（embedding vector），通常更短（维度更低），而且两个语义上（或者用法上）相似的词对应的 embedding vectors 通常“更像”。 比如我们希望“母亲节”和“康乃馨”对应的embedding vectors的余弦相似度不再为零了。
+在机器学习领域里，各种“知识”被各种模型表示，词向量模型(word embedding model)就是其中的一类。通过词向量模型可将一个 one-hot vector映射到一个维度更低的实数向量（embedding vector），如$embedding(母亲节) = [0.3, 4.2, -1.5, ...], embedding(康乃馨) = [0.2, 5.6, -2.3, ...]$。在这个映射到的实数向量表示中，希望两个语义（或用法）上相似的词对应的词向量“更像”，这样如“母亲节”和“康乃馨”的对应词向量的余弦相似度就不再为零了。
 
-在本章里，我们展示神经元词向量模型的细节，以及如何用PaddlePaddle 训练一个词向量模型，把语义相近的词表示成距离相近的向量。
-
-
-
-## 效果展示
-
-本例中，当词向量训练好后，我们可以用t-SNE将词语特征在二维上的投影画在下图，可见语义相关的词语（如a, the, these; big, huge）在投影上距离也很近， 语意无关的词（如say, business; decision, japan）在投影上的距离也很远。
-
-<p align="center">
-	<img src = "image/2d_similarity.png"><br/>
-	图1. 词向量的二维投影
-</p>
-
-另一方面，我们还可以通过计算词向量的cosine得到相似度, 如:
-```
-similarity: 0.899180685161
-please input two words: big huge
-similarity: 0.638160689862
-please input two words: billion million
-similarity: 0.632455899017
-please input two words: china japan
-similarity: 0.704361449565
-
-please input two words: a decision
-similarity: -0.436248234689
-please input two words: huge say
-similarity: -0.160392409963
-please input two words: from company
-similarity: -0.0997506977351
-please input two words: year he
-similarity: 0.0558745388603
-```
-以上结果可以通过运行`calculate_dis.py`, 加载字典里的单词和对应训练特征结果得到，我们将在[应用模型](#应用模型)中详细描述用法。
-
-
-## 模型概览
-
-在介绍词向量常用模型之前，我们先来了解一下语言模型，以及语言模型和词向量的关系。
-
-- n-gram: 	在计算语言学中，n-gram表示一个文本中连续的n个项。基于具体的应用场景，每一项可以是一个字母、单词或者音节。在学习词向量的n-gram模型中，一般用每个n-gram的历史n-1个词语组成的内容来预测第n个词。
-
-
-- 语言模型：语言模型旨在为语句的联合概率函数$P(w_1, ..., w_T)$建模, 其中$w_i$表示句子中的第i个词。目标即希望模型对有意义的句子赋予大概率，对没意义的句子赋予小概率。
-语言模型有很多应用领域，如机器翻译、语音识别、信息检索、词性标注、手写识别等。这些应用有个共同的特点，就是希望能得到一个连续序列的概率。拿信息检索为例，当你在搜索“how long is a football bame”时（bame是一个医学名词），搜索引擎会提示你是否希望搜索"how long is a football game", 这是因为根据语言模型计算出“how long is a football bame”的概率很低，而与bame近似的，可能引起typo的词中，game会使该句生成的概率最大。
-
-
-- 语言模型与词向量的关系：
-	在实际应用中, 可以同时学习语言模型和词向量。比如下图所示，语言模型希望得到一句话的概率时，训练模型的输入可以是词语，也可以是词语映射到的词向量。通过这些词向量，和语料中词语/短语/句子出现的频率，就可以得到给定的一句话的概率（我们将在模型概览中详细讲述）。
-	<p align="center">	
-		<img src="image/sentence_emb.png"><br/>
-		图2. 语言模型与词向量模型
-	</p>
-	相反，词向量的训练也可以基于语言模型。我们希望训练出来的词向量能够将相似语义的词语映射到相近的特征向量，而语言模型的训练语料中经常出现"how long is a football game" 和"how long is a baseball game"，即可通过语言模型学到相近向量特征的"football"和"baseball"了。下面，我们就主要介绍如何结合语言模型训练词向量。
-
-
-在用神经网络求word embedding之前，传统做法是统计一个word co-occurrence矩阵$X$。$X$是一个`|V|*|V|`大小的矩阵，$X_{ij}$表示在所有语料中，词汇表(vocabulary)中第i个词和第j个词同时出现的词数，`|V|`为词汇表的大小。对$X$做矩阵分解（如Singular Value Decomposition），即
+词向量模型可以是概率模型、共生矩阵(co-occurrence matrix)模型或神经元网络模型。在用神经网络求词向量之前，传统做法是统计一个word co-occurrence矩阵$X$。$X$是一个`|V|*|V|`大小的矩阵，$X_{ij}$表示在所有语料中，词汇表(vocabulary)中第i个词和第j个词同时出现的词数，`|V|`为词汇表的大小。对$X$做矩阵分解（如Singular Value Decomposition），即
 
 $$X = USV^T$$
 
@@ -75,16 +21,46 @@ $$X = USV^T$$
 3) 需要手动去掉停用词（如although, a,...），不然这些频繁出现的词会影响SVD效果
 
 
-而基于神经网络的模型就可以很好的解决以上问题，而不需要计算存储一个在全语料上统计的大表。在这里我们介绍3个训练词向量的模型，中心思想都是通过上下文得到一个词出现的概率。之后本章tutorial会带大家用PaddlePaddle实现N-gram neural model。
+而基于神经网络的模型就可以很好的解决以上问题，而不需要计算存储一个在全语料上统计的大表。在本章里，我们将展示基于神经网络训练词向量的细节，以及如何用PaddlePaddle训练一个词向量模型。
 
+
+## 效果展示
+
+本章中，当词向量训练好后，我们可以用t-SNE\[[5](#参考文献)\]画出词语特征在二维上的投影（如下图所示）。从图中可以看出，语义相关的词语（如a, the, these; big, huge）在投影上距离很近，语意无关的词（如say, business; decision, japan）在投影上的距离很远。
+
+<p align="center">
+	<img src = "image/2d_similarity.png"><br/>
+	图1. 词向量的二维投影
+</p>
+
+另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
+```
+similarity: 0.899180685161
+please input two words: big huge
+
+please input two words: from company
+similarity: -0.0997506977351
+```
+
+以上结果可以通过运行`calculate_dis.py`, 加载字典里的单词和对应训练特征结果得到，我们将在[应用模型](#应用模型)中详细描述用法。
+
+
+## 模型概览
+
+在这里我们介绍3个训练词向量的模型，中心思想都是通过上下文得到一个词出现的概率。之后本章tutorial会带大家用PaddlePaddle实现N-gram neural model。
 
 ### N-gram neural model 
 
 Word embedding 的研究从2000年开始。Yoshua Bengio等科学家于2003年发表了著名的论文 Neural Probabilistic Language Models \[[1](#参考文献)\] 介绍如何学习一个神经元网络表示的embedding model，文中neural network language model(NNLM)通过一个线性映射和一个非线性隐层连接，同时学习了语言模型和词向量。
 	PS：由于“神经概率语言模型”说法较为泛泛，我们在这里不用其NNLM的本名，考虑到其具体做法，本文中称该模型为N-gram neural model。
 
+在介绍该模型之前，我们先来引入一个概念————语言模型。
 
-n-gram模型是统计语言模型中的一种重要方法，文\[[1](#参考文献)\] 中提出，可以通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度灾难（curse of dimensionality）,即训练和测试数据不同导致的模型不准。在上文中我们已经讲到语言模型的目标是对$P(w_1, ..., w_T)$建模, 如果假设文本中每个词都是相互独立的，则整句话的联合概率可以表示为其中所有词语条件概率的乘积，即
+语言模型旨在为语句的联合概率函数$P(w_1, ..., w_T)$建模, 其中$w_i$表示句子中的第i个词。语言模型的目标是，希望模型对有意义的句子赋予大概率，对没意义的句子赋予小概率。
+这样的模型可以应用于很多领域，如机器翻译、语音识别、信息检索、词性标注、手写识别等，它们都希望能得到一个连续序列的概率。 以信息检索为例，当你在搜索“how long is a football bame”时（bame是一个医学名词），搜索引擎会提示你是否希望搜索"how long is a football game", 这是因为根据语言模型计算出“how long is a football bame”的概率很低，而与bame近似的，可能引起typo的词中，game会使该句生成的概率最大。
+
+
+在计算语言学中，n-gram表示一个文本中连续的n个项。基于具体的应用场景，每一项可以是一个字母、单词或者音节。 n-gram模型是统计语言模型中的一种重要方法，用n-gram训练语言模型时，一般用每个n-gram的历史n-1个词语组成的内容来预测第n个词。文\[[1](#参考文献)\] 中提出，可以同时训练一个语言模型和词向量模型，即通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度灾难（curse of dimensionality）,即训练和测试数据不同导致的模型不准。在上文中我们已经讲到语言模型的目标是对$P(w_1, ..., w_T)$建模, 如果假设文本中每个词都是相互独立的，则整句话的联合概率可以表示为其中所有词语条件概率的乘积，即
 
 $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t)$$
 
@@ -146,7 +122,7 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 	
 ### 数据介绍与下载
 
-在此demo中我们选用[Penn Tree Bank](http://www.fit.vutbr.cz/~imikolov/rnnlm/) (PTB)数据集。该数据集用在Mikolov的公开语言模型训练工具 Recurrent Neural Network Language Modeling Toolkit \[[3](#参考文献)\]中。数据集较小，训练速度快。该数据集统计情况如下:
+本教程使用Penn Tree Bank (PTB)数据集。PTB数据集较小，训练速度快，应用于Mikolov的公开语言模型训练工具[3]中。其统计情况如下：
 
 <p align="center">
 <table>
@@ -168,70 +144,84 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 </table>
 </p>
 
-执行data/getdata.sh：下载该数据，并分别将训练数据和验证数据输入train.list和test.list文件中，供PaddlePaddle训练时使用。<br/>
+执行以下命令，可下载该数据集，并分别将训练数据和验证数据输入train.list和test.list文件中，供PaddlePaddle训练时使用。
+
+```bash
+./data/getdata.sh
+```
+
 	
 ### 提供数据给PaddlePaddle
 
-在`dataprovider.py`中，我们将数据提供给PaddlePaddle。
-`initializer`中进行dataprovider的初始化，其中主要包括字典的建立（在`build_dict`函数中实现）和PaddlePaddle输入字段的格式定义。
+1. 使用initializer函数进行dataprovider的初始化，包括字典的建立（build_dict函数中）和PaddlePaddle输入字段的格式定义。注意：这里N为n-gram模型中的`n`, 本章代码中，定义$N=5$, 表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。大家也可以根据自己的数据和需求自行调整N，但调整的同时要在模型配置文件中加入/减少相应输入字段。
 
-```python
-def build_dict(ftrain, fdict):
-	sentences = []
-    with open(ftrain) as fin:
-        for line in fin:
-            line = ['<s>'] + line.strip().split() + ['<e>']
-            sentences += line
-    wordfreq = collections.Counter(sentences)
-    wordfreq = filter(lambda x: x[1] > cutoff, wordfreq.items())
-    dictionary = sorted(wordfreq, key = lambda x: (-x[1], x[0]))
-    words, _ = list(zip(*dictionary))
-    for word in words:
-        print >> fdict, word
-    word_idx = dict(zip(words, xrange(len(words))))
-    logger.info("Dictionary size=%s" %len(words))
-    return word_idx
+    ```python
+    from paddle.trainer.PyDataProvider2 import *
+    import collections
+    import logging
+    import pdb
+    
+    logging.basicConfig(
+        format='[%(levelname)s %(asctime)s %(filename)s:%(lineno)s] %(message)s', )
+    logger = logging.getLogger('paddle')
+    logger.setLevel(logging.INFO)
+    
+    N = 5  # Ngram
+    cutoff = 50  # select words with frequency > cutoff to dictionary
+    def build_dict(ftrain, fdict):
+    	sentences = []
+        with open(ftrain) as fin:
+            for line in fin:
+                line = ['<s>'] + line.strip().split() + ['<e>']
+                sentences += line
+        wordfreq = collections.Counter(sentences)
+        wordfreq = filter(lambda x: x[1] > cutoff, wordfreq.items())
+        dictionary = sorted(wordfreq, key = lambda x: (-x[1], x[0]))
+        words, _ = list(zip(*dictionary))
+        for word in words:
+            print >> fdict, word
+        word_idx = dict(zip(words, xrange(len(words))))
+        logger.info("Dictionary size=%s" %len(words))
+        return word_idx
+    
+    def initializer(settings, srcText, dictfile, **xargs):
+        with open(dictfile, 'w') as fdict:
+            settings.dicts = build_dict(srcText, fdict)
+        input_types = []
+        for i in xrange(N):
+            input_types.append(integer_value(len(settings.dicts)))
+        settings.input_types = input_types
+    ```
 
-def initializer(settings, srcText, dictfile, **xargs):
-    with open(dictfile, 'w') as fdict:
-        settings.dicts = build_dict(srcText, fdict)
-    input_types = []
-    for i in xrange(N):
-        input_types.append(integer_value(len(settings.dicts)))
-    settings.input_types = input_types
-```
+2. 使用process函数中将数据逐一提供给PaddlePaddle。具体来说，将每句话前面补上N-1个开始符号 `<s>`, 末尾补上一个结束符号 `<e>`，然后以N为窗口大小，从头到尾每次向右滑动窗口并生成一条数据。
 
-这里N为模型N-gram neural model中的N,  在`dataprovider.py`中定义N=5,大家也可以根据新的数据和需求自行调整N。但注意调整的同时要在模型配置文件中加入/减少相应输入字段。
-接下来，在`process`函数中将数据逐一提供给PaddlePaddle。
+    ```python
+    @provider(init_hook=initializer)
+    def process(settings, filename):
+        UNKID = settings.dicts['<unk>']
+        with open(filename) as fin:
+            for line in fin:
+                line = ['<s>']*(N-1)  + line.strip().split() + ['<e>']
+                line = [settings.dicts.get(w, UNKID) for w in line]
+                for i in range(N, len(line) + 1):
+                    yield line[i-N: i]
+    ```
+    
+    如"I have a dream" 一句提供了5条数据:
+    
+    > `<s> <s> <s> <s> I `<br/>
+    > `<s> <s> <s> I have`<br/>
+    > `<s> <s> I have a `<br/>
+    > `<s> I have a dream`<br/>
+    > `I have a dream <e>`<br/>
 
-```python
-@provider(init_hook=initializer)
-def process(settings, filename):
-    UNKID = settings.dicts['<unk>']
-    with open(filename) as fin:
-        for line in fin:
-            line = ['<s>']*(N-1)  + line.strip().split() + ['<e>']
-            line = [settings.dicts.get(w, UNKID) for w in line]
-            for i in range(N, len(line) + 1):
-                yield line[i-N: i]
-```
-
-具体来说，将每句话前面补上N-1个开始符号 `<s>`, 末尾补上一个结束符号`<e>`，然后以N为窗口大小，从头到尾每次向右滑动窗口并生成一条数据。如"I have a dream" 一句提供了5条数据：
-
-> `<s> <s> <s> <s> I `<br/>
-> `<s> <s> <s> I have`<br/>
-> `<s> <s> I have a `<br/>
-> `<s> I have a dream`<br/>
-> `I have a dream <e>`<br/>
-
-在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。
 
 
 ## 模型配置说明
 
 ### 数据定义
 
-在模型配置中，首先定义通过`define_py_data_sources2`从dataprovider中读入数据，其中args指定了训练文本(`srcText`)和词汇表(`dictfile`)。
+通过define_py_data_sources2函数从dataprovider中读入数据，其中args指定了训练文本(srcText)和词汇表(dictfile)。
 
 ```python
 from paddle.trainer_config_helpers import *
@@ -246,44 +236,43 @@ define_py_data_sources2(
     module="dataprovider",
     obj="process",
     args=args)
-
-dictsize = 1953
-embsize = 32
-hiddensize = 256
-	
-	
-firstword = data_layer(name = "firstw", size = dictsize)
-secondword = data_layer(name = "secondw", size = dictsize)
-thirdword = data_layer(name = "thirdw", size = dictsize)
-fourthword = data_layer(name = "fourthw", size = dictsize)
-nextword = data_layer(name = "fifthw", size = dictsize)
 ```
 
 ### 算法配置
 
-在这里，我们指定了模型的训练参数, 选择L2正则项稀疏、学习率和batch size。
+在这里，我们指定了模型的训练参数, L2正则项系数、学习率和batch size。
 
 ```python
 settings(
-    batch_size=100,
-    regularization=L2Regularization(8e-4),
-    learning_rate=3e-3)
-
+    batch_size=100, regularization=L2Regularization(8e-4), learning_rate=3e-3)
 ```
+
 ### 模型结构
 
-1. 首先将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$通过`|V|*D`的矩阵映射到D维词向量（本例config中取`D=32`），
-	
-	```python
+1. 定义参数维度和和数据输入。
 
+    ```python
+    dictsize = 1953 # 字典大小
+    embsize = 32 # 词向量维度
+    hiddensize = 256 # 隐层维度
+    
+    firstword = data_layer(name = "firstw", size = dictsize)
+    secondword = data_layer(name = "secondw", size = dictsize)
+    thirdword = data_layer(name = "thirdw", size = dictsize)
+    fourthword = data_layer(name = "fourthw", size = dictsize)
+    nextword = data_layer(name = "fifthw", size = dictsize)
+    ```
+
+2. 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
+	
+	```python	
 	def wordemb(inlayer):
 		wordemb = table_projection(
         input = inlayer,
         size = embsize,
         param_attr=ParamAttr(name = "_proj",
-            initial_std=0.001,
-            learning_rate = 1,
-            l2_rate= 0,))
+            initial_std=0.001, # 参数初始化标准差
+            l2_rate= 0,))      # 词向量不需要稀疏化，因此其l2_rate设为0
     return wordemb
 
 	Efirst = wordemb(firstword)
@@ -292,14 +281,14 @@ settings(
 	Efourth = wordemb(fourthword)
 	```
 
-2. 将这n-1个词向量经过`concat_layer`连接成一个大向量作为文本上文特征contextemb层。
+3. 接着，将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
 
 	```python
 	contextemb = concat_layer(input = [Efirst, Esecond, Ethird, Efourth])
 	```
-3. 将contextemb全连接到hidden1层作为文本隐层特征，再经过一个全连接映射到`|V|`维向量predictword层，并softmax得到`|V|`个词的生成概率。
+4. 然后，将文本上文特征层经过一个全连接到文本隐层特征层
 
-	```python
+    ```python
 	hidden1 = fc_layer(
 	        input = contextemb,
 	        size = hiddensize,
@@ -309,7 +298,11 @@ settings(
 	        param_attr = ParamAttr(
 	            initial_std = 1./math.sqrt(embsize*8),
 	            learning_rate = 1))
+    ```
 	
+5. 最后，将文本隐层特征层，再经过一个全连接，映射成一个`|V|`维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
+
+    ```python
 	# use context embedding to predict nextword
 	predictword = fc_layer(
 	        input = hidden1,
@@ -318,7 +311,7 @@ settings(
 	        act = SoftmaxActivation())
 	```
 
-4. 网络的loss function为多分类交叉熵，在PaddlePaddle中用`classification_cost`实现。
+6. 网络的损失函数为多分类交叉熵，可直接调用classification_cost函数。
 
 	```python
 	cost = classification_cost(
@@ -330,7 +323,7 @@ settings(
 	
 ##训练模型
 
-执行sh train.sh进行模型的训练。其中指定了总共需要执行30个pass。
+模型训练命令为./train.sh。脚本内容如下，其中指定了总共需要执行30个pass。
 
 ```bash
 paddle train \
@@ -343,7 +336,7 @@ paddle train \
        --num_passes=30
 ```
 
-一轮训练log示例如下所示，经过30个pass，得到平均error为classification_error_evaluator=0.735611。
+一个pass的训练日志如下所示：
 
 ```text
 .............................
@@ -358,49 +351,87 @@ ification_error_evaluator=0.80118
 ..I1222 09:27:29.128582 12590 TrainerInternal.cpp:179]  Pass=0 Batch=9296 samples=929600 AvgCost=5.21786 Eval: classification_error_evaluator=0.809647 
 I1222 09:27:29.627616 12590 Tester.cpp:111]  Test samples=73760 cost=4.9594 Eval: classification_error_evaluator=0.79676 
 I1222 09:27:29.627713 12590 GradientMachine.cpp:112] Saving parameters to model/pass-00000
-I1222 09:27:29.631752 12590 Util.cpp:219] copy Ngram.py to model/pass-00000
 ```
+经过30个pass，我们将得到平均错误率为classification_error_evaluator=0.735611。
+
 
 ## 应用模型
 训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型参数从二进制格式转换成文本格式进行后续应用。
 
-1. 初始化其他模型
+### 初始化其他模型
 
-	该模型训练好的参数可以用来初始化其他模型，具体方法如下。
-	在PaddlePaddle 训练命令行中，用`--init_model_path` 来定义初始化模型的位置，用`--load_missing_parameter_strategy`指定除了词向量以外，新模型其他参数的初始化策略。	注意被初始化的模型中，需要和原模型共享被初始化参数的参数名。
+训练好的模型参数可以用来初始化其他模型。具体方法如下：
+在PaddlePaddle 训练命令行中，用`--init_model_path` 来定义初始化模型的位置，用`--load_missing_parameter_strategy`指定除了词向量以外的新模型其他参数的初始化策略。注意，新模型需要和原模型共享被初始化参数的参数名。
 	
-2. 转换二进制词向量到文本格式
+### 查看词向量
+PaddlePaddle训练出来的参数为二进制格式，存储在对应训练pass的文件夹下。这里我们提供了文件`format_convert.py`用来互转PaddlePaddle训练结果的二进制文件和文本格式特征文件。
 
-	PaddlePaddle训练出来的参数存储在对应训练pass文件夹下，为二进制格式，这里我们提供了文件`paraconvert.py`用来互转PaddlePaddle训练结果的二进制文件和文本格式特征文件。
-	 - 二进制转文本
-		```shell
-		python format_convert.py --b2t -i INPUT -o OUTPUT -d DIM
-		```
-		转换后得到的文本文件中，第一行为文件信息，之后每一行都按顺序表示字典里一个词的特征，用逗号分隔。用法如：
-		```shell
-		python format_convert.py --b2t -i model/pass-00029/_proj -o model/pass-00029/_proj.txt -d 32
-		```
-		这里`-d 32`表示该参数维度。
-		
-	 - 文本转二进制
-		```shell
-		python format_convert.py --t2b -i INPUT -o OUTPUT
-		```
+```bash
+python format_convert.py --b2t -i INPUT -o OUTPUT -d DIM
+```
+-i INPUT: 输入的（二进制）词向量模型名称
+-o OUTPUT: 输出的文本模型名称
+-d DIM: （词向量）参数维度
 
-3. 计算词语之间的余弦距离
+用法如：
 
-	两个向量之间的余弦值通常用来计算向量之间的距离。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
-	用法：
- `python calculate_dis.py VOCABULARY EMBEDDINGLAYER` <br/>
+```bash
+python format_convert.py --b2t -i model/pass-00029/_proj -o model/pass-00029/_proj.txt -d 32
+```
+转换后得到的文本文件中，第一行为文件信息，之后每一行都按顺序表示字典里一个词的特征，用逗号分隔, 如：
 
- 其中，`VOCABULARY`是dataprovider中生成的字典，`EMBEDDINGLAYER`是模型训练出来的词向量，用法示例如
+```text
+0,4,62496
+-0.7444070,-0.1846171,-1.5771370,0.7070392,2.1963732,-0.0091410, ......
+-0.0721337,-0.2429973,-0.0606297,0.1882059,-0.2072131,-0.7661019, ......
+......
+```
 
- `python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt`。
+其中，第一行是PaddlePaddle 输出文件的格式说明，包含3个属性：
+1. PaddlePaddle的版本号，本例中为0
+2. 浮点数占用的字节数，本例中为4
+3. 总计的参数个数, 本例中为62496（即1953*32）
+	
+### 修改词向量
 
+我们可以对词向量进行修改，并转换成paddle参数二进制格式，方法：	
+
+```bash
+python format_convert.py --t2b -i INPUT -o OUTPUT
+```
+-i INPUT: 输入的文本词向量模型名称
+-o OUTPUT: 输出的二进制词向量模型名称
+
+输入的文本格式如下：
+
+```text
+-0.7444070,-0.1846171,-1.5771370,0.7070392,2.1963732,-0.0091410, ......
+-0.0721337,-0.2429973,-0.0606297,0.1882059,-0.2072131,-0.7661019, ......
+......
+```
+
+注意输入的文本特征，不包上面二进制转文本后第一行的格式说明。
+	
+	
+
+### 计算词语之间的余弦距离
+
+两个向量之间的距离可以用余弦值来表示，余弦值在$[-1,1]$的区间内，向量间余弦值越大，其距离越近。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
+用法如下：
+
+```bash
+python calculate_dis.py VOCABULARY EMBEDDINGLAYER` 
+```
+
+其中，`VOCABULARY`是字典，`EMBEDDINGLAYER`是词向量模型，示例如下：
+
+```bash
+python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt
+```
  
  
 ## 总结
-本章中，我们主要讲了词向量，词向量和语言模型的关系，以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据query和文档关键词向量间的夹角判断相关性；在句法分析和语义分析等自然语言处理任务中，训练好的词向量可以用来初始化模型，以得到更好的效果；有了词向量之后我们同样可以用聚类的方法将文档中同义词进行分组，从而进行文档分类。希望大家在本章后能够自行运用词向量进行相关领域的开拓研究。
+本章中，我们介绍了词向量、语言模型和词向量的关系、以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据向量间的余弦夹角，来判断query和文档关键词这二者间的相关性。在句法分析和语义分析中，训练好的词向量可以用来初始化模型，以得到更好的效果。在文档分类中，有了词向量之后，可以用聚类的方法将文档中同义词进行分组。希望大家在本章后能够自行运用词向量进行相关领域的研究。
 
 
 ## 参考文献
@@ -408,3 +439,4 @@ I1222 09:27:29.631752 12590 Util.cpp:219] copy Ngram.py to model/pass-00000
 2. Mikolov T, Sutskever I, Chen K, et al. [Distributed representations of words and phrases and their compositionality](http://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf)[C]//Advances in neural information processing systems. 2013: 3111-3119.
 3. Mikolov T, Kombrink S, Deoras A, et al. [Rnnlm-recurrent neural network language modeling toolkit](http://www.fit.vutbr.cz/~imikolov/rnnlm/rnnlm-demo.pdf)[C]//Proc. of the 2011 ASRU Workshop. 2011: 196-201.
 4. Mikolov T, Chen K, Corrado G, et al. [Efficient estimation of word representations in vector space](https://arxiv.org/pdf/1301.3781.pdf)[J]. arXiv preprint arXiv:1301.3781, 2013.
+5. Maaten L, Hinton G. [Visualizing data using t-SNE](https://lvdmaaten.github.io/publications/papers/JMLR_2008.pdf)[J]. Journal of Machine Learning Research, 2008, 9(Nov): 2579-2605.
