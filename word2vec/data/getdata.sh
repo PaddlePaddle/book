@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 wget http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz
 tar -zxf simple-examples.tgz
