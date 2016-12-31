@@ -16,7 +16,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{在[公园]}_
 
 我们继续以上面的这句话为例，图1展示了 BIO 表示方法的执行过程，可以看到，根据序列标注的结果可以直接得到语义角色标注的结果，因此，论元识别和论元标注通常作为一个过程同时实现。
 
-<div  align="center">    
+<div  align="center">
 <img src="image/bio_example.png" width = "90%" height = "90%" align=center /><br>
 图1. BIO标注方法示例
 </div>
