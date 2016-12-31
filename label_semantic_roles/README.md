@@ -56,13 +56,13 @@ RNN 等价于一个展开地前向网络，于是，通常人们会认为 RNN �
 
 条件随机场 （Conditional Random Filed， CRF）是一种概率化结构模型，可以看作是一个概率无向图模型（也叫作马尔科夫随机场），结点表示随机变量，边表示随机变量之间的概率依赖关系。
 
-简单来讲，CRF 学习条件概率型：$P(X|Y)$，其中 $X = (x_1, x_2, ... , x_n)$ 是输入序列，$Y = y_1, y_2, ... , y_n$ 是标记序列；解码过程是给定 $X$ 序列求解令 $P(Y|X)$ 最大的 $Y$ 序列，即：$Y^* = \mbox{arg max}_{Y} P(Y | X)$。
+简单来讲，CRF 学习条件概率型：$P(X|Y)$，其中 $X = (x_1, x_2, ... , x_n)$ 是输入序列，$Y = (y_1, y_2, ... , y_n)$ 是标记序列；解码过程是给定 $X$ 序列求解令 $P(Y|X)$ 最大的 $Y$ 序列，即：$Y^* = \mbox{arg max}_{Y} P(Y | X)$。
 
 我们首先来条件随机场是如何定义的。
 
 **条件随机场** : 设 $G = (V, E)$ 是一个无向图， $V$ 是结点的集合，$E$ 是无向边的集合。$V$ 中的每个结点对应一个随机变量 $Y_{v}$， $Y = \{Y_{v} | v \in V\}$，其取值范围为可能的标记集合 $\{y\}$，如果以随机变量 $X$ 为条件，每个随机变量 $Y_{v}$ 都满足以下马尔科夫特性：
 $$p(Y_{v}|X, Y_{\omega}, \omega \not= v) = p(Y_{v} | X, Y_{\omega} , \omega \sim v)$$
-其中，$\omega \sim v$ 表示两个结点在图 $G$ 中是临近结点，那么，$(X, Y)$ 是一个条件随机场。
+其中，$\omega \sim v$ 表示两个结点在图 $G$ 中是邻近结点，那么，$(X, Y)$ 是一个条件随机场。
 
 上面的定义并没有对 $X$ 和 $Y$ 的结构给出更多约束，理论上来讲，只要标记序列表示了一定的条件独立性，$G$ 的图结构可以是任意的。对序列标注任务，我们只需要考虑 $X$ 和 $Y$ 都是一个序列，于是可以形成一个如图2所示的简单链式结构图。在图中，输入序列 $X$ 的元素之间并不存在图结构，因为我们只是将它作为条件，并不做任何条件独立假设。
 
@@ -116,20 +116,54 @@ $$Z_i(X) = \sum_{y_i \in Y} \text{exp} \sum_{k}\omega_k f_k (Y, X)$$
 
 $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
 
-解码时，对于给定的输入序列 $X$，通过解码算法求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{y}$。
+解码时，对于给定的输入序列 $X$，通过解码算法求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
 
 ## 深度双向 LSTM （DB-LSTM）SRL 模型
+
+有了上面这些积木，可以开始建立我们的深层双向 LSTM 语义角色标注模型。
+
+在这个任务中，输入是 “谓词” 和 “一句话”，目标是：从句中找到谓词的论元，并标注论元的语义角色。如果，一个句子中可能有 $n$ 谓词，这个句子会被处理 $n$ 次。一个最为直接的模型是下面这样：
+
+- step 1. 构造输入
+ - 输入 1：谓词
+ - 输入 2：句子
+ - 将输入1 扩展成和输入2一样长的序列，用 one-hot 方式表示；
+- step 2. one-hot 方式的谓词序列和句子序列通过词表，转换为实向量表示的词向量序列；
+- setp 3. 以 step 2 的 2 个词向量序列作为上面介绍的双向 LSTM 模型的输入；LSTM 模型学习输入序列表示，得到输出向量序列；
+- step 4. CRF 以 step 3 LSTM 学习到的特征为输入，以标记序列为监督信号，实现序列标注；
+
+大家可以尝试上面这种方法，这里，我们提出一些改进，引入两个简单的特征但对提高系统性能非常有效的特征：（1）谓词上下文；（2）谓词上下文区域标记。
+
+上面的方法中，只用到了谓词的词向量表达谓词相关的所有信息，这种方法始终是非常弱的，特别是，如果谓词在句子中出现多次，有可能引起一定的歧义。从经验出发，谓词前后若干个词的一个小片段，能够提供更丰富的信息，帮助消解词义。于是，我们把这样的经验也添加到我们的模型中。我们为每个谓词同时抽取一个“谓词上下文” 片段，也就是从这个谓词前后各取 $n$ 个词构成的一个窗口片段。在此基础上，同时为句子中的每一个词引入一个 0-1 二值变量，表示他们是否在“谓词上下文”中。图4 谓词上下文窗口为3时，模型输入示例。
+
+<div  align="center">
+<img src="image/input_data.png" width = "50%" height = "50%" align=center /><br>
+图4. 输入数据示例
+</div>
+
+于是，我们将最初模型修改如下：
+
+- step 1. 构造输入
+ - 输入 1：句子序列；
+ - 输入 2：谓词；
+ - 输入 3：对给定的谓词，从句子中抽取这个谓词前后 各$n$ 个词，构成谓词上下文；用 one-hot 方式表示；
+ - 输入 4：标记句子中每一个词是否是谓词上下文中；用 one-hot 方式表示；
+ - 将输入 2 ~ 4 均扩展为和输入 1 一样长的序列；
+- step 2. 输入 1 ~ 4 均通过词表，转换为实向量表示的词向量序列；其中输入 1 ~ 3 共享同一个词表，输入 4 的独有词表；
+- setp 3. setp 2 的 4 个词向量序列作为上面结果的双向 LSTM 模型的输入；LSTM 模型学习输入序列表示，得到输出向量序列；
+- step 4. CRF 以 step 3 LSTM 学习到的特征为输入，以标记序列为监督信号，实现序列标注；
+
+下图是一个深度为 4 的模型结构示意图。
 
 <div  align="center">    
 <img src="image/db_lstm_network.png" width = "60%" height = "60%" align=center /><br>
 图3. SRL任务上的深度双向 LSTM 模型
 </div>
 
-
 # 数据准备
 ## 数据介绍与下载
 
-在此教程中，我们选用 [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL任务开放出的数据集进行示例。运行 ```sh ./get_data.sh``` 会自动从官方网站上下载原始数据，并完成全部的数据准备工作。需要说明的是，CoNLL 2005 SRL 任务的训练数集和开发集并非完全公开，这里获取到的只是测试集，包括 Wall Street Journal 的 23 节和 Brown 语料集中的 3 节。原始数据解压后会得到如下目录结构：
+在此教程中，我们选用 [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL任务开放出的数据集进行示例。运行 ```sh ./get_data.sh``` 会自动从官方网站上下载原始数据，以及一个预训练好的词表，并完成全部的数据准备工作。需要说明的是，CoNLL 2005 SRL 任务的训练数集和开发集并非完全公开，这里获取到的只是测试集，包括 Wall Street Journal 的 23 节和 Brown 语料集中的 3 节。原始数据解压后会得到如下目录结构：
 
 ```text
 conll05st-release/
@@ -158,47 +192,68 @@ conll05st-release/
 
 标注信息源自 Penn TreeBank \[[9](#参考文献)\] 和 PropBank \[[10](#参考文献)\] 的标注结果。PropBank 使用的标注标记和我们在文章一开始示例中使用的标注标签不同，但原理是相同的，关于标注标签含义的说明，请参考论文\[[11](#参考文献)\]。
 
+数据准备阶段， ```extract_dict_feature.py``` 会重新格式化原始数据，抽取谓词上下文（这里取谓词前后各 2 个词，也就是一个长度为 5 的窗口片段），和谓词上下文区域标志。
+
+```data/feature``` 是模型最终的输入，一行是一条训练样本，以 "\t" 分隔，共9列，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。
+
 ## 提供数据给 PaddlePaddle
+1. 使用 hook 函数进行 PaddlePaddle 输入字段的格式定义。
 
-```
-@provider(
-    init_hook=hook,
-    should_shuffle=True,
-    calc_batch_size=get_batch_size,
-    can_over_batch_size=True,
-    cache=CacheType.CACHE_PASS_IN_MEM)
-def process(settings, file_name):
-    with open(file_name, 'r') as fdata:
-        for line in fdata:
-            sentence, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2,  mark, label = \
-                line.strip().split('\t')
+	```python
+	def hook(settings, word_dict, label_dict, predicate_dict, **kwargs):
+	    settings.word_dict = word_dict
+	    settings.label_dict = label_dict
+	    settings.predicate_dict = predicate_dict
+	
+	    #all inputs are integral and sequential type
+	    settings.slots = [
+	        integer_value_sequence(len(word_dict)),
+	        integer_value_sequence(len(word_dict)),
+	        integer_value_sequence(len(word_dict)),
+	        integer_value_sequence(len(word_dict)),
+	        integer_value_sequence(len(word_dict)),
+	        integer_value_sequence(len(word_dict)),
+	        integer_value_sequence(len(predicate_dict)), integer_value_sequence(2),
+	        integer_value_sequence(len(label_dict))
+	    ]
+	```
 
-            words = sentence.split()
-            sen_len = len(words)
-            word_slot = [settings.word_dict.get(w, UNK_IDX) for w in words]
+2. 使用 process 函数将数据逐一提供给 PaddlePaddle，只需要考虑一条数据如何处理。
 
-            predicate_slot = [settings.predicate_dict.get(predicate)] * sen_len
-            ctx_n2_slot = [settings.word_dict.get(ctx_n2, UNK_IDX)] * sen_len
-            ctx_n1_slot = [settings.word_dict.get(ctx_n1, UNK_IDX)] * sen_len
-            ctx_0_slot = [settings.word_dict.get(ctx_0, UNK_IDX)] * sen_len
-            ctx_p1_slot = [settings.word_dict.get(ctx_p1, UNK_IDX)] * sen_len
-            ctx_p2_slot = [settings.word_dict.get(ctx_p2, UNK_IDX)] * sen_len
+	```python
+	def process(settings, file_name):
+	    with open(file_name, 'r') as fdata:
+	        for line in fdata:
+	            sentence, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2,  mark, label = \
+	                line.strip().split('\t')
+	
+	            words = sentence.split()
+	            sen_len = len(words)
+	            word_slot = [settings.word_dict.get(w, UNK_IDX) for w in words]
+	
+	            predicate_slot = [settings.predicate_dict.get(predicate)] * sen_len
+	            ctx_n2_slot = [settings.word_dict.get(ctx_n2, UNK_IDX)] * sen_len
+	            ctx_n1_slot = [settings.word_dict.get(ctx_n1, UNK_IDX)] * sen_len
+	            ctx_0_slot = [settings.word_dict.get(ctx_0, UNK_IDX)] * sen_len
+	            ctx_p1_slot = [settings.word_dict.get(ctx_p1, UNK_IDX)] * sen_len
+	            ctx_p2_slot = [settings.word_dict.get(ctx_p2, UNK_IDX)] * sen_len
+	
+	            marks = mark.split()
+	            mark_slot = [int(w) for w in marks]
+	
+	            label_list = label.split()
+	            label_slot = [settings.label_dict.get(w) for w in label_list]
+	            yield word_slot, ctx_n2_slot, ctx_n1_slot, \
+	                  ctx_0_slot, ctx_p1_slot, ctx_p2_slot, predicate_slot, mark_slot, label_slot
+	
+	
+	```
 
-            marks = mark.split()
-            mark_slot = [int(w) for w in marks]
+# 模型配置说明
 
-            label_list = label.split()
-            label_slot = [settings.label_dict.get(w) for w in label_list]
-            yield word_slot, ctx_n2_slot, ctx_n1_slot, \
-                  ctx_0_slot, ctx_p1_slot, ctx_p2_slot, predicate_slot, mark_slot, label_slot
-
-
-```
-## 模型配置说明
 ## 数据定义
 
-在模型配置中，首先定义通过 define_py_data_sources2 从 dataprovider 中读入数据。
-
+在模型配置中，首先通过 define_py_data_sources2 从 dataprovider 中读入数据。
 
 ```
 define_py_data_sources2(
@@ -213,7 +268,8 @@ define_py_data_sources2(
 )
 ```
 ## 算法配置
-在这里，我们指定了模型的训练参数, 选择L2正则项稀疏、学习率和batch size。
+
+在这里，我们指定了模型的训练参数, 选择 $L_2$ 正则项稀疏、学习率和batch size。
 
 ```
 settings(
@@ -227,6 +283,114 @@ settings(
 ```
 
 ## 模型结构
+
+1. 定义输入数据维度，及模型超参数
+
+	```python
+	mark_dict_len = 2    # 谓上下文区域标志的维度，是一个 0-1 2 值特征，因此维度为 2
+	word_dim = 32        # 词向量维度
+	mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
+	hidden_dim = 512     # LSTM 隐层向量的维度 ： 512 / 4
+	depth = 8            # 栈式 LSTM 的深度
+	
+	ctx_n2 = data_layer(name='ctx_n2_data', size=word_dict_len)
+	ctx_n1 = data_layer(name='ctx_n1_data', size=word_dict_len)
+	ctx_0 = data_layer(name='ctx_0_data', size=word_dict_len)
+	ctx_p1 = data_layer(name='ctx_p1_data', size=word_dict_len)
+	ctx_p2 = data_layer(name='ctx_p2_data', size=word_dict_len)
+	mark = data_layer(name='mark_data', size=mark_dict_len)
+	
+	if not is_predict:
+	    target = data_layer(name='target', size=label_dict_len)    # 标记序列只在训练和测试流程中定义
+	```
+
+2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列
+
+	```python
+	mark_embedding = embedding_layer(
+	    name='word_ctx-in_embedding', size=mark_dim, input=mark, param_attr=std_0)
+	
+	word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
+	emb_layers = [
+	    embedding_layer(
+	        size=word_dim, input=x, param_attr=emb_para) for x in word_input
+	]
+	emb_layers.append(predicate_embedding)
+	emb_layers.append(mark_embedding)
+	```
+
+3. 8 个 LSTM 单元以“正向/反向”的顺序学习对所有输入特征序列进行学习
+
+	```python
+	hidden_0 = mixed_layer(
+	    name='hidden0',
+	    size=hidden_dim,
+	    bias_attr=std_default,
+	    input=[
+	        full_matrix_projection(
+	            input=emb, param_attr=std_default) for emb in emb_layers
+	    ])
+	lstm_0 = lstmemory(
+	    name='lstm0',
+	    input=hidden_0,
+	    act=ReluActivation(),
+	    gate_act=SigmoidActivation(),
+	    state_act=SigmoidActivation(),
+	    bias_attr=std_0,
+	    param_attr=lstm_para_attr)
+		input_tmp = [hidden_0, lstm_0]
+
+	for i in range(1, depth):
+	    mix_hidden = mixed_layer(
+	        name='hidden' + str(i),
+	        size=hidden_dim,
+	        bias_attr=std_default,
+	        input=[
+	            full_matrix_projection(
+	                input=input_tmp[0], param_attr=hidden_para_attr),
+	            full_matrix_projection(
+	                input=input_tmp[1], param_attr=lstm_para_attr)
+	        ])
+	    lstm = lstmemory(
+	        name='lstm' + str(i),
+	        input=mix_hidden,
+	        act=ReluActivation(),
+	        gate_act=SigmoidActivation(),
+	        state_act=SigmoidActivation(),
+	        reverse=((i % 2) == 1),
+	        bias_attr=std_0,
+	        param_attr=lstm_para_attr)
+	
+	    input_tmp = [mix_hidden, lstm]
+	```
+
+4. 取最后一个栈式 LSTM 的输出和这个LSTM单元的 input-to-hidden 映射结果，经过一个全连接层映射，得到最终的特征向量表示
+
+	```python
+	feature_out = mixed_layer(
+	    name='output',
+	    size=label_dict_len,
+	    bias_attr=std_default,
+	    input=[
+	        full_matrix_projection(
+	            input=input_tmp[0], param_attr=hidden_para_attr),
+	        full_matrix_projection(
+	            input=input_tmp[1], param_attr=lstm_para_attr)
+	    ], ) 
+	```
+
+5.  CRF 层在网络的末端，完成序列标注
+
+	```python
+	crf_l = crf_layer(
+	        name='crf',
+	        size=label_dict_len,
+	        input=feature_out,
+	        label=target,
+	        param_attr=ParameterAttribute(
+	            name='crfw', initial_std=default_std, learning_rate=mix_hidden_lr))
+	```
+
 # 训练模型
 执行sh train.sh进行模型的训练。其中指定了总共需要执行500个pass。
 
@@ -255,6 +419,9 @@ I1224 18:12:00.164089  1433 TrainerInternal.cpp:181]  Pass=0 Batch=901 samples=1
 ```
 
 # 总结
+
+语义角色标注是许多自然语言理解任务的重要中间步骤。本章中，我们以语义角色标注任务为例，介绍如何利用 PaddlePaddle 进行序列标注任务。这篇文章所介绍的模型来自我们发表的论文\[[9](#参考文献)\]，由于 CoNLL 2005 SRL 任务的训练数据目前并非完全开放，这篇文章只使用测试数据作为示例，在这个过程中，我们希望减少对其它自然语言处理工具的依赖，利用神经网络数据驱动、端到端学习的能力，得到一个和传统方法可比，甚至更好的模型。在论文中我们证实了这种可能性。关于模型更多的信息和讨论可以在论文中找到。
+
 # 参考文献
 1. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.
 2. Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[J]. arXiv preprint arXiv:1409.0473, 2014.
@@ -264,3 +431,4 @@ I1224 18:12:00.164089  1433 TrainerInternal.cpp:181]  Pass=0 Batch=901 samples=1
 6. Marcus M P, Marcinkiewicz M A, Santorini B. [Building a large annotated corpus of English: The Penn Treebank](http://repository.upenn.edu/cgi/viewcontent.cgi?article=1246&context=cis_reports)[J]. Computational linguistics, 1993, 19(2): 313-330.
 7. Palmer M, Gildea D, Kingsbury P. [The proposition bank: An annotated corpus of semantic roles](http://www.mitpressjournals.org/doi/pdfplus/10.1162/0891201053630264)[J]. Computational linguistics, 2005, 31(1): 71-106.
 8. Carreras X, Màrquez L. [Introduction to the CoNLL-2005 shared task: Semantic role labeling](http://www.cs.upc.edu/~srlconll/st05/papers/intro.pdf)[C]//Proceedings of the Ninth Conference on Computational Natural Language Learning. Association for Computational Linguistics, 2005: 152-164.
+9. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
