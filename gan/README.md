@@ -39,7 +39,7 @@ $$\min_G\max_D \text{Loss} = \min_G\max_D \frac{1}{m}\sum_{i=1}^m[\log D(x^i) + 
 <p align="center">
     <img src="./dcgan.png" width="700" height="300"><br/>
     图3. DCGAN生成器模型结构
-    <a href="https://arxiv.org/pdf/1511.06434v2.pdf/">figure credit</a>
+    <a href="https://arxiv.org/pdf/1511.06434v2.pdf">figure credit</a>
 </p>
 
 
