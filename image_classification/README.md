@@ -67,7 +67,7 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 - Droupout \[[10](#参考文献)\] : 在模型训练阶段随机让一些隐层节点权重不工作，提高网络的泛化能力
 ，一定程度上防止过拟合。
 
-除过上面这些基本的组件外，另一个非常值得一提是2015年提出的Batch Normalization(BN)算法 \[[14](#参考文献)\]，作者指出在训练过程中由于每层参数不断更新，会导致下一次输入分布发生变化，这样导致训练过程需要精心设计超参数。而BN算法是每个batch对网络中的每一层的特征做归一化，使得每层分布相对稳定，起到一定的正则作用，同时也弱化了超参数的设计，经过实验证明，BN加速了训练过程。BN在后来较深的模型中被广泛使用。
+传统CNN包含卷积层、全连接层等组件，采用softmax多类别分类器和多类交叉熵损失函数。另一个非常值得一提是2015年提出的Batch Normalization(BN)算法 \[[14](#参考文献)\]，作者指出在训练过程中由于每层参数不断更新，会导致下一次输入分布发生变化，这样导致训练过程需要精心设计超参数。而BN算法是每个batch对网络中的每一层的特征做归一化，使得每层分布相对稳定，起到一定的正则作用，同时也弱化了超参数的设计，经过实验证明，BN加速了训练过程。BN在后来较深的模型中被广泛使用。
 
 接下来我们主要介绍VGG，GooleNet和ResNet网络结构。
 
@@ -425,7 +425,7 @@ Tester.cpp:115]  Test samples=10000 cost=1.99246 Eval: classification_error_eval
 
 可以按照下面方式预测图片的类别，默认使用GPU预测，如果使用CPU预测，在后面加参数 `-c`即可。
 
-```python
+```bash
 python classify.py --job=predict --model=output/pass-00299 --data=image/dog.png # -c
 ```
 
@@ -439,7 +439,7 @@ Label of image/dog.png is: 5
 
 可以按照下面方式对图片提取特征，和预测使用方式不同的是指定job类型为extract，并需要指定提取的层。`classify.py` 默认已第一层卷积特征为例提取特征，并给出了可视化图，如图10所示，VGG模型的第一层卷积有64个通道，图 13 展示的为每个通道的灰度图。
 
-```python
+```bash
 python classify.py --job=extract --model=output/pass-00299 --data=image/dog.png # -c
 ```
 
@@ -481,17 +481,10 @@ python classify.py --job=extract --model=output/pass-00299 --data=image/dog.png 
 
 [13] Lin, M., Chen, Q., and Yan, S. Network in network. In Proc. ICLR, 2014.
 
-[14] S. Ioffe and C. Szegedy. Batch normalization: Accelerating deep
-network training by reducing internal covariate shift. In ICML, 2015.
-     
+[14] S. Ioffe and C. Szegedy. Batch normalization: Accelerating deep network training by reducing internal covariate shift. In ICML, 2015.
+
 [15] K. He, X. Zhang, S. Ren, J. Sun. Deep Residual Learning for Image Recognition. CVPR 2016.
 
 [16] Szegedy, C., Vanhoucke, V., Ioffe, S., Shlens, J., Wojna, Z.: Rethinking the incep-tion architecture for computer vision. In: CVPR. (2016).
 
 [17] Szegedy, C., Ioffe, S., Vanhoucke, V.: Inception-v4, inception-resnet and the impact of residual connections on learning. arXiv:1602.07261 (2016).
-
-
-
-
-
-                                                                                             

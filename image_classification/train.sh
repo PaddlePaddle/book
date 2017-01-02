@@ -14,8 +14,8 @@
 # limitations under the License.
 set -e
 
-config=models/resnet.py
-#config=models/vgg.py
+#config=models/resnet.py
+config=models/vgg.py
 output=output
 log=train.log
 
@@ -26,4 +26,4 @@ paddle train \
     --log_period=100 \
     --num_passes=300 \
     --save_dir=$output
-    #2>&1 | tee $log
+    2>&1 | tee $log
