@@ -16,6 +16,7 @@ import numpy as np
 import cPickle
 from paddle.trainer.PyDataProvider2 import *
 
+
 def initializer(settings, mean_path, is_train, **kwargs):
     settings.is_train = is_train
     settings.input_size = 3 * 32 * 32
@@ -37,7 +38,4 @@ def process(settings, file_list):
             labels = batch['labels']
             for im, lab in zip(images, labels):
                 im = im - settings.mean
-                yield {
-                    'image': im.astype('float32'),
-                    'label': int(lab)
-                }
+                yield {'image': im.astype('float32'), 'label': int(lab)}

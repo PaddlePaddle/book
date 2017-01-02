@@ -30,7 +30,7 @@ settings(
     learning_rate_decay_b=50000 * 100,
     learning_rate_schedule='discexp',
     learning_method=MomentumOptimizer(0.9),
-    regularization=L2Regularization(0.0005 * 128),)
+    regularization=L2Regularization(0.0005 * 128), )
 
 
 def vgg_bn_drop(input):
@@ -54,18 +54,12 @@ def vgg_bn_drop(input):
     tmp = conv_block(tmp, 512, 3, [0.4, 0.4, 0])
 
     tmp = dropout_layer(input=tmp, dropout_rate=0.5)
-    tmp = fc_layer(
-        input=tmp,
-        size=512,
-        act=LinearActivation())
-    tmp = batch_norm_layer(input=tmp,
-        act=ReluActivation(),
-        layer_attr=ExtraAttr(drop_rate=0.5))
-    tmp = fc_layer(
-        input=tmp,
-        size=512,
-        act=LinearActivation())
+    tmp = fc_layer(input=tmp, size=512, act=LinearActivation())
+    tmp = batch_norm_layer(
+        input=tmp, act=ReluActivation(), layer_attr=ExtraAttr(drop_rate=0.5))
+    tmp = fc_layer(input=tmp, size=512, act=LinearActivation())
     return tmp
+
 
 datadim = 3 * 32 * 32
 classdim = 10

@@ -59,12 +59,14 @@ def shortcut(ipt, n_in, n_out, stride):
     else:
         return ipt
 
+
 def basicblock(ipt, ch_out, stride):
     ch_in = ipt.num_filters
     tmp = conv_bn_layer(ipt, ch_out, 3, stride, 1)
     tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, LinearActivation())
     short = shortcut(ipt, ch_in, ch_out, stride)
     return addto_layer(input=[ipt, short], act=ReluActivation())
+
 
 def bottleneck(ipt, ch_out, stride):
     ch_in = ipt.num_filter
@@ -74,55 +76,49 @@ def bottleneck(ipt, ch_out, stride):
     short = shortcut(ipt, ch_in, ch_out, stride)
     return addto_layer(input=[ipt, short], act=ReluActivation())
 
+
 def layer_warp(block_func, ipt, features, count, stride):
     tmp = block_func(ipt, features, stride)
     for i in range(1, count):
         tmp = block_func(tmp, features, 1)
     return tmp
 
+
 def resnet_imagenet(ipt, depth=50):
-    cfg = {18 : ([2,2,2,1], basicblock),
-           34 : ([3,4,6,3], basicblock),
-           50 : ([3,4,6,3], bottleneck),
-           101: ([3,4,23,3], bottleneck),
-           152: ([3,8,36,3], bottleneck)}
+    cfg = {
+        18: ([2, 2, 2, 1], basicblock),
+        34: ([3, 4, 6, 3], basicblock),
+        50: ([3, 4, 6, 3], bottleneck),
+        101: ([3, 4, 23, 3], bottleneck),
+        152: ([3, 8, 36, 3], bottleneck)
+    }
     stages, block_func = cfg[depth]
-    tmp = conv_bn_layer(ipt,
-        ch_in=3,
-        ch_out=64,
-        filter_size=7,
-        stride=2,
-        padding=3)
+    tmp = conv_bn_layer(
+        ipt, ch_in=3, ch_out=64, filter_size=7, stride=2, padding=3)
     tmp = img_pool_layer(input=tmp, pool_size=3, stride=2)
-    tmp = layer_warp(block_func, tmp,  64, stages[0], 1)
+    tmp = layer_warp(block_func, tmp, 64, stages[0], 1)
     tmp = layer_warp(block_func, tmp, 128, stages[1], 2)
     tmp = layer_warp(block_func, tmp, 256, stages[2], 2)
     tmp = layer_warp(block_func, tmp, 512, stages[3], 2)
-    tmp = img_pool_layer(input=tmp,
-                         pool_size=7,
-                         stride=1,
-                         pool_type=AvgPooling())
+    tmp = img_pool_layer(
+        input=tmp, pool_size=7, stride=1, pool_type=AvgPooling())
 
     tmp = fc_layer(input=tmp, size=1000, act=SoftmaxActivation())
     return tmp
 
+
 def resnet_cifar10(ipt, depth=56):
-    assert((depth - 2) % 6 == 0, 'depth should be one of 20, 32, 44, 56, 110, 1202')
+    assert ((depth - 2) % 6 == 0,
+            'depth should be one of 20, 32, 44, 56, 110, 1202')
     n = (depth - 2) / 6
     nStages = {16, 64, 128}
-    tmp = conv_bn_layer(ipt,
-        ch_in=3,
-        ch_out=16,
-        filter_size=3,
-        stride=1,
-        padding=1)
+    tmp = conv_bn_layer(
+        ipt, ch_in=3, ch_out=16, filter_size=3, stride=1, padding=1)
     tmp = layer_warp(basicblock, tmp, 16, n, 1)
     tmp = layer_warp(basicblock, tmp, 32, n, 2)
     tmp = layer_warp(basicblock, tmp, 64, n, 2)
-    tmp = img_pool_layer(input=tmp,
-                         pool_size=8,
-                         stride=1,
-                         pool_type=AvgPooling())
+    tmp = img_pool_layer(
+        input=tmp, pool_size=8, stride=1, pool_type=AvgPooling())
     return tmp
 
 
