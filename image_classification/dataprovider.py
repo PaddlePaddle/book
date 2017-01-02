@@ -14,7 +14,6 @@
 
 import numpy as np
 import cPickle
-
 from paddle.trainer.PyDataProvider2 import *
 
 def initializer(settings, mean_path, is_train, **kwargs):

@@ -14,41 +14,6 @@
 
 from paddle.trainer_config_helpers import *
 
-def vgg_bn_drop(input, num_channels):
-    def conv_block(ipt, num_filter, groups, dropouts, num_channels_=None):
-        return img_conv_group(
-            input=ipt,
-            num_channels=num_channels_,
-            pool_size=2,
-            pool_stride=2,
-            conv_num_filter=[num_filter] * groups,
-            conv_filter_size=3,
-            conv_act=ReluActivation(),
-            conv_with_batchnorm=True,
-            conv_batchnorm_drop_rate=dropouts,
-            pool_type=MaxPooling())
-
-    tmp = conv_block(input, 64, 2, [0.3, 0], num_channels)
-    tmp = conv_block(tmp, 128, 2, [0.4, 0])
-    tmp = conv_block(tmp, 256, 3, [0.4, 0.4, 0])
-    tmp = conv_block(tmp, 512, 3, [0.4, 0.4, 0])
-    tmp = conv_block(tmp, 512, 3, [0.4, 0.4, 0])
-
-    tmp = dropout_layer(input=tmp, dropout_rate=0.5)
-    tmp = fc_layer(
-        input=tmp,
-        size=512,
-        act=LinearActivation())
-    tmp = batch_norm_layer(input=tmp,
-        act=ReluActivation(),
-        layer_attr=ExtraAttr(drop_rate=0.5))
-    tmp = fc_layer(
-        input=tmp,
-        size=512,
-        act=LinearActivation())
-    tmp = fc_layer(input=tmp, size=10, act=SoftmaxActivation())
-    return tmp
-
 is_predict = get_config_arg("is_predict", bool, False)
 if not is_predict:
     define_py_data_sources2(
@@ -67,12 +32,49 @@ settings(
     learning_method=MomentumOptimizer(0.9),
     regularization=L2Regularization(0.0005 * 128),)
 
-data_size = 3 * 32 * 32
-class_num = 10
-data = data_layer(name='image', size=data_size)
-out = vgg_bn_drop(data, 3)
+
+def vgg_bn_drop(input):
+    def conv_block(ipt, num_filter, groups, dropouts, num_channels=None):
+        return img_conv_group(
+            input=ipt,
+            num_channels=num_channels,
+            pool_size=2,
+            pool_stride=2,
+            conv_num_filter=[num_filter] * groups,
+            conv_filter_size=3,
+            conv_act=ReluActivation(),
+            conv_with_batchnorm=True,
+            conv_batchnorm_drop_rate=dropouts,
+            pool_type=MaxPooling())
+
+    tmp = conv_block(input, 64, 2, [0.3, 0], 3)
+    tmp = conv_block(tmp, 128, 2, [0.4, 0])
+    tmp = conv_block(tmp, 256, 3, [0.4, 0.4, 0])
+    tmp = conv_block(tmp, 512, 3, [0.4, 0.4, 0])
+    tmp = conv_block(tmp, 512, 3, [0.4, 0.4, 0])
+
+    tmp = dropout_layer(input=tmp, dropout_rate=0.5)
+    tmp = fc_layer(
+        input=tmp,
+        size=512,
+        act=LinearActivation())
+    tmp = batch_norm_layer(input=tmp,
+        act=ReluActivation(),
+        layer_attr=ExtraAttr(drop_rate=0.5))
+    tmp = fc_layer(
+        input=tmp,
+        size=512,
+        act=LinearActivation())
+    return tmp
+
+datadim = 3 * 32 * 32
+classdim = 10
+data = data_layer(name='image', size=datadim)
+net = vgg_bn_drop(data)
+out = fc_layer(input=net, size=classdim, act=SoftmaxActivation())
 if not is_predict:
-    lbl = data_layer(name="label", size=class_num)
-    outputs(classification_cost(input=out, label=lbl))
+    lbl = data_layer(name="label", size=classdim)
+    cost = classification_cost(input=out, label=lbl)
+    outputs(cost)
 else:
     outputs(out)

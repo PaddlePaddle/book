@@ -14,4 +14,4 @@
 # limitations under the License.
 set -e
 
-python classify.py --job=predict --model=output/pass-00299 --data=image/dog.png # -c
+python classify.py --job=extract --model=output/pass-00299 --data=image/dog.png # -c
