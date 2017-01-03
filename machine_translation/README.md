@@ -38,15 +38,15 @@ La dispute fait rage entre les grands constructeurs aéronautiques à propos de 
 ```
 - 第一行的“0”和第6行的“1”表示翻译第几条法语句子。
 - 其他六行列出了翻译结果，其中右起第一列是生成的英语句子，右起第二列是该条英语句子的得分（从大到小），右起第三列是该条句子的序号。
-- 另外有两个特殊表示：`<e>`表示句子的结尾，`unk`表示无法识别（即不在训练字典中）的单词。
+- 另外有两个特殊表示：`<e>`表示句子的结尾，`<unk>`表示无法识别（即不在训练字典中）的单词。
 
 ## 模型概览
 
-本节依次介绍GRU，双向RNN模型，NMT中典型的“编码器-解码器”（Encoder-Decoder）框架和“注意力”（Attention）机制，以及集束搜索（Beam Search）算法。
+本节依次介绍GRU（Gated Recurrent Unit，门控循环单元），双向RNN模型，NMT中典型的“编码器-解码器”（Encoder-Decoder）框架和“注意力”（Attention）机制，以及集束搜索（Beam Search）算法。
 
 ### GRU
 
-GRU（Gated Recurrent Unit，门控循环单元）\[[1](#参考文献)\]是Cho等人在LSTM上提出的简化版本，如下图所示。GRU单元只有两个门，分别是重置门（Reset Gate）和更新门（Update Gate），用于控制记忆内容是否能继续保存下去。
+GRU\[[1](#参考文献)\]是Cho等人在LSTM上提出的简化版本，如下图所示。GRU单元只有两个门，分别是重置门（Reset Gate）和更新门（Update Gate），用于控制记忆内容是否能继续保存下去。
 <p align="center">
 <img src="image/gru.png"><br/>
 图2. GRU门控循环单元
@@ -56,9 +56,9 @@ GRU（Gated Recurrent Unit，门控循环单元）\[[1](#参考文献)\]是Cho�
 
 ### 双向RNN模型
 
-理论上，RNN $t$时刻的输出编码了所有到$t$时刻之前的历史信息。然而，标准的神经网络通常都忽略了未来时刻的上下文信息。因此，如果能像访问历史上下文信息一样来访问未来上下文信息，很多序列学习任务都能从中获益。双向RNN就是解决这一问题的一种简单有效的方法，由Bengio等人在论文\[[1](#参考文献),[3](#参考文献)\]中提出。
+理论上，RNN $t$时刻的输出，编码了所有到$t$时刻之前的历史信息。然而，标准的神经网络通常都忽略了未来时刻的下文信息。因此，如果能像访问历史上文信息一样来访问未来下文信息，很多序列学习任务都能从中获益。双向RNN就是解决这一问题的一种简单有效的方法，由Bengio等人在论文\[[1](#参考文献),[3](#参考文献)\]中提出。
 
-双向RNN的每一个训练序列，向前和向后分别是两个循环神经网络（RNN），而且都连接着一个输出层。这个结构提供给输出层：输入序列中每一个点完整的过去和未来的上下文信息。下图展示的是一个按时间步展开的双向循环神经网络。该网络包含一个前向（forward）和一个后向（backward）RNN，其中有六个权值：输入到前向隐层和后向隐层（$w_1, w_3$），隐层到隐层自己（$w_2,w_5$），前向隐层和后向隐层到输出层（$w_4, w_6$）。注意，该网络的前向隐层和后向隐层之间没有信息流。
+双向RNN的每一个训练序列，向前和向后分别是两个循环神经网络（RNN），而且都连接着一个输出层。这个结构提供给输出层：输入序列中每一个点完整的过去和未来的下文信息。下图展示的是一个按时间步展开的双向循环神经网络。该网络包含一个前向（forward）和一个后向（backward）RNN，其中有六个权值：输入到前向隐层和后向隐层（$w_1, w_3$），隐层到隐层自己（$w_2,w_5$），前向隐层和后向隐层到输出层（$w_4, w_6$）。注意，该网络的前向隐层和后向隐层之间没有信息流。
 
 <p align="center">
 <img src="image/bi_rnn.png"><br/>
@@ -76,40 +76,46 @@ GRU（Gated Recurrent Unit，门控循环单元）\[[1](#参考文献)\]是Cho�
 #### 编码器
 
 编码阶段分为三步：
-- 独热编码（one-hot coding，1-of-K coding）表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词表示成一个向量$w_i\epsilon R^{\left | V \right |,i=1,2,...,T}$ （T暂不包括句子结束标记`<EOS>`）。这个向量的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
+- 独热编码（one-hot coding，1-of-K coding）表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词表示成一个向量$w_i\epsilon R^{\left | V \right |},i=1,2,...,T$ （T暂不包括句子结束标记`<EOS>`）。这个向量的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
 - 映射到低维语义空间的词向量：独热编码表示存在两个问题，1）生成的向量维度往往很大，容易造成维数灾难；2）无法刻画词与词之间的关系（如语义相似性，也就是无法很好地表达语义）。因此，需再映射到低维的语义空间，由一个固定维度的稠密向量（称为词向量）表示。记映射矩阵为$C\epsilon R^{K\times \left | V \right |}$，用$s_i=Cw_i$表示第$i$个词的词向量，向量维度$K$通常取100-500之间。
-- 用RNN压缩源语言词序列：这一过程的计算公式为$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$，其中$h_0$是一个全零的向量，最后得到的$h_T$就是整个源语言句子的压缩表示。
+- 用RNN编码源语言词序列：这一过程的计算公式为$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$，其中$h_0$是一个全零的向量，最后得到的$h_T$就是整个源语言句子的编码。
+
+编码阶段也可使用双向GRU，即一个词的隐层状态不仅编码了前面词的信息，还编码了后面词的信息。具体来说，前向GRU按照词序列$(x_1,x_2,...,x_T)$的顺序依次编码源语言端词，并得到一系列隐层状态$(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$。类似得，后向GRU按照$(x_T,x_{T-1},...,x_1)$的顺序依次压缩源语言端词，得到$(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$。最后对于词$x_i$，通过连接两个GRU的结果得到它的隐层状态，即$h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T}$。
+
+<p align="center">
+<img src="image/encoder_attention.png"><br/>
+图5. 使用双向GRU的编码器
+</p>
 
 #### 解码器
 
-解码阶段的总体思路是：根据源语言句子的压缩表示$c$、当前单词$u_i$和当前RNN隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$。然后用softmax归一化得到概率分布$p_{i+1}$，以此采样出单词$u_{i+1}$。不断重复上述操作，直到获得句子结束标记`<EOS>`或超过RNN循环次数为止。
+解码阶段的总体思路是：根据源语言句子的上下文向量（context vector）c、解码出来的第$i$个单词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$，然后用softmax归一化得到概率分布$p_{i+1}$。训练模式时，根据$p_{i+1}$和目标语言词在字典中的标签计算代价，重复上述操作，直到目标语言序列中的所有词处理完毕。生成模式时，根据$p_{i+1}$采样出单词$u_{i+1}$，重复上述操作，直到获得句子结束标记`<EOS>`或超过句子的最大生成长度为止。
 
 $z_i$的计算公式如下：
+
 $$z_{i+1}=\phi _{\theta '}\left ( c,u_i,z_i \right )$$
-其中$c=h_T$是源语言句子的压缩表示，$z_0$是一个全零的向量，$u_0$是源语言句子的结束标记`<EOS>`。
+
+其中$c=h_T$是源语言句子的上下文向量，$z_0$是一个全零的向量，$u_0$是源语言句子的结束标记`<EOS>`。
 
 概率分布公式如下：
+
 $$p\left ( u_i|u_{<i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$$
+
 其中$W_sz_i+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到每个词的概率$p_i$。
 
 ### 注意力机制
 
-在上述框架中，由于编码阶段压缩成的固定维度的向量，需要包含源语言序列的所有信息，对于长句子而言很难达到的。因此，Bahdanau等人\[[3](#参考文献)\]引入注意力（Attention）机制，其基本思想是目标语言端的词，往往只和源语言端的部分词相关。下面分别介绍基于注意力机制的编码器-解码器结构。
-
-#### 基于注意力机制的编码器
-
-编码阶段使用双向GRU，即一个词的隐层状态不仅压缩了前面词的信息，还压缩了后面词的信息。具体来说，前向GRU按照词序列$(x_1,x_2,...,x_T)$的顺序依次压缩源语言端词，并得到一系列隐层状态$(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$。类似得，后向GRU按照$(x_T,x_{T-1},...,x_1)$的顺序依次压缩源语言端词，得到$(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$。最后对于词$x_i$，通过连接两个GRU的结果得到它的隐层状态，即$h_i=\left [ \overrightarrow{h_i^T}),\overleftarrow{h_i^T}) \right ]^{T}$。
-
-<p align="center">
-<img src="image/encoder_attention.png"><br/>
-图5. 基于注意力机制的编码器
-</p>
-
-#### 基于注意力机制的解码器
+在上述框架中，由于编码阶段压缩成的固定维度的向量，需要包含源语言序列的所有信息，对于长句子而言很难达到的。因此，Bahdanau等人\[[3](#参考文献)\]引入注意力（Attention）机制，其基本思想是目标语言端的词，往往只和源语言端的部分词相关。下面介绍在注意力机制的解码器结构。
 
 与简单的解码器不同，这里$z_i$的计算公式为：
+
 $$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$$
-可见，源语言句子的压缩表示由原来的$c$变成了$c_i$，即针对每一个目标词$y_i$，都有一个特定的$c_i$与之对应。其中$c_i$可以通过各个$h_i$的加权平均得到：$c_i=\sum _{j=1}^{T}\mathbf{a}_{ij}h_j$，$\mathbf{a}_i=\left[ \mathbf{a}_{i1},\mathbf{a}_{i2},...,\mathbf{a}_{iT}\right ]$为权重（具体权重计算公式见\[[3](#参考文献)\]）。
+
+可见，源语言句子的上下文向量由原来的$c$变成了第$i$个$c_i$，即针对每一个待解码的词$u_i$，都有一个特定的$c_i$与之对应。$c_i$的计算公式如下：
+
+$$c_i=\sum _{j=1}^{T}\mathbf{a}_{ij}h_j, \mathbf{a}_i=\left[ \mathbf{a}_{i1},\mathbf{a}_{i2},...,\mathbf{a}_{iT}\right ]$$
+
+从公式中可以看出，注意力机制即是通过对各个$h_j$进行加权平均实现的，其中权重$a_{ij}$表示待解码的词$u_i$对每个源词语$h_i$不同程度的注意力。具体权重计算公式见\[[3](#参考文献)\]。
 
 <p align="center">
 <img src="image/decoder_attention.png"><br/>
@@ -409,7 +415,7 @@ settings(
        size=word_vector_dim,
        param_attr=ParamAttr(name='_source_language_embedding'))
    ```
-   2.3 用双向GRU压缩源语言序列，将结果拼接成$\mathbf{h}$。
+   2.3 用双向GRU编码源语言序列，将结果拼接成$\mathbf{h}$。
   
    ```python
    src_forward = simple_gru(input=src_embedding, size=encoder_size)
@@ -420,13 +426,13 @@ settings(
 
 3. 接着，定义基于注意力机制的解码器框架。
 
-   3.1 对源语言序列压缩后的结果，过一个前馈神经网络（Feed Forward Neural Network）。该层是3.3中`simple_attention`函数内部的一个计算步骤，但由于每个时间步该层的计算过程都一样，所以这里提取到外面单独计算以节省时间。
+   3.1 对源语言序列编码后的结果，过一个前馈神经网络（Feed Forward Neural Network）。该层是3.3中`simple_attention`函数内部的一个计算步骤，但由于每个时间步该层的计算过程都一样，所以这里提取到外面单独计算以节省时间。
    
    ```python
    with mixed_layer(size=decoder_size) as encoded_proj:
        encoded_proj += full_matrix_projection(input=encoded_vector)
    ```
-   3.2 取源语言序列压缩后的最后一个词（即反向GRU的第一个词）传给解码阶段的RNN。即$\mathbf{c_0}=\mathbf{h_T}$。
+   3.2 取源语言序列编码后的最后一个词（即反向GRU的第一个词）传给解码阶段的RNN。即$\mathbf{c_0}=\mathbf{h_T}$。
 
    ```python
    backward_first = first_seq(input=src_backward)
@@ -439,7 +445,7 @@ settings(
 
       - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot，即$\mathbf{z_0}=\mathbf{c_0}$）。
       - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}\mathbf{a}{ij}h_j$。其中，enc_vec是$h_j$，enc_proj见3.1，权重$\mathbf{a}{ij}$的计算已经封装在`simple_attention`函数中。
-      - decoder_inputs记录了针对该目标词的源语言句子的压缩表示$c_i$，和当前目标词current_word（即$u_i$）。
+      - decoder_inputs记录了针对该目标词的源语言句子的编码$c_i$，和当前目标词current_word（即$u_i$）。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{<i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。 
         
