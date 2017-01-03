@@ -14,7 +14,7 @@
 图1. 基于神经网络的机器翻译系统
 </p>
 
-本教程主要介绍NMT模型，以及如何用PaddlePaddle来训练一个法英翻译（从法语翻译到英语）的模型。另外，由于NMT属于更抽象的Seq2Seq（Sequence to Sequence，序列到序列）问题，因此，Seq2Seq中的query改写（query rewriting）、图像描述（image captioning）等问题都可以用本教程的模型来解决。
+本教程主要介绍NMT模型，以及如何用PaddlePaddle来训练一个法英翻译（从法语翻译到英语）的模型。
 
 ## 效果展示
 
@@ -639,6 +639,8 @@ BLEU(Bilingual Evaluation understudy)是一种广泛使用的机器翻译自动�
 其中，FILE为需要评估的文件名，BEAMSIZE为集束宽度。
 
 ## 总结
+
+端到端的神经网络机器翻译是近几年兴起的一种全新的机器翻译方法。本章中，我们介绍了NMT中典型的“编码器-解码器”框架和“注意力”机制。由于NMT属于更抽象的Seq2Seq（Sequence to Sequence，序列到序列）问题，因此，Seq2Seq中的query改写（query rewriting）、图像描述（image captioning）等问题都可以用本教程的模型来解决。
 
 ## 参考文献
 
