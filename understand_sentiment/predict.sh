@@ -20,7 +20,7 @@ model=model_output/pass-00002/
 config=trainer_config.py
 label=data/pre-imdb/labels.list
 cat ./data/aclImdb/test/pos/10007_10.txt | python predict.py \
-     --tconf=$config\
+     --tconf=$config \
      --model=$model \
      --label=$label \
      --dict=./data/pre-imdb/dict.txt \

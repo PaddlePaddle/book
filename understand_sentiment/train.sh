@@ -14,10 +14,8 @@
 # limitations under the License.
 set -e
 
-config=trainer_config.py
-output=./model_output
-paddle train --config=$config \
-             --save_dir=$output \
+paddle train --config=trainer_config.py \
+             --save_dir=./model_output \
              --job=train \
              --use_gpu=false \
              --trainer_count=4 \

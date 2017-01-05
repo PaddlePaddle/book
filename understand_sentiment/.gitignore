@@ -6,7 +6,5 @@ logs/
 model_output
 dataprovider_copy_1.py
 model.list
-test.log
-train.log
 *.pyc
 .DS_Store
