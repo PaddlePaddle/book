@@ -15,14 +15,14 @@
 
 在自然语言处理中，情感分析属于典型的**文本分类**问题，即，把需要进行情感分析的文本划分为其所属类别。文本分类涉及文本表示和分类方法。在深度学习的方法出现之前，主流的文本表示方法为BOW(bag of words)，话题模型等等；分类方法有SVM(support vector machine), LR(logistic regression), [Boosting](https://en.wikipedia.org/wiki/Boosting_(machine_learning))等等。BOW忽略了词的顺序信息，而且是高维度的稀疏向量表示，它并不能充分表示文本的语义信息。例如，句子“这部电影糟糕透了”和“一个乏味，空洞，没有内涵的作品”在情感分析中具有很高的语义相似度，但是它们的BOW表示的相似度为0。又如，句子“一个空洞，没有内涵的作品”和“一个不空洞而且有内涵的作品”的BOW相似度很高，但实际上它们的意思很不一样。本章我们所要介绍的深度学习模型克服了BOW表示的上述缺陷，它在考虑词的顺序的基础上把文本映射到低维度的语义空间，并且以端对端（end to end）的方式进行文本表示及分类，其性能相对于传统方法有显著的提升。
 ## 模型概览
-本章所使用的文本表示模型为卷积神经网络（Convolutional Neural Networks）和循环神经网络(Recurrent Neural Networks)及其拓展。我们首先介绍处理文本的卷积神经网络。
+本章所使用的文本表示模型为卷积神经网络（Convolutional Neural Networks）和循环神经网络(Recurrent Neural Networks)及其扩展。我们首先介绍处理文本的卷积神经网络。
 ### 文本卷积神经网络（CNN）
 卷积神经网络经常用来处理具有类似网格拓扑结构（grid-like topology）的数据。例如，图像可以视为2D网格的像素点，自然语言可以视为1D的词序列。卷积神经网络可以提取多种局部特征，并对其进行组合抽象得到更高级的特征表示，且其对于数据的某些变化具有不变性。大量实验表明，卷积神经网络能高效的对图像及文本问题进行建模处理。本小结我们讲解如何使用卷积神经网络处理文本（以句子为例）\[[1](#参考文献)\]。
 <p align="center">
 <img src="image/text_cnn.png" width = "90%" height = "90%" align="center"/><br/>
 图 1 卷积神经网络文本分类模型
 </p>
-假设一个句子的长度为$n$，其中第$i$个词的词向量（word embedding）为$x_i\in\mathbb{R}^k$,维度大小为$k$。我们可以将整个句子表示为$x_{1:n}=x_1\oplus x_2\oplus \ldots \oplus x_n$，其中，$\oplus$表示拼接（concatenation）操作。一般地，我们用$x_{i:i+j}$表示词序列$x_{i},x_{i+1},\ldots,x_{i+j}$的拼接。卷积操作把卷积核(kernel)$w\in\mathbb{R}^{hk}$应用于包含$h$个词的窗口$x_{i:i+h-1}$，得到这$h$个词的特征值$c_i$：
+假设一个句子的长度为$n$，其中第$i$个词的词向量（word embedding）为$x_i\in\mathbb{R}^k$,维度大小为$k$。我们可以将整个句子表示为$x_{1:n}=x_1\oplus x_2\oplus \ldots \oplus x_n$，其中，$\oplus$表示拼接（concatenation）操作。一般地，我们用$x_{i:i+j}$表示词序列$x_{i},x_{i+1},\ldots,x_{i+j}$的拼接。卷积操作把卷积核(kernel)$w\in\mathbb{R}^{hk}$应用于包含$h$个词的窗口$x_{i:i+h-1}$，得到特征$c_i$：
 
 $$c_i=f(w\cdot x_{i:i+h-1}+b)$$
 
@@ -43,7 +43,7 @@ $$\hat c=max(c)$$
 <img src="image/rnn.png" width = "70%" height = "70%" align="center"/><br/>
 图 2 循环神经网络按时间展开的示意图
 </p>
-循环神经网络按时间展开后如图2所示：在第$t$时刻，网络读入第$t$个输入$x_t$（向量表示）及前一时刻隐层的状态$h_{t-1}$（向量表示，$h_0$一般初始化为$0$向量），计算得出本时刻隐藏层的值$h_t$，重复这一步骤直至读完所有输入。如果将循环神经网络所表示的函数记为$f$，则其公式可表示为：
+循环神经网络按时间展开后如图2所示：在第$t$时刻，网络读入第$t$个输入$x_t$（向量表示）及前一时刻隐层的状态值$h_{t-1}$（向量表示，$h_0$一般初始化为$0$向量），计算得出本时刻隐层的状态值$h_t$，重复这一步骤直至读完所有输入。如果将循环神经网络所表示的函数记为$f$，则其公式可表示为：
 
 $$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{h-1}+b_h)$$
 
@@ -52,7 +52,7 @@ $$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{h-1}+b_h)$$
 在处理自然语言时，一般会先将词（one-hot表示）映射为其词向量（word embedding）表示，然后再作为循环神经网络每一时刻的输入$x_t$。此外，可以根据实际需要的不同在循环神经网络的隐层上连接其它层。如，可以把一个循环神经网络的隐层输出连接至下一个循环神经网络的输入构建深层（deep or stacked）循环神经网络，或者提取最后一个时刻的隐层状态作为句子表示进而使用分类模型等等。  
 
 ### 长时短期记忆（LSTM）
-循环神经网络隐状态的输入来源于当前输入和前一时刻隐状态的值，这会导致很久以前的输入容易被覆盖掉。实际上，人们发现当序列很长时，循环神经网络就会表现很差（远距离依赖问题），训练过程中会出现梯度消失或爆炸现象\[[6](#参考文献)\]。为了解决这一问题，Hochreiter S, Schmidhuber J. (1997)\[[5](#参考文献)\]提出了lstm(long short term memory)。  
+循环神经网络隐状态的输入来源于当前输入和前一时刻隐状态的值，这会导致很久以前的输入容易被覆盖掉。实际上，人们发现当序列很长时，循环神经网络就会表现很差（远距离依赖问题），训练过程中会出现梯度消失或爆炸现象\[[6](#参考文献)\]。为了解决这一问题，Hochreiter S, Schmidhuber J. (1997)提出了lstm(long short term memory\[[5](#参考文献)\])。  
 
 相比于简单的循环神经网络，lstm增加了记忆单元$c$、输入门$i$、遗忘门$f$及输出门$o$，这些门及记忆单元组合起来大大提升了循环神经网络处理远距离依赖问题的能力，若将基于lstm的循环神经网络表示的函数记为$F$，则其公式为：
 
@@ -66,7 +66,7 @@ c_t & = f_t\odot c_{t-1}+i_t\odot tanh(W_{xc}x_t+W_{hc}h_{h-1}+b_c)\\\\
 o_t & = \sigma(W_{xo}x_t+W_{ho}h_{h-1}+W_{co}c_{t}+b_o)\\\\
 h_t & = o_t\odot tanh(c_t)\\\\
 \end{align}
-其中，$i_t, f_t, c_t, o_t$分别表示输入门，遗忘门，记忆单元及输出门的向量值，带角标的$W$及$b$为模型参数，$tanh$为逐元素的双曲正切函数，$\odot$表示逐元素的乘法操作。输入门控制着新输入进入记忆单元$c$的强度，遗忘门控制着记忆单元维持上一时刻值的强度，输出门控制着输出记忆单元的强度。三种门的计算方式类似，但有着完全不同的参数，即各自以不同的方式控制着记忆单元$c$，如图3所示：
+其中，$i_t, f_t, c_t, o_t$分别表示输入门，遗忘门，记忆单元及输出门的向量值，带角标的$W$及$b$为模型参数，$tanh$为逐元素的双曲正切函数，$\odot$表示逐元素的乘法操作。输入门控制着新输入进入记忆单元$c$的强度，遗忘门控制着记忆单元维持上一时刻值的强度，输出门控制着输出记忆单元的强度。三种门的计算方式类似，但有着完全不同的参数，它们各自以不同的方式控制着记忆单元$c$，如图3所示：
 <p align="center">
 <img src="image/lstm.png" width = "70%" height = "70%" align="center"/><br/>
 图 3 时刻$t$的lstm
@@ -86,8 +86,8 @@ $$ h_t=Recrurent(x_t,h_{t-1})$$
 ### 数据介绍与下载
 我们以IMDB情感分析数据集为例进行介绍。IMDB数据集的训练集和测试集分别包含25000个已标注过的电影评论。其中，负面评论的得分小于等于4，正面评论的得分大于等于7，满分10分。您可以使用下面的脚本下载 IMDB 数椐集和[Moses](http://www.statmt.org/moses/)工具：
 
-```
-./get_imdb.sh
+```bash
+data/get_imdb.sh
 ```
 如果数椐获取成功，您将在目录```data```中看到下面的文件：
 
@@ -104,7 +104,7 @@ aclImdb  get_imdb.sh  imdb  mosesdecoder-master
 
 ```
 data_dir="./data/imdb"
-python preprocess.py -i data_dir
+python preprocess.py -i $data_dir
 ```
 
 * data_dir: 输入数椐所在目录。
@@ -416,7 +416,7 @@ cat ./data/aclImdb/test/pos/10007_10.txt | python predict.py \
 
 ```
 Loading parameters from model_output/pass-00002/
-./data/aclImdb/test/pos/10014_7.txt: predicting label is pos
+predicting label is pos
 ```
 
 ## 总结
