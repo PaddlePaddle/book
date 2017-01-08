@@ -2,76 +2,105 @@
 
 ## 背景介绍
 
-语义角色标注（Semantic Role Labeling，SRL）是一种以句子为单位的浅层语义分析技术。SRL以句子的谓词为中心，不对句子所包含的语义信息进行深入分析，只分析句子中各成分与谓词之间的关系，即：句子的谓词（Predicate）- 论元（Argument）结构，并用语义角色来描述这些结构关系。请看下面的例子：
+语义角色标注（Semantic Role Labeling，SRL）是一种以句子为单位的浅层语义分析技术。SRL 以句子的谓词为中心，不对句子所包含的语义信息进行深入分析，只分析句子中各成分与谓词之间的关系，即：句子的谓词（Predicate）- 论元（Argument）结构，并用语义角色来描述这些结构关系。在研究中一般都假定谓词是给定的，所要做的就是找出给定谓词的各个论元，并得到它们的语义角色。
+
+请看下面的例子：
 
 $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{在[公园]}_{\mbox{Location}}\mbox{[遇到]}_{\mbox{Predicate}}\mbox{了[小红]}_{\mbox{Patient}}\mbox{。}$$
 
-在上面的句子中，“遇到” 是谓词（Predicate，通常简写为“Pred”），代表了一个事件的核心，“小明”是施事者（Agent），“小红”是受事者（Patient），“昨天” 是事件发生的时间（Time），“公园”是时间发生的地点（Location）。
+在上面的句子中，“遇到” 是谓词（Predicate，通常简写为“Pred”，代表了一个事件的核心），“小明”是施事者（Agent），“小红”是受事者（Patient），“昨天” 是事件发生的时间（Time），“公园”是时间发生的地点（Location）。
 
-通过这个例子可以看出，SRL是为了分析出句子描述的事件，以及事件的参与者（包括施事者、受事者）、事件发生的时间、地点和原因等。是许多自然语言理解任务， 如：信息抽取，篇章分析，深度问答等，的一个重要中间步骤。
+通过这个例子可以看到，SRL 任务的目标是分析出句子描述的事件、事件的参与者（包括施事者、受事者）、事件发生的时间、地点和原因等，是许多自然语言理解任务（如：信息抽取，篇章分析，深度问答等）的一个重要中间步骤。
 
-传统的 SRL 系统大多建立在句法分析基础之上，通常包括多个步骤：构建一棵句法分析树；从句法树上识别出给定谓词的论元；最后，通过分类得到谓词和论元的语义角色标签等。然而，句法分析是一个非常困难的任务，目前技术下的句法分析准确率并不高，句法分析的细微错误都会导致语义角色标注的错误，也限制了 SRL 任务的准确率。这是 SRL 任务面临的主要挑战。
+传统的 SRL 系统大多建立在句法分析基础之上，通常包括 5 个步骤：1）构建一棵句法分析树；2）从句法树上识别出给定谓词的候选论元；3）候选论元剪除；4）论元识别；5）通过分类得到论元的语义角色标签。然而，句法分析是一个非常困难的任务，目前技术下的句法分析准确率并不高，句法分析的细微错误都会导致语义角色标注的错误，也限制了 SRL 任务的准确率，这是 SRL 任务面临的主要挑战。
 
-为了回避 “无法获得准确率较高的句法树” 所造成的困难，研究提出了基于语块的 SRL 方法，也是我们这篇文章所要介绍的方法。基于语块的 SRL 方法将 SRL 作为一个序列标注问题来解决，是一个相对简单的过程。一般采用 BIO 表示方式来定义序列标注的标签集，将不同的语块赋予不同的标签。即：对于一个角色为 A 的论元，将它所包含的第一个语块赋予标签 B-A，将它所包含的其它语块赋予标签 I-A，不属于任何论元的语块赋予标签 O。
+为了回避 “无法获得准确率较高的句法树” 所带来的困难，研究 \[[1](#参考文献)\] 提出了基于语块（chunk）的 SRL 方法，也是我们这篇文章所要介绍的方法。我们首先来看看什么是“语块”。
 
-我们继续以上面的这句话为例，图1展示了 BIO 表示方法的执行过程，可以看到，根据序列标注的结果可以直接得到语义角色标注的结果，因此，论元识别和论元标注通常作为一个过程同时实现。
+由于完全句法分析需要确定句子所包含的全部句法信息，并确定句子各成分之间的关系，这是一项非常困难的任务。为了降低问题的复杂度，同时获得一定的句法结构信息，“浅层句法分析”的思想应运而生。浅层句法分析也称为部分句法分析（partial parsing）或语块划分（chunking）。和完全句法分析得到一颗完整的句法树不同，浅层句法分析只需要识别句子中某些结构相对简单的独立成分，例如：动词短语，这些被识别出来的结构称为语块。
+
+基于语块的 SRL 方法将 SRL 作为一个序列标注问题来解决，根据序列标注结果，可以直接得到论元语义角色标注结果。
+
+序列标注任务一般都会采用 BIO 表示方式来定义序列标注的标签集，B 代表句子的开始，I 代表句子中间，O 代表句子结束。通过B、I、O 三种标记将不同的语块赋予不同的标签，例如：对于一个角色为 A 的论元，将它所包含的第一个语块赋予标签 B-A，将它所包含的其它语块赋予标签 I-A，不属于任何论元的语块赋予标签 O。我们继续以上面的这句话为例，图1展示了 BIO 表示方法的执行过程。
 
 <div  align="center">
 <img src="image/bio_example.png" width = "90%" height = "90%" align=center /><br>
 图1. BIO标注方法示例
 </div>
 
-下面，我们以 [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) 公共任务中 SRL 任务的公开数据集为例，实践下面的任务：
+可以看到，根据序列标注的结果可以直接得到论元的语义角色标注结果，是一个相对简单的过程。这种简单性体现在：（1）依赖浅层句法分析，降低了句法分析的要求和难度；（2）没有了候选论元剪除这一步骤；（3）论元的识别和论元标注是同时实现的。这种一体化处理论元识别和论元标注的方法，简化了流程，降低了错误累积的风险，往往能够取得更好的结果。
 
-给定谓词和一句话，通过序列标注的方式，从句子中找到谓词对应的论元，同时标注它们的语义角色。
-
-在这个过程中，我们的目标是：只依赖输入文本序列，不依赖任何额外的语法解析结果或是复杂的人造特征，构建一个端到端学习的 SRL 系统。
+下面，在本教程中，我们以 [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) 公共任务中 SRL 任务的公开数据集为例，实践下面的任务：给定谓词和一句话，通过序列标注的方式，从句子中找到谓词对应的论元，同时标注它们的语义角色。在这个过程中，我们的目标是：只依赖输入文本序列，不依赖任何额外的语法解析结果或是复杂的人造特征，利用深度神经网络构建一个端到端学习的 SRL 系统。
 
 # 模型概览
 
-循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于传统的前馈神经网络（Feed-forward Neural Network），RNN 引入了循环，能够处理输入之间前后关联的问题。在语言中，由于句子前后单词并不是独立存在，标记句子中下一个词的语义角色，通常都依赖句子前面的词。很自然地，我们选择利用循环神经网络 “记忆历史” 的能力来构建我们的 SRL 系统。
+循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于传统的前馈神经网络（Feed-forward Neural Network），RNN 能够处理输入之间前后关联的问题。在语言中，由于句子前后单词并不是独立存在，标记句子中下一个词的语义角色，通常都依赖句子前面的词。因此，我们选择利用 RNN “记忆历史” 的能力来构建我们的 SRL 系统。
 
-在开始最终的 SRL 模型之前，我们首先介绍三个重要的积木。
+本节中，我们将首先介绍栈式循环神经网络、双向循环神经网络和条件随机场，然后建立我们的深层双向 LSTM 语义角色标注模型。
 
 ## 重要的积木
 ### 栈式循环神经网络（Stacked Recurrent Neural Network）
 
 深度网络有助于形成层次化特征，网络的上层在下层已经学习到的初级特征基础上，学习更复杂的高级特征。
 
-RNN 等价于一个展开地前向网络，于是，通常人们会认为 RNN 在时间轴上是一个真正的“深层网络”。然而，在循环神经网络中，对网络层数的定义并非如此直接。输入特征经过一次非线性映射，我们称之为神经网络的一层。按照这样的约定，可以看到，尽管 RNN 沿时间轴展开后等价于一个非常“深”的前馈网络，但由于 RNN 各个时间步参数共享，$t-1$ 时刻状态到 $t$ 时刻的映射，始终只经过了一次非线性映射，也就是说 ：RNN 对状态转移的建模是 “浅” 的。
+受反向传播算法本身工作原理的影响，RNN 沿时间轴展开时如果序列过长，往往会遇到梯度消失和梯度爆炸，导致梯度传播受阻，RNN 无法有效更新。如果单层 RNN 单元都无法有效学习，我们无法期深层 RNN 网络反而带来性能的提升。带有门机制的 LSTM （Long Short Term Memory）和 GRU（Gated Recurrent Unit） 单元是减缓这一问题的有效方法之一，在学习长序列时，我们通常会直接选择 LSTM 或者 GRU。语义角色标注需要模型学习复杂的语义和语言结构知识，这种学习是隐式地，在这篇教程里，我们直接选择 LSTM 单元搭建模型。
 
-堆叠多个 RNN 单元（可以是：Simple RNN ， LSTM 或者 GRU）构成深层网络，令前一个 RNN $t$ 时刻的输出，成为下一个 RNN 单元 $t$ 时刻的输入，帮助我们构建起一个深层的 RNN 网络。和单层 RNN 网络相比，极大地提高了模型拟合复杂模式的能力，能够更好地建模跨不同时间步的模式\[[3](#参考文献)\]。
+RNN 等价于一个展开地前向网络，通常人们会认为 RNN 在时间轴上是一个真正的“深层网络”。然而，在循环神经网络中，对网络层数的定义并非如此直接。输入特征经过一次非线性映射，我们称之为神经网络的一层。按照这样的约定，可以看到，尽管 RNN 沿时间轴展开后等价于一个非常“深”的前馈网络，但由于 RNN 各个时间步参数共享，$t-1$ 时刻状态到 $t$ 时刻的映射，始终只经过了一次非线性映射，也就是说 ：RNN 对状态转移的建模是 “浅” 的。
+
+堆叠多个 LSTM 单元，令前一个 LSTM $t$ 时刻的输出，成为下一个 LSTM 单元 $t$ 时刻的输入，帮助我们构建起一个深层网络，我们把它称为第一个版本的栈式循环神经网络。深层网络提高了模型拟合复杂模式的能力，能够更好地建模跨不同时间步的模式\[[2](#参考文献)\]。
+
+然而，训练一个深层 RNN 网络并非易事。当我们纵向堆叠多个 LSTM 单元，同样可能遇到梯度在纵向深度上传播受阻的问题。通常，堆叠 4 层 LSTM 单元可以正常训练，当层数达到 4 ~ 8 层时，会出现性能衰减，这时，必须考虑一些新的结构，保证梯度纵向顺畅传播，这是训练深层 RNN 网络必须解决的问题。
+
+我们可以借鉴 LSTM 解决 “梯度消失梯度爆炸” 问题的智慧，其中之一：在 Memory Cell 这条信息传播的路线上没有非线性映射，当梯度反向传播时既不会衰减，也不会爆炸。借鉴这样的思想，我们也可以为我们的深度 RNN 模型，在纵向上添加一条保证梯度顺畅传播的路径。
+
+一个 LSTM 单元完成的运算可以被分为三部分：（1）input-to-hidden ：每个时间步输入信息 $x$ 会首先经过一个矩阵映射，再作为遗忘门，输入门，记忆单元，输出门的输入，注意，这一次映射没有引入非线性激活；（2）hidden-to-hidden：这一步是 LSTM 计算的主体，包括遗忘门，输入门，记忆单元更新，输出门的计算；（3）hidden-to-output：通常是简单的对隐层向量进行激活。
+
+我们在第一个版本的栈式网络的基础上，加入一条新的路径：除上一层 LSTM 输出之外，将前层 LSTM 的 input-to-hidden 映射作为的一个新的输入。在这个输入上，我们同时加入一个线性变换，学习一个新的映射，避免网络过度“作弊”，只依赖上一层输入，直接跳过了上一个 LSTM 单元；也可以看作是通过加深网络层数，来学习输入的一个新的特征表示。这一条连接：我们称之为 “Fast-Forward” 连接。
+
+图2 是我们最终的栈式循环神经网络示意图。
+
+<p align="center">    
+<img src="./image/stacked_lstm.png" width = "40%" height = "40%" align=center><br>
+图2. 基于 LSTM 的栈式循环神经网络结构示意图
+</p>
 
 ### 双向循环神经网络（Bidirectional Recurrent Neural Network）
 
 在 RNN 模型中，$t$ 时刻输出的隐藏层向量编码了到 $t$ 时刻为止所有输入的信息，但由于 RNN 串行计算，$t$ 时刻 RNN 可以看到历史，却无法看到未来。
 
-在绝大多数自然语言处理任务中，我们几乎总是能拿到整个句子。这种情况下，$t$ 时刻如果能够像获取历史信息一样，得到未来的信息，对序列学习任务会有很大的帮助。基于这样的思想，我们设计了一种双向循环网络单元，它的思想非常简单且直接：堆叠多个 RNN 单元，让每一层 RNN 单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第 2 层开始， $t$ 时刻我们的 RNN 单元便总是可以看到历史和未来的信息。
+在绝大多数自然语言处理任务中，我们几乎总是能拿到整个句子。这种情况下，$t$ 时刻如果能够像获取历史信息一样，得到未来的信息，对序列学习任务会有很大的帮助。为了克服这一缺陷，我们可以设计一种双向循环网络单元，它的思想简单且直接：对上一节的栈式循环神经网络进行一个小小的修改，堆叠多个 LSTM 单元，让每一层 LSTM 单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第 2 层开始， $t$ 时刻我们的 LSTM 单元便总是可以看到历史和未来的信息。图3 是基于 LSTM 的双向循环神经网络结构示意图。
 
-需要说明的是，这种双向 RNN 结构和 Bengio 等人在机器翻译任务中使用的双向 RNN 结构 \[[1](#参考文献), [2](#参考文献)\] 并不相同，我们会在后续机器翻译任务中，了解另一种双向循环神经网络。
+<p align="center">    
+<img src="./image/bidirectional_stack_lstm.png" width = "60%" height = "60%" align=center><br>
+图3. 基于 LSTM 的双向循环神经网络结构示意图
+</p>
+
+需要说明的是，这种双向 RNN 结构和 Bengio 等人在机器翻译任务中使用的双向 RNN 结构 \[[3](#参考文献), [4](#参考文献)\] 并不相同，我们会在后续机器翻译任务中，介绍另一种双向循环神经网络。
 
 ### 条件随机场 (Conditional Random Field)
 
-前层网络学习输入的特征表示，网络的最后一层在特征基础上，完成 SRL 任务。条件随机场就是完成序列标注的一层，处于整个网络的末端。
+我们使用神经网络模型解决问题的思路通常都是：前层网络学习输入的特征表示，网络的最后一层在特征基础上，完成 SRL 任务。在 SRL 任务中，深度 RNN 网络学习输入的特征表示，条件随机场（Conditional Random Filed， CRF）在特征的基础上完成序列标注，处于整个网络的末端。
 
-条件随机场 （Conditional Random Filed， CRF）是一种概率化结构模型，可以看作是一个概率无向图模型（也叫作马尔科夫随机场），结点表示随机变量，边表示随机变量之间的概率依赖关系。
+#### 简介
+CRF 是一种概率化结构模型，可以看作是一个概率无向图模型（也叫作马尔科夫随机场），结点表示随机变量，边表示随机变量之间的概率依赖关系。
 
-简单来讲，CRF 学习条件概率型：$P(X|Y)$，其中 $X = (x_1, x_2, ... , x_n)$ 是输入序列，$Y = (y_1, y_2, ... , y_n)$ 是标记序列；解码过程是给定 $X$ 序列求解令 $P(Y|X)$ 最大的 $Y$ 序列，即：$Y^* = \mbox{arg max}_{Y} P(Y | X)$。
+简单来讲，CRF 学习条件概率：$P(X|Y)$，其中 $X = (x_1, x_2, ... , x_n)$ 是输入序列，$Y = (y_1, y_2, ... , y_n)$ 是标记序列；解码过程是给定 $X$ 序列求解令 $P(Y|X)$ 最大的 $Y$ 序列，即 $Y^* = \mbox{arg max}_{Y} P(Y | X)$。
 
-我们首先来条件随机场是如何定义的。
+我们首先来看条件随机场是如何定义的。
 
 **条件随机场** : 设 $G = (V, E)$ 是一个无向图， $V$ 是结点的集合，$E$ 是无向边的集合。$V$ 中的每个结点对应一个随机变量 $Y_{v}$， $Y = \{Y_{v} | v \in V\}$，其取值范围为可能的标记集合 $\{y\}$，如果以随机变量 $X$ 为条件，每个随机变量 $Y_{v}$ 都满足以下马尔科夫特性：
 $$p(Y_{v}|X, Y_{\omega}, \omega \not= v) = p(Y_{v} | X, Y_{\omega} , \omega \sim v)$$
 其中，$\omega \sim v$ 表示两个结点在图 $G$ 中是邻近结点，那么，$(X, Y)$ 是一个条件随机场。
 
-上面的定义并没有对 $X$ 和 $Y$ 的结构给出更多约束，理论上来讲，只要标记序列表示了一定的条件独立性，$G$ 的图结构可以是任意的。对序列标注任务，我们只需要考虑 $X$ 和 $Y$ 都是一个序列，于是可以形成一个如图2所示的简单链式结构图。在图中，输入序列 $X$ 的元素之间并不存在图结构，因为我们只是将它作为条件，并不做任何条件独立假设。
+
+#### 线性链条件随机场
+上面的定义并没有对 $X$ 和 $Y$ 的结构给出更多约束，理论上来讲，只要标记序列表示了一定的条件独立性，$G$ 的图结构可以是任意的。对序列标注任务，我们只需要考虑 $X$ 和 $Y$ 都是一个序列，于是可以形成一个如图4所示的简单链式结构图。在图中，输入序列 $X$ 的元素之间并不存在图结构，因为我们只是将它作为条件，并不做任何条件独立假设。
 
 <p align="center">    
 <img src="./image/linear_chain_crf.png" width = "35%" height = "35%" align=center><br>
-图2. $X$ 和 $Y$ 具有相同结构的线性链条件随机场
+图4. $X$ 和 $Y$ 具有相同结构的线性链条件随机场
 </p>
 
-至此可以看到，序列标注问题使用的是以上这种定义在线性链上的特殊条件随机场，称之为线性链条件随机场（Linear Chain Conditional Random Field）。下面，我们给出线性链条件随机场的精确定义：
+至此可以看到，序列标注问题使用的是以上这种定义在线性链上的特殊条件随机场，称之为线性链条件随机场（Linear Chain Conditional Random Field）。下面，我们给出线性链条件随机场的数学定义：
 
 **线性链条件随机场** ：设 $X = (x_{1}, x_{2}, ... , x_{n})$，$Y = (y_{1}, y_{2}, ... , y_{n})$ 均为线性链表示的随机变量序列，若在给定随机变量序列 $X$ 的条件下，随机变量序列 $Y$ 的条件概率分布 $P(Y|X)$ 满足马尔科夫性：
 
@@ -92,6 +121,8 @@ $$Z(X) = \sum_{y \in Y} \text{exp}\left(\sum_{i = 1}^ {n}\left(\sum_{j} \lambda_
 是规范化因子。
 
 上面的式子中 $t_j$ 是定义在边上的特征函数，依赖于当前和前一个位置，称为转移特征，表示对于观察序列 $X$ 及其标注序列在 $i$ 及 $i - 1$ 位置上标记的转移概率。$s_k$ 是定义在结点上的特征函数，称为状态特征，依赖于当前位置，表示对于观察序列 $X$ 及其 $i$ 位置的标记概率。$\lambda_j$ 和 $\mu_k$ 分别是转移特征函数和状态特征函数对应的权值。
+
+#### 线性链条件随机场的优化目标
 
 实际上 ，$t$ 和 $s$ 可以用相同的数学形式表示，$s$ 可以同样也写为以下形式：
 
@@ -116,48 +147,51 @@ $$Z_i(X) = \sum_{y_i \in Y} \text{exp} \sum_{k}\omega_k f_k (Y, X)$$
 
 $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
 
-解码时，对于给定的输入序列 $X$，通过解码算法求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
+这个优化目标，可以通过反向传播算法和整个神经网络一起更新求解。
+
+解码时，对于给定的输入序列 $X$，通过解码算法（通常有：维特比算法、Beam Search）求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
 
 ## 深度双向 LSTM （DB-LSTM）SRL 模型
 
-有了上面这些积木，可以开始建立我们的深层双向 LSTM 语义角色标注模型。
-
 在这个任务中，输入是 “谓词” 和 “一句话”，目标是：从句中找到谓词的论元，并标注论元的语义角色。如果，一个句子中可能有 $n$ 谓词，这个句子会被处理 $n$ 次。一个最为直接的模型是下面这样：
 
-- step 1. 构造输入
+- 步骤 1. 构造输入
  - 输入 1：谓词
  - 输入 2：句子
- - 将输入1 扩展成和输入2一样长的序列，用 one-hot 方式表示；
-- step 2. one-hot 方式的谓词序列和句子序列通过词表，转换为实向量表示的词向量序列；
-- setp 3. 以 step 2 的 2 个词向量序列作为上面介绍的双向 LSTM 模型的输入；LSTM 模型学习输入序列表示，得到输出向量序列；
-- step 4. CRF 以 step 3 LSTM 学习到的特征为输入，以标记序列为监督信号，实现序列标注；
+ - 将输入1 扩展成和输入2 一样长的序列，用 one-hot 方式表示；
+- 步骤 2. one-hot 方式的谓词序列和句子序列通过词表，转换为实向量表示的词向量序列；
+- 步骤 3. 以 步骤 2 的 2 个词向量序列作为上面介绍的双向 LSTM 模型的输入；LSTM 模型学习输入序列表示，得到输出向量序列；
+- 步骤 4. CRF 以 步骤 3 LSTM 学习到的特征为输入，以标记序列为监督信号，实现序列标注；
 
-大家可以尝试上面这种方法，这里，我们提出一些改进，引入两个简单的特征但对提高系统性能非常有效的特征：（1）谓词上下文；（2）谓词上下文区域标记。
+大家可以尝试上面这种方法。这里，我们提出一些改进，引入两个简单，但对提高系统性能非常有效的特征：
 
-上面的方法中，只用到了谓词的词向量表达谓词相关的所有信息，这种方法始终是非常弱的，特别是，如果谓词在句子中出现多次，有可能引起一定的歧义。从经验出发，谓词前后若干个词的一个小片段，能够提供更丰富的信息，帮助消解词义。于是，我们把这样的经验也添加到我们的模型中。我们为每个谓词同时抽取一个“谓词上下文” 片段，也就是从这个谓词前后各取 $n$ 个词构成的一个窗口片段。在此基础上，同时为句子中的每一个词引入一个 0-1 二值变量，表示他们是否在“谓词上下文”中。图4 谓词上下文窗口为3时，模型输入示例。
+- 1) 谓词上下文：上面的方法中，只用到了谓词的词向量表达谓词相关的所有信息，这种方法始终是非常弱的，特别是，如果谓词在句子中出现多次，有可能引起一定的歧义。从经验出发，谓词前后若干个词的一个小片段，能够提供更丰富的信息，帮助消解词义。于是，我们把这样的经验也添加到我们的模型中。我们为每个谓词同时抽取一个“谓词上下文” 片段，也就是从这个谓词前后各取 $n$ 个词构成的一个窗口片段；
+- 2）谓词上下文区域标记：为句子中的每一个词引入一个 0-1 二值变量，表示他们是否在“谓词上下文”中；
+
+图5 是谓词上下文窗口为3时，模型输入示例图。
 
 <div  align="center">
 <img src="image/input_data.png" width = "50%" height = "50%" align=center /><br>
-图4. 输入数据示例
+图5. 输入数据示例
 </div>
 
 于是，我们将最初模型修改如下：
 
-- step 1. 构造输入
+- 步骤 1. 构造输入
  - 输入 1：句子序列；
  - 输入 2：谓词；
  - 输入 3：对给定的谓词，从句子中抽取这个谓词前后 各$n$ 个词，构成谓词上下文；用 one-hot 方式表示；
  - 输入 4：标记句子中每一个词是否是谓词上下文中；用 one-hot 方式表示；
  - 将输入 2 ~ 4 均扩展为和输入 1 一样长的序列；
-- step 2. 输入 1 ~ 4 均通过词表，转换为实向量表示的词向量序列；其中输入 1 ~ 3 共享同一个词表，输入 4 的独有词表；
-- setp 3. setp 2 的 4 个词向量序列作为上面结果的双向 LSTM 模型的输入；LSTM 模型学习输入序列表示，得到输出向量序列；
-- step 4. CRF 以 step 3 LSTM 学习到的特征为输入，以标记序列为监督信号，实现序列标注；
+- 步骤 2. 输入 1 ~ 4 均通过词表，转换为实向量表示的词向量序列；其中输入 1 ~ 3 共享同一个词表，输入 4 独有词表；
+- 步骤 3. 步骤 2 的 4 个词向量序列作为上面结果的双向 LSTM 模型的输入；LSTM 模型学习输入序列表示，得到输出向量序列；
+- 步骤 4. CRF 以 步骤 3 LSTM 学习到的特征为输入，以标记序列为监督信号，实现序列标注；
 
-下图是一个深度为 4 的模型结构示意图。
+图6 是一个深度为 4 的模型结构示意图。
 
 <div  align="center">    
 <img src="image/db_lstm_network.png" width = "60%" height = "60%" align=center /><br>
-图3. SRL任务上的深度双向 LSTM 模型
+图6. SRL任务上的深度双向 LSTM 模型
 </div>
 
 # 数据准备
@@ -188,7 +222,7 @@ conll05st-release/
     ├── targets
     └── words
 ```
-原始数据中同时包括了词性标注、命名实体识别、语法解析树等多种信息，在这篇文章中，我们使用 test.wsj 文件夹中的数据进行训练，使用 test.brown 文件夹中的数据进行测试。我们的目标是展示如何利用深度神经网络，只使用文本序列作为输入信息，不依赖任何句法解析树以及人工构造的复杂特征，构建一个端到端学习的语义角色标注系统。因此，这里只会用到 words 文件夹（文本序列）和 props 文件夹（标注序列）下的数据。
+原始数据中同时包括了词性标注、命名实体识别、语法解析树等多种信息。在本教程中，我们使用 test.wsj 文件夹中的数据进行训练，使用 test.brown 文件夹中的数据进行测试。我们的目标是展示如何利用深度神经网络，只使用文本序列作为输入信息、不依赖任何句法解析树以及人工构造的复杂特征的情况想，构建一个端到端学习的语义角色标注系统。因此，这里只会用到 words 文件夹（文本序列）和 props 文件夹（标注序列）下的数据。
 
 标注信息源自 Penn TreeBank \[[9](#参考文献)\] 和 PropBank \[[10](#参考文献)\] 的标注结果。PropBank 使用的标注标记和我们在文章一开始示例中使用的标注标签不同，但原理是相同的，关于标注标签含义的说明，请参考论文\[[11](#参考文献)\]。
 
@@ -218,7 +252,7 @@ conll05st-release/
 	    ]
 	```
 
-2. 使用 process 函数将数据逐一提供给 PaddlePaddle，只需要考虑一条数据如何处理。
+2. 使用 process 将数据逐一提供给 PaddlePaddle，只需要考虑一条数据如何处理。
 
 	```python
 	def process(settings, file_name):
@@ -253,7 +287,7 @@ conll05st-release/
 
 ## 数据定义
 
-在模型配置中，首先通过 define_py_data_sources2 从 dataprovider 中读入数据。
+首先通过 define_py_data_sources2 从 dataprovider 中读入数据。
 
 ```
 define_py_data_sources2(
@@ -284,7 +318,7 @@ settings(
 
 ## 模型结构
 
-1. 定义输入数据维度，及模型超参数
+1. 定义输入数据维度，及模型超参数。
 
 	```python
 	mark_dict_len = 2    # 谓上下文区域标志的维度，是一个 0-1 2 值特征，因此维度为 2
@@ -293,6 +327,9 @@ settings(
 	hidden_dim = 512     # LSTM 隐层向量的维度 ： 512 / 4
 	depth = 8            # 栈式 LSTM 的深度
 	
+	word = data_layer(name='word_data', size=word_dict_len)
+   predicate = data_layer(name='verb_data', size=pred_len)
+
 	ctx_n2 = data_layer(name='ctx_n2_data', size=word_dict_len)
 	ctx_n1 = data_layer(name='ctx_n1_data', size=word_dict_len)
 	ctx_0 = data_layer(name='ctx_0_data', size=word_dict_len)
@@ -304,7 +341,7 @@ settings(
 	    target = data_layer(name='target', size=label_dict_len)    # 标记序列只在训练和测试流程中定义
 	```
 
-2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列
+2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
 
 	```python
 	mark_embedding = embedding_layer(
@@ -319,9 +356,10 @@ settings(
 	emb_layers.append(mark_embedding)
 	```
 
-3. 8 个 LSTM 单元以“正向/反向”的顺序学习对所有输入特征序列进行学习
+3. 8 个 LSTM 单元以“正向/反向”的顺序学习对所有输入特征序列进行学习。
 
 	```python
+	
 	hidden_0 = mixed_layer(
 	    name='hidden0',
 	    size=hidden_dim,
@@ -364,7 +402,7 @@ settings(
 	    input_tmp = [mix_hidden, lstm]
 	```
 
-4. 取最后一个栈式 LSTM 的输出和这个LSTM单元的 input-to-hidden 映射结果，经过一个全连接层映射，得到最终的特征向量表示
+4. 取最后一个栈式 LSTM 的输出和这个LSTM单元的 input-to-hidden 映射结果，经过一个全连接层映射，得到最终的特征向量表示。
 
 	```python
 	feature_out = mixed_layer(
@@ -379,7 +417,7 @@ settings(
 	    ], ) 
 	```
 
-5.  CRF 层在网络的末端，完成序列标注
+5.  CRF 层在网络的末端，完成序列标注。
 
 	```python
 	crf_l = crf_layer(
@@ -420,15 +458,18 @@ I1224 18:12:00.164089  1433 TrainerInternal.cpp:181]  Pass=0 Batch=901 samples=1
 
 # 总结
 
-语义角色标注是许多自然语言理解任务的重要中间步骤。本章中，我们以语义角色标注任务为例，介绍如何利用 PaddlePaddle 进行序列标注任务。这篇文章所介绍的模型来自我们发表的论文\[[9](#参考文献)\]，由于 CoNLL 2005 SRL 任务的训练数据目前并非完全开放，这篇文章只使用测试数据作为示例，在这个过程中，我们希望减少对其它自然语言处理工具的依赖，利用神经网络数据驱动、端到端学习的能力，得到一个和传统方法可比，甚至更好的模型。在论文中我们证实了这种可能性。关于模型更多的信息和讨论可以在论文中找到。
+这篇文章所介绍的模型来自我们发表的论文语义角色标注是许多自然语言理解任务的重要中间步骤。本章中，我们以语义角色标注任务为例，介绍如何利用 PaddlePaddle 进行序列标注任务。
+
+这篇文章所介绍的模型来自我们发表的论文\[[10](#参考文献)\]。由于 CoNLL 2005 SRL 任务的训练数据目前并非完全开放，这篇文章只使用测试数据作为示例。在这个过程中，我们希望减少对其它自然语言处理工具的依赖，利用神经网络数据驱动、端到端学习的能力，得到一个和传统方法可比，甚至更好的模型。在论文中我们证实了这种可能性。关于模型更多的信息和讨论可以在论文中找到。
 
 # 参考文献
-1. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.
-2. Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[J]. arXiv preprint arXiv:1409.0473, 2014.
-3. Pascanu R, Gulcehre C, Cho K, et al. [How to construct deep recurrent neural networks](https://arxiv.org/abs/1312.6026)[J]. arXiv preprint arXiv:1312.6026, 2013.
-4. Lafferty J, McCallum A, Pereira F. [Conditional random fields: Probabilistic models for segmenting and labeling sequence data](http://www.jmlr.org/papers/volume15/doppa14a/source/biblio.bib.old)[C]//Proceedings of the eighteenth international conference on machine learning, ICML. 2001, 1: 282-289.
-5. 李航. 统计学习方法[J]. 清华大学出版社, 北京, 2012.
-6. Marcus M P, Marcinkiewicz M A, Santorini B. [Building a large annotated corpus of English: The Penn Treebank](http://repository.upenn.edu/cgi/viewcontent.cgi?article=1246&context=cis_reports)[J]. Computational linguistics, 1993, 19(2): 313-330.
-7. Palmer M, Gildea D, Kingsbury P. [The proposition bank: An annotated corpus of semantic roles](http://www.mitpressjournals.org/doi/pdfplus/10.1162/0891201053630264)[J]. Computational linguistics, 2005, 31(1): 71-106.
-8. Carreras X, Màrquez L. [Introduction to the CoNLL-2005 shared task: Semantic role labeling](http://www.cs.upc.edu/~srlconll/st05/papers/intro.pdf)[C]//Proceedings of the Ninth Conference on Computational Natural Language Learning. Association for Computational Linguistics, 2005: 152-164.
-9. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
+1. Sun W, Sui Z, Wang M, et al. [Chinese semantic role labeling with shallow parsing](http://www.aclweb.org/anthology/D09-1#page=1513)[C]//Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 3-Volume 3. Association for Computational Linguistics, 2009: 1475-1483.
+2. Pascanu R, Gulcehre C, Cho K, et al. [How to construct deep recurrent neural networks](https://arxiv.org/abs/1312.6026)[J]. arXiv preprint arXiv:1312.6026, 2013.
+3. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.
+4. Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[J]. arXiv preprint arXiv:1409.0473, 2014.
+5. Lafferty J, McCallum A, Pereira F. [Conditional random fields: Probabilistic models for segmenting and labeling sequence data](http://www.jmlr.org/papers/volume15/doppa14a/source/biblio.bib.old)[C]//Proceedings of the eighteenth international conference on machine learning, ICML. 2001, 1: 282-289.
+6. 李航. 统计学习方法[J]. 清华大学出版社, 北京, 2012.
+7. Marcus M P, Marcinkiewicz M A, Santorini B. [Building a large annotated corpus of English: The Penn Treebank](http://repository.upenn.edu/cgi/viewcontent.cgi?article=1246&context=cis_reports)[J]. Computational linguistics, 1993, 19(2): 313-330.
+8. Palmer M, Gildea D, Kingsbury P. [The proposition bank: An annotated corpus of semantic roles](http://www.mitpressjournals.org/doi/pdfplus/10.1162/0891201053630264)[J]. Computational linguistics, 2005, 31(1): 71-106.
+9. Carreras X, Màrquez L. [Introduction to the CoNLL-2005 shared task: Semantic role labeling](http://www.cs.upc.edu/~srlconll/st05/papers/intro.pdf)[C]//Proceedings of the Ninth Conference on Computational Natural Language Learning. Association for Computational Linguistics, 2005: 152-164.
+10. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
