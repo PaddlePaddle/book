@@ -70,7 +70,7 @@ RNN 等价于一个展开地前向网络，通常人们会认为 RNN 在时间�
 在绝大多数自然语言处理任务中，我们几乎总是能拿到整个句子。这种情况下，$t$ 时刻如果能够像获取历史信息一样，得到未来的信息，对序列学习任务会有很大的帮助。为了克服这一缺陷，我们可以设计一种双向循环网络单元，它的思想简单且直接：对上一节的栈式循环神经网络进行一个小小的修改，堆叠多个 LSTM 单元，让每一层 LSTM 单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第 2 层开始， $t$ 时刻我们的 LSTM 单元便总是可以看到历史和未来的信息。图3 是基于 LSTM 的双向循环神经网络结构示意图。
 
 <p align="center">    
-<img src="./image/bidirectional_stack_lstm.png" width = "60%" height = "60%" align=center><br>
+<img src="./image/bidirectional_stacked_lstm.png" width = "60%" height = "60%" align=center><br>
 图3. 基于 LSTM 的双向循环神经网络结构示意图
 </p>
 
