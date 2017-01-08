@@ -11,7 +11,7 @@ $$y_i = \omega_1x_{i1} + \omega_2x_{i2} + \ldots + \omega_dx_{id} + b,  i=1,\ldo
 初看起来，这个假设实在过于简单了，变量间的真实关系很难是线性的。但由于线性回归模型有形式简单和易于建模分析的优点，它在实际问题中得到了大量的应用。很多经典的统计学习、机器学习书籍[2,3,4]也选择对线性模型独立成章重点讲解。
 
 ## 效果展示
-我们使用从[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)获得的波士顿房价数据集进行模型的训练和预测。下面的散点图展示了使用模型对部分房屋价格进行的预测。其中，横轴展示了该类房屋价格的中位数，纵轴为模型的预测结果，当二者值完全相等的时候就会落在虚线上。所以模型预测的越准确，则点离虚线越近。
+我们使用从[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)获得的波士顿房价数据集进行模型的训练和预测。下面的散点图展示了使用模型对部分房屋价格进行的预测。其中，横轴展示了该类房屋价格的中位数，纵轴为模型的预测结果，当二者值完全相等的时候就会落在虚线上。所以模型预测得越准确，则点离虚线越近。
 <p align="center">
 	<img src = "image/predictions.png"><br/>
 	图1. 预测值 V.S. 真实值
@@ -22,7 +22,7 @@ $$y_i = \omega_1x_{i1} + \omega_2x_{i2} + \ldots + \omega_dx_{id} + b,  i=1,\ldo
 
 $$\hat{Y} = \omega_1X_{1} + \omega_2X_{2} + \ldots + \omega_{13}X_{13} + b$$
 
-$\hat{Y}$ 表示模型的预测，用来和真实值$Y$区分。模型要学习的参数即：$\omega_1, \ldots, \omega_{13}, b$。
+$\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要学习的参数即：$\omega_1, \ldots, \omega_{13}, b$。
 
 建立模型后，我们需要给模型一个优化目标，使得学到的参数能够让预测值$\hat{Y}$尽可能地接近真实值$Y$。这里我们引入损失函数（Loss Function，或Cost Function [5]）这个概念。 输入任意一个数据样本的目标值$y_{i}$和模型给出的预测值$\hat{y_{i}}$，损失函数输出一个非负的实值。这个实质通常用来反映模型误差的大小。
 
@@ -87,11 +87,9 @@ python prepare_data.py -r 0.8 #默认使用8:2的比例进行分割
 准备好数据之后，我们使用一个Python data provider来为PaddlePaddle的训练过程提供数据。一个 data provider 就是一个Python函数，它会被PaddlePaddle的训练过程调用。在这个例子里，只需要读取已经保存好的数据，然后一行一行的返回给PaddlePaddle的训练进程即可。
 
 ```python
-#dataprovider.py
 from paddle.trainer.PyDataProvider2 import *
 import numpy as np
-
-# define data types of input
+#定义数据的类型和维度
 @provider(input_types=[dense_vector(13), dense_vector(1)])
 def process(settings, input_file):
     data = np.load(input_file.strip())
