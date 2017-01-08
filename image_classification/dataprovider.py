@@ -37,5 +37,7 @@ def process(settings, file_list):
             images = batch['data']
             labels = batch['labels']
             for im, lab in zip(images, labels):
+                if settings.is_train and np.random.randint(2):
+                    im = im[:, :, ::-1]
                 im = im - settings.mean
                 yield {'image': im.astype('float32'), 'label': int(lab)}

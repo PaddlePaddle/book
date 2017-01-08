@@ -25,5 +25,5 @@ paddle train \
     --trainer_count=4 \
     --log_period=100 \
     --num_passes=300 \
-    --save_dir=$output
+    --save_dir=$output \
     2>&1 | tee $log

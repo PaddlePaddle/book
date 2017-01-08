@@ -22,16 +22,16 @@ if not is_predict:
         test_list='data/test.list',
         module='dataprovider',
         obj='process',
-        args=args)
+        args={'mean_path': 'data/mean.meta'})
 
 settings(
     batch_size=128,
     learning_rate=0.1 / 128.0,
     learning_rate_decay_a=0.1,
-    learning_rate_decay_b=50000 * 100,
+    learning_rate_decay_b=50000 * 140,
     learning_rate_schedule='discexp',
     learning_method=MomentumOptimizer(0.9),
-    regularization=L2Regularization(0.0001 * 128))
+    regularization=L2Regularization(0.0002 * 128))
 
 
 def conv_bn_layer(input,
@@ -55,6 +55,7 @@ def conv_bn_layer(input,
 
 def shortcut(ipt, n_in, n_out, stride):
     if n_in != n_out:
+        print("n_in != n_out")
         return conv_bn_layer(ipt, n_out, 1, stride, 0, LinearActivation())
     else:
         return ipt
@@ -65,7 +66,7 @@ def basicblock(ipt, ch_out, stride):
     tmp = conv_bn_layer(ipt, ch_out, 3, stride, 1)
     tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, LinearActivation())
     short = shortcut(ipt, ch_in, ch_out, stride)
-    return addto_layer(input=[ipt, short], act=ReluActivation())
+    return addto_layer(input=[tmp, short], act=ReluActivation())
 
 
 def bottleneck(ipt, ch_out, stride):
@@ -73,8 +74,8 @@ def bottleneck(ipt, ch_out, stride):
     tmp = conv_bn_layer(ipt, ch_out, 1, stride, 0)
     tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1)
     tmp = conv_bn_layer(tmp, ch_out * 4, 1, 1, 0, LinearActivation())
-    short = shortcut(ipt, ch_in, ch_out, stride)
-    return addto_layer(input=[ipt, short], act=ReluActivation())
+    short = shortcut(ipt, ch_in, ch_out * 4, stride)
+    return addto_layer(input=[tmp, short], act=ReluActivation())
 
 
 def layer_warp(block_func, ipt, features, count, stride):
@@ -107,25 +108,25 @@ def resnet_imagenet(ipt, depth=50):
     return tmp
 
 
-def resnet_cifar10(ipt, depth=56):
-    assert ((depth - 2) % 6 == 0,
-            'depth should be one of 20, 32, 44, 56, 110, 1202')
+def resnet_cifar10(ipt, depth=32):
+    #depth should be one of 20, 32, 44, 56, 110, 1202
+    assert (depth - 2) % 6 == 0
     n = (depth - 2) / 6
     nStages = {16, 64, 128}
-    tmp = conv_bn_layer(
+    conv1 = conv_bn_layer(
         ipt, ch_in=3, ch_out=16, filter_size=3, stride=1, padding=1)
-    tmp = layer_warp(basicblock, tmp, 16, n, 1)
-    tmp = layer_warp(basicblock, tmp, 32, n, 2)
-    tmp = layer_warp(basicblock, tmp, 64, n, 2)
-    tmp = img_pool_layer(
-        input=tmp, pool_size=8, stride=1, pool_type=AvgPooling())
-    return tmp
+    res1 = layer_warp(basicblock, conv1, 16, n, 1)
+    res2 = layer_warp(basicblock, res1, 32, n, 2)
+    res3 = layer_warp(basicblock, res2, 64, n, 2)
+    pool = img_pool_layer(
+        input=res3, pool_size=8, stride=1, pool_type=AvgPooling())
+    return pool
 
 
 datadim = 3 * 32 * 32
 classdim = 10
 data = data_layer(name='image', size=datadim)
-net = resnet_cifar10(data, depth=56)
+net = resnet_cifar10(data, depth=32)
 out = fc_layer(input=net, size=10, act=SoftmaxActivation())
 if not is_predict:
     lbl = data_layer(name="label", size=classdim)
