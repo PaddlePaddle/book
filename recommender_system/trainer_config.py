@@ -27,75 +27,66 @@ with open(META_FILE, 'rb') as f:
     # load meta file
     meta = pickle.load(f)
 
-settings(
-    batch_size=1600, learning_rate=1e-3, learning_method=RMSPropOptimizer())
-
-
-def construct_feature(name):
-    """
-    Construct movie/user features.
-
-    This method read from meta data. Then convert feature to neural network due
-    to feature type. The map relation as follow.
-
-    * id: embedding => fc
-    * embedding:
-        is_sequence:  embedding => context_projection => fc => pool
-        not sequence: embedding => fc
-    * one_hot_dense:  fc => fc
-
-    Then gather all features vector, and use a fc layer to combined them as
-    return.
-
-    :param name: 'movie' or 'user'
-    :type name: basestring
-    :return: combined feature output
-    :rtype: LayerOutput
-    """
-    __meta__ = meta[name]['__meta__']['raw_meta']
-    fusion = []
-    for each_meta in __meta__:
-        type_name = each_meta['type']
-        slot_name = each_meta.get('name', '%s_id' % name)
-        if type_name == 'id':
-            slot_dim = each_meta['max']
-            embedding = embedding_layer(
-                input=data_layer(
-                    slot_name, size=slot_dim), size=256)
-            fusion.append(fc_layer(input=embedding, size=256))
-        elif type_name == 'embedding':
-            is_seq = each_meta['seq'] == 'sequence'
-            slot_dim = len(each_meta['dict'])
-            din = data_layer(slot_name, slot_dim)
-            embedding = embedding_layer(input=din, size=256)
-            if is_seq:
-                fusion.append(
-                    text_conv_pool(
-                        input=embedding, context_len=5, hidden_size=256))
-            else:
-                fusion.append(fc_layer(input=embedding, size=256))
-        elif type_name == 'one_hot_dense':
-            slot_dim = len(each_meta['dict'])
-            hidden = fc_layer(input=data_layer(slot_name, slot_dim), size=256)
-            fusion.append(fc_layer(input=hidden, size=256))
-
-    return fc_layer(name="%s_fusion" % name, input=fusion, size=256)
-
-
-movie_feature = construct_feature("movie")
-user_feature = construct_feature("user")
-similarity = cos_sim(a=movie_feature, b=user_feature)
 if not is_predict:
-    outputs(
-        regression_cost(
-            input=similarity, label=data_layer(
-                'rating', size=1)))
-
     define_py_data_sources2(
         'data/train.list',
         'data/test.list',
         module='dataprovider',
         obj='process',
         args={'meta': meta})
+
+settings(
+    batch_size=1600, learning_rate=1e-3, learning_method=RMSPropOptimizer())
+
+movie_meta = meta['movie']['__meta__']['raw_meta']
+user_meta = meta['user']['__meta__']['raw_meta']
+
+movie_id = data_layer('movie_id', size=movie_meta[0]['max'])
+title = data_layer('title', size=len(movie_meta[1]['dict']))
+genres = data_layer('genres', size=len(movie_meta[2]['dict']))
+user_id = data_layer('user_id', size=user_meta[0]['max'])
+gender = data_layer('gender', size=len(user_meta[1]['dict']))
+age = data_layer('age', size=len(user_meta[2]['dict']))
+occupation = data_layer('occupation', size=len(user_meta[3]['dict']))
+
+embsize = 256
+
+# construct movie feature
+movie_id_emb = embedding_layer(input=movie_id, size=embsize)
+movie_id_hidden = fc_layer(input=movie_id_emb, size=embsize)
+
+genres_emb = fc_layer(input=genres, size=embsize)
+
+title_emb = embedding_layer(input=title, size=embsize)
+title_hidden = text_conv_pool(
+    input=title_emb, context_len=5, hidden_size=embsize)
+
+movie_feature = fc_layer(
+    input=[movie_id_hidden, title_hidden, genres_emb], size=embsize)
+
+# construct user feature
+user_id_emb = embedding_layer(input=user_id, size=embsize)
+user_id_hidden = fc_layer(input=user_id_emb, size=embsize)
+
+gender_emb = embedding_layer(input=gender, size=embsize)
+gender_hidden = fc_layer(input=gender_emb, size=embsize)
+
+age_emb = embedding_layer(input=age, size=embsize)
+age_hidden = fc_layer(input=age_emb, size=embsize)
+
+occup_emb = embedding_layer(input=occupation, size=embsize)
+occup_hidden = fc_layer(input=occup_emb, size=embsize)
+
+user_feature = fc_layer(
+    input=[user_id_hidden, gender_hidden, age_hidden, occup_hidden],
+    size=embsize)
+
+similarity = cos_sim(a=movie_feature, b=user_feature, scale=2)
+
+if not is_predict:
+    lbl = data_layer('rating', size=1)
+    cost = regression_cost(input=similarity, label=lbl)
+    outputs(cost)
+
 else:
     outputs(similarity)

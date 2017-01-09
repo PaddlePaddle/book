@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from paddle.trainer.PyDataProvider2 import *
-import common_utils  # parse
+from common_utils import meta_to_header
 
 
 def __list_to_map__(lst):
@@ -35,17 +35,16 @@ def hook(settings, meta, **kwargs):
                  file record movie/user features.
     :param kwargs: unused other arguments.
     """
-    del kwargs  # unused kwargs
 
     # Header define slots that used for paddle.
     #    first part is movie features.
     #    second part is user features.
     #    final part is rating score.
     # header is a list of [USE_SEQ_OR_NOT?, SlotType]
-    movie_headers = list(common_utils.meta_to_header(meta, 'movie'))
+    movie_headers = list(meta_to_header(meta, 'movie'))
     settings.movie_names = [h[0] for h in movie_headers]
     headers = movie_headers
-    user_headers = list(common_utils.meta_to_header(meta, 'user'))
+    user_headers = list(meta_to_header(meta, 'user'))
     settings.user_names = [h[0] for h in user_headers]
     headers.extend(user_headers)
     headers.append(("rating", dense_vector(1)))  # Score
@@ -62,8 +61,8 @@ def process(settings, filename):
             # Get a rating from file.
             user_id, movie_id, score = map(int, line.split('::')[:-1])
 
-            # Scale score to [-5, +5]
-            score = float(score) * 2 - 5.0
+            # Scale score to [-2, +2]
+            score = float(score - 3)
 
             # Get movie/user features by movie_id, user_id
             movie_meta = settings.meta['movie'][movie_id]

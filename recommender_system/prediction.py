@@ -47,5 +47,4 @@ if __name__ == '__main__':
             data.append(user_id - 1)
             data.extend(user_meta)
             print "Prediction Score is %.2f" % (
-                (network.forwardTest(cvt.convert([data]))[0]['value'][0][0] + 5)
-                / 2)
+                network.forwardTest(cvt.convert([data]))[0]['value'][0][0] + 3)
