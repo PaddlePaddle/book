@@ -30,6 +30,7 @@ with open(META_FILE, 'rb') as f:
 settings(
     batch_size=1600, learning_rate=1e-3, learning_method=RMSPropOptimizer())
 
+
 movie_meta = meta['movie']['__meta__']['raw_meta']
 user_meta = meta['user']['__meta__']['raw_meta']
 
