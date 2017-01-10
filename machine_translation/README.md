@@ -4,61 +4,57 @@
 
 机器翻译（machine translation, MT）是用计算机来实现不同语言之间的翻译。被翻译的语言通常称为源语言（source language），翻译成的结果语言称为目标语言（target language）。机器翻译即实现从源语言到目标语言转换的过程，是自然语言处理的重要研究领域之一。
 
-传统机器翻译，是让语言学家编写两种语言之间的转换规则，再将这些规则录入给计算机。但该方法对语言学家的要求非常高，并且，我们不可能知道一门语言究竟有多少隐含的使用规则，更何况两种甚至更多的语言。因此，传统机器翻译方法面临的主要挑战是无法得到一个完备的规则集合。
+传统机器翻译，是让语言学家编写两种语言之间的转换规则，再将这些规则录入给计算机。但该方法对语言学家的要求非常高，而且我们几乎无法总结一门语言会用到的所有规则，更何况两种甚至更多的语言。因此，传统机器翻译方法面临的主要挑战是无法得到一个完备的规则集合\[[1](#参考文献)\]。
 
-统计机器翻译（Statistical Machine Translation, SMT），其转化规则是由机器自动从大规模的语料中学习得到的，而非我们人主动提供规则。因此，它克服了传统方法面临的知识获取瓶颈问题，但仍然存在许多挑战：1）需要人为设计许多特征，但永远无法覆盖所有的语言规则；2）难以利用全局的特征；3）依赖于许多预处理环节，如词语对齐、中文分词、规则抽取、句法分析等，而每个环节的错误会逐步累积，对翻译的影响也越来越大。
+统计机器翻译（Statistical Machine Translation, SMT），其转化规则是由机器自动从大规模的语料中学习得到的，而非我们人主动提供规则。因此，它克服了传统方法面临的知识获取瓶颈问题，但仍然存在许多挑战：1）需要人为设计许多特征，但永远无法覆盖所有的语言规则；2）难以利用全局的特征；3）依赖于许多预处理环节，如词语对齐、分词（Tokenization）、规则抽取、句法分析等，而每个环节的错误会逐步累积，对翻译的影响也越来越大。
 
-面对上述挑战，一个较好的解决方法是利用神经网络。这类系统又大致分为两类：1）（见图1的左半部分）仍以统计机器翻译系统为框架，只是利用神经网络来改进其中的关键模块，如翻译模型、语言模型、调序模型等；2）（见图1的右半部分）不再以统计机器翻译系统为框架，而是直接用神经网络将源语言映射到目标语言，即端到端的神经网络机器翻译（Neural Machine Translation, NMT）。
+面对上述挑战，一个较好的解决方法是利用神经网络。这类系统又大致分为两类：1）仍以统计机器翻译系统为框架，只是利用神经网络来改进其中的关键模块，如语言模型、调序模型等（见图1的左半部分）；2）不再以统计机器翻译系统为框架，而是直接用神经网络将源语言映射到目标语言，即端到端的神经网络机器翻译（Neural Machine Translation, NMT）（见图1的右半部分）。
 <p align="center">
 <img src="image/nmt.png"><br/>
 图1. 基于神经网络的机器翻译系统
 </p>
 
-本教程主要介绍NMT模型，以及如何用PaddlePaddle来训练一个法英翻译（从法语翻译到英语）的模型。
+本教程主要介绍NMT模型，以及如何用PaddlePaddle来训练一个翻译模型。
 
 ## 效果展示
 
-当法英翻译的模型训练完毕后，以下面的两句法语为例：
+以中英翻译（中文翻译到英文）的模型为例，当模型训练完毕时，如果输入如下中文句子：
 ```text
-Les avionneurs se querellent au sujet de la largeur des sièges alors que de grosses commandes sont en jeu Jet makers feud over seat width with big orders at stake
-La dispute fait rage entre les grands constructeurs aéronautiques à propos de la largeur des sièges de la classe touriste sur les vols long-courriers , ouvrant la voie à une confrontation amère lors du salon aéronautique de Dubaï qui a lieu de mois-ci .	A row has flared up between leading plane makers over the width of tourist-class seats on long-distance flights , setting the tone for a bitter confrontation at this month &apos;s Dubai Airshow .
+喷气机制造商为了座位宽度的问题与利益攸关的大客户发生争执。
 
 ```
 如果设定显示翻译结果的条数（即[集束搜索算法](#集束搜索算法)的宽度）为3，生成的英语句子如下：
 ```text
-0
 0	-19.0179   The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
 1	-19.1114   The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
 2	-19.5112   The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
-
-1
-0	-28.1139	 The dispute is between the large aviation manufacturers about the width of the tourist seats on the <unk> flights , paving the way for a <unk> confrontation at the Dubai aviation fair , which is a month . <e>
-1	-28.7138	 The dispute is between the large aviation manufacturers about the width of the tourist seats on the <unk> flights , paving the way for a <unk> confrontation at the Dubai aviation fair , which takes place months . <e>
-2	-29.3381	 The dispute is between the large aviation manufacturers about the width of the tourist seats on the <unk> flights , paving the way for a <unk> confrontation at the Dubai aviation fair , which takes place in month . <e>
 ```
-- 第一行的“0”和第6行的“1”表示翻译第几条法语句子。
-- 其他六行列出了翻译结果，其中右起第一列是生成的英语句子，右起第二列是该条英语句子的得分（从大到小），右起第三列是该条句子的序号。
+- 右起第一列是生成的英语句子，右起第二列是该条英语句子的得分（从大到小），右起第三列是该条句子的序号。
 - 另外有两个特殊表示：`<e>`表示句子的结尾，`<unk>`表示无法识别（即不在训练字典中）的单词。
 
 ## 模型概览
 
-本节依次介绍GRU（Gated Recurrent Unit，门控循环单元），双向RNN模型，NMT中典型的“编码器-解码器”（Encoder-Decoder）框架和“注意力”（Attention）机制，以及集束搜索（Beam Search）算法。
+本节依次介绍GRU（Gated Recurrent Unit，门控循环单元），双向循环神经网络，NMT中典型的“编码器-解码器”（Encoder-Decoder）框架和“注意力”（Attention）机制，以及集束搜索（Beam Search）算法。
 
 ### GRU
 
-GRU\[[1](#参考文献)\]是Cho等人在LSTM上提出的简化版本，如下图所示。GRU单元只有两个门，分别是重置门（Reset Gate）和更新门（Update Gate），用于控制记忆内容是否能继续保存下去。
+我们已经在[情感分析](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md)一章中介绍了循环神经网络(RNN)及长短时间记忆网络（LSTM）。相比于简单的RNN，LSTM增加了记忆单元、输入门、遗忘门及输出门，这些门及记忆单元组合起来大大提升了RNN处理远距离依赖问题的能力。
+
+GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN的一种扩展，如下图所示。GRU单元只有两个门：
+- 重置门（Reset Gate）：如果重置门关闭，会忽略掉历史信息，即历史不相干的信息不会影响未来的输出。
+- 更新门（Update Gate）：将LSTM的输入门和遗忘门合并，用于控制历史信息对当前输出的影响。如果更新门接近1，会把历史信息传递下去。
 <p align="center">
 <img src="image/gru.png"><br/>
 图2. GRU门控循环单元
 </p>
 
-另外，Chung等人\[[2](#参考文献)\]通过多组实验表明，GRU虽然参数更少，但是在多个任务上都和LSTM有相近的表现。
+另外，Chung等人\[[3](#参考文献)\]通过多组实验表明，GRU虽然参数更少，但是在多个任务上都和LSTM有相近的表现。
 
-### 双向RNN模型
+### 双向循环神经网络
 
-理论上，RNN $t$时刻的输出，编码了所有到$t$时刻之前的历史信息。然而，标准的神经网络通常都忽略了未来时刻的下文信息。因此，如果能像访问历史上文信息一样来访问未来下文信息，很多序列学习任务都能从中获益。双向RNN就是解决这一问题的一种简单有效的方法，由Bengio等人在论文\[[1](#参考文献),[3](#参考文献)\]中提出。
+我们已经在[语义角色标注](https://github.com/PaddlePaddle/book/blob/develop/label_semantic_roles/README.md)一章中介绍了双向循环神经网络(bi-RNN)和其中的一种网络结构。这里介绍Bengio等人在论文\[[2](#参考文献),[4](#参考文献)\]中提出的另一种结构。
 
-双向RNN的每一个训练序列，向前和向后分别是两个循环神经网络（RNN），而且都连接着一个输出层。这个结构提供给输出层：输入序列中每一个点完整的过去和未来的下文信息。下图展示的是一个按时间步展开的双向循环神经网络。该网络包含一个前向（forward）和一个后向（backward）RNN，其中有六个权值：输入到前向隐层和后向隐层（$w_1, w_3$），隐层到隐层自己（$w_2,w_5$），前向隐层和后向隐层到输出层（$w_4, w_6$）。注意，该网络的前向隐层和后向隐层之间没有信息流。
+该双向RNN网络分别在时间维顺序和逆序（即前向和后向）输入一个RNN，并将每个时刻的输出分别连接到输出层。这样输出层的每个节点都包含了输入序列中当前时刻完整的过去和未来的下文信息。下图展示的是一个按时间步展开的双向RNN网络。该网络包含一个前向（forward）和一个后向（backward）RNN，其中有六个权值：输入到前向隐层和后向隐层（$w_1, w_3$），隐层到隐层自己（$w_2,w_5$），前向隐层和后向隐层到输出层（$w_4, w_6$）。注意，该网络的前向隐层和后向隐层之间没有信息流。
 
 <p align="center">
 <img src="image/bi_rnn.png"><br/>
@@ -67,7 +63,7 @@ GRU\[[1](#参考文献)\]是Cho等人在LSTM上提出的简化版本，如下图
 
 ### 编码器-解码器框架
 
-编码器-解码器（Encoder-Decoder）\[[1](#参考文献)\]框架用于解决一个任意长度的源序列到另一个任意长度的目标序列的变换问题。即编码阶段将整个源序列压缩成一个固定维度的向量，解码阶段以概率的方式从中解码出整个目标序列。编码和解码的过程通常都使用RNN实现，但由于普通的RNN存在梯度消失和梯度爆炸问题，因此会引入LSTM或GRU。
+编码器-解码器（Encoder-Decoder）\[[2](#参考文献)\]框架用于解决一个任意长度的源序列到另一个任意长度的目标序列的变换问题。即编码阶段将整个源序列编码成一个向量，解码阶段通过最大化预测序列概率，从中解码出整个目标序列。编码和解码的过程通常都使用RNN实现。
 <p align="center">
 <img src="image/encoder_decoder.png"><br/>
 图4. 编码器-解码器框架
@@ -76,11 +72,14 @@ GRU\[[1](#参考文献)\]是Cho等人在LSTM上提出的简化版本，如下图
 #### 编码器
 
 编码阶段分为三步：
-- 独热编码（one-hot coding，1-of-K coding）表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词表示成一个向量$w_i\epsilon R^{\left | V \right |},i=1,2,...,T$ （T暂不包括句子结束标记`<EOS>`）。这个向量的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
-- 映射到低维语义空间的词向量：独热编码表示存在两个问题，1）生成的向量维度往往很大，容易造成维数灾难；2）无法刻画词与词之间的关系（如语义相似性，也就是无法很好地表达语义）。因此，需再映射到低维的语义空间，由一个固定维度的稠密向量（称为词向量）表示。记映射矩阵为$C\epsilon R^{K\times \left | V \right |}$，用$s_i=Cw_i$表示第$i$个词的词向量，向量维度$K$通常取100-500之间。
-- 用RNN编码源语言词序列：这一过程的计算公式为$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$，其中$h_0$是一个全零的向量，最后得到的$h_T$就是整个源语言句子的编码。
 
-编码阶段也可使用双向GRU，即一个词的隐层状态不仅编码了前面词的信息，还编码了后面词的信息。具体来说，前向GRU按照词序列$(x_1,x_2,...,x_T)$的顺序依次编码源语言端词，并得到一系列隐层状态$(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$。类似得，后向GRU按照$(x_T,x_{T-1},...,x_1)$的顺序依次压缩源语言端词，得到$(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$。最后对于词$x_i$，通过连接两个GRU的结果得到它的隐层状态，即$h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T}$。
+1. one-hot vector（独热向量）表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词表示成一个向量$w_i\epsilon R^{\left | V \right |},i=1,2,...,T$。这个向量的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
+
+2. 映射到低维语义空间的词向量：one-hot vector表示存在两个问题，1）生成的向量维度往往很大，容易造成维数灾难；2）无法刻画词与词之间的关系（如语义相似性，也就是无法很好地表达语义）。因此，需再映射到低维的语义空间，由一个固定维度的稠密向量（称为词向量）表示。记映射矩阵为$C\epsilon R^{K\times \left | V \right |}$，用$s_i=Cw_i$表示第$i$个词的词向量，向量维度$K$通常取100-500之间。
+
+3. 用RNN编码源语言词序列：这一过程的计算公式为$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$，其中$h_0$是一个全零的向量，$\varnothing _\theta$是一个非线性激活函数，最后得到的$\mathbf{h}=\left \{ h_1,..., h_T \right \}$就是整个源语言句子的编码。注意：如果不使用[注意力机制](#注意力机制)，需要将$\mathbf{h}$再编码成一个固定维度的向量，如可以直接取最后一个元素，或使用时间维上最大池化（max pooling）或平均池化（average pooling）操作得到所有元素的最大值或平均值，等。
+
+第3步也可以使用双向RNN实现更复杂的句编码表示，具体可以用双向GRU实现。前向GRU按照词序列$(x_1,x_2,...,x_T)$的顺序依次编码源语言端词，并得到一系列隐层状态$(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$。类似地，后向GRU按照$(x_T,x_{T-1},...,x_1)$的顺序依次编码源语言端词，得到$(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$。最后对于词$x_i$，通过连接两个GRU的结果得到它的隐层状态，即$h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T}$。
 
 <p align="center">
 <img src="image/encoder_attention.png"><br/>
@@ -89,33 +88,42 @@ GRU\[[1](#参考文献)\]是Cho等人在LSTM上提出的简化版本，如下图
 
 #### 解码器
 
-解码阶段的总体思路是：根据源语言句子的上下文向量（context vector）c、解码出来的第$i$个单词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$，然后用softmax归一化得到概率分布$p_{i+1}$。训练模式时，根据$p_{i+1}$和目标语言词在字典中的标签计算代价，重复上述操作，直到目标语言序列中的所有词处理完毕。生成模式时，根据$p_{i+1}$采样出单词$u_{i+1}$，重复上述操作，直到获得句子结束标记`<EOS>`或超过句子的最大生成长度为止。
+机器翻译任务中，解码阶段的总体思路是：每一个时刻，根据源语言句子的编码信息（又叫上下文向量，context vector）$c$、目标语言序列的第$i$个单词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$，并通过`softmax`归一化得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。
+- 训练模式：目标是最大化真实翻译目标语言序列的概率，即根据$p_{i+1}$和目标语言词在字典中的标签计算代价，重复上述操作，直到目标语言序列中的所有词处理完毕。
+- 生成模式：目标是预测目标语言序列，即根据$p_{i+1}$采样出单词$u_{i+1}$，重复上述操作，直到获得句子结束标记`<e>`或超过句子的最大生成长度为止。
 
 $z_i$的计算公式如下：
 
 $$z_{i+1}=\phi _{\theta '}\left ( c,u_i,z_i \right )$$
 
-其中$c=h_T$是源语言句子的上下文向量，$z_0$是一个全零的向量，$u_0$是源语言句子的结束标记`<EOS>`。
+其中$\phi _{\theta '}$是一个非线性激活函数；$c=q\mathbf{h}$是源语言句子的上下文向量，在不使用[注意力机制](#注意力机制)时，如果[编码器](#编码器)的输出是源语言句子编码后的最后一个元素，则可以定义$c=h_T$；$u_i$是目标语言序列的第$i$个单词，$u_0$是源语言句子的结束标记`<e>`，表示源语言输入结束和解码开始；$z_i$是$i$时刻解码RNN的隐层状态，$z_0$是一个全零的向量。
 
 概率分布公式如下：
 
-$$p\left ( u_i|u_{<i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$$
+$$p\left ( u_{i+1}|u_{<i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
 
-其中$W_sz_i+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到每个词的概率$p_i$。
+其中$W_sz_{i+1}+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到第$i+1$个词的概率$p_{i+1}$。
 
 ### 注意力机制
 
-在上述框架中，由于编码阶段压缩成的固定维度的向量，需要包含源语言序列的所有信息，对于长句子而言很难达到的。因此，Bahdanau等人\[[3](#参考文献)\]引入注意力（Attention）机制，其基本思想是目标语言端的词，往往只和源语言端的部分词相关。下面介绍在注意力机制的解码器结构。
+如果编码阶段的输出是一个固定维度的向量，会带来以下三个问题：1）不论源语言序列的长度是5个词还是50个词，如果都用固定维度的向量去编码其中的语义和句法结构信息，对模型来说是一个非常高的要求，特别是对长句子序列而言；2）从直觉出发，当翻译目标语言时，我们并不需要知道整个源语言序列，而只要知道当前翻译到源语言的哪个位置和这个位置前后的一个上下文片段即可；3）任何时候都拿到源语言的所有信息，实际上也是一种干扰。因此，Bahdanau等人\[[4](#参考文献)\]引入注意力（Attention）机制，可以对编码后的上下文片段进行解码，以此来解决长句子的特征学习问题。下面介绍在注意力机制下的解码器结构。
 
 与简单的解码器不同，这里$z_i$的计算公式为：
 
 $$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$$
 
-可见，源语言句子的上下文向量由原来的$c$变成了第$i$个$c_i$，即针对每一个待解码的词$u_i$，都有一个特定的$c_i$与之对应。$c_i$的计算公式如下：
+可见，源语言句子的编码向量表示为第$i$个词的上下文片段$c_i$，即针对每一个目标语言中的词$u_i$，都有一个特定的$c_i$与之对应。$c_i$的计算公式如下：
 
 $$c_i=\sum _{j=1}^{T}\mathbf{a}_{ij}h_j, \mathbf{a}_i=\left[ \mathbf{a}_{i1},\mathbf{a}_{i2},...,\mathbf{a}_{iT}\right ]$$
 
-从公式中可以看出，注意力机制即是通过对各个$h_j$进行加权平均实现的，其中权重$a_{ij}$表示待解码的词$u_i$对每个源词语$h_i$不同程度的注意力。具体权重计算公式见\[[3](#参考文献)\]。
+从公式中可以看出，注意力机制是通过对编码器中各时刻的RNN状态$h_j$进行加权平均实现的。权重$a_{ij}$表示目标语言中第$i$个词对源语言中第$j$个词的注意力大小，$a_{ij}$的计算公式如下：
+
+\begin{align}
+a_{ij}&=\frac{exp(e_{ij})}{\sum_{k=1}^{T}exp(e_{ik})}\\\\
+e_{ij}&=align(z_i,h_j)\\\\
+\end{align}
+
+其中，align可以看作是一个对齐模型，用来衡量目标语言中第$i$个词和源语言中第$j$个词的匹配程度。具体而言，这个程度是通过解码RNN的第$i$个隐层状态$z_i$和源语言句子的第$j$个上下文片段$h_j$计算得到的。不同于传统的对齐模型：目标语言的每个词明确对应源语言的一个或多个词（hard alignment）。这里采用的是soft alignment，因此可以融入整个NMT框架，并通过反向传播算法求梯度以及更新参数。
 
 <p align="center">
 <img src="image/decoder_attention.png"><br/>
@@ -126,7 +134,7 @@ $$c_i=\sum _{j=1}^{T}\mathbf{a}_{ij}h_j, \mathbf{a}_i=\left[ \mathbf{a}_{i1},\ma
 
 集束搜索（[Beam Search](http://en.wikipedia.org/wiki/Beam_search)）是一种启发式图搜索算法，通常用在解空间较大的系统中，如机器翻译、语音识别等。原因是这些系统的数据集通常非常大，而且也没有唯一正确解，因此用最快的方法找到最接近正确的解才是系统的目标。
 
-集束搜索算法使用广度优先策略建立搜索树，在树的每一层，按照启发代价（Heuristic Cost）（本教程中，为生成词的概率）对节点进行排序，然后仅留下预先确定的个数（Beam Width，Beam Size，集束宽度）的节点。只有这些节点会在下一层继续扩展，其他节点就被剪掉了，也就是说保留了质量较高的节点，剪掉了质量较差的节点。因此，搜索所占用的空间和时间大幅减少，但缺点是可能存在最优解被丢弃。
+集束搜索算法使用广度优先策略建立搜索树，在树的每一层，按照启发代价（Heuristic Cost）（本教程中，为生成词的概率）对节点进行排序，然后仅留下预先确定的个数（Beam Width，Beam Size，集束宽度）的节点。只有这些节点会在下一层继续扩展，其他节点就被剪掉了，也就是说保留了质量较高的节点，剪枝了质量较差的节点。因此，搜索所占用的空间和时间大幅减少，但缺点是可能存在最优解被丢弃。
 
 ## 数据准备
 
@@ -204,16 +212,16 @@ user_dataset
 我们的预处理流程包括两步：
 - 将每个源语言到目标语言的平行语料库文件合并为一个文件：
   - 合并每个`XXX.src`和`XXX.trg`文件为`XXX`。
-  - `XXX`中的第$i$行 = `XXX.src`中的第$i$行 + '\t' + `XXX.trg`中的第$i$行。
-- 创建训练数据的“源字典”和“目标字典”。每个字典都有**DICTSIZE**个单词，包括：词频最高的（DICTSIZE - 3）个单词，和3个特殊符号`<s>`（序列的开始）、`<e>`（序列的结束）和`<unk>`（未包含在字典中的单词）。
+  - `XXX`中的第$i$行内容为`XXX.src`中的第$i$行和`XXX.trg`中的第$i$行连接，用'\t'分隔。
+- 创建训练数据的“源字典”和“目标字典”。每个字典都有**DICTSIZE**个单词，包括：语料中词频最高的（DICTSIZE - 3）个单词，和3个特殊符号`<s>`（序列的开始）、`<e>`（序列的结束）和`<unk>`（未包含在字典中的单词）。
 
 预处理可以使用`preprocess.py`：
 ```python
 python preprocess.py -i INPUT [-d DICTSIZE] [-m]
 ```
-- `-i INPUT`：输入的原始数据集路径
-- `-d DICTSIZE`：指定的字典单词数，如果没有设置，字典会包含输入数据集中的所有单词
-- `-m --mergeDict`：合并 “源字典”和“目标字典”，使得两个字典有相同的上下文
+- `-i INPUT`：输入的原始数据集路径。
+- `-d DICTSIZE`：指定的字典单词数，如果没有设置，字典会包含输入数据集中的所有单词。
+- `-m --mergeDict`：合并“源字典”和“目标字典”，即这两个字典的内容完全一样。
 
 本教程的具体命令如下：
 ```python
@@ -257,7 +265,11 @@ pre-wmt14
    START = "<s>"  #序列的开始
    END = "<e>"    #序列的结束
    ```
-2. 其次，使用初始化函数`hook`，分别定义了训练模式和应用（这里为生成）模式下的数据输入格式（`input_types`）。其中`src_dict_path`（源语言字典路径）、`trg_dict_path`（目标语言字典路径）和`is_generating`（训练或生成模式）是从模型配置中传入的对象，调用方式请见[训练模型配置说明](#训练模型配置说明)。
+2. 其次，使用初始化函数`hook`，分别定义了训练模式和应用（这里为生成）模式下的数据输入格式（`input_types`）。
+   - 训练模式：有三个输入序列，其中“源语言序列”和“目标语言序列”作为训练数据，“目标语言的下一个词序列”作为标签数据。
+   - 生成模式：有两个输入序列，其中“源语言序列”作为生成数据，“源语言序列编号”作为生成数据的编号（该输入非必须，可以省略）。
+  
+  `hook`函数中的`src_dict_path`是源语言字典路径，`trg_dict_path`是目标语言字典路径，`is_generating`（训练或生成模式）是从模型配置中传入的对象。`hook`函数的具体调用方式请见[训练模型配置说明](#训练模型配置说明)。
 
    ```python
    def hook(settings, src_dict_path, trg_dict_path, is_generating, file_list, 
@@ -298,7 +310,7 @@ pre-wmt14
 
    - 在源语言序列的每句话前面补上开始符号`<s>`、末尾补上结束符号`<e>`；
    - 在目标语言序列的每句话前面补上`<s>`；
-   - 在目标语言序列的每句话末尾补上`<s>`，作为目标语言的下一次词序列。
+   - 在目标语言序列的每句话末尾补上`<e>`，作为目标语言的下一个词序列。
 
    ```python
    def _get_ids(s, dictionary): # 获得源语言序列中的每个单词在字典中的位置
@@ -400,9 +412,9 @@ settings(
        gen_trans_file = get_config_arg("gen_trans_file", str, None) # 生成后的文件
   ```
 
-2. 其次，实现基于注意力机制的编码器框架。分为三步：
+2. 其次，实现编码器框架。分为三步：
 
-   2.1 传入已经在`dataprovider.py`转换成独热编码表示的源语言序列$\mathbf{w}$。
+   2.1 传入已经在`dataprovider.py`转换成one-hot vector表示的源语言序列$\mathbf{w}$。
 
    ```python
    src_word_id = data_layer(name='source_language_word', size=source_dict_dim)
@@ -415,7 +427,7 @@ settings(
        size=word_vector_dim,
        param_attr=ParamAttr(name='_source_language_embedding'))
    ```
-   2.3 用双向GRU编码源语言序列，将结果拼接成$\mathbf{h}$。
+   2.3 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
   
    ```python
    src_forward = simple_gru(input=src_embedding, size=encoder_size)
@@ -424,15 +436,15 @@ settings(
    encoded_vector = concat_layer(input=[src_forward, src_backward])
    ```
 
-3. 接着，定义基于注意力机制的解码器框架。
+3. 接着，定义基于注意力机制的解码器框架。分为三步：
 
-   3.1 对源语言序列编码后的结果，过一个前馈神经网络（Feed Forward Neural Network）。该层是3.3中`simple_attention`函数内部的一个计算步骤，但由于每个时间步该层的计算过程都一样，所以这里提取到外面单独计算以节省时间。
+   3.1 对源语言序列编码后的结果（见2.3），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
    
    ```python
    with mixed_layer(size=decoder_size) as encoded_proj:
        encoded_proj += full_matrix_projection(input=encoded_vector)
    ```
-   3.2 取源语言序列编码后的最后一个词（即反向GRU的第一个词）传给解码阶段的RNN。即$\mathbf{c_0}=\mathbf{h_T}$。
+   3.2 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$\mathbf{c_0}=\mathbf{h_T}$。
 
    ```python
    backward_first = first_seq(input=src_backward)
@@ -441,11 +453,11 @@ settings(
            act=TanhActivation(), ) as decoder_boot:
        decoder_boot += full_matrix_projection(input=backward_first)
    ```
-   3.3 定义解码阶段每一个时间步的RNN行为，即计算每一个时间步的隐层状态$z_i$和词概率$p_i$。
+   3.3 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
 
-      - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot，即$\mathbf{z_0}=\mathbf{c_0}$）。
-      - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}\mathbf{a}{ij}h_j$。其中，enc_vec是$h_j$，enc_proj见3.1，权重$\mathbf{a}{ij}$的计算已经封装在`simple_attention`函数中。
-      - decoder_inputs记录了针对该目标词的源语言句子的编码$c_i$，和当前目标词current_word（即$u_i$）。
+      - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot。
+      - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}\mathbf{a}{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$\mathbf{a}{ij}$的计算已经封装在`simple_attention`函数中。
+      - decoder_inputs记录了$c_i$和当前目标词current_word（即$u_i$）。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{<i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。 
         
@@ -475,9 +487,9 @@ settings(
            out += full_matrix_projection(input=gru_step)
        return out
     ```
-4. 根据配置模式的不同，调用基于注意力机制的解码器框架。
+4. 训练模式与生成模式下的解码器调用区别。
 
-   4.1 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，说明它们都是只读的memory，即4.2中的`recurrent_group`函数不会按时间步对它们拆解，而是引用整个输入。具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
+   4.1 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
 
    ```python
    decoder_group_name = "decoder_group"
@@ -485,7 +497,7 @@ settings(
    group_input2 =  StaticInput(input=encoded_proj, is_seq=True)
    group_inputs = [group_input1, group_input2]
    ```
-   4.2 训练模式下的调用：
+   4.2 训练模式下的解码器调用：
 
       - 首先，将目标语言序列的词向量trg_embedding，直接作为训练模式下的current_word传给`gru_decoder_with_attention`函数。
       - 其次，使用`recurrent_group`函数循环调用`gru_decoder_with_attention`函数。
@@ -510,7 +522,7 @@ settings(
        cost = classification_cost(input=decoder, label=lbl)
        outputs(cost)
    ```
-   4.3 应用模式下的调用：
+   4.3 应用模式下的解码器调用：
 
       - 首先，在序列生成任务中，由于解码阶段的RNN总是引用上一时刻生成出的词的词向量，作为当前时刻的输入，因此，使用`GeneratedInput`来自动完成这一过程。具体说明可见[GeneratedInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
       - 其次，使用`beam_search`函数循环调用`gru_decoder_with_attention`函数，生成出序列id。
@@ -589,7 +601,7 @@ I0719 19:17:56.707319 15563 TrainerInternal.cpp:160]  Batch=20 samples=1000 AvgC
 
 ### 下载预训练的模型
 
-由于机器翻译模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了16个pass，其中每个pass耗时7个小时。因此，我们提供了一个预训练好的模型（pass-00012）供大家直接下载使用。该模型大小为205MB，在所有16个模型中有最高的[BLEU评估](#BLEU评估)值27.77。下载并解压模型的命令如下：
+由于机器翻译模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了16个pass，其中每个pass耗时7个小时。因此，我们提供了一个预训练好的模型（pass-00012）供大家直接下载使用。该模型大小为205MB，在所有16个模型中有最高的[BLEU评估](#BLEU评估)值26.92。下载并解压模型的命令如下：
 ```bash
 cd pretrained
 ./wmt14_model.sh
@@ -620,31 +632,39 @@ paddle train \
 - job：设置任务的模式为测试。
 - save_dir：设置存放预训练模型的路径。
 - num_passes和test_pass：加载第$i\epsilon \left [ test\_pass,num\_passes-1 \right ]$轮的模型参数，这里只加载 `data/wmt14_model/pass-00012`。
-- config_args：将命令行中的自定义参数传递给模型配置。
+- config_args：将命令行中的自定义参数传递给模型配置。`is_generating=1`表示当前为生成模式，`gen_trans_file="gen_result"`表示生成结果的存储文件。
 
 翻译结果请见[效果展示](#效果展示)。
 
 ### BLEU评估
 
-BLEU(Bilingual Evaluation understudy)是一种广泛使用的机器翻译自动评测指标，由IBM的watson研究中心于2002年提出\[[4](#参考文献)\]，基本出发点是：机器译文越接近专业翻译人员的翻译结果，翻译系统的性能越好。其中，机器译文与人工参考译文之间的接近程度，采用句子精确度（precision）的计算方法，即比较两者的n元词组相匹配的个数，匹配的个数越多，BLEU得分越好。
+BLEU(Bilingual Evaluation understudy)是一种广泛使用的机器翻译自动评测指标，由IBM的watson研究中心于2002年提出\[[5](#参考文献)\]，基本出发点是：机器译文越接近专业翻译人员的翻译结果，翻译系统的性能越好。其中，机器译文与人工参考译文之间的接近程度，采用句子精确度（precision）的计算方法，即比较两者的n元词组相匹配的个数，匹配的个数越多，BLEU得分越好。
 
 [Moses](http://www.statmt.org/moses/) 是一个统计学的开源机器翻译系统，我们使用其中的 [multi-bleu.perl](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/generic/multi-bleu.perl) 来做BLEU评估。下载脚本的命令如下：
 ```bash
 ./moses_bleu.sh
 ```
-本教程的BLEU评估命令如下（即默认使用`data/wmt14/gen/ntst14.trg`作为标准的翻译结果）：
+BLEU评估可以使用`eval_bleu`脚本如下，其中FILE为需要评估的文件名，BEAMSIZE为集束宽度，默认使用`data/wmt14/gen/ntst14.trg`作为标准的翻译结果。
 ```bash
 ./eval_bleu.sh FILE BEAMSIZE
 ```
-其中，FILE为需要评估的文件名，BEAMSIZE为集束宽度。
+本教程的具体命令如下：
+```bash
+./eval_bleu.sh gen_result 3
+```
+您会在屏幕上看到：
+```text
+BLEU = 26.92
+```
 
 ## 总结
 
-端到端的神经网络机器翻译是近几年兴起的一种全新的机器翻译方法。本章中，我们介绍了NMT中典型的“编码器-解码器”框架和“注意力”机制。由于NMT属于更抽象的Seq2Seq（Sequence to Sequence，序列到序列）问题，因此，Seq2Seq中的query改写（query rewriting）、图像描述（image captioning）等问题都可以用本教程的模型来解决。
+端到端的神经网络机器翻译是近几年兴起的一种全新的机器翻译方法。本章中，我们介绍了NMT中典型的“编码器-解码器”框架和“注意力”机制。由于NMT属于更抽象的Seq2Seq（Sequence to Sequence，序列到序列）问题，因此，Seq2Seq中的query改写（query rewriting）、摘要、单轮对话等问题都可以用本教程的模型来解决。
 
 ## 参考文献
 
-1. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.
-2. Chung J, Gulcehre C, Cho K H, et al. [Empirical evaluation of gated recurrent neural networks on sequence modeling](https://arxiv.org/abs/1412.3555)[J]. arXiv preprint arXiv:1412.3555, 2014.
-3.  Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[J]. arXiv preprint arXiv:1409.0473, 2014.
-4. Papineni K, Roukos S, Ward T, et al. [BLEU: a method for automatic evaluation of machine translation](http://dl.acm.org/citation.cfm?id=1073135)[C]//Proceedings of the 40th annual meeting on association for computational linguistics. Association for Computational Linguistics, 2002: 311-318.
+1. Koehn P. [Statistical machine translation](https://books.google.com.hk/books?id=4v_Cx1wIMLkC&printsec=frontcover&hl=zh-CN&source=gbs_ge_summary_r&cad=0#v=onepage&q&f=false)[M]. Cambridge University Press, 2009.
+2. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.
+3. Chung J, Gulcehre C, Cho K H, et al. [Empirical evaluation of gated recurrent neural networks on sequence modeling](https://arxiv.org/abs/1412.3555)[J]. arXiv preprint arXiv:1412.3555, 2014.
+4.  Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[J]. arXiv preprint arXiv:1409.0473, 2014.
+5. Papineni K, Roukos S, Ward T, et al. [BLEU: a method for automatic evaluation of machine translation](http://dl.acm.org/citation.cfm?id=1073135)[C]//Proceedings of the 40th annual meeting on association for computational linguistics. Association for Computational Linguistics, 2002: 311-318.

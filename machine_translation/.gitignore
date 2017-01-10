@@ -6,3 +6,4 @@ gen_result
 train.log
 dataprovider_copy_1.py
 *.pyc
+multi-bleu.perl
