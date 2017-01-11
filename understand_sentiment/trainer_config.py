@@ -97,11 +97,10 @@ def stacked_lstm_net(input_dim,
     is_predict: is predicting or not.
                 Some layers is not needed in network when predicting.
     """
-    hid_lr = 1e-3
     assert stacked_num % 2 == 1
 
     layer_attr = ExtraLayerAttribute(drop_rate=0.5)
-    fc_para_attr = ParameterAttribute(learning_rate=hid_lr)
+    fc_para_attr = ParameterAttribute(learning_rate=1e-3)
     lstm_para_attr = ParameterAttribute(initial_std=0., learning_rate=1.)
     para_attr = [fc_para_attr, lstm_para_attr]
     bias_attr = ParameterAttribute(initial_std=0., l2_rate=0.)
