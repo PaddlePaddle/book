@@ -8,11 +8,11 @@
 
 和判别式神经元网络模型相对的一类模型是生成式模型（generative models）。它们通常是通过非监督训练（unsupervised learning）来得到的。这类模型的训练数据里只有 X，没有y。训练的目标是希望模型能蕴含训练数据的统计分布信息，从而可以从训练好的模型里产生出新的、在训练数据里没有出现过的新数据 x'。
 
-生成模型在很多方面都有广泛应用。比如在图像处理方面的图像自动生成、图像去噪、和缺失图像补全等应用。比如在增强学习的条件下，可以根据之前观测到的数据和可能的操作来生成未来的数据，使得agent能够从中选择最佳的操作。比如在半监督（semi-supervised）学习的条件下，把生成模型生成的数据加入分类器训练当中，能够减少分类器训练对于标记数据数量的要求。真实世界中大量数据都是没有标注的，人为标注数据会耗费大量人力财力，这就使生成模型有了它的用武之地。
+生成模型在很多方面都有广泛应用。比如在图像处理方面的图像自动生成、图像去噪、和缺失图像补全等应用。比如在增强学习的条件下，可以根据之前观测到的数据和可能的操作来生成未来的数据，使得agent能够从中选择最佳的操作。比如在半监督（semi-supervised）学习的条件下，把生成模型生成的数据加入分类器训练当中，能够减少分类器训练对于标记数据数量的要求。真实世界中大量数据都是没有标注的，人为标注数据会耗费大量人力财力，这就使生成模型有了它的用武之地。研究生成模型的另一个动机是，人们认为如果能够生成很好的数据，那么很可能这个生成模型就学习到了这组数据的一个很好的通用表示（representation），就可以用这个学到的表示来完成其他的一些任务。
 
-之前出现的生成模型，一般是直接构造模型$P_{model}(x; \theta)$来模拟真实数据分布$P_{data}(x)$。而这个模拟的过程，通常是由最大似然（Maximum Likelihood）的办法来调节模型参数，使得观测到的真实数据在该模型下概率最大。这里模型的种类又可以分为两大类，一类是tractable的，一类是untractable的。第一类里的一个例子是像素循环神经网络（Pixel Recurrent Neural Network）\[[7](#参考文献)\]，它是用概率的链式规则把对于n维数据的概率分解成n个一维数据的概率相乘，也就是说根据周围的像素来一个像素一个像素的生成图片。这种方法的问题是对于一个n维的数据，需要n步才能生成，速度较慢，而且图片整体看来各处不太连续。
+之前出现的生成模型，一般是直接构造模型$P_{model}(x; \theta)$来模拟真实数据分布$P_{data}(x)$。而这个模拟的过程，通常是由最大似然（Maximum Likelihood）的办法来调节模型参数，使得观测到的真实数据在该模型下概率最大。这里模型的种类又可以分为两大类，一类是tractable的，一类是untractable的。第一类里的一个例子是像素循环神经网络（Pixel Recurrent Neural Network）\[[2](#参考文献)\]，它是用概率的链式规则把对于n维数据的概率分解成n个一维数据的概率相乘，也就是说根据周围的像素来一个像素一个像素的生成图片。这种方法的问题是对于一个n维的数据，需要n步才能生成，速度较慢，而且图片整体看来各处不太连续。
 
-为了能有更复杂的模型来模拟数据分布，人们提出了第二类untractable的模型，这样就只能用近似的办法来学习模型参数。近似的办法一种是构造一个似然的下限（Likelihood lower-bound），然后用变分的办法来提高这个下限的值，其中一个例子是变分自编码器（variational autoencoder）\[[3](#参考文献)\]。用这种方法产生的图片，虽然似然比较高，但经常看起来会比较模糊。近似的另一种办法是通过马尔可夫链－蒙地卡罗（Markov-Chain-Monte-Carlo）来取样本，比如深度玻尔兹曼机（Deep Boltzmann Machine）\[[5](#参考文献)\]就是用的这个方法。这种方法的问题是取样本的计算量非常大，而且没有办法并行化。
+为了能有更复杂的模型来模拟数据分布，人们提出了第二类untractable的模型，这样就只能用近似的办法来学习模型参数。近似的办法一种是构造一个似然的下限（Likelihood lower-bound），然后用变分的办法来提高这个下限的值，其中一个例子是变分自编码器（variational autoencoder）\[[3](#参考文献)\]。用这种方法产生的图片，虽然似然比较高，但经常看起来会比较模糊。近似的另一种办法是通过马尔可夫链－蒙地卡罗（Markov-Chain-Monte-Carlo）来取样本，比如深度玻尔兹曼机（Deep Boltzmann Machine）\[[4](#参考文献)\]就是用的这个方法。这种方法的问题是取样本的计算量非常大，而且没有办法并行化。
 
 为了解决这些问题，人们又提出了本章所要介绍的另一种生成模型，对抗式生成网络。它相比于前面提到的方法，具有生成网络结构灵活，产生样本快，生成图像看起来更真实的优点。下面的图1就对比了上面介绍的几种方法在生成CIFAR-10图片时的效果。
 
@@ -21,27 +21,29 @@
     图1. Cifar-10生成图像对比
 </p>
 
-本文介绍如何训练一个产生式神经元网络模型，它的输入是一个随机生成的向量（相当于不需要任何有意义的输入），而输出是一幅图像，其中有一个数字。换句话说，我们训练一个会写字（阿拉伯数字）的神经元网络模型。它“写”的一些数字如下图：
+## 效果展示
+
+本章将介绍如何训练一个对抗式生成网络，它的输入是一个随机生成的向量（相当于不需要任何有意义的输入），而输出是一幅图像，其中有一个数字。换句话说，我们训练一个会写字（阿拉伯数字）的神经元网络模型。它“写”的一些数字如下图：
 
 <p align="center">
     <img src="./image/mnist_sample.png" width="300" height="300"><br/>
-    图1. GAN生成的MNIST例图
+    图2. GAN生成的MNIST例图
 </p>
 
-现实中成功使用的生成式神经元网络模型往往接受有意义的输入。比如可能接受一幅低分辨率的图像，输出对应的高分辨率图像。这样的模型被称为 conditional GAN这过程实际上是从大量数据学习得到模型，或者说归纳得到知识，然后用这些知识来补足图像的分辨率。
 
+## 模型概览
+对抗式生成网络的基本结构是将一个已知概率分布的随机变量$z$，通过参数化的概率生成模型（通常是用一个神经网络模型来进行参数化），变换后得到一个生成的概率分布（图3中绿色的分布）。训练生成模型的过程就是调节生成模型的参数，使得生成的概率分布趋向于真实数据的概率分布（图3中蓝色的分布）。
 
-## 传统训练方式和对抗式训练
-
-因为神经元网络是一个有向图，总是有输入和输出的。当我们用无监督学习方式来训练一个神经元网络，用于描述训练数据分布的时候，一个通常的学习目标是估计一组参数，使得输出和输入很接近 —— 或者说输入是什么输出就是什么。很多早期的生成式神经元网络模型，包括受限波尔茨曼机和 autoencoder 都是这么训练的。这种情况下优化目标经常是最小化输出和输入的差别。
+对抗式生成网络和之前的生成模型最大的创新就在于，用一个判别式神经网络来描述生成的概率分布和真实数据概率分布之间的差别。也就是说，我们用一个判别式模型 D 辅助构造优化目标函数，来训练一个生成式模型 G。G和D在训练时是处在相互对抗的角色下，G的目标是尽量生成和真实数据看起来相似的伪数据，从而使得D无法分别数据的真伪；而D的目标是能尽量分别出哪些是真实数据，哪些是G生成的伪数据。两者在竞争的条件下，能够相互提高各自的能力，最后收敛到一个均衡点：生成器生成的数据分布和真实数据分布完全一样，而判别器完全无法区分数据的真伪。
 
 <p align="center">
-    <img src="./image/gan_ig.png" width="500" height="400"><br/>
-    图2. GAN模型原理示意图
-    <a href="https://arxiv.org/pdf/1701.00160v1.pdf">figure credit</a>
+    <img src="./image/gan_openai.png" width="600" height="300"><br/>
+    图3. GAN模型原理示意图
+    <a href="https://openai.com/blog/generative-models/">figure credit</a>
 </p>
 
-对抗式训练里，我们用一个判别式模型 D 辅助构造优化目标函数，来训练一个生成式模型 G。如图2所示。具体训练流程是不断交替执行如下两步：
+
+对抗式训练里，具体训练流程是不断交替执行如下两步（参见图4）：
 
 1. 更新模型 D：
    1. 固定G的参数不变，对于一组随机输入，得到一组（产生式）输出，$X_f$，并且将其label成“假”。
@@ -53,24 +55,30 @@
    2. 给G一组随机输入，期待G的输出让D认为像是“真”的。
    3. 在D的输出端，优化目标是通过更新G的参数来最小化D的输出和“真”的差别。
 
+<p align="center">
+    <img src="./image/gan_ig.png" width="500" height="400"><br/>
+    图4. GAN模型训练流程图
+    <a href="https://arxiv.org/pdf/1701.00160v1.pdf">figure credit</a>
+</p>
+
 上述方法实际上在优化如下目标：
 
 $$\min_G \max_D \frac{1}{N}\sum_{i=1}^N[\log D(x^i) + \log(1-D(G(z^i)))]$$
 
 其中$x$是真实数据，$z$是随机产生的输入，$N$是训练数据的数量。这个损失函数的意思是：真实数据被分类为真的概率加上伪数据被分类为假的概率。因为上述两步交替优化G生成的结果的仿真程度（看起来像x）和D分辨G的生成结果和x的能力，所以这个方法被称为对抗（adversarial）方法。
 
-在最早的对抗式生成网络的论文中，生成器和分类器用的都是全联接层。在附带的代码[`gan_conf.py`](./gan_conf.py)中，我们实现了一个类似的结构。G和D是由三层全联接层构成，并且在某些全联接层后面加入了批标准化层（batch normalization）。所用网络结构在图3中给出。
+在最早的对抗式生成网络的论文中，生成器和分类器用的都是全联接层。在附带的代码[`gan_conf.py`](./gan_conf.py)中，我们实现了一个类似的结构。G和D是由三层全联接层构成，并且在某些全联接层后面加入了批标准化层（batch normalization）。所用网络结构在图5中给出。
 
 <p align="center">
     <img src="./image/gan_conf_graph.png" width="700" height="400"><br/>
-    图3. GAN模型结构图
+    图5. GAN模型结构图
 </p>
 
-由于上面的这种网络都是由全联接层组成，所以没有办法很好的生成图片数据，也没有办法做的很深。所以在随后的论文中，人们提出了深度卷积对抗式生成网络（deep convolutional generative adversarial network or DCGAN）\[[2](#参考文献)\]。在DCGAN中，生成器 G 是由多个卷积转置层（transposed convolution）组成的，这样可以用更少的参数来生成质量更高的图片。具体网络结果可参见图4。而判别器是由多个卷积层组成。
+由于上面的这种网络都是由全联接层组成，所以没有办法很好的生成图片数据，也没有办法做的很深。所以在随后的论文中，人们提出了深度卷积对抗式生成网络（deep convolutional generative adversarial network or DCGAN）\[[5](#参考文献)\]。在DCGAN中，生成器 G 是由多个卷积转置层（transposed convolution）组成的，这样可以用更少的参数来生成质量更高的图片。具体网络结果可参见图6。而判别器是由多个卷积层组成。
 
 <p align="center">
     <img src="./image/dcgan.png" width="700" height="300"><br/>
-    图4. DCGAN生成器模型结构
+    图6. DCGAN生成器模型结构
     <a href="https://arxiv.org/pdf/1511.06434v2.pdf">figure credit</a>
 </p>
 
@@ -602,9 +610,7 @@ fake_samples = get_fake_samples(generator_machine, batch_size, noise)
 ## 参考文献
 
 1. Goodfellow I, Pouget-Abadie J, Mirza M, et al. [Generative adversarial nets](https://arxiv.org/pdf/1406.2661v1.pdf)[C] Advances in Neural Information Processing Systems. 2014
-2. Radford A, Metz L, Chintala S. [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/pdf/1511.06434v2.pdf)[C] arXiv preprint arXiv:1511.06434. 2015
+2. van den Oord A, Kalchbrenner N and Kavukcuoglu K. [Pixel Recurrent Neural Networks](https://arxiv.org/pdf/1601.06759v3.pdf) arXiv preprint arXiv:1601.06759 (2016).
 3. Kingma D.P. and Welling M. [Auto-encoding variational bayes](https://arxiv.org/pdf/1312.6114v10.pdf)[C] arXiv preprint arXiv:1312.6114. 2013
-4. Hinton G and Salakhutdinov R. [Reducing the dimensionality of data with neural networks](https://www.cs.toronto.edu/~hinton/science.pdf) Science 313.5786. 2006
-5. Salakhutdinov R and Hinton G. [Deep Boltzmann Machines](http://www.jmlr.org/proceedings/papers/v5/salakhutdinov09a/salakhutdinov09a.pdf)[J] AISTATS. Vol. 1. 2009
-6. Larochelle H and Murray I. [The Neural Autoregressive Distribution Estimator](http://www.jmlr.org/proceedings/papers/v15/larochelle11a/larochelle11a.pdf) AISTATS. Vol. 1. 2011.
-7. van den Oord A, Kalchbrenner N and Kavukcuoglu K. [Pixel Recurrent Neural Networks](https://arxiv.org/pdf/1601.06759v3.pdf) arXiv preprint arXiv:1601.06759 (2016).
+4. Salakhutdinov R and Hinton G. [Deep Boltzmann Machines](http://www.jmlr.org/proceedings/papers/v5/salakhutdinov09a/salakhutdinov09a.pdf)[J] AISTATS. Vol. 1. 2009
+5. Radford A, Metz L, Chintala S. [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/pdf/1511.06434v2.pdf)[C] arXiv preprint arXiv:1511.06434. 2015
