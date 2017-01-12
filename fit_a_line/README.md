@@ -46,7 +46,7 @@ cd data && python prepare_data.py
 | CRIM | 该镇的人均犯罪率 | 连续值 |
 | ZN | 占地面积超过25,000平方呎的住宅用地比例 | 连续值 |
 | INDUS | 非零售商业用地比例 | 连续值 |
-| CHAS | 是否临近 Charles River  | 离散值，1=邻近；0=不邻近 |
+| CHAS | 是否邻近 Charles River  | 离散值，1=邻近；0=不邻近 |
 | NOX | 一氧化氮浓度 | 连续值 |
 | RM | 每栋房屋的平均客房数 | 连续值 |
 | AGE | 1940年之前建成的自用单位比例 | 连续值 |
@@ -86,7 +86,7 @@ python prepare_data.py -r 0.8 #默认使用8:2的比例进行分割
 在更复杂的模型训练过程中，我们往往还会多使用一种数据集：验证集。因为复杂的模型中常常还有一些超参数（[Hyperparameter](https://en.wikipedia.org/wiki/Hyperparameter_optimization)）需要调节，所以我们会尝试多种超参数的组合来分别训练多个模型，然后对比它们在验证集上的表现选择相对最好的一组超参数，最后才使用这组参数下训练的模型在测试集上评估测试误差。由于本章训练的模型比较简单，我们暂且忽略掉这个过程。
 
 ### 提供数据给PaddlePaddle
-准备好数据之后，我们使用一个Python data provider来为PaddlePaddle的训练过程提供数据。一个 data provider 就是一个Python函数，它会被PaddlePaddle的训练过程调用。在这个例子里，只需要读取已经保存好的数据，然后一行一行的返回给PaddlePaddle的训练进程即可。
+准备好数据之后，我们使用一个Python data provider来为PaddlePaddle的训练过程提供数据。一个 data provider 就是一个Python函数，它会被PaddlePaddle的训练过程调用。在这个例子里，只需要读取已经保存好的数据，然后一行一行地返回给PaddlePaddle的训练进程即可。
 
 ```python
 from paddle.trainer.PyDataProvider2 import *
