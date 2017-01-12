@@ -153,7 +153,7 @@ $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \fra
 
 ## 深度双向 LSTM （DB-LSTM）SRL 模型
 
-在这个任务中，输入是 “谓词” 和 “一句话”，目标是：从句中找到谓词的论元，并标注论元的语义角色。如果，一个句子中可能有 $n$ 谓词，这个句子会被处理 $n$ 次。一个最为直接的模型是下面这样：
+在这个任务中，输入是 “谓词” 和 “一句话”，目标是：从句中找到谓词的论元，并标注论元的语义角色。如果，一个句子含有 $n$ 个谓词，这个句子会被处理 $n$ 次。一个最为直接的模型是下面这样：
 
 - 步骤 1. 构造输入
  - 输入 1：谓词
@@ -167,13 +167,6 @@ $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \fra
 
 - 1) 谓词上下文：上面的方法中，只用到了谓词的词向量表达谓词相关的所有信息，这种方法始终是非常弱的，特别是，如果谓词在句子中出现多次，有可能引起一定的歧义。从经验出发，谓词前后若干个词的一个小片段，能够提供更丰富的信息，帮助消解词义。于是，我们把这样的经验也添加到我们的模型中。我们为每个谓词同时抽取一个“谓词上下文” 片段，也就是从这个谓词前后各取 $n$ 个词构成的一个窗口片段；
 - 2）谓词上下文区域标记：为句子中的每一个词引入一个 0-1 二值变量，表示他们是否在“谓词上下文”中；
-
-图5 是谓词上下文窗口为3时，模型输入示例图。
-
-<div  align="center">
-<img src="image/input_data.png" width = "50%" height = "50%" align=center /><br>
-图5. 输入数据示例
-</div>
 
 于是，我们将最初模型修改如下：
 
@@ -224,11 +217,24 @@ conll05st-release/
 ```
 原始数据中同时包括了词性标注、命名实体识别、语法解析树等多种信息。在本教程中，我们使用 test.wsj 文件夹中的数据进行训练，使用 test.brown 文件夹中的数据进行测试。我们的目标是展示如何利用深度神经网络，只使用文本序列作为输入信息、不依赖任何句法解析树以及人工构造的复杂特征的情况想，构建一个端到端学习的语义角色标注系统。因此，这里只会用到 words 文件夹（文本序列）和 props 文件夹（标注序列）下的数据。
 
-标注信息源自 Penn TreeBank \[[9](#参考文献)\] 和 PropBank \[[10](#参考文献)\] 的标注结果。PropBank 使用的标注标记和我们在文章一开始示例中使用的标注标签不同，但原理是相同的，关于标注标签含义的说明，请参考论文\[[11](#参考文献)\]。
+标注信息源自 Penn TreeBank \[[7](#参考文献)\] 和 PropBank \[[8](#参考文献)\] 的标注结果。PropBank 使用的标注标记和我们在文章一开始示例中使用的标注标签不同，但原理是相同的，关于标注标签含义的说明，请参考论文\[[11](#参考文献)\]。
 
 数据准备阶段， ```extract_dict_feature.py``` 会重新格式化原始数据，抽取谓词上下文（这里取谓词前后各 2 个词，也就是一个长度为 5 的窗口片段），和谓词上下文区域标志。
 
 ```data/feature``` 是模型最终的输入，一行是一条训练样本，以 "\t" 分隔，共9列，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。
+
+下表是一条模型输入示例。
+
+| 词在句子中的序号 | 句子中的词 | 谓词 | 谓词上下文（窗口 = 2） | 标记| 
+|---|---|---|---|---|
+| 1  | A | set | n't been set . × | B-A1 |
+| 2 | record | set | n't been set . × | I-A1 |
+| 3 | date | set | n't been set . × | I-A1 |
+| 4 | has | set | n't been set . × | O |
+| 5 | n't | set | n't been set . × | B-AM-NEG |
+| 6 | been | set | n't been set . × | O |
+| 7 | set | set | n't been set . × | B-V |
+| 8 | . | set | n't been set . × | O |
 
 ## 提供数据给 PaddlePaddle
 1. 使用 hook 函数进行 PaddlePaddle 输入字段的格式定义。
@@ -239,20 +245,23 @@ conll05st-release/
 	    settings.label_dict = label_dict
 	    settings.predicate_dict = predicate_dict
 	
-	    #all inputs are integral and sequential type
-	    settings.slots = [
-	        integer_value_sequence(len(word_dict)),
-	        integer_value_sequence(len(word_dict)),
-	        integer_value_sequence(len(word_dict)),
-	        integer_value_sequence(len(word_dict)),
-	        integer_value_sequence(len(word_dict)),
-	        integer_value_sequence(len(word_dict)),
-	        integer_value_sequence(len(predicate_dict)), integer_value_sequence(2),
-	        integer_value_sequence(len(label_dict))
-	    ]
+	    #  所有输入特征都是使用 one-hot 表示序列，在 PaddlePaddle 中是 interger_value_sequence 类型
+	    #  input_types 是一个字典，字典中每个元素对应着配置中的一个 data_layer，key 恰好就是 data_layer 的名字
+	    
+	    settings.input_types = {
+        'word_data': integer_value_sequence(len(word_dict)),
+        'ctx_n2_data': integer_value_sequence(len(word_dict)),
+        'ctx_n1_data': integer_value_sequence(len(word_dict)),
+        'ctx_0_data': integer_value_sequence(len(word_dict)),
+        'ctx_p1_data': integer_value_sequence(len(word_dict)),
+        'ctx_p2_data': integer_value_sequence(len(predicate_dict)),
+        'verb_data': integer_value_sequence(len(word_dict)),
+        'mark_data': integer_value_sequence(2),
+        'target': integer_value_sequence(len(label_dict))
+    }
 	```
 
-2. 使用 process 将数据逐一提供给 PaddlePaddle，只需要考虑一条数据如何处理。
+2. 使用 process 将数据逐一提供给 PaddlePaddle，只需要考虑如何从原始数据文件中返回一条训练样本。
 
 	```python
 	def process(settings, file_name):
@@ -261,26 +270,39 @@ conll05st-release/
 	            sentence, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2,  mark, label = \
 	                line.strip().split('\t')
 	
+	            # 句子文本
 	            words = sentence.split()
 	            sen_len = len(words)
 	            word_slot = [settings.word_dict.get(w, UNK_IDX) for w in words]
 	
+	            # 一个谓词，这里将谓词扩展成一个和句子一样长的序列
 	            predicate_slot = [settings.predicate_dict.get(predicate)] * sen_len
+	            
+	            # 在教程中，我们使用一个窗口为 5 的谓词上下文窗口：谓词和这个谓词前后隔两个词
+	            # 这里会将窗口中的每一个词，扩展成和输入句子一样长的序列
 	            ctx_n2_slot = [settings.word_dict.get(ctx_n2, UNK_IDX)] * sen_len
 	            ctx_n1_slot = [settings.word_dict.get(ctx_n1, UNK_IDX)] * sen_len
 	            ctx_0_slot = [settings.word_dict.get(ctx_0, UNK_IDX)] * sen_len
 	            ctx_p1_slot = [settings.word_dict.get(ctx_p1, UNK_IDX)] * sen_len
 	            ctx_p2_slot = [settings.word_dict.get(ctx_p2, UNK_IDX)] * sen_len
 	
+	            # 谓词上下文区域标记，是一个二值特征
 	            marks = mark.split()
 	            mark_slot = [int(w) for w in marks]
 	
 	            label_list = label.split()
 	            label_slot = [settings.label_dict.get(w) for w in label_list]
-	            yield word_slot, ctx_n2_slot, ctx_n1_slot, \
-	                  ctx_0_slot, ctx_p1_slot, ctx_p2_slot, predicate_slot, mark_slot, label_slot
-	
-	
+	            yield {
+	                'word_data': word_slot,
+	                'ctx_n2_data': ctx_n2_slot,
+	                'ctx_n1_data': ctx_n1_slot,
+	                'ctx_0_data': ctx_0_slot,
+	                'ctx_p1_data': ctx_p1_slot,
+	                'ctx_p2_data': ctx_p2_slot,
+	                'verb_data': predicate_slot,
+	                'mark_data': mark_slot,
+	                'target': label_slot
+	            }	
 	```
 
 # 模型配置说明
@@ -288,6 +310,8 @@ conll05st-release/
 ## 数据定义
 
 首先通过 define_py_data_sources2 从 dataprovider 中读入数据。
+
+配置文件中会读取三个字典：训练数据字典、谓词字典、标记字典，并传给 data provider ，data provider 中会利用这三个字典，将相应的文本输入转换成 one-hot 序列。
 
 ```
 define_py_data_sources2(
@@ -303,7 +327,9 @@ define_py_data_sources2(
 ```
 ## 算法配置
 
-在这里，我们指定了模型的训练参数, 选择 $L_2$ 正则项稀疏、学习率和batch size。
+在这里，我们指定了模型的训练参数, 选择 $L_2$ 正则、学习率和 batch size。
+
+我们使用 Sgd + Momentum 作为优化算法，同时设置了
 
 ```
 settings(
@@ -311,7 +337,6 @@ settings(
     learning_method=MomentumOptimizer(momentum=0),
     learning_rate=2e-2,
     regularization=L2Regularization(8e-4),
-    is_async=False,
     model_average=ModelAverage(average_window=0.5, max_average_window=10000)
 )
 ```
@@ -445,7 +470,7 @@ paddle train \
   --test_all_data_in_one_period=1 \
 2>&1 | tee 'train.log'
 ```
-一轮训练 log 示例如下所示，经过 150 个pass，得到平均 error 为 0.0516055。
+一轮训练 log 示例如下所示。
 
 ```
 I1224 18:11:53.661479  1433 TrainerInternal.cpp:165]  Batch=880 samples=145305 AvgCost=2.11541 CurrentCost=1.8645 Eval: __sum_evaluator_0__=0.607942  CurrentEval: __sum_evaluator_0__=0.59322
@@ -455,12 +480,13 @@ I1224 18:11:58.424069  1433 TrainerInternal.cpp:165]  Batch=895 samples=147793 A
 I1224 18:12:00.006893  1433 TrainerInternal.cpp:165]  Batch=900 samples=148611 AvgCost=2.11148 CurrentCost=2.14526 Eval: __sum_evaluator_0__=0.607882  CurrentEval: __sum_evaluator_0__=0.749389
 I1224 18:12:00.164089  1433 TrainerInternal.cpp:181]  Pass=0 Batch=901 samples=148647 AvgCost=2.11195 Eval: __sum_evaluator_0__=0.60793
 ```
+经过 150 个 pass 后，得到平均 error 约为 0.0516055。
 
 # 总结
 
 这篇文章所介绍的模型来自我们发表的论文语义角色标注是许多自然语言理解任务的重要中间步骤。本章中，我们以语义角色标注任务为例，介绍如何利用 PaddlePaddle 进行序列标注任务。
 
-这篇文章所介绍的模型来自我们发表的论文\[[10](#参考文献)\]。由于 CoNLL 2005 SRL 任务的训练数据目前并非完全开放，这篇文章只使用测试数据作为示例。在这个过程中，我们希望减少对其它自然语言处理工具的依赖，利用神经网络数据驱动、端到端学习的能力，得到一个和传统方法可比，甚至更好的模型。在论文中我们证实了这种可能性。关于模型更多的信息和讨论可以在论文中找到。
+这篇文章所介绍的模型来自我们发表的论文\[[11](#参考文献)\]。由于 CoNLL 2005 SRL 任务的训练数据目前并非完全开放，这篇文章只使用测试数据作为示例。在这个过程中，我们希望减少对其它自然语言处理工具的依赖，利用神经网络数据驱动、端到端学习的能力，得到一个和传统方法可比，甚至更好的模型。在论文中我们证实了这种可能性。关于模型更多的信息和讨论可以在论文中找到。
 
 # 参考文献
 1. Sun W, Sui Z, Wang M, et al. [Chinese semantic role labeling with shallow parsing](http://www.aclweb.org/anthology/D09-1#page=1513)[C]//Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 3-Volume 3. Association for Computational Linguistics, 2009: 1475-1483.

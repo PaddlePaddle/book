@@ -17,38 +17,30 @@ import os
 import sys
 from paddle.trainer_config_helpers import *
 
+is_test = get_config_arg('is_test', bool, False)
+is_predict = get_config_arg('is_predict', bool, False)
+
 #file paths
 word_dict_file = './data/wordDict.txt'
 label_dict_file = './data/targetDict.txt'
 predicate_file = './data/verbDict.txt'
-train_list_file = './data/train.list'
+train_list_file = './data/train.list' if not (is_test or is_predict) else None
 test_list_file = './data/test.list'
 
-is_test = get_config_arg('is_test', bool, False)
-is_predict = get_config_arg('is_predict', bool, False)
+
+def load_dict(dict_file_path):
+    data_dict = {}
+    with open(dict_file_path, "r") as fdict:
+        for idx, line in enumerate(fdict):
+            data_dict[line.strip()] = idx
+    return data_dict
+
 
 if not is_predict:
     #load dictionaries
-    word_dict = dict()
-    label_dict = dict()
-    predicate_dict = dict()
-    with open(word_dict_file, 'r') as f_word, \
-         open(label_dict_file, 'r') as f_label, \
-         open(predicate_file, 'r') as f_pre:
-        for i, line in enumerate(f_word):
-            w = line.strip()
-            word_dict[w] = i
-
-        for i, line in enumerate(f_label):
-            w = line.strip()
-            label_dict[w] = i
-
-        for i, line in enumerate(f_pre):
-            w = line.strip()
-            predicate_dict[w] = i
-
-    if is_test:
-        train_list_file = None
+    word_dict = load_dict(word_dict_file)
+    label_dict = load_dict(label_dict_file)
+    predicate_dict = load_dict(predicate_file)
 
     #define data provider
     define_py_data_sources2(
@@ -62,14 +54,12 @@ if not is_predict:
             'predicate_dict': predicate_dict
         })
 
-    word_dict_len = len(word_dict)
-    label_dict_len = len(label_dict)
-    pred_len = len(predicate_dict)
-
-else:
-    word_dict_len = get_config_arg('dict_len', int)
-    label_dict_len = get_config_arg('label_len', int)
-    pred_len = get_config_arg('pred_len', int)
+word_dict_len = get_config_arg('dict_len',
+                               int) if is_predict else len(word_dict)
+label_dict_len = get_config_arg('label_len',
+                                int) if is_predict else len(label_dict)
+pred_len = get_config_arg('pred_len',
+                          int) if is_predict else len(predicate_dict)
 
 ############################## Hyper-parameters ##################################
 mark_dict_len = 2
@@ -81,11 +71,10 @@ depth = 8
 ########################### Optimizer #######################################
 
 settings(
-    batch_size=150,
+    batch_size=1,
     learning_method=MomentumOptimizer(momentum=0),
     learning_rate=2e-2,
     regularization=L2Regularization(8e-4),
-    is_async=False,
     model_average=ModelAverage(
         average_window=0.5, max_average_window=10000), )
 

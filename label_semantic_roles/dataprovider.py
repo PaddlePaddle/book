@@ -23,16 +23,17 @@ def hook(settings, word_dict, label_dict, predicate_dict, **kwargs):
     settings.predicate_dict = predicate_dict
 
     #all inputs are integral and sequential type
-    settings.slots = [
-        integer_value_sequence(len(word_dict)),
-        integer_value_sequence(len(word_dict)),
-        integer_value_sequence(len(word_dict)),
-        integer_value_sequence(len(word_dict)),
-        integer_value_sequence(len(word_dict)),
-        integer_value_sequence(len(word_dict)),
-        integer_value_sequence(len(predicate_dict)), integer_value_sequence(2),
-        integer_value_sequence(len(label_dict))
-    ]
+    settings.input_types = {
+        'word_data': integer_value_sequence(len(word_dict)),
+        'ctx_n2_data': integer_value_sequence(len(word_dict)),
+        'ctx_n1_data': integer_value_sequence(len(word_dict)),
+        'ctx_0_data': integer_value_sequence(len(word_dict)),
+        'ctx_p1_data': integer_value_sequence(len(word_dict)),
+        'ctx_p2_data': integer_value_sequence(len(predicate_dict)),
+        'verb_data': integer_value_sequence(len(word_dict)),
+        'mark_data': integer_value_sequence(2),
+        'target': integer_value_sequence(len(label_dict))
+    }
 
 
 def get_batch_size(yeild_data):
@@ -67,5 +68,14 @@ def process(settings, file_name):
 
             label_list = label.split()
             label_slot = [settings.label_dict.get(w) for w in label_list]
-            yield word_slot, ctx_n2_slot, ctx_n1_slot, \
-                  ctx_0_slot, ctx_p1_slot, ctx_p2_slot, predicate_slot, mark_slot, label_slot
+            yield {
+                'word_data': word_slot,
+                'ctx_n2_data': ctx_n2_slot,
+                'ctx_n1_data': ctx_n1_slot,
+                'ctx_0_data': ctx_0_slot,
+                'ctx_p1_data': ctx_p1_slot,
+                'ctx_p2_data': ctx_p2_slot,
+                'verb_data': predicate_slot,
+                'mark_data': mark_slot,
+                'target': label_slot
+            }
