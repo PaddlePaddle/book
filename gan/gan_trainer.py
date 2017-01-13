@@ -278,7 +278,7 @@ def main():
         generator_machine.loadParameters(model_dir)
         noise = get_noise(batch_size, noise_dim)
         fake_samples = get_fake_samples(generator_machine, batch_size, noise)
-        save_results(fake_samples, "./generated_samples.png", data_source)
+        save_results(fake_samples, "./generated_%s_samples.png" % data_source, data_source)
         return
 
     dis_trainer = api.Trainer.create(dis_conf, dis_training_machine)
