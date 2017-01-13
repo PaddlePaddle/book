@@ -14,7 +14,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{在[公园]}_
 
 传统的 SRL 系统大多建立在句法分析基础之上，通常包括 5 个步骤：1）构建一棵句法分析树；2）从句法树上识别出给定谓词的候选论元；3）候选论元剪除；4）论元识别；5）通过分类得到论元的语义角色标签。然而，句法分析是一个非常困难的任务，目前技术下的句法分析准确率并不高，句法分析的细微错误都会导致语义角色标注的错误，也限制了 SRL 任务的准确率，这是 SRL 任务面临的主要挑战。
 
-为了回避 “无法获得准确率较高的句法树” 所带来的困难，研究 \[[1](#参考文献)\] 提出了基于语块（chunk）的 SRL 方法，也是我们这篇文章所要介绍的方法。我们首先来看看什么是“语块”。
+为了回避 “无法获得准确率较高的句法树” 所带来的困难，许多研究 \[[1](#参考文献)\] 提出了基于语块（chunk）的 SRL 方法，也是我们这篇文章所要介绍的方法，我们首先来看看什么是“语块”。
 
 由于完全句法分析需要确定句子所包含的全部句法信息，并确定句子各成分之间的关系，这是一项非常困难的任务。为了降低问题的复杂度，同时获得一定的句法结构信息，“浅层句法分析”的思想应运而生。浅层句法分析也称为部分句法分析（partial parsing）或语块划分（chunking）。和完全句法分析得到一颗完整的句法树不同，浅层句法分析只需要识别句子中某些结构相对简单的独立成分，例如：动词短语，这些被识别出来的结构称为语块。
 
@@ -42,7 +42,9 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{在[公园]}_
 
 深度网络有助于形成层次化特征，网络的上层在下层已经学习到的初级特征基础上，学习更复杂的高级特征。
 
-受反向传播算法本身工作原理的影响，RNN 沿时间轴展开时如果序列过长，往往会遇到梯度消失和梯度爆炸，导致梯度传播受阻，RNN 无法有效更新。如果单层 RNN 单元都无法有效学习，我们无法期深层 RNN 网络反而带来性能的提升。带有门机制的 LSTM （Long Short Term Memory）和 GRU（Gated Recurrent Unit） 单元是减缓这一问题的有效方法之一，在学习长序列时，我们通常会直接选择 LSTM 或者 GRU。语义角色标注需要模型学习复杂的语义和语言结构知识，这种学习是隐式地，在这篇教程里，我们直接选择 LSTM 单元搭建模型。
+受反向传播算法本身工作原理的影响，RNN 沿时间轴展开时如果序列过长，往往会遇到梯度消失和梯度爆炸，导致梯度传播受阻，模型无法有效更新。如果单层 RNN 单元都无法有效学习，我们无法期深层 RNN 网络反而带来性能的提升。带有门机制的 LSTM （Long Short Term Memory）和 GRU（Gated Recurrent Unit） 是减缓这一问题的有效方法之一，在学习长序列时，我们通常会直接选择 LSTM 或者 GRU。
+
+语义角色标注需要模型学习复杂的语义和语言结构知识，这种学习是隐式地，在这篇教程里，我们直接选择 LSTM 单元搭建模型。
 
 RNN 等价于一个展开地前向网络，通常人们会认为 RNN 在时间轴上是一个真正的“深层网络”。然而，在循环神经网络中，对网络层数的定义并非如此直接。输入特征经过一次非线性映射，我们称之为神经网络的一层。按照这样的约定，可以看到，尽管 RNN 沿时间轴展开后等价于一个非常“深”的前馈网络，但由于 RNN 各个时间步参数共享，$t-1$ 时刻状态到 $t$ 时刻的映射，始终只经过了一次非线性映射，也就是说 ：RNN 对状态转移的建模是 “浅” 的。
 
@@ -87,7 +89,7 @@ CRF 是一种概率化结构模型，可以看作是一个概率无向图模型�
 
 我们首先来看条件随机场是如何定义的。
 
-**条件随机场** : 设 $G = (V, E)$ 是一个无向图， $V$ 是结点的集合，$E$ 是无向边的集合。$V$ 中的每个结点对应一个随机变量 $Y_{v}$， $Y = \{Y_{v} | v \in V\}$，其取值范围为可能的标记集合 $\{y\}$，如果以随机变量 $X$ 为条件，每个随机变量 $Y_{v}$ 都满足以下马尔科夫特性：
+**定义 1 ：条件随机场** : 设 $G = (V, E)$ 是一个无向图， $V$ 是结点的集合，$E$ 是无向边的集合。$V$ 中的每个结点对应一个随机变量 $Y_{v}$， $Y = \{Y_{v} | v \in V\}$，其取值范围为可能的标记集合 $\{y\}$，如果以随机变量 $X$ 为条件，每个随机变量 $Y_{v}$ 都满足以下马尔科夫特性：
 $$p(Y_{v}|X, Y_{\omega}, \omega \not= v) = p(Y_{v} | X, Y_{\omega} , \omega \sim v)$$
 其中，$\omega \sim v$ 表示两个结点在图 $G$ 中是邻近结点，那么，$(X, Y)$ 是一个条件随机场。
 
@@ -102,7 +104,7 @@ $$p(Y_{v}|X, Y_{\omega}, \omega \not= v) = p(Y_{v} | X, Y_{\omega} , \omega \sim
 
 至此可以看到，序列标注问题使用的是以上这种定义在线性链上的特殊条件随机场，称之为线性链条件随机场（Linear Chain Conditional Random Field）。下面，我们给出线性链条件随机场的数学定义：
 
-**线性链条件随机场** ：设 $X = (x_{1}, x_{2}, ... , x_{n})$，$Y = (y_{1}, y_{2}, ... , y_{n})$ 均为线性链表示的随机变量序列，若在给定随机变量序列 $X$ 的条件下，随机变量序列 $Y$ 的条件概率分布 $P(Y|X)$ 满足马尔科夫性：
+**定义 2 ：线性链条件随机场** ：设 $X = (x_{1}, x_{2}, ... , x_{n})$，$Y = (y_{1}, y_{2}, ... , y_{n})$ 均为线性链表示的随机变量序列，若在给定随机变量序列 $X$ 的条件下，随机变量序列 $Y$ 的条件概率分布 $P(Y|X)$ 满足马尔科夫性：
 
 $$p\left(Y_{i}|X, y_{1}, ... , y_{i - 1}, y_{i + 1}, ... , y_{n}\right) = p\left(y_{i} | X, y_{i - 1}, y_{i + 1}\right)$$
 
@@ -190,7 +192,9 @@ $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \fra
 # 数据准备
 ## 数据介绍与下载
 
-在此教程中，我们选用 [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL任务开放出的数据集进行示例。运行 ```sh ./get_data.sh``` 会自动从官方网站上下载原始数据，以及一个预训练好的词表，并完成全部的数据准备工作。需要说明的是，CoNLL 2005 SRL 任务的训练数集和开发集并非完全公开，这里获取到的只是测试集，包括 Wall Street Journal 的 23 节和 Brown 语料集中的 3 节。原始数据解压后会得到如下目录结构：
+在此教程中，我们选用 [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL任务开放出的数据集进行示例。运行 ```sh ./get_data.sh``` 会自动从官方网站上下载原始数据。<font color="#CD5C5C"> 需要特别说明的是，CoNLL 2005 SRL 任务的训练数集和开发集在比赛之后并非免费进行公开，目前，能够获取到的只有测试集，包括 Wall Street Journal 的 23 节和 Brown 语料集中的 3 节。在本教程中，我们以测试集中的 WSJ 数据为训练集来讲解模型。但是，由于测试集中样本的数量远远不够，如果希望训练一个可用的神经网络 SRL 系统，请考虑付费获取全量数据。 </font>
+
+原始数据解压后会看到如下目录结构：
 
 ```text
 conll05st-release/
@@ -215,26 +219,43 @@ conll05st-release/
     ├── targets
     └── words
 ```
-原始数据中同时包括了词性标注、命名实体识别、语法解析树等多种信息。在本教程中，我们使用 test.wsj 文件夹中的数据进行训练，使用 test.brown 文件夹中的数据进行测试。我们的目标是展示如何利用深度神经网络，只使用文本序列作为输入信息、不依赖任何句法解析树以及人工构造的复杂特征的情况想，构建一个端到端学习的语义角色标注系统。因此，这里只会用到 words 文件夹（文本序列）和 props 文件夹（标注序列）下的数据。
+
+原始数据中同时包括了词性标注、命名实体识别、语法解析树等多种信息。在本教程中，我们使用 test.wsj 文件夹中的数据进行训练，使用 test.brown 文件夹中的数据进行测试。模型的目标是展示如何利用深度神经网络，只使用文本序列作为输入信息、不依赖任何句法解析树以及人工构造的复杂特征的情况想，构建一个端到端学习的语义角色标注系统。因此，这里只会用到 words 文件夹（文本序列）和 props 文件夹（标注序列）下的数据。
 
 标注信息源自 Penn TreeBank \[[7](#参考文献)\] 和 PropBank \[[8](#参考文献)\] 的标注结果。PropBank 使用的标注标记和我们在文章一开始示例中使用的标注标签不同，但原理是相同的，关于标注标签含义的说明，请参考论文\[[11](#参考文献)\]。
 
-数据准备阶段， ```extract_dict_feature.py``` 会重新格式化原始数据，抽取谓词上下文（这里取谓词前后各 2 个词，也就是一个长度为 5 的窗口片段），和谓词上下文区域标志。
+除数据之外，`get_data.sh`同时下载了以下资源：
 
-```data/feature``` 是模型最终的输入，一行是一条训练样本，以 "\t" 分隔，共9列，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。
+| 文件名称 | 说明 |
+|---|---|
+| wordDict.txt | 输入句子的词典，共计 44068 个词 |
+| targetDict.txt | 标记的词典，共计 106 个标记 |
+| verbDict.txt | 谓词的词典，共计 3162 个词 |
+| emb | 一个训练好的词表，32 维 |
 
-下表是一条模型输入示例。
+我们通过在英文维基百科上训练语言模型得到一份词向量，用来初始化 SRL 模型，在 SRL 模型训练过程中，词向量不再被更新。关于语言模型和词向量可以参考[词向量](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md) 这篇教程。我们训练语言模型的语料中共有 995,000,000 个 token，词典大小控制为 4900,000 词。CoNLL 2005 训练语料中有 5% 的词不在这 4900,000 个词中，我们将它们全部看作未登录词，用`<unk>` 表示。
 
-| 词在句子中的序号 | 句子中的词 | 谓词 | 谓词上下文（窗口 = 2） | 标记| 
-|---|---|---|---|---|
-| 1  | A | set | n't been set . × | B-A1 |
-| 2 | record | set | n't been set . × | I-A1 |
-| 3 | date | set | n't been set . × | I-A1 |
-| 4 | has | set | n't been set . × | O |
-| 5 | n't | set | n't been set . × | B-AM-NEG |
-| 6 | been | set | n't been set . × | O |
-| 7 | set | set | n't been set . × | B-V |
-| 8 | . | set | n't been set . × | O |
+脚本在下载数据之后，同时调用了 ``extract_dict_feature.py``，这个脚本完成了全部的输入数据准备工作，包括：
+
+1. 下载的原始数据中文本序列和文本的标记放在两个不同的文件中，将其合并到一个文件；
+2. 一个句子如果含所有 $n$ 个谓词，这个句子会被处理 $n$ 次，变成 $n$ 条独立的训练样本，每个样本一个不同的谓词；
+3. 抽取谓词上下文，构造谓词上下文区域标记这样两个输入；
+4. 构造以 BIO 法表示的标记；
+
+```data/feature``` 文件是处理好的模型输入，一行是一条训练样本，以 "\t" 分隔，共9列，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。
+
+下表是一条训练样本的示例。
+
+| 序号 | 句子中的词 | 谓词 | 谓词上下文（窗口 = 5） | 窗口上下文区域标记 | 标记 | 
+|---|---|---|---|---|---|
+| 1  | A | set | n't been set . × | 0 | B-A1 |
+| 2 | record | set | n't been set . × | 0 | I-A1 |
+| 3 | date | set | n't been set . × | 0 | I-A1 |
+| 4 | has | set | n't been set . × | 0 | O |
+| 5 | n't | set | n't been set . × | 1 | B-AM-NEG |
+| 6 | been | set | n't been set . × | 1 | O |
+| 7 | set | set | n't been set . × | 1 | B-V |
+| 8 | . | set | n't been set . × | 1 | O |
 
 ## 提供数据给 PaddlePaddle
 1. 使用 hook 函数进行 PaddlePaddle 输入字段的格式定义。
@@ -313,7 +334,7 @@ conll05st-release/
 
 配置文件中会读取三个字典：训练数据字典、谓词字典、标记字典，并传给 data provider ，data provider 中会利用这三个字典，将相应的文本输入转换成 one-hot 序列。
 
-```
+```python
 define_py_data_sources2(
         train_list=train_list_file,
         test_list=test_list_file,
@@ -331,7 +352,7 @@ define_py_data_sources2(
 
 我们使用 Sgd + Momentum 作为优化算法，同时设置了
 
-```
+```python
 settings(
     batch_size=150,
     learning_method=MomentumOptimizer(momentum=0),
@@ -369,13 +390,20 @@ settings(
 2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
 
 	```python
-	mark_embedding = embedding_layer(
-	    name='word_ctx-in_embedding', size=mark_dim, input=mark, param_attr=std_0)
 	
+	# 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
+	# is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
+	emb_para = ParameterAttribute(name='emb', initial_std=0., is_static=True)
+	   
+	std_0 = ParameterAttribute(initial_std=0.)
+		
+	mark_embedding = embedding_layer(
+		    name='word_ctx-in_embedding', size=mark_dim, input=mark, param_attr=std_0)
+		
 	word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
 	emb_layers = [
-	    embedding_layer(
-	        size=word_dim, input=x, param_attr=emb_para) for x in word_input
+		    embedding_layer(
+		        size=word_dim, input=x, param_attr=emb_para) for x in word_input
 	]
 	emb_layers.append(predicate_embedding)
 	emb_layers.append(mark_embedding)
@@ -455,24 +483,25 @@ settings(
 	```
 
 # 训练模型
-执行sh train.sh进行模型的训练。其中指定了总共需要执行500个pass。
+执行sh train.sh进行模型的训练。其中指定了总共需要执行 150 个pass。
 
-```
+```bash
 paddle train \
   --config=./db_lstm.py \
   --save_dir=./output \
-  --trainer_count=4 \
+  --trainer_count=1 \
   --dot_period=500 \
   --log_period=10 \
-  --num_passes=500 \
+  --num_passes=200 \
   --use_gpu=false \
   --show_parameter_stats_period=10 \
   --test_all_data_in_one_period=1 \
 2>&1 | tee 'train.log'
 ```
+
 一轮训练 log 示例如下所示。
 
-```
+```text
 I1224 18:11:53.661479  1433 TrainerInternal.cpp:165]  Batch=880 samples=145305 AvgCost=2.11541 CurrentCost=1.8645 Eval: __sum_evaluator_0__=0.607942  CurrentEval: __sum_evaluator_0__=0.59322
 I1224 18:11:55.254021  1433 TrainerInternal.cpp:165]  Batch=885 samples=146134 AvgCost=2.11408 CurrentCost=1.88156 Eval: __sum_evaluator_0__=0.607299  CurrentEval: __sum_evaluator_0__=0.494572
 I1224 18:11:56.867604  1433 TrainerInternal.cpp:165]  Batch=890 samples=146987 AvgCost=2.11277 CurrentCost=1.88839 Eval: __sum_evaluator_0__=0.607203  CurrentEval: __sum_evaluator_0__=0.590856
@@ -481,6 +510,41 @@ I1224 18:12:00.006893  1433 TrainerInternal.cpp:165]  Batch=900 samples=148611 A
 I1224 18:12:00.164089  1433 TrainerInternal.cpp:181]  Pass=0 Batch=901 samples=148647 AvgCost=2.11195 Eval: __sum_evaluator_0__=0.60793
 ```
 经过 150 个 pass 后，得到平均 error 约为 0.0516055。
+
+# 应用模型
+
+训练好的 $N$ 个 pass ，会得到 $N$ 个模型，我们需要从中选择一个最优模型进行预测。通常做法是在发开集上进行调参，然基于我们关心的某个性能指标选择最优模型。在本教程的 `predict.sh` 脚本中，我简单的选择了测试集上标记错误最少的那个 pass 用于测试。假定，pass-00100 是我们得到的最优 pass 。 
+
+测试时，我们需要将配置中的 `crf_layer` 删掉，替换为 `crf_decoding_layer`，如下所示：
+
+```python
+crf_dec_l = crf_decoding_layer(
+        name='crf_dec_l',
+        size=label_dict_len,
+        input=feature_out,
+        param_attr=ParameterAttribute(name='crfw'))
+```
+
+运行 `python predict.py` 脚本，便可使用指定的模型进行预测。
+
+```bash
+python predict.py \
+     -c db_lstm.py \
+     -w output/pass-00100 \
+     -l data/targetDict.txt \
+     -p data/verbDict.txt  \
+     -d data/wordDict.txt \
+     -i data/feature \
+     -o predict.res
+```
+
+参数 c 指定了配置文件，参数 w 指定了预测使用的模型所在的路径，参数 l 指定了标记的字典， 参数 p 指定了谓词的词典，参数 d 指定了输入文本的字典， 参数 i 指定的输入数据，输入数据的格式和训练数据格式相同， 参数 o 指定了标记结果输出到文件的路径。
+
+预测结束后，在指定的结果文件中，我们会得到如下格式的输出：每行是一条样本，以 “\t” 分隔的 2 列，第一列是输入文本，第二列是标记的结果。通过 BIO 标记可以直接得到论元的语义角色标签。
+
+```text
+The interest-only securities were priced at 35 1\/2 to yield 10.72 % .  B-A0 I-A0 I-A0 O O O O O O B-V B-A1 I-A1 O
+```
 
 # 总结
 

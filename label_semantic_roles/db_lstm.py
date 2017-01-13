@@ -95,7 +95,7 @@ if not is_predict:
 
 default_std = 1 / math.sqrt(hidden_dim) / 3.0
 
-emb_para = ParameterAttribute(name='emb', initial_std=0., learning_rate=0.)
+emb_para = ParameterAttribute(name='emb', initial_std=0., is_static=True)
 std_0 = ParameterAttribute(initial_std=0.)
 std_default = ParameterAttribute(initial_std=default_std)
 

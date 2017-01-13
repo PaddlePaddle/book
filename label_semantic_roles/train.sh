@@ -14,15 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -e
-paddle train \
+./bin/paddle_trainer \
   --config=./db_lstm.py \
   --use_gpu=0 \
-  --log_period=5000 \
+  --log_period=10 \
+  --dot_period=5000 \
   --trainer_count=1 \
-  --show_parameter_stats_period=5000 \
+  --show_parameter_stats_period=500 \
   --save_dir=./output \
-  --num_passes=10000 \
-  --average_test_period=10000000 \
+  --num_passes=150 \
   --init_model_path=./data \
   --load_missing_parameter_strategy=rand \
   --test_all_data_in_one_period=1 \
