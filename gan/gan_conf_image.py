@@ -92,25 +92,30 @@ def conv_bn(input,
         nameApx = "_conv"
 
     if bn:
-        conv = img_conv_layer(
-            input,
-            filter_size=filter_size,
-            num_filters=num_filters,
-            name=name + nameApx,
-            num_channels=channels,
-            act=LinearActivation(),
-            groups=1,
-            stride=stride,
-            padding=padding,
-            bias_attr=bias_attr,
-            param_attr=param_attr,
-            shared_biases=True,
-            layer_attr=None,
-            filter_size_y=None,
-            stride_y=None,
-            padding_y=None,
-            trans=trans)
+        conv_act = LinearActivation()
+    else:
+        conv_act = act
 
+    conv = img_conv_layer(
+        input,
+        filter_size=filter_size,
+        num_filters=num_filters,
+        name=name + nameApx,
+        num_channels=channels,
+        act=conv_act,
+        groups=1,
+        stride=stride,
+        padding=padding,
+        bias_attr=bias_attr,
+        param_attr=param_attr,
+        shared_biases=True,
+        layer_attr=None,
+        filter_size_y=None,
+        stride_y=None,
+        padding_y=None,
+        trans=trans)
+
+    if bn:
         conv_bn = batch_norm_layer(
             conv,
             act=act,
@@ -118,27 +123,8 @@ def conv_bn(input,
             bias_attr=bias_attr,
             param_attr=param_attr_bn,
             use_global_stats=False)
-
         return conv_bn
     else:
-        conv = img_conv_layer(
-            input,
-            filter_size=filter_size,
-            num_filters=num_filters,
-            name=name + nameApx,
-            num_channels=channels,
-            act=act,
-            groups=1,
-            stride=stride,
-            padding=padding,
-            bias_attr=bias_attr,
-            param_attr=param_attr,
-            shared_biases=True,
-            layer_attr=None,
-            filter_size_y=None,
-            stride_y=None,
-            padding_y=None,
-            trans=trans)
         return conv
 
 
