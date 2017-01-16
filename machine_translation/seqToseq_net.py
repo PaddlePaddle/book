@@ -42,10 +42,7 @@ define_py_data_sources2(
     })
 
 ### Algorithm Configuration
-settings(
-    learning_method=AdamOptimizer(),
-    batch_size=50 if not is_generating else 1,
-    learning_rate=5e-4 if not is_generating else 0)
+settings(learning_method=AdamOptimizer(), batch_size=50, learning_rate=5e-4)
 
 ### Network Architecture
 source_dict_dim = len(open(src_lang_dict, "r").readlines())
