@@ -2,7 +2,7 @@
 
 ## 背景介绍
 
-之前的几章中，我们主要介绍的深度学习模型都是在有监督学习(supervised learning)条件下的判别式模型（discriminative models）。在这些例子里，训练数据 X 都是带有标签 y 的，如图像识别中的类别标号，或是语音识别中对应的真实文本。模型的输入是 X，输出是 y，训练得到的模型表示从X到y的映射函数 y=f(X)。
+之前的几章中，我们主要介绍的深度学习模型都是在有监督学习（supervised learning）条件下的判别式模型（discriminative models）。在这些例子里，训练数据 X 都是带有标签 y 的，如图像识别中的类别标号，或是语音识别中对应的真实文本。模型的输入是 X，输出是 y，训练得到的模型表示从X到y的映射函数 y=f(X)。
 
 和判别式网络模型相对的一类模型是生成式模型（generative models）。它们通常是通过非监督训练（unsupervised learning）来得到的。这类模型的训练数据里只有 X，没有y。训练的目标是希望模型能挖掘到训练数据的统计分布信息以及内部结构\[[11](#参考文献)\]。
 
@@ -11,7 +11,7 @@
 之前出现的生成模型，一般是直接构造模型$P_{model}(x; \theta)$来模拟真实数据分布$P_{data}(x)$。而这个模拟的过程，通常是由最大似然（Maximum Likelihood）的办法来调节模型参数，使得观测到的真实数据在该模型下概率最大\[[6](#参考文献)\]。常用的生成模型有以下几种：
 
 1. 深度玻尔兹曼机（Deep Boltzmann Machine）\[[4](#参考文献)\]: 深度玻尔兹曼机是在概率图模型（probabilistc graphical model）的框架下由多个隐层（hidden layer）搭建的无向图模型（Markov random field）。具体的模型结构可参见图1，图中各层之间的是通过受限玻尔兹曼机（restricted Boltzmann machine）的结构来连接的。这类模型参数的学习一般需要通过马尔可夫链－蒙地卡罗（Markov-Chain-Monte-Carlo）\[[12](#参考文献)\]的方法来取样本，所以计算量会比较大。
-2. 变分自编码器（variational autoencoder）\[[3](#参考文献)\]：它是在概率图模型的框架下搭建的有向图模型，并结合了深度学习和统计推断方法，希望将数据表示在一个隐层空间（z）中，而其中仍用神经网络做非线性映射，具体模型结构可参加图1。这类模型的参数学习用的近似方法是构造一个似然的下限（Likelihood lower-bound），然后用变分的办法来提高这个下限的值，从而达到提高数据似然的目的。这种方法的问题是产生的图片看起来会比较模糊。
+2. 变分自编码器（variational autoencoder）\[[3](#参考文献)\]：它是在概率图模型的框架下搭建的有向图模型，并结合了深度学习和统计推断方法，希望将数据表示在一个隐层空间$z$中，而其中仍用神经网络做非线性映射，具体模型结构可参加图1。这类模型的参数学习用的近似方法是构造一个似然的下限（Likelihood lower-bound），然后用变分的办法来提高这个下限的值，从而达到提高数据似然的目的。这种方法的问题是产生的图片看起来会比较模糊。
 3. 像素循环神经网络（Pixel Recurrent Neural Network）\[[2](#参考文献)\]：它是对每个像素相对于周围像素的条件概率进行建模，也就是说根据周围的像素来一个像素一个像素的生成图片。例如图1中红色像素$x_i$的值就是依赖于之前生成的所有蓝色像素。这种方法的问题是对于一个n维的数据，需要n步才能生成，速度较慢。
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 ## 效果展示
 
-一个训练好的对抗式生成网络，它的输入是一个随机生成的向量（相当于不需要任何有意义的输入），而输出是一个和训练数据相类似的数据样本。如果训练数据是二维单位均匀分布的数据，那么输出的也是二维单位均匀分布的数据（参见图2左）；如果训练数据是MNIST手写数字图片，那么输出也是类似MNIST的数字图片（参见图2中，其中每个数字是由一个随机向量产生）；如果训练数据是CIFAR物体图片，那么输出也是类似物体的图片（参见图2右）。
+一个训练好的对抗式生成网络，它的输入是一个随机生成的向量（相当于不需要任何有意义的输入），而输出是一个和训练数据相类似的数据样本。如果训练数据是二维单位均匀分布的数据，那么输出的也是二维单位均匀分布的数据（参见图2左）；如果训练数据是MNIST手写数字图片（详见[第二章](https://github.com/PaddlePaddle/book/blob/develop/recognize_digits/README.md)），那么输出也是类似MNIST的数字图片（参见图2中，其中每个数字是由一个随机向量产生）；如果训练数据是CIFAR物体图片（详见[第三章](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md)），那么输出也是类似物体的图片（参见图2右）。图2中的三幅图都是生成模型根据随机噪声生成的图片，不同之处仅在于输入的训练数据不同。
 
 <p align="center">
     <img src="./image/gan_samples.jpg" width="800" height="300"><br/>
@@ -36,20 +36,20 @@
 ### 对抗式网络结构
 对抗式生成网络的基本结构是将一个已知概率分布(如高斯分布)的随机变量$z$输入一个生成模型$G$，得到其生成的概率分布，并用一个分类器$D$判断该样本为真实数据还是$G$生成的数据。训练生成模型的过程就是调节生成模型的参数，使得生成的概率分布趋向于真实数据概率分布的过程。
 
-对抗式生成网络和之前的生成模型最大的创新就在于，用一个判别式神经网络来描述生成的概率分布和真实数据概率分布之间的差别。也就是说，我们用一个判别式模型 D 辅助构造优化目标函数，来训练一个生成式模型 G。G和D在训练时是处在相互对抗的角色下，G的目标是尽量生成和真实数据看起来相似的伪数据，从而使得D无法分别数据的真伪；而D的目标是能尽量分别出哪些是真实数据，哪些是G生成的伪数据。两者在竞争的条件下，能够相互提高各自的能力，最后收敛到一个均衡点：生成器生成的数据分布和真实数据分布完全一样，而判别器完全无法区分数据的真伪。
+对抗式生成网络和之前的生成模型最大的创新就在于，用一个判别式神经网络来描述生成的概率分布和真实数据概率分布之间的差别。也就是说，我们用一个判别式模型$D$辅助构造优化目标函数，来训练一个生成式模型$G$。$G$和$D$在训练时是处在相互对抗的角色下，$G$的目标是尽量生成和真实数据看起来相似的伪数据，从而使得$D$无法分别数据的真伪；而$D$的目标是能尽量分别出哪些是真实数据，哪些是$G$生成的伪数据。两者在竞争的条件下，能够相互提高各自的能力，最后收敛到一个均衡点：生成器生成的数据分布和真实数据分布完全一样，而判别器完全无法区分数据的真伪。
 
 ### 对抗式训练方法
 对抗式训练里，具体训练流程是不断交替执行如下两步（参见图3）：
 
-1. 训练判别器D（如图3左）：
-   1. 固定G的参数不变，对于一组随机输入，得到一组（产生式）输出，$X_f$，并将其标号(label)设置为"假"。
+1. 训练判别器$D$（如图3左）：
+   1. 固定$G$的参数不变，输入一组随机噪声，得到一组（产生式）输出，$X_f$，并将其标号（label）设置为"假"。
    2. 从训练数据 X 采样一组 $X_r$，并将其标号设置为"真"。
-   3. 用这两组数据更新模型 D，从而使D能够分辨G产生的数据和真实训练数据。
+   3. 用这两组数据更新模型$D$，从而使$D$能够分辨$G$产生的数据和真实训练数据。
 
-2. 训练生成器G（如图3右）：
-   1. 把G的输出和D的输入连接起来，得到一个网路。
-   2. 给G一组随机输入，输出生成数据。
-   3. 将G生成的数据输入D。在D的输出端，优化目标是通过更新G的参数来最小化D对生成数据的判别结果和“真”的差别。
+2. 训练生成器$G$（如图3右）：
+   1. 把$G$的输出和$D$的输入连接起来，得到一个网路。
+   2. 给$G$一组随机噪声作为输入，输出生成数据。
+   3. 将$G$生成的数据输入$D$。在$D$的输出端，优化目标是通过更新$G$的参数来最小化$D$对生成数据的判别结果和“真”的差别。
 
 <p align="center">
     <img src="./image/gan_ig.png" width="500" height="400"><br/>
@@ -60,10 +60,10 @@
 
 $$\min_G \max_D \frac{1}{N}\sum_{i=1}^N[\log D(x^i) + \log(1-D(G(z^i)))]$$
 
-其中$x$是真实数据，$z$是随机产生的输入，$N$是训练数据的数量。这个损失函数的意思是：真实数据被分类为真的概率加上伪数据被分类为假的概率。因为上述两步交替优化G生成结果的仿真程度（看起来像x），和D分辨真伪数据的能力，所以这个方法被称为对抗（adversarial）方法。
+其中$x$是真实数据，$z$是随机产生的输入，$N$是训练数据的数量。这个目标函数的意思是：真实数据被分类为真的概率加上伪数据被分类为假的概率。因为上述两步交替优化$G$生成结果的仿真程度（看起来像x），和$D$分辨真伪数据的能力，所以这个方法被称为对抗（adversarial）方法。
 
 ### 基本GAN模型
-参照\[[1](#参考文献)\]中的实现，我们将G和D都构造为三层全连接组成的网络，并且在某些全联接层后面加入了批标准化层（batch normalization）。所用网络结构在图4中给出。
+参照\[[1](#参考文献)\]中的实现，我们将$G$和$D$都构造为三层全连接组成的网络，并且在某些全联接层后面加入了批标准化层（batch normalization）。所用网络结构在图4中给出。
 
 <p align="center">
     <img src="./image/gan_conf_graph.png" width="700" height="400"><br/>
@@ -71,7 +71,7 @@ $$\min_G \max_D \frac{1}{N}\sum_{i=1}^N[\log D(x^i) + \log(1-D(G(z^i)))]$$
 </p>
 
 ### DCGAN模型
-由于上面的这种网络都是由全连接层组成，所以没有办法很好的生成图片数据，也没有办法做的很深。所以在随后的论文中，人们提出了深度卷积对抗式生成网络（deep convolutional generative adversarial network or DCGAN）\[[5](#参考文献)\]。在DCGAN中，生成器 G 是由多个卷积转置层（transposed convolution）组成的，这样可以用更少的参数来生成质量更高的图片，而判别器是由多个卷积层组成。卷积转置层和卷积层的关系是，卷积转置层的向前传递（feedforward）操作类似于卷积层的向后传递（back-propagation）操作。也就是说，卷积转着层向前传递时，输入图片的每个像素都和整个卷积核（kernal）相乘，然后把结果叠加到输出图片的相应位置\[[7](#参考文献)\]。 具体网络结构可参见图5。
+由于上面的这种网络都是由全连接层组成，所以没有办法很好的生成图片数据，也没有办法做的很深。所以在随后的论文中，人们提出了深度卷积对抗式生成网络（deep convolutional generative adversarial network or DCGAN）\[[5](#参考文献)\]。在DCGAN中，生成器$G$是由多个卷积转置层（transposed convolution）组成的，这样可以用更少的参数来生成质量更高的图片，而判别器是由多个卷积层组成。卷积转置层和卷积层的关系是，卷积转置层的向前传递（feedforward）操作类似于卷积层的向后传递（back-propagation）操作。也就是说，卷积转着层向前传递时，输入图片的每个像素都和整个卷积核（kernel）相乘，然后把结果叠加到输出图片的相应位置\[[7](#参考文献)\]。 具体网络结构可参见图5。
 
 <p align="center">
     <img src="./image/dcgan_conf_graph.png" width="700" height="400"><br/>
@@ -113,18 +113,18 @@ $./get_cifar_data.sh
 
 ```python
 def prepare_generator_data_batch(batch_size, noise):
-	 # generator训练标签。根据前文的介绍，generator是为了让自己的生成的数据
-	 # 被标记为真，所以这里的标签都统一生成1，也就是真
+    # generator训练标签。根据前文的介绍，generator是为了让自己的生成的数据
+    # 被标记为真，所以这里的标签都统一生成1，也就是真
     label = numpy.ones(batch_size, dtype='int32')
-    ＃ 数据是Arguments的类型，这里创建的一个有两个位置的Arguments
+    # 数据是Arguments的类型，这里创建的一个有两个位置的Arguments
     inputs = api.Arguments.createArguments(2)
-    ＃ 第一个Argument位置放noise
+    # 第一个Argument位置放noise
     inputs.setSlotValue(0, api.Matrix.createDenseFromNumpy(noise))
-    ＃ 第二个Argument位置放label
+    # 第二个Argument位置放label
     inputs.setSlotIds(1, api.IVector.createVectorFromNumpy(label))
     return inputs
 
-＃ 为generator训练创造数据
+# 为generator训练创造数据
 data_batch_gen = prepare_generator_data_batch(batch_size, noise)
 # 把数据data_batch_gen传递给generator trainer
 gen_trainer.trainOneDataBatch(batch_size, data_batch_gen)
@@ -140,12 +140,12 @@ settings(
     learning_rate=1e-4,
     learning_method=AdamOptimizer(beta1=0.5))
 ```
-	
+    
 ### 模型结构
 本章里我们主要用到两种模型。一种是基本的GAN模型，主要由全连接层搭建，在`gan_conf.py`里面定义。另一种是DCGAN模型，主要由卷积层搭建，在`gan_conf_image.py`里面定义。
 
 #### 对抗式网络基本框架
-在文件`gan_conf.py`和`gan_conf_image.py`当中我们都定义了三个网络, **generator_training**, **discriminator_training** and **generator**. 和前文提到的模型结构的关系是：**discriminator_training** 是判别器，**generator** 是生成器，**generator_training** 是生成器加上判别器，这样构造的原因是因为训练生成器时需要用到判别器提供目标函数。这个对应关系在下面这段代码中定义：
+在文件`gan_conf.py`和`gan_conf_image.py`当中我们都定义了三个网络, **generator_training**, **discriminator_training** 和 **generator**. 和前文提到的模型结构的关系是：**discriminator_training** 是判别器，**generator** 是生成器，**generator_training** 是生成器加上判别器，这样构造的原因是因为训练生成器时需要用到判别器提供目标函数。这个对应关系在下面这段代码中定义：
 
 ```python
 if is_generator_training:
@@ -154,7 +154,7 @@ if is_generator_training:
     sample = generator(noise)
 
 if is_discriminator_training:
-	 # 判别器输入为真实数据或者伪数据
+    # 判别器输入为真实数据或者伪数据
     sample = data_layer(name="sample", size=sample_dim)
 
 if is_generator_training or is_discriminator_training:
@@ -175,7 +175,7 @@ if is_generator:
 
 #### 基本GAN模型生成器和判别器定义
 ```python
-# 下面这个函数定义了基本GAN模型里面生成器的结构，可参见图5
+# 下面这个函数定义了基本GAN模型里面生成器的结构，可参见图4
 def generator(noise):
     # 这里is_static=is_discriminator_training的意思是在训练判别器时，
     # 生成器的参数保持不变。
@@ -220,7 +220,7 @@ def generator(noise):
         param_attr=param_attr,
         act=LinearActivation())
         
-# 下面这个函数定义了基本GAN模型里面的判别器结构，可参见图5
+# 下面这个函数定义了基本GAN模型里面的判别器结构，可参见图4
 def discriminator(sample):
     # 这里is_static=is_generator_training的意思是在训练生成器时，
     # 判别器的参数保持不变。
@@ -333,7 +333,7 @@ def conv_bn(input,
     else:
         return conv
 
-# 下面这个函数定义了DCGAN模型里面的生成器的结构，可参见图6
+# 下面这个函数定义了DCGAN模型里面的生成器的结构，可参见图5
 def generator(noise):
     # 这里的参数初始化设置参考了DCGAN论文里的建议和实际调试的结果
     param_attr = ParamAttr(
@@ -402,7 +402,7 @@ def generator(noise):
         trans=True,
         act=TanhActivation())
 
-# 下面这个函数定义了DCGAN模型里面的判别器结构，可参见图6
+# 下面这个函数定义了DCGAN模型里面的判别器结构，可参见图5
 def discriminator(sample):
     param_attr = ParamAttr(
         is_static=is_generator_training, initial_mean=0.0, initial_std=0.02)
@@ -478,7 +478,7 @@ api.initPaddle('--use_gpu=' + use_gpu, '--dot_period=10',
                '--log_period=100', '--gpu_id=' + args.gpu_id,
                '--save_dir=' + "./%s_params/" % data_source)
 
-# 解析设置：像上个小节提到的那样，gan的模型训练需要三个神经元网络
+# 解析设置：像上个小节提到的那样，gan的模型训练需要三个神经网络
 # 这里分别解析出三种模型设置
 gen_conf = parse_config(conf, "mode=generator_training,data=" + data_source)
 dis_conf = parse_config(conf, "mode=discriminator_training,data=" + data_source)
@@ -522,7 +522,7 @@ for train_pass in xrange(100):
         # 损失函数的值可以通过调用`GradientMachine`的`forward`方法来计算。
         dis_loss_pos = get_training_loss(dis_training_machine,
                                          data_batch_dis_pos)
-	     # 准备生成（伪）数据样本
+        # 准备生成（伪）数据样本
         data_batch_dis_neg = prepare_discriminator_data_batch_neg(
             generator_machine, batch_size, noise)
         # 计算D关于生成数据样本的损失函数
@@ -599,7 +599,7 @@ d_loss is 0.680106401443    g_loss is 0.671118
 I0105 17:16:37.172737 20517 TrainerInternal.cpp:165]  Batch=100 samples=12800 AvgCost=0.687359 CurrentCost=0.687359 Eval: discriminator_training_error=0.438359  CurrentEval: discriminator_training_error=0.438359 
 ```
 
-其中`d_pos_loss`是判别器对于真实数据判别真的负对数概率，`d_neg_loss`是判别器对于伪数据判别为假的负对数概率，`d_loss`是这两者的平均值。`g_loss`是伪数据被判别器判别为真的负对数概率。对于对抗式生成网络来说，最好的训练情况是D和G的能力比较相近，也就是`d_loss`和`g_loss`在训练的前几个pass中数值比较接近（-log(0.5) = 0.693）。由于G和D是轮流训练，所以它们各自每过100个batch，都会打印各自的训练信息。
+其中`d_pos_loss`是判别器对于真实数据判别真的负对数概率，`d_neg_loss`是判别器对于伪数据判别为假的负对数概率，`d_loss`是这两者的平均值。`g_loss`是伪数据被判别器判别为真的负对数概率。对于对抗式生成网络来说，最好的训练情况是$D$和$G$的能力比较相近，也就是`d_loss`和`g_loss`在训练的前几个pass中数值比较接近（-log(0.5) = 0.693）。由于$G$和$D$是轮流训练，所以它们各自每过100个batch，都会打印各自的训练信息。
 
 ## 应用模型
 
