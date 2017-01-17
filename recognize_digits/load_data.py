@@ -14,34 +14,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import struct
 
 
 def read_data(path, filename):
-    imgf = path + filename + "-images-idx3-ubyte"
-    labelf = path + filename + "-labels-idx1-ubyte"
-    f = open(imgf, "rb")
-    l = open(labelf, "rb")
+    with open(path + filename + "-images-idx3-ubyte",
+              "rb") as f:  # open picture file
+        magic, n, rows, cols = struct.unpack(">IIII", f.read(16))
+        images = np.fromfile(
+            f, 'ubyte',
+            count=n * rows * cols).reshape(n, rows, cols).astype('float32')
 
-    f.read(16)
-    l.read(8)
-
-    # Define number of samples for train/test
-    n = 60000 if "train" in filename else 10000
-
-    rows = 28
-    cols = 28
-
-    images = np.fromfile(
-        f, 'ubyte',
-        count=n * rows * cols).reshape(n, rows, cols).astype('float32')
-    labels = np.fromfile(l, 'ubyte', count=n).astype("int")
+    with open(path + filename + "-labels-idx1-ubyte",
+              "rb") as l:  # open label file
+        magic, n = struct.unpack(">II", l.read(8))
+        labels = np.fromfile(l, 'ubyte', count=n).astype("int")
 
     return images, labels
 
 
 if __name__ == "__main__":
-    train_images, train_labels = read_data("./raw_data/", "train")
-    test_images, test_labels = read_data("./raw_data/", "t10k")
+    train_images, train_labels = read_data("./data/raw_data/", "train")
+    test_images, test_labels = read_data("./data/raw_data/", "t10k")
     label_list = []
     for i in range(10):
         index = random.randint(0, train_images.shape[0] - 1)

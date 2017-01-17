@@ -14,9 +14,9 @@
 # limitations under the License.
 set -e
 
-config=cnn_mnist.py
-output=./cnn_mnist_model
-log=cnn_train.log
+config=mnist_model.py
+output=./softmax_mnist_model
+log=softmax_train.log
 
 
 

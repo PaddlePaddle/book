@@ -30,8 +30,6 @@ def get_best_pass(filename):
 
 filename = sys.argv[1]
 log = get_best_pass(filename)
-predict_error = math.sqrt(float(log[0])) / 2
 classification_accuracy = (1 - float(log[1])) * 100
-print 'Best pass is %s, error is %s, which means predict get error as %f' % (
-    log[2], log[0], predict_error)
+print 'Best pass is %s, testing Avgcost is %s' % (log[2], log[0])
 print 'The classification accuracy is %.2f%%' % classification_accuracy

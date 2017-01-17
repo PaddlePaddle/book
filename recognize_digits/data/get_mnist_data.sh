@@ -31,5 +31,5 @@ done
 
 cd $DIR
 rm -f *.list
-echo "./data/raw_data/train\n" > "$DIR/train.list"
-echo "./data/raw_data/t10k\n" > "$DIR/test.list"
+echo "./data/raw_data/train" > "$DIR/train.list"
+echo "./data/raw_data/t10k" > "$DIR/test.list"

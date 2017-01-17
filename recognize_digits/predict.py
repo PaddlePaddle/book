@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Usage: predict.py -c CONF -d DATA -m MODEL
+"""Usage: predict.py -c CONF -d ./data/raw_data/  -m MODEL
 
 
 Arguments:
@@ -57,8 +57,10 @@ class Prediction():
         output = self.network.forwardTest(input)
         prob = output[0]["value"]
         predict = np.argsort(-prob)
+        print "Predicted probability of each digit:"
         print prob
-        print predict[0][0], self.labels[index]
+        print "Predict Number: %d" % predict[0][0]
+        print "Actual Number: %d" % self.labels[index]
 
 
 def main():
