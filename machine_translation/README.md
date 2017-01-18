@@ -2,67 +2,67 @@
 
 ## 背景介绍
 
-机器翻译（machine translation, MT）是用计算机来实现不同语言之间的翻译。被翻译的语言通常称为源语言（source language），翻译成的结果语言称为目标语言（target language）。机器翻译即实现从源语言到目标语言转换的过程，是自然语言处理的重要研究领域之一。
+机器翻译（machine translation, MT）是用计算机来实现不同语言之间翻译的技术。被翻译的语言通常称为源语言（source language），翻译成的结果语言称为目标语言（target language）。机器翻译即实现从源语言到目标语言转换的过程，是自然语言处理的重要研究领域之一。
 
-传统机器翻译，是让语言学家编写两种语言之间的转换规则，再将这些规则录入给计算机。该方法对语言学家的要求非常高，而且我们几乎无法总结一门语言会用到的所有规则，更何况两种甚至更多的语言。因此，传统机器翻译方法面临的主要挑战是无法得到一个完备的规则集合\[[1](#参考文献)\]。
+早期机器翻译系统多为基于规则的翻译系统，需要由语言学家编写两种语言之间的转换规则，再将这些规则录入计算机。该方法对语言学家的要求非常高，而且我们几乎无法总结一门语言会用到的所有规则，更何况两种甚至更多的语言。因此，传统机器翻译方法面临的主要挑战是无法得到一个完备的规则集合\[[1](#参考文献)\]。
 
-在统计机器翻译（Statistical Machine Translation, SMT）中，转化规则是由机器自动从大规模的语料中学习得到的，而非我们人主动提供规则。因此，它克服了传统方法面临的知识获取瓶颈的问题，但仍然存在许多挑战：1）需要人为设计许多特征，但永远无法覆盖所有的语言规则；2）难以利用全局的特征；3）依赖于许多预处理环节，如词语对齐、分词（Tokenization）、规则抽取、句法分析等，而每个环节的错误会逐步累积，对翻译的影响也越来越大。
+为解决以上问题，统计机器翻译（Statistical Machine Translation, SMT）技术应运而生。在统计机器翻译技术中，转化规则是由机器自动从大规模的语料中学习得到的，而非我们人主动提供规则。因此，它克服了基于规则的翻译系统所面临的知识获取瓶颈的问题，但仍然存在许多挑战：1）人为设计许多特征（feature），但永远无法覆盖所有的语言现象；2）难以利用全局的特征；3）依赖于许多预处理环节，如词语对齐、分词或符号化（tokenization）、规则抽取、句法分析等，而每个环节的错误会逐步累积，对翻译的影响也越来越大。
 
-面对上述挑战，一个较好的解决方法是利用神经网络。这类系统又大致分为两类：1）仍以统计机器翻译系统为框架，只是利用神经网络来改进其中的关键模块，如语言模型、调序模型等（见图1的左半部分）；2）不再以统计机器翻译系统为框架，而是直接用神经网络将源语言映射到目标语言，即端到端的神经网络机器翻译（Neural Machine Translation, NMT）（见图1的右半部分）。
+近年来，深度学习技术的发展为解决上述挑战提供了新的思路。将深度学习应用于机器翻译任务的方法大致分为两类：1）仍以统计机器翻译系统为框架，只是利用神经网络来改进其中的关键模块，如语言模型、调序模型等（见图1的左半部分）；2）不再以统计机器翻译系统为框架，而是直接用神经网络将源语言映射到目标语言，即端到端的神经网络机器翻译（End-to-End Neural Machine Translation, End-to-End NMT）（见图1的右半部分），简称为NMT模型。
 <p align="center">
 <img src="image/nmt.png"><br/>
 图1. 基于神经网络的机器翻译系统
 </p>
 
-本教程主要介绍NMT模型，以及如何用PaddlePaddle来训练一个翻译模型。
+本教程主要介绍NMT模型，以及如何用PaddlePaddle来训练一个NMT模型。
 
 ## 效果展示
 
-以中英翻译（中文翻译到英文）的模型为例，当模型训练完毕时，如果输入如下中文句子：
+以中英翻译（中文翻译到英文）的模型为例，当模型训练完毕时，如果输入如下已分词的中文句子：
 ```text
-喷气机制造商为了座位宽度的问题与利益攸关的大客户发生争执。
+这些 是 希望 的 曙光 和 解脱 的 迹象 .
 ```
-如果设定显示翻译结果的条数（即[集束搜索算法](#集束搜索算法)的宽度）为3，生成的英语句子如下：
+如果设定显示翻译结果的条数（即[柱搜索算法](#柱搜索算法)的宽度）为3，生成的英语句子如下：
 ```text
-0	-19.0179   The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
-1	-19.1114   The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
-2	-19.5112   The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
+0 -5.36816   these are signs of hope and relief . <e>
+1 -6.23177   these are the light of hope and relief . <e>
+2 -7.7914  these are the light of hope and the relief of hope . <e>
 ```
-- 右起第一列是生成的英语句子，右起第二列是该条英语句子的得分（从大到小），右起第三列是该条句子的序号。
-- 另外有两个特殊表示：`<e>`表示句子的结尾，`<unk>`表示未登录（即不在训练字典中）的单词。
+- 左起第一列是生成句子的序号；左起第二列是该条句子的得分（从大到小），分值越高越好；左起第三列是生成的英语句子。
+- 另外有两个特殊标志：`<e>`表示句子的结尾，`<unk>`表示未登录词（unknown word），即未在训练字典中出现的词。
 
 ## 模型概览
 
-本节依次介绍GRU（Gated Recurrent Unit，门控循环单元），双向循环神经网络，NMT中典型的“编码器-解码器”（Encoder-Decoder）框架和“注意力”（Attention）机制，以及集束搜索（Beam Search）算法。
+本节依次介绍GRU（Gated Recurrent Unit，门控循环单元），双向循环神经网络（Bi-directional Recurrent Neural Network），NMT模型中典型的编码器-解码器（Encoder-Decoder）框架和注意力（Attention）机制，以及柱搜索（beam search）算法。
 
 ### GRU
 
-我们已经在[情感分析](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md)一章中介绍了循环神经网络(RNN)及长短时间记忆网络（LSTM）。相比于简单的RNN，LSTM增加了记忆单元、输入门、遗忘门及输出门，这些门及记忆单元组合起来大大提升了RNN处理远距离依赖问题的能力。
+我们已经在[情感分析](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md)一章中介绍了循环神经网络（RNN）及长短时间记忆网络（LSTM）。相比于简单的RNN，LSTM增加了记忆单元（memory cell）、输入门（input gate）、遗忘门（forget gate）及输出门（output gate），这些门及记忆单元组合起来大大提升了RNN处理远距离依赖问题的能力。
 
 GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN的一种扩展，如下图所示。GRU单元只有两个门：
-- 重置门（Reset Gate）：如果重置门关闭，会忽略掉历史信息，即历史不相干的信息不会影响未来的输出。
-- 更新门（Update Gate）：将LSTM的输入门和遗忘门合并，用于控制历史信息对当前输出的影响。如果更新门接近1，会把历史信息传递下去。
+- 重置门（reset gate）：如果重置门关闭，会忽略掉历史信息，即历史不相干的信息不会影响未来的输出。
+- 更新门（update gate）：将LSTM的输入门和遗忘门合并，用于控制历史信息对当前时刻隐层输出的影响。如果更新门接近1，会把历史信息传递下去。
 <p align="center">
 <img src="image/gru.png"><br/>
-图2. GRU门控循环单元
+图2. GRU（门控循环单元）
 </p>
 
-另外，Chung等人\[[3](#参考文献)\]通过多组实验表明，GRU虽然参数更少，但是在多个任务上都和LSTM有相近的表现。
+一般来说，具有短距离依赖属性的序列，其重置门比较活跃；相反，具有长距离依赖属性的序列，其更新门比较活跃。另外，Chung等人\[[3](#参考文献)\]通过多组实验表明，GRU虽然参数更少，但是在多个任务上都和LSTM有相近的表现。
 
 ### 双向循环神经网络
 
-我们已经在[语义角色标注](https://github.com/PaddlePaddle/book/blob/develop/label_semantic_roles/README.md)一章中介绍了一种双向循环神经网络，这里介绍Bengio等人在论文\[[2](#参考文献),[4](#参考文献)\]中提出的另一种结构。
+我们已经在[语义角色标注](https://github.com/PaddlePaddle/book/blob/develop/label_semantic_roles/README.md)一章中介绍了一种双向循环神经网络，这里介绍Bengio团队在论文\[[2](#参考文献),[4](#参考文献)\]中提出的另一种结构。该结构的目的是输入一个序列，得到其在每个时刻的特征表示，即输出的每个时刻都用定长向量表示到该时刻的上下文语义信息。
 
-该双向RNN网络分别在时间维以顺序和逆序（即前向和后向）依次处理输入序列，并将每个时刻RNN的输出横向拼接成为最终的输出层。这样每个时间步的输出节点，都包含了输入序列中当前时刻完整的过去和未来的下文信息。下图展示的是一个按时间步展开的双向RNN网络。该网络包含一个前向（forward）和一个后向（backward）RNN，其中有六个权值：输入到前向隐层和后向隐层（$w_1, w_3$），隐层到隐层自己（$w_2,w_5$），前向隐层和后向隐层到输出层（$w_4, w_6$）。注意，该网络的前向隐层和后向隐层之间没有信息流。
+具体来说，该双向循环神经网络分别在时间维以顺序和逆序——即前向（forward）和后向（backward）——依次处理输入序列，并将每个时间步RNN的输出拼接成为最终的输出层。这样每个时间步的输出节点，都包含了输入序列中当前时刻完整的过去和未来的上下文信息。下图展示的是一个按时间步展开的双向循环神经网络。该网络包含一个前向和一个后向RNN，其中有六个权重矩阵：输入到前向隐层和后向隐层的权重矩阵（$W_1, W_3$），隐层到隐层自己的权重矩阵（$W_2,W_5$），前向隐层和后向隐层到输出层的权重矩阵（$W_4, W_6$）。注意，该网络的前向隐层和后向隐层之间没有连接。
 
 <p align="center">
 <img src="image/bi_rnn.png"><br/>
-图3. 按时间步展开的双向RNN网络
+图3. 按时间步展开的双向循环神经网络
 </p>
 
 ### 编码器-解码器框架
 
-编码器-解码器（Encoder-Decoder）\[[2](#参考文献)\]框架用于解决一个任意长度的源序列到另一个任意长度的目标序列的变换问题。即编码阶段将整个源序列编码成一个向量，解码阶段通过最大化预测序列概率，从中解码出整个目标序列。编码和解码的过程通常都使用RNN实现。
+编码器-解码器（Encoder-Decoder）\[[2](#参考文献)\]框架用于解决由一个任意长度的源序列到另一个任意长度的目标序列的变换问题。即编码阶段将整个源序列编码成一个向量，解码阶段通过最大化预测序列概率，从中解码出整个目标序列。编码和解码的过程通常都使用RNN实现。
 <p align="center">
 <img src="image/encoder_decoder.png"><br/>
 图4. 编码器-解码器框架
@@ -72,13 +72,13 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 编码阶段分为三步：
 
-1. one-hot vector（独热向量）表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词表示成一个向量$w_i\epsilon R^{\left | V \right |},i=1,2,...,T$。这个向量的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
+1. one-hot vector表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词$x_i$表示成一个列向量$w_i\epsilon R^{\left | V \right |},i=1,2,...,T$。这个向量$w_i$的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
 
-2. 映射到低维语义空间的词向量：one-hot vector表示存在两个问题，1）生成的向量维度往往很大，容易造成维数灾难；2）无法刻画词与词之间的关系（如语义相似性，也就是无法很好地表达语义）。因此，需再映射到低维的语义空间，由一个固定维度的稠密向量（称为词向量）表示。记映射矩阵为$C\epsilon R^{K\times \left | V \right |}$，用$s_i=Cw_i$表示第$i$个词的词向量，$K$为向量维度。
+2. 映射到低维语义空间的词向量：one-hot vector表示存在两个问题，1）生成的向量维度往往很大，容易造成维数灾难；2）难以刻画词与词之间的关系（如语义相似性，也就是无法很好地表达语义）。因此，需再one-hot vector映射到低维的语义空间，由一个固定维度的稠密向量（称为词向量）表示。记映射矩阵为$C\epsilon R^{K\times \left | V \right |}$，用$s_i=Cw_i$表示第$i$个词的词向量，$K$为向量维度。
 
-3. 用RNN编码源语言词序列：这一过程的计算公式为$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$，其中$h_0$是一个全零的向量，$\varnothing _\theta$是一个非线性激活函数，最后得到的$\mathbf{h}=\left \{ h_1,..., h_T \right \}$就是RNN依次读入源语言$T$个词的状态编码。整句话的向量表示可以采用$\mathbf{h}$在最后一个时间步$T$的状态编码，或使用时间维上的池化结果。
+3. 用RNN编码源语言词序列：这一过程的计算公式为$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$，其中$h_0$是一个全零的向量，$\varnothing _\theta$是一个非线性激活函数，最后得到的$\mathbf{h}=\left \{ h_1,..., h_T \right \}$就是RNN依次读入源语言$T$个词的状态编码序列。整句话的向量表示可以采用$\mathbf{h}$在最后一个时间步$T$的状态编码，或使用时间维上的池化（pooling）结果。
 
-第3步也可以使用双向RNN实现更复杂的句编码表示，具体可以用双向GRU实现。前向GRU按照词序列$(x_1,x_2,...,x_T)$的顺序依次编码源语言端词，并得到一系列隐层状态$(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$。类似地，后向GRU按照$(x_T,x_{T-1},...,x_1)$的顺序依次编码源语言端词，得到$(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$。最后对于词$x_i$，通过连接两个GRU的结果得到它的隐层状态，即$h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T}$。
+第3步也可以使用双向循环神经网络实现更复杂的句编码表示，具体可以用双向GRU实现。前向GRU按照词序列$(x_1,x_2,...,x_T)$的顺序依次编码源语言端词，并得到一系列隐层状态$(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$。类似的，后向GRU按照$(x_T,x_{T-1},...,x_1)$的顺序依次编码源语言端词，得到$(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$。最后对于词$x_i$，通过拼接两个GRU的结果得到它的隐层状态，即$h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T}$。
 
 <p align="center">
 <img src="image/encoder_attention.png"><br/>
@@ -87,25 +87,28 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 #### 解码器
 
-机器翻译任务中，解码阶段的总体思路是：每一个时刻，根据源语言句子的编码信息（又叫上下文向量，context vector）$c$、$u_i$（训练模式是真实目标语言序列的第$i$个词，生成模式是生成的第$i$个目标语言序列单词）和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$，并通过`softmax`归一化得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。
-- 训练模式：目标是最大化下一个正确的源语言词的概率，即再根据$p_{i+1}$和$u_{i+1}$计算代价，然后重复上述操作，直到目标语言序列中的所有词处理完毕。
-- 生成模式：目标是最大化生成序列的概率，即再根据$p_{i+1}$采样出单词$u_{i+1}$，然后重复上述操作，直到获得句子结束标记`<e>`或超过句子的最大生成长度为止。由于生成时的每一步都是通过贪心法实现的，因此并不能保证得到全局最优解。
+机器翻译任务的训练过程中，解码阶段的目标是最大化下一个正确的源语言词的概率。思路是：
 
-$z_i$的计算公式如下：
+1. 每一个时刻，根据源语言句子的编码信息（又叫上下文向量，context vector）$c$、真实目标语言序列的第$i$个词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$。计算公式如下：
+   
+   $$z_{i+1}=\phi _{\theta '}\left ( c,u_i,z_i \right )$$
 
-$$z_{i+1}=\phi _{\theta '}\left ( c,u_i,z_i \right )$$
+   其中$\phi _{\theta '}$是一个非线性激活函数；$c=q\mathbf{h}$是源语言句子的上下文向量，在不使用[注意力机制](#注意力机制)时，如果[编码器](#编码器)的输出是源语言句子编码后的最后一个元素，则可以定义$c=h_T$；$u_i$是目标语言序列的第$i$个单词，$u_0$是目标语言序列的开始标记`<s>`，表示解码开始；$z_i$是$i$时刻解码RNN的隐层状态，$z_0$是一个全零的向量。
 
-其中$\phi _{\theta '}$是一个非线性激活函数；$c=q\mathbf{h}$是源语言句子的上下文向量，在不使用[注意力机制](#注意力机制)时，如果[编码器](#编码器)的输出是源语言句子编码后的最后一个元素，则可以定义$c=h_T$；$u_i$是目标语言序列的第$i$个单词，$u_0$是目标语言序列的开始标记`<s>`，表示解码开始；$z_i$是$i$时刻解码RNN的隐层状态，$z_0$是一个全零的向量。
+2. 将$z_{i+1}$通过`softmax`归一化，得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。概率分布公式如下：
 
-概率分布公式如下：
+   $$p\left ( u_{i+1}|u_{<i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
 
-$$p\left ( u_{i+1}|u_{<i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
+   其中$W_sz_{i+1}+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到第$i+1$个词的概率$p_{i+1}$。
 
-其中$W_sz_{i+1}+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到第$i+1$个词的概率$p_{i+1}$。
+3. 根据$p_{i+1}$和$u_{i+1}$计算代价。
+4. 重复步骤1~3，直到目标语言序列中的所有词处理完毕。
+
+机器翻译任务的生成过程，通俗来讲就是根据预先训练的模型来翻译源语言句子。生成过程中的解码阶段和上述训练过程的有所差异，具体介绍请见[柱搜索算法](#柱搜索算法)。
 
 ### 注意力机制
 
-如果编码阶段的输出是一个固定维度的向量，会带来以下三个问题：1）不论源语言序列的长度是5个词还是50个词，如果都用固定维度的向量去编码其中的语义和句法结构信息，对模型来说是一个非常高的要求，特别是对长句子序列而言；2）从直觉出发，当翻译目标语言时，我们并不需要知道整个源语言序列，而只要知道当前翻译到源语言的哪个位置和这个位置前后的一个上下文片段即可；3）任何时候都拿到源语言的所有信息，实际上也是一种干扰。因此，Bahdanau等人\[[4](#参考文献)\]引入注意力（Attention）机制，可以对编码后的上下文片段进行解码，以此来解决长句子的特征学习问题。下面介绍在注意力机制下的解码器结构。
+如果编码阶段的输出是一个固定维度的向量，会带来以下两个问题：1）不论源语言序列的长度是5个词还是50个词，如果都用固定维度的向量去编码其中的语义和句法结构信息，对模型来说是一个非常高的要求，特别是对长句子序列而言；2）直觉上，当人类翻译一句话时，会对与当前译文更相关的源语言片段上给予更多关注，且关注点会随着翻译的进行而改变。而固定维度的向量则相当于，任何时刻都对源语言所有信息给予了同等程度的关注，这是不合理的。因此，Bahdanau等人\[[4](#参考文献)\]引入注意力（attention）机制，可以对编码后的上下文片段进行解码，以此来解决长句子的特征学习问题。下面介绍在注意力机制下的解码器结构。
 
 与简单的解码器不同，这里$z_i$的计算公式为：
 
@@ -113,7 +116,7 @@ $$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$$
 
 可见，源语言句子的编码向量表示为第$i$个词的上下文片段$c_i$，即针对每一个目标语言中的词$u_i$，都有一个特定的$c_i$与之对应。$c_i$的计算公式如下：
 
-$$c_i=\sum _{j=1}^{T}\mathbf{a}_{ij}h_j, \mathbf{a}_i=\left[ \mathbf{a}_{i1},\mathbf{a}_{i2},...,\mathbf{a}_{iT}\right ]$$
+$$c_i=\sum _{j=1}^{T}a_{ij}h_j, a_i=\left[ a_{i1},a_{i2},...,a_{iT}\right ]$$
 
 从公式中可以看出，注意力机制是通过对编码器中各时刻的RNN状态$h_j$进行加权平均实现的。权重$a_{ij}$表示目标语言中第$i$个词对源语言中第$j$个词的注意力大小，$a_{ij}$的计算公式如下：
 
@@ -122,18 +125,27 @@ a_{ij}&=\frac{exp(e_{ij})}{\sum_{k=1}^{T}exp(e_{ik})}\\\\
 e_{ij}&=align(z_i,h_j)\\\\
 \end{align}
 
-其中，$align$可以看作是一个对齐模型，用来衡量目标语言中第$i$个词和源语言中第$j$个词的匹配程度。具体而言，这个程度是通过解码RNN的第$i$个隐层状态$z_i$和源语言句子的第$j$个上下文片段$h_j$计算得到的。不同于传统的对齐模型：目标语言的每个词明确对应源语言的一个或多个词（hard alignment）。这里采用的是soft alignment，因此可以融入整个NMT框架，并通过反向传播算法求梯度以及更新参数。
+其中，$align$可以看作是一个对齐模型，用来衡量目标语言中第$i$个词和源语言中第$j$个词的匹配程度。具体而言，这个程度是通过解码RNN的第$i$个隐层状态$z_i$和源语言句子的第$j$个上下文片段$h_j$计算得到的。传统的对齐模型中，目标语言的每个词明确对应源语言的一个或多个词（hard alignment）；而在注意力模型中采用的是soft alignment，即任何两个目标语言和源语言词间均存在一定的关联，且这个关联强度是由模型计算得到的实数，因此可以融入整个NMT框架，并通过反向传播算法进行训练。
 
 <p align="center">
 <img src="image/decoder_attention.png"><br/>
 图6. 基于注意力机制的解码器
 </p>
 
-### 集束搜索算法
+### 柱搜索算法
 
-集束搜索（[Beam Search](http://en.wikipedia.org/wiki/Beam_search)）是一种启发式图搜索算法，用于在图或树中搜索有限集合中的最优扩展节点，通常用在解空间非常大的系统（如机器翻译、语音识别）中，原因是内存无法装下图或树中所有展开的解。如在机器翻译任务中希望翻译“`<s>你好<e>`”，就算目标语言字典中只有3个词（`<s>`, `<e>`, `hello`），也可能生成无限句话（`hello`循环出现的次数不定），为了找到其中较好的翻译结果，我们可采用集束搜索算法。
+柱搜索（[beam search](http://en.wikipedia.org/wiki/Beam_search)）是一种启发式图搜索算法，用于在图或树中搜索有限集合中的最优扩展节点，通常用在解空间非常大的系统（如机器翻译、语音识别）中，原因是内存无法装下图或树中所有展开的解。如在机器翻译任务中希望翻译“`<s>你好<e>`”，就算目标语言字典中只有3个词（`<s>`, `<e>`, `hello`），也可能生成无限句话（`hello`循环出现的次数不定），为了找到其中较好的翻译结果，我们可采用柱搜索算法。
 
-集束搜索算法使用广度优先策略建立搜索树，在树的每一层，按照启发代价（Heuristic Cost）（本教程中，为生成词的log概率之和）对节点进行排序，然后仅留下预先确定的个数（Beam Width，Beam Size，集束宽度）的节点。只有这些节点会在下一层继续扩展，其他节点就被剪掉了，也就是说保留了质量较高的节点，剪枝了质量较差的节点。因此，搜索所占用的空间和时间大幅减少，但缺点是可能存在最优解被丢弃。
+柱搜索算法使用广度优先策略建立搜索树，在树的每一层，按照启发代价（heuristic cost）（本教程中，为生成词的log概率之和）对节点进行排序，然后仅留下预先确定的个数（文献中通常称为beam width、beam size、柱宽度等）的节点。只有这些节点会在下一层继续扩展，其他节点就被剪掉了，也就是说保留了质量较高的节点，剪枝了质量较差的节点。因此，搜索所占用的空间和时间大幅减少，但缺点是无法保证一定获得最优解。
+
+使用柱搜索算法的解码阶段，目标是最大化生成序列的概率。思路是：
+
+1. 每一个时刻，根据源语言句子的编码信息$c$、生成的第$i$个目标语言序列单词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$。
+2. 将$z_{i+1}$通过`softmax`归一化，得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。
+3. 根据$p_{i+1}$采样出单词$u_{i+1}$。
+4. 重复步骤1~3，直到获得句子结束标记`<e>`或超过句子的最大生成长度为止。
+
+注意：$z_{i+1}$和$p_{i+1}$的计算公式同[解码器](#解码器)中的一样。且由于生成时的每一步都是通过贪心法实现的，因此并不能保证得到全局最优解。
 
 ## 数据准备
 
@@ -406,7 +418,7 @@ settings(
    decoder_size = 512 # 解码器中的GRU隐层大小
 
    if is_generating:
-       beam_size=3 # # 集束算法中的宽度
+       beam_size=3 # # 柱搜索算法中的宽度
        max_length=250 # 生成句子的最大长度
        gen_trans_file = get_config_arg("gen_trans_file", str, None) # 生成后的文件
   ```
@@ -443,7 +455,7 @@ settings(
    with mixed_layer(size=decoder_size) as encoded_proj:
        encoded_proj += full_matrix_projection(input=encoded_vector)
    ```
-   3.2 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$\mathbf{c_0}=\mathbf{h_T}$。
+   3.2 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
 
    ```python
    backward_first = first_seq(input=src_backward)
@@ -455,7 +467,7 @@ settings(
    3.3 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
 
       - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot。
-      - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}\mathbf{a}{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$\mathbf{a}{ij}$的计算已经封装在`simple_attention`函数中。
+      - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{<i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。 
@@ -602,7 +614,7 @@ I0719 19:17:56.707319 15563 TrainerInternal.cpp:160]  Batch=20 samples=1000 AvgC
 
 ### 下载预训练的模型
 
-由于机器翻译模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了16个pass，其中每个pass耗时7个小时。因此，我们提供了一个预先训练好的模型（pass-00012）供大家直接下载使用。该模型大小为205MB，在所有16个模型中有最高的[BLEU评估](#BLEU评估)值26.92。下载并解压模型的命令如下：
+由于NMT模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了16个pass，其中每个pass耗时7个小时。因此，我们提供了一个预先训练好的模型（pass-00012）供大家直接下载使用。该模型大小为205MB，在所有16个模型中有最高的[BLEU评估](#BLEU评估)值26.92。下载并解压模型的命令如下：
 ```bash
 cd pretrained
 ./wmt14_model.sh
@@ -645,7 +657,7 @@ BLEU(Bilingual Evaluation understudy)是一种广泛使用的机器翻译自动�
 ```bash
 ./moses_bleu.sh
 ```
-BLEU评估可以使用`eval_bleu`脚本如下，其中FILE为需要评估的文件名，BEAMSIZE为集束宽度，默认使用`data/wmt14/gen/ntst14.trg`作为标准的翻译结果。
+BLEU评估可以使用`eval_bleu`脚本如下，其中FILE为需要评估的文件名，BEAMSIZE为柱宽度，默认使用`data/wmt14/gen/ntst14.trg`作为标准的翻译结果。
 ```bash
 ./eval_bleu.sh FILE BEAMSIZE
 ```
@@ -665,7 +677,7 @@ BLEU = 26.92
 ## 参考文献
 
 1. Koehn P. [Statistical machine translation](https://books.google.com.hk/books?id=4v_Cx1wIMLkC&printsec=frontcover&hl=zh-CN&source=gbs_ge_summary_r&cad=0#v=onepage&q&f=false)[M]. Cambridge University Press, 2009.
-2. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.
+2. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](http://www.aclweb.org/anthology/D/D14/D14-1179.pdf)[C]//Proceedings of the 2014 Conference on Empirical Methods in Natural Language Processing (EMNLP), 2014: 1724-1734.
 3. Chung J, Gulcehre C, Cho K H, et al. [Empirical evaluation of gated recurrent neural networks on sequence modeling](https://arxiv.org/abs/1412.3555)[J]. arXiv preprint arXiv:1412.3555, 2014.
-4.  Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[J]. arXiv preprint arXiv:1409.0473, 2014.
+4.  Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[C]//Proceedings of ICLR 2015, 2015.
 5. Papineni K, Roukos S, Ward T, et al. [BLEU: a method for automatic evaluation of machine translation](http://dl.acm.org/citation.cfm?id=1073135)[C]//Proceedings of the 40th annual meeting on association for computational linguistics. Association for Computational Linguistics, 2002: 311-318.
