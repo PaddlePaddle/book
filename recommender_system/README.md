@@ -12,7 +12,7 @@
 - 基于内容过滤推荐[[1](#参考文献)]（Content-based Filtering Recommendation）：该方法利用商品的内容描述，抽象出有意义的特征，通过计算用户的兴趣和商品描述之间的相似度，来给用户做推荐。优点是简单直接，不需要依据其他用户对商品的评价，而是通过商品属性进行商品相似度度量，从而推荐给用户所感兴趣商品的相似商品；缺点是对于没有任何行为的新用户同样存在冷启动的问题。
 - 组合推荐[[2](#参考文献)]（Hybrid Recommendation）：运用不同的输入和技术共同进行推荐，以弥补各自推荐技术的缺点。
 
-其中协同过滤是应用最广泛的技术之一，它又可以分为多个子类：基于用户 （User-Based）的推荐[[3](#参考文献)] ， 基于物品（Item-Based）的推荐[[4](#参考文献)]，基于社交网络关系（Social-Based）的推荐[[5](#参考文献)]，基于模型（Model-based的推荐等。1994年明尼苏达大学推出的GroupLens 系统[[3](#参考文献)]一般被认为是推荐系统成为一个相对独立的研究方向的标志。该系统首次提出了基于协同过滤来完成推荐任务的思想，此后，基于该模型的协同过滤推荐引领了推荐系统十几年的发展方向。
+其中协同过滤是应用最广泛的技术之一，它又可以分为多个子类：基于用户 （User-Based）的推荐[[3](#参考文献)] 、基于物品（Item-Based）的推荐[[4](#参考文献)]、基于社交网络关系（Social-Based）的推荐[[5](#参考文献)]、基于模型（Model-based）的推荐等。1994年明尼苏达大学推出的GroupLens系统[[3](#参考文献)]一般被认为是推荐系统成为一个相对独立的研究方向的标志。该系统首次提出了基于协同过滤来完成推荐任务的思想，此后，基于该模型的协同过滤推荐引领了推荐系统十几年的发展方向。
 
 深度学习具有优秀的自动提取特征的能力，能够学习多层次的抽象特征表示，并对异质或跨域的内容信息进行学习，可以一定程度上处理推荐系统冷启动问题[[6](#参考文献)]。本教程主要介绍个性化推荐的深度学习模型，以及如何使用PaddlePaddle实现模型。
 
@@ -41,35 +41,43 @@ YouTube是世界上最大的视频上传、分享和发现网站，YouTube推荐
 
 #### 候选生成网络（Candidate Generation Network）
 
-候选生成网络将推荐问题建模为一个类别数极大的多类分类问题：对于一个Youtube用户，使用其观看历史（视频ID）、搜索词记录（search tokens）、人口学信息（如地理位置、用户登录设备）等特征，对视频库中所有视频进行多分类，得到每一类别的分类结果（即每一个视频的推荐概率），最终输出概率较高的几百个视频。
+候选生成网络将推荐问题建模为一个类别数极大的多类分类问题：对于一个Youtube用户，使用其观看历史（视频ID）、搜索词记录（search tokens）、人口学信息（如地理位置、用户登录设备）、二值特征（如性别，是否登录）和连续特征（如用户年龄）等，对视频库中所有视频进行多分类，得到每一类别的分类结果（即每一个视频的推荐概率），最终输出概率较高的几百个视频。
 
-对于用户$U$和历史信息$C$，预测$t$时刻用户要观看的视频$\omega_t$为视频$i$的概率为：
+首先，将观看历史及搜索词记录这类历史信息，映射为向量后取平均值得到定长表示；同时，输入人口学特征以优化新用户的推荐效果，并将二值特征和连续特征归一化处理到[0, 1]范围。接下来，将所有特征表示拼接为一个向量，并输入给非线形多层感知器（MLP，详见[识别数字](https://github.com/PaddlePaddle/book/blob/develop/recognize_digits/README.md)教程）处理。最后，训练时将MLP的输出给softmax做分类，预测时计算用户的综合特征（MLP的输出）与所有视频的相似度，取得分最高的$K$个作为候选生成网络的筛选结果。图2显示了候选生成网络结构。
 
-$$P(\omega_t=i|U,C)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
 
-其中，$V$表示视频库集合，大小在数百万量级；$u\in \mathbb{R}^N$是用户及相应历史信息的向量表示；$v_j\in \mathbb{R}^N$是ID为$j$的视频的向量表示。
-
-将观看历史（视频ID）及搜索词记录这类历史信息映射为向量后取平均值得到定长表示，同时输入人口学特征（地理位置等）以优化新用户的推荐效果，将二值特征（如性别，是否登录）和连续特征（如用户年龄）归一化处理到[0, 1]。接下来将所有特征表示拼接为一个很长的向量并输入给多个非线形变换层（这里应用的是全连接的 ReLU）处理。最高层的非线形变换得到的即是$u$，最后将其输入给 softmax 做分类，如图2所示：
 
 <p align="center">
 <img src="image/Deep_candidate_generation_model_architecture.png" width="75%" ><br/>
 图2. 候选生成网络结构
 </p>
 
-考虑到softmax分类的类别数非常多，为了保证一定的计算效率：1）训练阶段，使用负样本类别采样将实际计算的类别数缩小至数千；2）推荐（预测）阶段，忽略 softmax的归一化计算（不影响结果），将类别打分问题简化为点积（dot product）空间中的最近邻（nearest neighbor）搜索问题，取与$u$最近的$N$个视频作为生成的候选。
+用公式表示，对于一个用户$U$，预测此刻用户要观看的视频$\omega$为视频$i$的概率为：
+
+$$P(\omega=i|u)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
+
+其中$u$为$U$的特征表示，$V$为视频库集合，$v_i$为视频库中第$i$个视频的特征表示，$u$和$v_i$为长度相等的向量，其点积可以通过全连接层实现。
+
+考虑到softmax分类的类别数非常多，为了保证一定的计算效率：1）训练阶段，使用负样本类别采样将实际计算的类别数缩小至数千；2）推荐（预测）阶段，忽略softmax的归一化计算（不影响结果），将类别打分问题简化为点积（dot product）空间中的最近邻（nearest neighbor）搜索问题，取与$u$最近的$K$个视频作为生成的候选。
 
 #### 排序网络（Ranking Network）
-排序网络的结构类似于候选生成网络，但是它的目标是对候选进行更细致的打分排序。类似于传统的广告排序中的特征抽取方法，这里也构造了大量的用于视频排序的相关特征（如视频 ID、上次观看时间等）。离散特征和连续特征的处理方式类似于候选生成网络，不同之处是排序网络的顶部是一个加权逻辑回归（weighted logistic regression），它对所有候选视频进行打分，从高到底排序后将分数较高的一些视频返回给用户。
+排序网络的结构类似于候选生成网络，但是它的目标是对候选进行更细致的打分排序。和传统广告排序中的特征抽取方法类似，这里也构造了大量的用于视频排序的相关特征（如视频 ID、上次观看时间等）。这些特征的处理方式和候选生成网络类似，不同之处是排序网络的顶部是一个加权逻辑回归（weighted logistic regression），它对所有候选视频进行打分，从高到底排序后将分数较高的一些视频返回给用户。
 
 ### 融合推荐模型
 
-在下文的电影推荐系统中，我们使用电影特征和用户特征作为神经网络的输入。
+在下文的电影推荐系统中：
 
-用户特征融合了用户ID，性别，职业，年龄四个属性信息。我们将用户 ID 映射为维度大小为256的向量表示，然后输入全连接层，同时对其他三个属性也做类似的处理。最后将四个属性的特征表示分别全连接并相加。
+1. 首先，使用用户特征和电影特征作为神经网络的输入，其中：
 
-电影特征融合了电影ID，电影类型ID，电影名称三个属性信息。我们对电影 ID 以类似用户ID的方式进行处理，电影类型ID 将被以向量的形式直接输入全连接层。对于电影名称，我们用文本卷积神经网络（详见[第5章](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md)）对其进行处理，得到其定长向量表示。最后将三个属性的特征表示分别全连接并相加。
+   - 用户特征融合了四个属性信息，分别是用户ID、性别、职业和年龄。
 
-得到电影和用户的向量表示后，计算二者的余弦相似度作为推荐系统的打分。最后，用该相似度打分和用户真实打分的差异的平方作为该回归模型的损失函数。
+   - 电影特征融合了三个属性信息，分别是电影ID、电影类型ID和电影名称。
+
+2. 对用户特征，将用户ID映射为维度大小为256的向量表示，输入全连接层，并对其他三个属性也做类似的处理。然后将四个属性的特征表示分别全连接并相加。
+
+3. 对电影特征，将电影ID以类似用户ID的方式进行处理，电影类型ID以向量的形式直接输入全连接层，电影名称用文本卷积神经网络（详见[第5章](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md)）得到其定长向量表示。然后将三个属性的特征表示分别全连接并相加。
+
+4. 得到用户和电影的向量表示后，计算二者的余弦相似度作为推荐系统的打分。最后，用该相似度打分和用户真实打分的差异的平方作为该回归模型的损失函数。
 
 <p align="center">
 
@@ -102,11 +110,7 @@ movies.dat  ratings.dat  users.dat  README
 pip install -r data/requirements.txt
 ```
 
-其次，在预处理过程中，我们将字段配置文件`data/config.json`转化为meta配置文件`meta_config.json`，并生成对应的meta文件`meta.bin`，以完成数据文件的序列化。然后再将`ratings.dat`分为训练集、测试集两部分，把它们的地址写入`train.list`和`test.list`。
-
-```bash
-./preprocess.sh
-```
+其次在预处理`./preprocess.sh`过程中，我们将字段配置文件`data/config.json`转化为meta配置文件`meta_config.json`，并生成对应的meta文件`meta.bin`，以完成数据文件的序列化。然后再将`ratings.dat`分为训练集、测试集两部分，把它们的地址写入`train.list`和`test.list`。
 
 运行成功后目录`./data` 新增以下文件：
 
@@ -157,7 +161,7 @@ def process(settings, filename):
         for line in f:
             # 从评分文件中读取评分
             user_id, movie_id, score = map(int, line.split('::')[:-1])
-            # 将评分放缩到[-2, +2]范围内的整数
+            # 将评分平移到[-2, +2]范围内的整数
             score = float(score - 3)
             
             movie_meta = settings.meta['movie'][movie_id]
@@ -197,8 +201,8 @@ is_predict = get_config_arg('is_predict', bool, False)
 
 META_FILE = 'data/meta.bin'
 
+# 加载 meta 文件
 with open(META_FILE, 'rb') as f:
-    # 加载 meta 文件
     meta = pickle.load(f)
 
 if not is_predict:
@@ -241,7 +245,7 @@ settings(
 2. 构造“电影”特征。
 
    ```python
-   # 电影 ID 和电影类型分别映射到其对应的特征隐层（256维）。
+   # 电影ID和电影类型分别映射到其对应的特征隐层（256维）。
    movie_id_emb = embedding_layer(input=movie_id, size=embsize)
    movie_id_hidden = fc_layer(input=movie_id_emb, size=embsize)
 
@@ -303,13 +307,13 @@ settings(
 ```shell
 set -e
 paddle train \
-    --config=trainer_config.py \			# 神经网络配置文件
-    --save_dir=./output \					# 模型保存路径
-    --use_gpu=false \						# 是否使用 GPU (默认不使用)
-    --trainer_count=4\						# 一台机器上面的线程数量
-    --test_all_data_in_one_period=true \	# 每个训练周期训练一次所有数据。否则每个训练周期测试batch_size个batch的数据。
-    --log_period=100 \						# 训练 log_period 个 batch 后打印日志
-    --dot_period=1 \						# 每训练 dot_period 个 batch 后打印一个"."
+    --config=trainer_config.py \		 # 神经网络配置文件
+    --save_dir=./output \				 # 模型保存路径
+    --use_gpu=false \					 # 是否使用GPU(默认不使用)
+    --trainer_count=4\					 # 一台机器上面的线程数量
+    --test_all_data_in_one_period=true \ # 每个训练周期训练一次所有数据，否则每个训练周期测试batch_size个batch数据
+    --log_period=100 \					 # 训练log_period个batch后打印日志
+    --dot_period=1 \					 # 每训练dot_period个batch后打印一个"."
     --num_passes=50  2>&1 | tee 'log.txt'
 ```
 
