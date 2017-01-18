@@ -1,0 +1,66 @@
+<html>
+<head>
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX", "output/HTML-CSS"],
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+      processEscapes: true
+    },
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+  </script>  
+  <script src="http://cdn.bootcss.com/mathjax/2.7.0/MathJax.js" async></script>  
+  <script type="text/javascript" src="../.tmpl/marked.js">
+  </script>
+  <link href="http://cdn.bootcss.com/highlight.js/9.9.0/styles/darcula.min.css" rel="stylesheet">
+  <script src="http://cdn.bootcss.com/highlight.js/9.9.0/highlight.min.js"></script>  
+  <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../.tmpl/theme.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/perfect-scrollbar/0.6.14/css/perfect-scrollbar.min.css" rel="stylesheet">
+    <link href="../.tmpl/override.css" rel="stylesheet">
+    
+</head>
+<style type="text/css" >
+.doc-content-wrap{
+  margin-left:0;
+}
+.code {
+	padding: 16px;
+	display: block;
+	background: #EFEFEF;
+}
+</style>
+
+
+<body class="doc-content-wrap">
+
+<div id="context" class="container">
+</div>
+
+<!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
+<div id="markdown" style='display:none'>
+    ${MARKDOWN}
+</div>
+<!-- You can change the lines below now. -->
+
+<script type="text/javascript">
+marked.setOptions({
+  renderer: new marked.Renderer(),
+  gfm: true,
+  tables: true,
+  breaks: true,
+  pedantic: false,
+  smartLists: true,
+  smartypants: false,
+  sanitize: false,
+  highlight: function(code) {
+    return hljs.highlightAuto(code).value;
+  }
+});
+document.getElementById("context").innerHTML = marked(
+		document.getElementById("markdown").innerHTML)
+</script>
+</body>
