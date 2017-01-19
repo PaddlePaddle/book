@@ -10,9 +10,9 @@
 
 MNIST数据集是从 [NIST](https://www.nist.gov/srd/nist-special-database-19) 的Special Database 3（SD-3）和Special Database 1（SD-1）构建而来。由于SD-3是由美国人口调查局的员工进行标注，SD-1是由美国高中生进行标注，因此SD-3比SD-1更干净也更容易识别。Yann LeCun等人从SD-1和SD-3中各取一半作为MNIST的训练集（60000条数据）和测试集（10000条数据），其中训练集来自250位不同的标注员，此外还保证了训练集和测试集的标注员是不完全相同的。
 
-Yann LeCun早先在手写字符识别上做了很多研究，并在研究过程中提出了卷积神经网络（Convolutional Neural Network），大幅度地提高了手写字符的识别能力，也因此成为了深度学习领域的奠基人之一。如今的深度学习领域，卷积神经网络占据了至关重要的地位，从最早Yann LeCun提出的简单LeNet，到如今ImageNet大赛上的优胜模型VGGNet、GoogLeNet、ResNet等（请参见[图像分类](https://github.com/PaddlePaddle/book/tree/develop/image_classification) ），人们在图像分类领域，利用卷积神经网络得到了一系列惊人的结果。
+Yann LeCun早先在手写字符识别上做了很多研究，并在研究过程中提出了卷积神经网络（Convolutional Neural Network），大幅度地提高了手写字符的识别能力，也因此成为了深度学习领域的奠基人之一。如今的深度学习领域，卷积神经网络占据了至关重要的地位，从最早Yann LeCun提出的简单LeNet，到如今ImageNet大赛上的优胜模型VGGNet、GoogLeNet、ResNet等（请参见[图像分类](https://github.com/PaddlePaddle/book/tree/develop/image_classification) 教程），人们在图像分类领域，利用卷积神经网络得到了一系列惊人的结果。
 
-有很多算法在MNIST上进行实验。1998年，LeCun分别用单层线性分类器、多层感知器（Multilayer Perceptron, MLP）和多层卷积神经网络LeNet进行实验，使得测试集上的误差不断下降（从12%下降到0.7%）。\[[1](#参考文献)\]此后，科学家们又基于K近邻（K-Nearest Neighbors）算法\[[2](#参考文献)\]、支持向量机（SVM）\[[3](#参考文献)\]、神经网络\[[4-7](#参考文献)\]和Boosting方法\[[8](#参考文献)\]等做了大量实验，并采用多种预处理方法（如去除歪曲、去噪、模糊等）来提高识别的准确率。
+有很多算法在MNIST上进行实验。1998年，LeCun分别用单层线性分类器、多层感知器（Multilayer Perceptron, MLP）和多层卷积神经网络LeNet进行实验，使得测试集上的误差不断下降（从12%下降到0.7%）\[[1](#参考文献)\]。此后，科学家们又基于K近邻（K-Nearest Neighbors）算法\[[2](#参考文献)\]、支持向量机（SVM）\[[3](#参考文献)\]、神经网络\[[4-7](#参考文献)\]和Boosting方法\[[8](#参考文献)\]等做了大量实验，并采用多种预处理方法（如去除歪曲、去噪、模糊等）来提高识别的准确率。
 
 本教程中，我们从简单的模型Softmax回归开始，带大家入门手写字符识别，并逐步进行模型优化。
 
@@ -21,15 +21,12 @@ Yann LeCun早先在手写字符识别上做了很多研究，并在研究过程�
 
 基于MNIST数据训练一个分类器，在介绍本教程使用的三个基本图像分类网络前，我们先给出一些定义：
 - $X$是输入：MNIST图片是$28\times28$ 的二维图像，为了进行计算，我们将其转化为$784$维向量，即$X=\left ( x_0, x_1, \dots, x_{783} \right )$。
-- $Y$是输出：MNIST图片的输出是10类数字（0-9），因此$Y=\left ( y_0, y_1, \dots, y_9 \right )$，每一维$y_i$代表图片分类为第$i$类数字的概率。
+- $Y$是输出：分类器的输出是10类数字（0-9），即$Y=\left ( y_0, y_1, \dots, y_9 \right )$，每一维$y_i$代表图片分类为第$i$类数字的概率。
 - $L$是图片的真实标签：$L=\left ( l_0, l_1, \dots, l_9 \right )$也是10维，但只有一维为1，其他都为0。
-
-下面我们一一介绍本教程中使用的三个基本图像分类网络Softmax回归、多层感知器、卷积神经网络。
-
 
 ### Softmax回归(Softmax Regression)
 
-最简单的Softmax回归模型是先将输入层经过一个全连接层得到的特征，然后直接通过softmax 函数进行多分类。\[[9](#参考文献)\]
+最简单的Softmax回归模型是先将输入层经过一个全连接层得到的特征，然后直接通过softmax 函数进行多分类\[[9](#参考文献)\]。
 
 输入层的数据$X$传到输出层，在激活操作之前，会乘以相应的权重 $W$ ，并加上偏置变量 $b$ ，具体如下：
 
@@ -51,9 +48,9 @@ $$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
 
 ### 多层感知器(Multilayer Perceptron, MLP)
 
-Softmax回归模型采用了最简单的两层神经网络，即只有输入层和输出层，因此其拟合能力有限。为了达到更好的识别效果，我们考虑在输入层和输出层中间加上若干个隐藏层。\[[10](#参考文献)\]
+Softmax回归模型采用了最简单的两层神经网络，即只有输入层和输出层，因此其拟合能力有限。为了达到更好的识别效果，我们考虑在输入层和输出层中间加上若干个隐藏层\[[10](#参考文献)\]。
 
-1.  经过第一个隐藏层，可以得到 $ H_1 = \phi(W_1X + b_1) $，其中$\phi$代表激活函数，常见的有$sigmoid$、$tanh$或$ReLU$等函数。
+1.  经过第一个隐藏层，可以得到 $ H_1 = \phi(W_1X + b_1) $，其中$\phi$代表激活函数，常见的有sigmoid、tanh或ReLU等函数。
 2.  经过第二个隐藏层，可以得到 $ H_2 = \phi(W_2H_1 + b_2) $。
 3.  最后，再经过输出层，得到的$Y=softmax(W_3H_2 + b_3)$，即为最后的分类结果向量。
       
@@ -101,11 +98,11 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 - tanh激活函数： $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
 
-  实际上，$tanh$ 函数只是规模变化的 $sigmoid$ 函数，将 $sigmoid$函数值放大2倍之后再向下平移1个单位：$ tanh(x) = 2sigmoid(2x) - 1 $
+  实际上，tanh函数只是规模变化的sigmoid函数，将sigmoid函数值放大2倍之后再向下平移1个单位：tanh(x) = 2sigmoid(2x) - 1 。
 
 - ReLU激活函数： $ f(x) = max(0, x) $
 
-更详细的介绍请参考[维基百科激活函数](https://en.wikipedia.org/wiki/Activation_function)
+更详细的介绍请参考[维基百科激活函数](https://en.wikipedia.org/wiki/Activation_function)。
 
 ## 数据准备
 
@@ -253,7 +250,7 @@ def multilayer_perceptron(img):
 
 ```python
 def convolutional_neural_network(img):
-    # 第一个 卷积-池化 层
+    # 第一个卷积-池化层
     conv_pool_1 = simple_img_conv_pool(
         input=img,
         filter_size=5,
@@ -262,7 +259,7 @@ def convolutional_neural_network(img):
         pool_size=2,
         pool_stride=2,
         act=TanhActivation())
-    # 第二个 卷积-池化 层
+    # 第二个卷积-池化层
     conv_pool_2 = simple_img_conv_pool(
         input=conv_pool_1,
         filter_size=5,
@@ -278,7 +275,9 @@ def convolutional_neural_network(img):
     return predict
 ```
 
-## 训练命令及日志
+## 训练模型
+
+### 训练命令及日志
 
 1.通过配置训练脚本 `train.sh` 来执行训练过程：
 
@@ -327,7 +326,7 @@ python plot_cost.py softmax_train.log
 python evaluate.py softmax_train.log
 ```
 
-#### softmax回归的训练结果
+### softmax回归的训练结果
 
 <p align="center">
 <img src="image/softmax_train_log.png" width="400px"><br/>
@@ -343,7 +342,7 @@ The classification accuracy is 90.01%
 
 从评估结果可以看到，softmax回归模型分类效果最好的时候是pass-00013，分类准确率为90.01%，而最终的pass-00099的准确率为89.3%。从图7中也可以看出，最好的准确率不一定出现在最后一个pass。原因是中间的Pass可能就已经收敛获得局部最优值，后面的Pass只是在该值附近震荡，或者获得更低的局部最优值。
 
-#### 多层感知器的训练结果
+### 多层感知器的训练结果
 
 <p align="center">
 <img src="image/mlp_train_log.png" width="400px"><br/>
@@ -359,7 +358,7 @@ The classification accuracy is 94.95%
 
 从评估结果可以看到，最终训练的准确率为94.95%，相比于softmax回归模型有了显著的提升。原因是softmax回归模型较为简单，无法拟合更为复杂的数据，而加入了隐藏层之后的多层感知器则具有更强的拟合能力。
 
-#### 卷积神经网络的训练结果
+### 卷积神经网络的训练结果
 
 <p align="center">
 <img src="image/cnn_train_log.png" width="400px"><br/>
