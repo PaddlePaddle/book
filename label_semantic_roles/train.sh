@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -e
-./bin/paddle_trainer \
+paddle train \
   --config=./db_lstm.py \
   --use_gpu=0 \
   --log_period=10 \

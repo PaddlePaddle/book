@@ -19,7 +19,12 @@ wget http://paddlepaddle.bj.bcebos.com/demo/srl_dict_and_embedding/targetDict.tx
 wget http://paddlepaddle.bj.bcebos.com/demo/srl_dict_and_embedding/wordDict.txt
 wget http://paddlepaddle.bj.bcebos.com/demo/srl_dict_and_embedding/emb
 tar -xzvf conll05st-tests.tar.gz
+
+mv verbDict.txt predicate_dict
+mv targetDict.txt label_dict
+mv wordDict.txt word_dict
 rm conll05st-tests.tar.gz
+
 cp ./conll05st-release/test.wsj/words/test.wsj.words.gz  .
 cp ./conll05st-release/test.wsj/props/test.wsj.props.gz  .
 gunzip test.wsj.words.gz

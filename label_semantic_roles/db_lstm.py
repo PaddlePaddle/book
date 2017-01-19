@@ -21,9 +21,9 @@ is_test = get_config_arg('is_test', bool, False)
 is_predict = get_config_arg('is_predict', bool, False)
 
 #file paths
-word_dict_file = './data/wordDict.txt'
-label_dict_file = './data/targetDict.txt'
-predicate_file = './data/verbDict.txt'
+word_dict_file = './data/word_dict'
+label_dict_file = './data/label_dict'
+predicate_file = './data/predicate_dict'
 train_list_file = './data/train.list' if not (is_test or is_predict) else None
 test_list_file = './data/test.list'
 

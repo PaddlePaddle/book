@@ -29,8 +29,8 @@ def hook(settings, word_dict, label_dict, predicate_dict, **kwargs):
         'ctx_n1_data': integer_value_sequence(len(word_dict)),
         'ctx_0_data': integer_value_sequence(len(word_dict)),
         'ctx_p1_data': integer_value_sequence(len(word_dict)),
-        'ctx_p2_data': integer_value_sequence(len(predicate_dict)),
-        'verb_data': integer_value_sequence(len(word_dict)),
+        'ctx_p2_data': integer_value_sequence(len(word_dict)),
+        'verb_data': integer_value_sequence(len(predicate_dict)),
         'mark_data': integer_value_sequence(2),
         'target': integer_value_sequence(len(label_dict))
     }
