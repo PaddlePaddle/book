@@ -55,7 +55,7 @@
 Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得了历史性的突破，效果大幅度超越传统方法，获得了ILSVRC2012冠军，该模型被称作AlexNet。这也是首次将深度学习用于大规模图像分类中。从AlexNet之后，涌现了一系列CNN模型，不断地在ImageNet上刷新成绩，如图4展示。随着模型变得越来越深以及精妙的结构设计，Top-5的错误率也越来越低，降到了3.5%附近。而在同样的ImageNet数据集上，人眼的辨识错误率大概在5.1%，也就是目前的深度学习模型的识别能力已经超过了人眼。
 
 <p align="center">
-<img src="image/ilsvrc.png" width="450" ><br/>
+<img src="image/ilsvrc.png" width="500" ><br/>
 图4. ILSVRC图像分类Top-5错误率
 </p>
 
@@ -96,7 +96,7 @@ NIN模型主要有两个特点：1) 引入了多层感知卷积网络(Multi-Laye
 Inception模块如下图7所示，图(a)是最简单的设计，输出是3个卷积层和一个池化层的特征拼接。这种设计的缺点是池化层不会改变特征通道数，拼接后会导致特征的通道数较大，经过几层这样的模块堆积后，通道数会越来越大，导致参数和计算量也随之增大。为了改善这个缺点，图(b)引入3个1x1卷积层进行降维，所谓的降维就是减少通道数，同时如NIN模型中提到的1x1卷积也可以修正线性特征。
 
 <p align="center">
-<img src="image/inception.png" width="550" ><br/>
+<img src="image/inception.png" width="800" ><br/>
 图7. Inception模块
 </p>
 
@@ -120,7 +120,7 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 残差模块如图9所示，左边是基本模块连接方式，由两个输出通道数相同的3x3卷积组成。右边是瓶颈模块(Bottleneck)连接方式，之所以称为瓶颈，是因为上面的1x1卷积用来降维(图示例即256->64)，下面的1x1卷积用来升维(图示例即64->256)，这样中间3x3卷积的输入和输出通道数都较小(图示例即64->64)。
 
 <p align="center">
-<img src="image/resnet_block.jpg" width="300"><br/>
+<img src="image/resnet_block.jpg" width="400"><br/>
 图9. 残差模块
 </p>
 
