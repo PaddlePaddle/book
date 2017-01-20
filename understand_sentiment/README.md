@@ -23,7 +23,7 @@
 
 卷积神经网络主要由卷积（convolution）和池化（pooling）操作构成，其应用及组合方式灵活多变，种类繁多。本小结我们以一种简单的文本分类卷积神经网络为例进行讲解\[[1](#参考文献)\]，如图1所示：
 <p align="center">
-<img src="image/text_cnn.png" width = "90%" height = "90%" align="center"/><br/>
+<img src="image/text_cnn.png" width = "80%" align="center"/><br/>
 图1. 卷积神经网络文本分类模型
 </p>
 假设待处理句子的长度为$n$，其中第$i$个词的词向量（word embedding）为$x_i\in\mathbb{R}^k$，$k$为维度大小。  
@@ -46,7 +46,7 @@ $$\hat c=max(c)$$
 ### 循环神经网络（RNN）
 循环神经网络是一种能对序列数据进行精确建模的有力工具。实际上，循环神经网络的理论计算能力是图灵完备的\[[4](#参考文献)\]。自然语言是一种典型的序列数据（词序列），近年来，循环神经网络及其变体（如long short term memory\[[5](#参考文献)\]等）在自然语言处理的多个领域，如语言模型、句法解析、语义角色标注（或一般的序列标注）、语义表示、图文生成、对话、机器翻译等任务上均表现优异甚至成为目前效果最好的方法。
 <p align="center">
-<img src="image/rnn.png" width = "70%" height = "70%" align="center"/><br/>
+<img src="image/rnn.png" width = "60%" align="center"/><br/>
 图2. 循环神经网络按时间展开的示意图
 </p>
 循环神经网络按时间展开后如图2所示：在第$t$时刻，网络读入第$t$个输入$x_t$（向量表示）及前一时刻隐层的状态值$h_{t-1}$（向量表示，$h_0$一般初始化为$0$向量），计算得出本时刻隐层的状态值$h_t$，重复这一步骤直至读完所有输入。如果将循环神经网络所表示的函数记为$f$，则其公式可表示为：
@@ -87,7 +87,7 @@ $$ h_t=Recrurent(x_t,h_{t-1})$$
 
 如图4所示（以三层为例），奇数层LSTM正向，偶数层LSTM反向，高一层的LSTM使用低一层LSTM及之前所有层的信息作为输入，对最高层LSTM序列使用时间维度上的最大池化即可得到文本的定长向量表示（这一表示充分融合了文本的上下文信息，并且对文本进行了深层次抽象），最后我们将文本表示连接至softmax构建分类模型。
 <p align="center">
-<img src="image/stacked_lstm.jpg"><br/>
+<img src="image/stacked_lstm.jpg" width=450><br/>
 图4. 栈式双向LSTM用于文本分类
 </p>
 ## 数据准备

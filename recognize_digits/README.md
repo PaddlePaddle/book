@@ -42,7 +42,7 @@ $$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
 
 图2为softmax回归的网络图，图中权重用黑线表示、偏置用红线表示、+1代表偏置参数的系数为1。
 <p align="center">
-<img src="image/softmax_regression.png"><br/>
+<img src="image/softmax_regression.png" width=400><br/>
 图2. softmax回归网络结构图<br/>
 </p>
 
@@ -57,7 +57,7 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 图3为多层感知器的网络结构图，图中权重用黑线表示、偏置用红线表示、+1代表偏置参数的系数为1。
 <p align="center">
-<img src="image/mlp.png"><br/>
+<img src="image/mlp.png" width=500><br/>
 图3. 多层感知器网络结构图<br/>
 </p>
 
@@ -65,7 +65,7 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 #### 卷积层
 <p align="center">
-<img src="image/conv_layer.png"><br/>
+<img src="image/conv_layer.png" width=500><br/>
 图4. 卷积层图片<br/>
 </p>
 卷积层是卷积神经网络的核心基石。该层的参数由一组可学习的过滤器（也叫作卷积核）组成。在前向过程中，每个卷积核在输入层进行横向和纵向的扫描，与输入层对应扫描位置进行卷积，得到的结果加上偏置并用相应的激活函数进行激活，结果能够得到一个二维的激活图(activation map)。每个特定的卷积核都能得到特定的激活图(activation map)，如有的卷积核可能对识别边角，有的可能识别圆圈，那这些卷积核可能对于对应的特征响应要强。
