@@ -104,8 +104,6 @@ predicate_embedding = embedding_layer(
     input=predicate,
     param_attr=ParameterAttribute(
         name='vemb', initial_std=default_std))
-mark_embedding = embedding_layer(
-    name='word_ctx-in_embedding', size=mark_dim, input=mark, param_attr=std_0)
 
 word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
 emb_layers = [
@@ -113,6 +111,8 @@ emb_layers = [
         size=word_dim, input=x, param_attr=emb_para) for x in word_input
 ]
 emb_layers.append(predicate_embedding)
+mark_embedding = embedding_layer(
+    name='word_ctx-in_embedding', size=mark_dim, input=mark, param_attr=std_0)
 emb_layers.append(mark_embedding)
 
 hidden_0 = mixed_layer(
