@@ -1,0 +1,5 @@
+data/housing*
+data/*.list
+*.pyc
+data/*.pyc
+output
