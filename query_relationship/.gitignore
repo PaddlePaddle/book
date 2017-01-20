@@ -1,6 +1,6 @@
 data/MQ2007
 data/train.list
-data/vali.list
+data/test.list
 data/pred.list
 *.log
 output/
