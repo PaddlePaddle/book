@@ -1,11 +1,10 @@
 # 深度学习入门
 
-1. [新手入门](fit_a_line/README.md)
-1. [识别数字](recognize_digits/README.md)
-1. [图像分类](image_classification/README.md)
-1. [词向量](word2vec/README.md)
-1. [情感分析](understand_sentiment/README.md)
-1. [文本序列标注](label_semantic_roles/README.md)
-1. [机器翻译](machine_translation/README.md)
-1. [个性化推荐](recommender_system/README.md)
-1. [图像自动生成](gan/README.md)
+1. 新手入门[[.html](fit_a_line/README.html)] [[.pdf](fit_a_line/README.pdf)] [[.src](fit_a_line/)]
+1. 个性化推荐[[.html](recommender_system/README.html)] [[.pdf](recommender_system/README.pdf)] [[.src](recommender_system/)]
+1. 识别数字[[.html](recognize_digits/README.html)] [[.pdf](recognize_digits/README.pdf)] [[.src](recognize_digits/)]
+1. 图像分类[[.html](classify_images/README.html)] [[.pdf](classify_images/README.pdf)] [[.src](classify_images/)]
+1. 词向量[[.html](word2vec/README.html)] [[.pdf](word2vec/)] [[.src](word2vec/README.pdf)]
+1. 情感分析[[.html](understand_sentiment/README.html)] [[.pdf](understand_sentiment/README.pdf)] [[.src](understand_sentiment/)]
+1. 理解单词的语义[[.html](label_semantic_roles/README.html)] [[.pdf](label_semantic_roles/README.pdf)] [[.src](label_semantic_roles/)]
+1. 机器翻译[[.html](machine_translation/README.html)] [[.pdf](machine_translation/README.pdf)] [[.src](machine_translation/)]
