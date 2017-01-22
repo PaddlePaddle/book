@@ -1,5 +1,7 @@
 # 机器翻译
 
+本教程源代码目录在[book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+
 ## 背景介绍
 
 机器翻译（machine translation, MT）是用计算机来实现不同语言之间翻译的技术。被翻译的语言通常称为源语言（source language），翻译成的结果语言称为目标语言（target language）。机器翻译即实现从源语言到目标语言转换的过程，是自然语言处理的重要研究领域之一。
