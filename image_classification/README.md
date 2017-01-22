@@ -1,6 +1,8 @@
 图像分类
 =======
 
+本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+
 ## 背景介绍 
 
 图像相比文字能够提供更加生动、容易理解及更具艺术感的信息，是人们转递与交换信息的重要来源。在本教程中，我们专注于图像识别领域的一个重要问题，即图像分类。
