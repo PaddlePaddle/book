@@ -36,6 +36,7 @@ $$X = USV^T$$
 </p>
 
 另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
+
 ```
 similarity: 0.899180685161
 please input two words: big huge
@@ -82,6 +83,7 @@ $$P(w_1, ..., w_T) = \prod_{t=n}^TP(w_t|w_{t-1}, w_{t-2}, ..., w_{t-n+1})$$
 $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
+
 <p align="center">	
    	<img src="image/nnlm.png" width=500><br/>
    	图2. N-gram神经网络模型
@@ -113,6 +115,7 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 ### Continuous Bag-of-Words model(CBOW) 
 
 CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时，模型如下图所示：
+
 <p align="center">	
 	<img src="image/cbow.png" width=250><br/>
 	图3. CBOW模型
@@ -127,16 +130,17 @@ $$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
 ### Skip-gram model 
 
 CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效。而Skip-gram的方法中，用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
+
 <p align="center">	
 	<img src="image/skipgram.png" width=250><br/>
 	图4. Skip-gram模型
 </p>
+
 如上图所示，Skip-gram模型的具体做法是，将一个词的词向量映射到$2n$个词的词向量（$2n$表示当前输入词的前后各$n$个词），然后分别通过softmax得到这$2n$个词的分类损失值之和。
 
 
-
 ## 数据准备
-	
+
 ### 数据介绍与下载
 
 本教程使用Penn Tree Bank (PTB)数据集。PTB数据集较小，训练速度快，应用于Mikolov的公开语言模型训练工具\[[2](#参考文献)\]中。其统计情况如下：
@@ -225,13 +229,12 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
     ```
     
     如"I have a dream" 一句提供了5条数据:
-    
-    > `<s> <s> <s> <s> I `<br/>
-    > `<s> <s> <s> I have`<br/>
-    > `<s> <s> I have a `<br/>
-    > `<s> I have a dream`<br/>
-    > `I have a dream <e>`<br/>
 
+    > `<s> <s> <s> <s> I` <br>
+    > `<s> <s> <s> I have` <br>
+    > `<s> <s> I have a`  <br>
+    > `<s> I have a dream` <br>
+    > `I have a dream <e>` <br>
 
 
 ## 模型配置说明

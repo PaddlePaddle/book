@@ -247,7 +247,6 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 	网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)，类别大小为10，即10分类。
 	
 	```python
-	
 	datadim = 3 * 32 * 32
 	classdim = 10
 	data = data_layer(name='image', size=datadim)
@@ -299,7 +298,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 3. 定义分类器
 
 	通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
-	
+
 	```python
 	out = fc_layer(input=net, size=class_num, act=SoftmaxActivation())
 	```
