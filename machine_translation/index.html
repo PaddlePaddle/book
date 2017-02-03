@@ -740,6 +740,7 @@ marked.setOptions({
     code = code.replace(/&amp;/g, "&")
     code = code.replace(/&gt;/g, ">")
     code = code.replace(/&lt;/g, "<")
+    code = code.replace(/&nbsp;/g, " ")
     return hljs.highlightAuto(code, [lang]).value;
   }
 });
