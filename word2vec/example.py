@@ -1,5 +1,6 @@
 import paddle
 import sklearn.manifold.TSNE
+import random
 
 
 def plot(weight, words, canvas):
@@ -27,6 +28,57 @@ def plot_train_error(*args):
 
 def plot_test_error(*args):
     pass
+
+
+class InMemDataPool(object):
+    def __init__(self, next_data, batch_size, should_shuffle):
+        self.__data__ = list(next_data)
+        self.__should_shuffle__ = should_shuffle
+        self.__idx__ = 0
+        self.batch_size = batch_size
+
+    def reset(self):
+        self.__idx__ = 0
+        if self.__should_shuffle__:
+            random.shuffle(self.__data__)
+
+    def next(self):
+        if self.__idx__ >= len(self.__data__):
+            raise StopIteration()  # end of data.
+
+        begin = self.__idx__
+        end = min(self.__idx__ + self.batch_size, len(self.__data__))
+        self.__idx__ = end
+
+        retv = dict()
+        for k in self.__data__[0].keys():
+            retv[k] = list()
+
+        for item in self.__data__[begin: end]:
+            for k in item.keys():
+                retv[k].append(item[k])
+
+        yield retv
+
+    def __iter__(self):
+        self.reset()
+        return self
+
+    def __next__(self):
+        # For Python 3
+        return self.next()
+
+
+def prepare_data(dataset, word_dict, unk):
+    for sentence in dataset:
+        sentence = ['<s>', '<s>', '<s>'] + sentence + ['<e>']
+        for i in xrange(len(sentence) - 5):
+            words = sentence[i:i + 5]
+            words = [word_dict.get(w, unk) for w in words]
+            retv = dict()
+            for i in xrange(len(words)):
+                retv['word_%d' % i] = words[i]
+            yield retv
 
 
 def main():
@@ -72,7 +124,8 @@ def main():
         # which name are word_0, word_1, word_2, word_3, word_4.
         # Size is word_dict length + UNK
         words[i] = paddle.layers.data(name='word_%d' % i,
-                                      size=len(word_dict) + 1)
+                                      type=paddle.data.integer(
+                                          size=len(word_dict) + 1))
 
     # The Embedding file name.
     embedding_param_attr = paddle.layers.ParamAttr(name="embedding")
@@ -112,15 +165,17 @@ def main():
          canvas=None)
 
     train_data = dataset.train_data(tokenized=True)
+    train_data = prepare_data(dataset=train_data, word_dict=word_dict, unk=UNK)
+    train_data = InMemDataPool(next_data=train_data, batch_size=256,
+                               should_shuffle=True)
+
     test_data = dataset.test_data(tokenized=True)
+    test_data = prepare_data(dataset=test_data, word_dict=word_dict, unk=UNK)
+    test_data = InMemDataPool(next_data=test_data, batch_size=256,
+                              should_shuffle=False)
 
     for each_epoch_id in xrange(10):  # train 10 epochs
-        batch_size = 256
-        batch_count = int(len(train_data) / 256) + 1
-        for each_batch_id in xrange(batch_count):
-            data_batch = train_data[each_batch_id * batch_size: min(
-                (each_batch_id + 1) * batch_size, len(train_data))]
-
+        for each_batch_id, data_batch in enumerate(train_data):
             loss = model.train(data_batch)
             if each_batch_id % 100 == 0:
                 # get the classification error
@@ -134,12 +189,9 @@ def main():
                      [(word_dict.get(w, UNK), w) for w in watched_words],
                      canvas=None)
 
-        batch_count = int(len(test_data) / 256) + 1
         avg_loss = 0
         test_evaluator = model.make_evaluator()
-        for each_batch_id in xrange(batch_count):
-            data_batch = test_data[each_batch_id * batch_size: min(
-                (each_batch_id + 1) * batch_size, len(test_data))]
+        for each_batch_id, data_batch in enumerate(test_data):
             avg_loss += model.test(data_batch)
             model.evaluate(test_evaluator)
 
