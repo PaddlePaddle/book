@@ -31,6 +31,12 @@ def plot_test_error(*args):
 
 
 class InMemDataPool(object):
+    """
+    This is the interface of Paddle DataPool.
+    It is an iterator, and will return a batch of data when next invoked.
+    The data format is a dictionary which key is data_layer's name, value is the
+     mini-batch data.
+    """
     def __init__(self, next_data, batch_size, should_shuffle):
         self.__data__ = list(next_data)
         self.__should_shuffle__ = should_shuffle
@@ -70,6 +76,13 @@ class InMemDataPool(object):
 
 
 def prepare_data(dataset, word_dict, unk):
+    """
+    Convert dataset sentence to Paddle input.
+    :param dataset:
+    :param word_dict:
+    :param unk:
+    :return:
+    """
     for sentence in dataset:
         sentence = ['<s>', '<s>', '<s>'] + sentence + ['<e>']
         for i in xrange(len(sentence) - 5):
