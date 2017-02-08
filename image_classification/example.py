@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import paddle
 
 def main():
     paddle.init(...) # use_gpu and other command-line arguments
@@ -19,35 +20,25 @@ def main():
     batch_size=128
 
     # describe the VGG network
-    input = paddle.data_layer(name="image")
-    label = paddle.data_layer(name="label")
-    conv1 = paddle.conv_layer(input, 64, 2, [0.3, 0], 3)
-    conv2 = paddle.conv_layer(conv1, 128, 2, [0.4, 0])
-    conv3 = paddle.conv_layer(conv2, 256, 3, [0.4, 0.4, 0])
-    conv4 = paddle.conv_layer(conv3, 512, 3, [0.4, 0.4, 0])
-    conv5 = paddle.conv_layer(conv4, 512, 3, [0.4, 0.4, 0])
-    drop = paddle.dropout_layer(conv5, dropout_rate=0.5)
-    fc1 = paddle.fc_layer(drop, size=512, act=LinearActivation())
-    bn = paddle.batch_norm_layer(
+    input = paddle.layer.data(name="image")
+    label = paddle.layer.data(name="label")
+    conv1 = paddle.layer.conv(input, 64, 2, [0.3, 0], 3)
+    conv2 = paddle.layer.conv(conv1, 128, 2, [0.4, 0])
+    conv3 = paddle.layer.conv(conv2, 256, 3, [0.4, 0.4, 0])
+    conv4 = paddle.layer.conv(conv3, 512, 3, [0.4, 0.4, 0])
+    conv5 = paddle.layer.conv(conv4, 512, 3, [0.4, 0.4, 0])
+    drop = paddle.layer.dropout(conv5, dropout_rate=0.5)
+    fc1 = paddle.layer.fc(drop, size=512, act=LinearActivation())
+    bn = paddle.layer.batch_norm(
         fc1, act=ReluActivation(), layer_attr=ExtraAttr(drop_rate=0.5))
-    fc2 = paddle.fc_layer(bn, size=512, act=LinearActivation())
-    out = paddle.fc_layer(fc2, size=10, act=SoftmaxActivation())
-    cost = paddle.classification_cost(out, label)
+    fc2 = paddle.layer.fc(bn, size=512, act=LinearActivation())
+    out = paddle.layer.fc(fc2, size=10, act=SoftmaxActivation())
 
-    # optimizer
-    optimizer = paddle.optimizer.Optimizer(
-        learning_rate=0.1 / batch_size,
-        learning_rate_decay_a=0.1,
-        learning_rate_decay_b=50000 * 100,
-        learning_rate_schedule='discexp',
-        learning_method=MomentumOptimizer(0.9),
-        regularization=L2Regularization(0.0005 * 128))
-
-    # create paddle model
-    model = paddle.model(...) # some arguments for model, like trainer_count
-    model.network.init(cost)
-    model.optimizer.init(optimizer)
-    model.parameter.init()
+    # create model and loss function, optimizer
+    model = paddle.model.create(out)
+    cost = paddle.cost.classification(out, label)
+    adam = paddle.optimizer.Adam(...) # learning_rate and other arguments
+    adam.train(model, cost, ...) # some arguments for train, like trainer_count
 
     # get data from...
     train_data = paddle.data.create_data_pool(
