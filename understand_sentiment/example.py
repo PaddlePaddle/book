@@ -121,10 +121,12 @@ if not is_predict:
     # - settings包含了不同东西的设定混在一起，比如learning_method不是adam的时候，adam_epsilon这个参数没有用。
     # 这里删掉了settings，每个参数在具体使用的时候指出，比如以下AdamOptimizer里面有learning_rate这个原本在settings里指定的参数。
 
-    # 这里明确地指出了需要优化那一层的输出，用什么方法优化，以及参数。
     # 删掉了outputs这个函数，觉得outputs()至少命名有一些奇怪，以前是这样用的：
     # outputs(classification_cost(input=output, label=data_layer('label', 1)))
     # train的时候是去优化cost，似乎output这个词的意思跟优化没有什么关系。
+    # 现在对应的使用方法请见以下代码。
+    
+    # 这里明确地指出了需要优化那一层的输出，用什么方法优化，以及参数。
     optimizer = AdamOptimizer(
         output,
         learning_rate=2e-3,
