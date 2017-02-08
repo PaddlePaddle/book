@@ -46,6 +46,7 @@ class Prediction():
         self.network.loadParameters(model_dir)
 
         self.images, self.labels = read_data(data_dir, "t10k")
+        self.images = self.images / 255.0 * 2.0 - 1.0  # normalized to [-1,1]
 
         slots = [dense_vector(28 * 28)]
         self.converter = DataProviderConverter(slots)
