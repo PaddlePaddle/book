@@ -1,33 +1,5 @@
 import paddle
-import sklearn.manifold.TSNE
 import random
-
-
-def plot(weight, words, canvas):
-    """
-    Visualize word2vec result.
-    :param weight: the embedding matrix. Height is the word count, width is the
-                   embedding dimension.
-    :type weight: numpy.ndarray
-    :param words: words with id and string.
-    :param canvas:
-    :return: Nothing
-    """
-
-    points = [w[1] for w in words]
-
-    model = TSNE(n_components=2)
-    points = model.fit_transform(points)  # in 2 dims, embedding result.
-
-    canvas.plot(points, label=[w[0] for w in words])
-
-
-def plot_train_error(*args):
-    pass
-
-
-def plot_test_error(*args):
-    pass
 
 
 class InMemDataPool(object):
@@ -37,6 +9,7 @@ class InMemDataPool(object):
     The data format is a dictionary which key is data_layer's name, value is the
      mini-batch data.
     """
+
     def __init__(self, next_data, batch_size, should_shuffle):
         self.__data__ = list(next_data)
         self.__should_shuffle__ = should_shuffle
@@ -75,6 +48,37 @@ class InMemDataPool(object):
         return self.next()
 
 
+def plot(weight, words, canvas):
+    """
+    Visualize word2vec result.
+    :param weight: the embedding matrix. Height is the word count, width is the
+                   embedding dimension.
+    :type weight: numpy.ndarray
+    :param words: words with id and string.
+    :param canvas:
+    :return: Nothing
+    """
+    pass
+
+
+def plot_train_error(*args):
+    """
+    Visualize word2vec train error curve.
+    :param args:
+    :return:
+    """
+    pass
+
+
+def plot_test_error(*args):
+    """
+    Visualize word2vec test error curve.
+    :param args:
+    :return:
+    """
+    pass
+
+
 def prepare_data(dataset, word_dict, unk):
     """
     Convert dataset sentence to Paddle input.
@@ -92,6 +96,28 @@ def prepare_data(dataset, word_dict, unk):
             for i in xrange(len(words)):
                 retv['word_%d' % i] = words[i]
             yield retv
+
+
+def observe(model, optimizer, loss, event):
+    """
+    Optimizer.train's callback.
+    :param optimizer:
+    :param model: current training model
+    :param loss: current loss value
+    :param event: current event, like (on_pass_start, pass_id),
+                 (on_batch_end, pass_id, batch_id), etc.
+    :return:
+    """
+    if isinstance(event, paddle.optimizers.event.CompleteTrainBatch):
+        if event.batch_id % 100 == 0:  # for every 100 batches
+            error_rate = optimizer.evaluate(model)
+            plot_train_error(event.pass_id, event.batch_id, loss,
+                             error_rate.get_value())
+            # plot embedding.
+            plot(model.get_parameter(name='embedding'),
+                 words=['king', 'queen', 'man', 'woman'], canvas=None)
+    elif isinstance(event, paddle.optimizers.event.CompleteTest):
+        plot_test_error(event.pass_id, loss, optimizer.evaluate(model))
 
 
 def main():
@@ -118,17 +144,9 @@ def main():
     START = 0
     END = 1
     UNK = 2
-    word_dict_size = 1950
-    word_dict = {
-        '<s>': START,
-        '<e>': END
-    }
 
-    # Construct Dictionary.
-    for i, each in dataset.word_count:
-        if i == word_dict_size:
-            break
-        word_dict[each[0]] = i + UNK + 1  # word id start with `UNK+1`, 3.
+    # consturct word dict.
+    word_dict = dataset.get_word_dict(start=START, end=END, unk=UNK, size=1950)
 
     words = [None] * 5  # reserve a list of 5 elements.
 
@@ -173,9 +191,7 @@ def main():
 
     # when training, the following words will be watched, ploted.
     watched_words = ['king', 'queen', 'man', 'woman']
-    plot(params.get_weight(),
-         [(word_dict.get(w, UNK), w) for w in watched_words],
-         canvas=None)
+    plot(params.get_weight(), watched_words, canvas=None)
 
     train_data = dataset.train_data(tokenized=True)
     train_data = prepare_data(dataset=train_data, word_dict=word_dict, unk=UNK)
@@ -187,30 +203,13 @@ def main():
     test_data = InMemDataPool(next_data=test_data, batch_size=256,
                               should_shuffle=False)
 
-    for each_epoch_id in xrange(10):  # train 10 epochs
-        for each_batch_id, data_batch in enumerate(train_data):
-            loss = model.train(data_batch)
-            if each_batch_id % 100 == 0:
-                # get the classification error
-                result = model.evaluate()
-                error_rate = result.get_value()
-                # show train loss & error
-                plot_train_error(each_batch_id, loss, error_rate)
+    opt = paddle.optimizers.Adam(
+        learning_rate=1e-5,
+        batch_size=100,
+    )
 
-                # show watched embeddings value.
-                plot(params.get_weight(),
-                     [(word_dict.get(w, UNK), w) for w in watched_words],
-                     canvas=None)
-
-        avg_loss = 0
-        test_evaluator = model.make_evaluator()
-        for each_batch_id, data_batch in enumerate(test_data):
-            avg_loss += model.test(data_batch)
-            model.evaluate(test_evaluator)
-
-        total_test_error_rate = test_evaluator.get_value()
-        avg_loss /= each_batch_id + 1
-        plot_test_error(each_epoch_id, avg_loss, total_test_error_rate)
+    opt.train(num_epoch=10, train_data=train_data, test_data=test_data,
+              observe_callback=observe)
 
 
 if __name__ == '__main__':
