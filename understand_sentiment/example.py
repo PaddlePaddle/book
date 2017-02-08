@@ -90,7 +90,7 @@ output = stacked_lstm_net(data, class_dim)
 
 if not is_predict:
     # imdb.providers()返回两对data_provider。我想象的data_provider应该是一个接口:
-    # batch(batch_size) # train.fit会一直调用b = provider.batch(batch_size)直到b.size < batch_size，作为一个epoch结束。
+    # batch(batch_size) returns pair (data, end_epoch)
     # 任何一个带有以上接口的object都可以当作data provider。这样用户也很方便写自己的data_provider。
     # 另外提供helper，把list和numpy array包装成data provider：dataprovider.from_list(), dataprovider.from_np_array()
     # 我觉得现有的完形填空式的data_provider不是很必要：
