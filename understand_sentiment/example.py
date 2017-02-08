@@ -1,18 +1,7 @@
-# - 基本没有改变网络的构造方法。
-#   * 改变了多个layer共享parameter的方法。
-#   * 去掉了outputs这个函数。
-# - 取消全局变量settings传参的方式。
-# - 改动了data provider。
-# - 改动了training和prediction的方式。
-
 # 下载以及preprocess数据被封装到imdb这个模块里。不再需要执行两个命令处理数据。
 from paddle.datasets import imdb
-# train有fit和evaluate两个函数
-import paddle.train
 
-from paddle.trainer_config_helpers import *
-
-# stacked_lstm_net函数只负责构造网络结构(不包含data layer以及cost layer)，所以不负责区分是不是predict。
+# stacked_lstm_net函数只负责构造网络结构(不包含data layer)，所以不负责区分是不是predict。
 def stacked_lstm_net(data,
                      class_dim,
                      emb_dim=128,
@@ -34,23 +23,19 @@ def stacked_lstm_net(data,
 
     inputs = [fc1, lstm1]
     for i in range(2, stacked_num + 1):
-        fc_param = fc.param # 对layer引入param这个成员变量代表需要训练的权重。
         fc = fc_layer(
             input=inputs,
             size=hid_dim,
             act=linear,
             param_attr=para_attr,
             bias_attr=bias_attr)
-        fc.param.b = fc_param.b # 所有的fc layer共享bias这个parameter，这个例子用来说明共享parameter的方法。
 
-        lstm_param = lstm.param
         lstm = lstmemory(
             input=fc,
             reverse=(i % 2) == 0,
             act=relu,
             bias_attr=bias_attr,
             layer_attr=layer_attr)
-        lstm.param = lstm_param # 所有的lstm共享所有的参数。
         inputs = [fc, lstm]
     fc_last = pooling_layer(input=inputs[0], pooling_type=MaxPooling())
     lstm_last = pooling_layer(input=inputs[1], pooling_type=MaxPooling())
@@ -107,14 +92,13 @@ if not is_predict:
     (x_train, y_train), (x_test, y_test) = imdb.providers()
 
     lbl = data_layer("label", 2) # 不知道为何现在用的是data_layer("label", 1)，我觉得第二个参数应该是数据维度，所以应该是2。
-    loss = classification_cost(input=output, label=lbl)
 
     # 目前参数是放在一个paddle.trainer_config_helpers.settings这个字典里。用法如下：
     # settings(
     # batch_size=128,
     # learning_rate=2e-3,
     # learning_method=AdamOptimizer(),
-    # regularization=L2Regularization(8e-4),
+    # regularization=L2Regularization(8e-4),`
     # gradient_clipping_threshold=25)
     # 我觉得我们最好不要通过全局变量settings传参，我想到的坏处有这几点
     # - 很难追溯谁使用了这个全局变量，以及这个全局变量是否生效。比如这个[issue](https://github.com/PaddlePaddle/Paddle/issues/1139)
@@ -124,33 +108,23 @@ if not is_predict:
     # 删掉了outputs这个函数，觉得outputs()至少命名有一些奇怪，以前是这样用的：
     # outputs(classification_cost(input=output, label=data_layer('label', 1)))
     # train的时候是去优化cost，似乎output这个词的意思跟优化没有什么关系。
-    # 现在对应的使用方法请见以下代码。
-    
-    # 这里明确地指出了需要优化那一层的输出，用什么方法优化，以及参数。
-    optimizer = AdamOptimizer(
-        output,
-        learning_rate=2e-3,
-        regularization=L2Regularization(8e-4),
-        gradient_clipping_threshold=25,
-    )
 
-    training_provider = {
+    training_providers = {
         "word": X_train,
         "label": Y_train,
     }
 
-    testing_provider = {
+    testing_providers = {
         "word": X_test,
         "label": Y_train,
     }
-    
-    # train是一个模块
-    train.fit(optimizer, training_provider, batch_size=128, nb_epoch=5, validation_data=testing_provider)
-    score = train.evaluate(loss, testing_provider)
-    print("score:", score)
+
+    model = paddle.model.create(output)
+    adam = paddle.optimizer.adam(batch_size=128)
+    adam.train(m2, paddle.cost.cross_entropy(output, label), training_provider)
 else:
     predict_batch = {
         "word": X_test.batch(128),
     }
     # 所有的layer都有eval这个函数，算截止到这个layer的forward。比如画中间结果图的时候就可以用。
-    out = output.eval(predict_batch)
+    out = model.eval(output, predict_batch)
