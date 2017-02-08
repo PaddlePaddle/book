@@ -12,47 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import paddle.trainer_config_helpers as conf_helps
-import paddle.v2.layers as layers
-import paddle
+import paddle.dataset
+import paddle.layer
+import paddle.optimizer
+import paddle.model
+import paddle.cost
+import paddle.regularization
 
 
 def main():
-    # get data_iter
-    train_iter = paddle.dataset.Boston
+    # get data
+    train_data = paddle.dataset.Boston
 
     # network config
-    x = layers.data_layer(name='x', size=13)
-    y = layers.data_layer(name='y', size=1)
-    y_predict = layers.fc_layer(
+    x = paddle.layer.data(name='x', size=13)
+    y = paddle.layer.data(name='y', size=1)
+    y_predict = paddle.layer.fc(
         input=x,
-        param_attr=conf_helps.ParamAttr(name='w'),
+        param_attr=paddle.parameter.Attr(name='w'),
         size=1,
-        act=conf_helps.LinearActivation(),
-        bias_attr=conf_helps.ParamAttr(name='b'))
-    cost = layers.regression_cost(input=y_predict, label=y)
+        act=paddle.activation.Linear(),
+        bias_attr=paddle.parameter.Attr(name='b'))
+
+    # define cost
+    cost = paddle.cost.regression(input=y_predict, label=y)
 
     # create optimizer
-    optimizer = paddle.v2.optimizer.Adam(
+    optimizer = paddle.optimizer.Adam(
         learning_rate=1e-4,
         batch_size=1000,
-        model_average=conf_helps.ModelAverage(average_window=0.5),
-        regularization=conf_helps.L2Regularization(rate=0.5))
+        model_average=paddle.layer.ModelAverage(average_window=0.5),
+        regularization=paddle.regularization.L2(rate=0.5))
 
     # create model
-    model = paddle.model.create(network=cost)
-    model.init_parameter(method="random")
-    model.init_optimizer(optimizer=optimizer)
+    model = paddle.model.create(network=y_predict)
 
-    evaluator = model.create_evaluator(type="acc")
-
-    # train one epoch
-    for batch in train_iter:
-        model.forward(batch, is_predict=False)          # compute predictions
-        model.evaluate(evaluator, batch.label)          # accumulate prediction accuracy
-        evaluator.show_acc()                            # plot some figure about this model
-        model.backward()                                # compute gradients
-        model.update()                                  # update parameters using SGD
+    # train model
+    optimizer.train(model=model, cost=cost, data=train_data)
 
 
 if __name__ == '__main__':
