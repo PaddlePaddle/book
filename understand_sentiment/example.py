@@ -1,7 +1,8 @@
 # - 基本没有改变网络的构造方法。
-#   * 改变了多个layer共享parameter的方法
-#   * 去掉了outputs这个函数
-# - 改动了data provider
+#   * 改变了多个layer共享parameter的方法。
+#   * 去掉了outputs这个函数。
+# - 取消全局变量settings传参的方式。
+# - 改动了data provider。
 # - 改动了training和prediction的方式。
 
 # 下载以及preprocess数据被封装到imdb这个模块里。不再需要执行两个命令处理数据。
@@ -103,9 +104,12 @@ if not is_predict:
     #   # 搭建layers的时候:
     #   data = data_layer("word", 2)
     #   lbl = data_layer("label", 2)
-    
     (x_train, y_train), (x_test, y_test) = imdb.providers()
-    # 现在参数是放在一个paddle.trainer_config_helpers.settings这个字典里。用法如下：
+
+    lbl = data_layer("label", 2) # 不知道为何现在用的是data_layer("label", 1)，我觉得第二个参数应该是数据维度，所以应该是2。
+    loss = classification_cost(input=output, label=lbl)
+
+    # 目前参数是放在一个paddle.trainer_config_helpers.settings这个字典里。用法如下：
     # settings(
     # batch_size=128,
     # learning_rate=2e-3,
@@ -115,8 +119,7 @@ if not is_predict:
     # 我觉得我们最好不要通过全局变量settings传参，我想到的坏处有这几点
     # - 很难追溯谁使用了这个全局变量，以及这个全局变量是否生效。比如这个[issue](https://github.com/PaddlePaddle/Paddle/issues/1139)
     # - settings包含了不同东西的设定混在一起，比如learning_method不是adam的时候，adam_epsilon这个参数没有用。
-    lbl = data_layer("label", 2) # 不知道为何现在用的是data_layer("label", 1)，我觉得第二个参数应该是数据维度，所以应该是2。
-    loss = classification_cost(input=output, label=lbl)
+    # 这里删掉了settings，每个参数在具体使用的时候指出，比如以下AdamOptimizer里面有learning_rate这个原本在settings里指定的参数。
 
     # 这里明确地指出了需要优化那一层的输出，用什么方法优化，以及参数。
     # 删掉了outputs这个函数，觉得outputs()至少命名有一些奇怪，以前是这样用的：
