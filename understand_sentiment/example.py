@@ -1,8 +1,8 @@
-# 基本没有改变网络的构造方法。
-# - 改变了share parameter的方法
-# - 去掉了outputs这个函数
-# 改动了data provider
-# 改动了training和prediction的方式。
+# - 基本没有改变网络的构造方法。
+#   * 改变了多个layer共享parameter的方法
+#   * 去掉了outputs这个函数
+# - 改动了data provider
+# - 改动了training和prediction的方式。
 
 # 下载以及preprocess数据被封装到imdb这个模块里。不再需要执行两个命令处理数据。
 from paddle.datasets import imdb
@@ -76,7 +76,6 @@ def convolution_net(data,
 is_predict = get_config_arg('is_predict', bool, False)
 
 dict_dim = imdb.dict_dim
-
 # 本来class_dim是根据labels.list的行数确定的，这个文件的内容是:
 # neg	0
 # pos	1
@@ -88,21 +87,23 @@ data = data_layer("word", dict_dim)
 # output = convolution_net(data, class_dim)
 output = stacked_lstm_net(data, class_dim)
 
-# TODO: check keras imdb example
-
 if not is_predict:
     # imdb.providers()返回两对data_provider。我想象的data_provider应该是一个接口:
-    # batch(batch_size)
-    # 另外提供helper，把list和numpy array包装成data provider：dataprovider.from_list(), dataprovider.from_np_array()
+    # batch(batch_size) # train.fit会一直调用b = provider.batch(batch_size)直到b.size < batch_size，作为一个epoch结束。
     # 任何一个带有以上接口的object都可以当作data provider。这样用户也很方便写自己的data_provider。
+    # 另外提供helper，把list和numpy array包装成data provider：dataprovider.from_list(), dataprovider.from_np_array()
     # 我觉得现有的完形填空式的data_provider不是很必要：
     # - 不是非常直观，新手不大知道是啥意思。
-    # - datalayer的名字写在了dataprovider里面，我觉得不需要这样的耦合。
+    # - datalayer的名字写在了dataprovider里面，我觉得不需要这样的耦合：
+    #   # 在process函数里:
     #   yield {
     #       'word': word_slot,
     #       'label': label
     #   }
-
+    #   # 搭建layers的时候:
+    #   data = data_layer("word", 2)
+    #   lbl = data_layer("label", 2)
+    
     (x_train, y_train), (x_test, y_test) = imdb.providers()
     # 现在参数是放在一个paddle.trainer_config_helpers.settings这个字典里。用法如下：
     # settings(
