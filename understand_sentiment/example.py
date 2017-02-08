@@ -1,6 +1,7 @@
 # 下载以及preprocess数据被封装到imdb这个模块里。不再需要执行两个命令处理数据。
 from paddle.datasets import imdb
-import paddle.model
+# train有fit和evaluate两个函数
+import paddle.train
 
 from paddle.trainer_config_helpers import *
 
@@ -53,7 +54,19 @@ def stacked_lstm_net(data,
         bias_attr=bias_attr,
         param_attr=para_attr)
     return output
-
+  
+def convolution_net(data,
+                    class_dim,
+                    emb_dim=128,
+                    hid_dim=128,
+                    is_predict=False):
+    emb = embedding_layer(input=data, size=emb_dim)
+    conv_3 = sequence_conv_pool(input=emb, context_len=3, hidden_size=hid_dim)
+    conv_4 = sequence_conv_pool(input=emb, context_len=4, hidden_size=hid_dim)
+    output = fc_layer(
+        input=[conv_3, conv_4], size=class_dim, act=SoftmaxActivation())
+    return output
+  
 is_predict = get_config_arg('is_predict', bool, False)
 
 dict_dim = len(open("dict.txt").readlines())
@@ -66,6 +79,7 @@ dict_dim = len(open("dict.txt").readlines())
 class_dim = 2
 
 data = data_layer("word", dict_dim)
+# output = convolution_net(data, class_dim)
 output = stacked_lstm_net(data, class_dim)
 
 # TODO: check keras imdb example
@@ -114,9 +128,9 @@ if not is_predict:
         "label": Y_train,
     }
     
-    # model是一个模块
-    model.fit(optimizer, training_provider, batch_size=128, nb_epoch=5, validation_data=testing_provider)
-    score = model.evaluate(loss, testing_provider, X_test, Y_test)
+    # train是一个模块
+    train.fit(optimizer, training_provider, batch_size=128, nb_epoch=5, validation_data=testing_provider)
+    score = train.evaluate(loss, testing_provider)
     print("score:", score)
 else:
     predict_batch = {
