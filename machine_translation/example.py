@@ -1,3 +1,6 @@
+import paddle.v2 as paddle
+import IPython.display
+
 _IDX = 2
 START = "<s>"
 END = "<e>"
@@ -69,47 +72,50 @@ DECODER_SIZE = 512  # dimension of hidden unit in GRU Decoder network
 ENCODER_SIZE = 512  # dimension of hidden unit in GRU Encoder network
 
 #### Encoder
-src_word_id = data_layer(name='source_language_word', size=SOURCE_DICT_DIM)
-src_embedding = embedding_layer(
+src_word_id = paddle.layer.data(
+    name='source_language_word', size=SOURCE_DICT_DIM)
+src_embedding = paddle.layer.embedding(
     input=src_word_id,
     size=WORD_VECTOR_DIM,
     param_attr=ParamAttr(name='_source_language_embedding'))
-src_forward = simple_gru(input=src_embedding, size=ENCODER_SIZE)
-src_backward = simple_gru(input=src_embedding, size=ENCODER_SIZE, reverse=True)
-encoded_vector = concat_layer(input=[src_forward, src_backward])
+src_forward = paddle.layer.gru(input=src_embedding, size=ENCODER_SIZE)
+src_backward = paddle.layer.gru(input=src_embedding,
+                                size=ENCODER_SIZE,
+                                reverse=True)
+encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
 
 #### Decoder
-encoded_proj = mixed_layer(
+encoded_proj = paddle.layer.mixed(
     size=DECODER_SIZE, input=full_matrix_projection(input=encoded_vector))
 
-backward_first = first_seq(input=src_backward)
+backward_first = paddle.first_seq(input=src_backward)
 
-decoder_boot = mixed_layer(
+decoder_boot = paddle.layer.mixed(
     size=DECODER_SIZE,
     act=TanhActivation(),
-    input=full_matrix_projection(input=backward_first))
+    input=paddle.layer.full_matrix_projection(input=backward_first))
 
 
 def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
-    decoder_mem = memory(
+    decoder_mem = paddle.layer.memory(
         name='gru_decoder', size=DECODER_SIZE, boot_layer=decoder_boot)
 
-    context = simple_attention(
+    context = paddle.layer.simple_attention(
         encoded_sequence=enc_vec,
         encoded_proj=enc_proj,
         decoder_state=decoder_mem, )
 
-    with mixed_layer(size=DECODER_SIZE * 3) as decoder_inputs:
+    with paddle.layer.mixed(size=DECODER_SIZE * 3) as decoder_inputs:
         decoder_inputs += full_matrix_projection(input=context)
         decoder_inputs += full_matrix_projection(input=current_word)
 
-    gru_step = gru_step_layer(
+    gru_step = paddle.layer.gru_step(
         name='gru_decoder',
         input=decoder_inputs,
         output_mem=decoder_mem,
         size=DECODER_SIZE)
 
-    with mixed_layer(
+    with paddle.layer.mixed(
             size=TARGET_DICT_DIM, bias_attr=True,
             act=SoftmaxActivation()) as out:
         out += full_matrix_projection(input=gru_step)
@@ -117,12 +123,12 @@ def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
 
 
 decoder_group_name = "decoder_group"
-group_input1 = StaticInput(input=encoded_vector, is_seq=True)
-group_input2 = StaticInput(input=encoded_proj, is_seq=True)
+group_input1 = paddle.layer.StaticInput(input=encoded_vector, is_seq=True)
+group_input2 = paddle.layer.StaticInput(input=encoded_proj, is_seq=True)
 group_inputs = [group_input1, group_input2]
 
-trg_embedding = embedding_layer(
-    input=data_layer(
+trg_embedding = paddle.layer.embedding(
+    input=paddle.layer.data(
         name='target_language_word', size=TARGET_DICT_DIM),
     size=WORD_VECTOR_DIM,
     param_attr=ParamAttr(name='_target_language_embedding'))
@@ -133,12 +139,15 @@ group_inputs.append(trg_embedding)
 # while encoded source sequence is accessed to as an unbounded memory.
 # Here, the StaticInput defines a read-only memory
 # for the recurrent_group.
-decoder = recurrent_group(
+decoder = paddle.layer.recurrent_group(
     name=decoder_group_name,
     step=gru_decoder_with_attention,
     input=group_inputs)
 
-lbl = data_layer(name='target_language_next_word', size=TARGET_DICT_DIM)
-cost = classification_cost(input=decoder, label=lbl)
+lbl = paddle.layer.data(name='target_language_next_word', size=TARGET_DICT_DIM)
+cost = paddle.cost.classification(input=decoder, label=lbl)
 
-train(cost, paddle.data.Reader(read, TRAINING_DATA_PATH), ipython_plot_widget)
+### Train the model.
+model = paddle.model.create(lbl)
+paddle.train(model, cost,
+             paddle.data.Reader(read, TRAINING_DATA_PATH), iPython.display)
