@@ -1,3 +1,9 @@
+# 基本没有改变网络的构造方法。
+# - 改变了share parameter的方法
+# - 去掉了outputs这个函数
+# 改动了data provider
+# 改动了training和prediction的方式。
+
 # 下载以及preprocess数据被封装到imdb这个模块里。不再需要执行两个命令处理数据。
 from paddle.datasets import imdb
 # train有fit和evaluate两个函数
@@ -69,14 +75,14 @@ def convolution_net(data,
   
 is_predict = get_config_arg('is_predict', bool, False)
 
-dict_dim = len(open("dict.txt").readlines())
+dict_dim = imdb.dict_dim
 
 # 本来class_dim是根据labels.list的行数确定的，这个文件的内容是:
 # neg	0
 # pos	1
 # 我觉得我们并不需要有labels.list这个文件，所有的label默认都从0开始。class_dim-1结束。
 # 交给用户自己来把neg和pos翻译成0和1。predict出来的0和1也由用户自己翻译回去。
-class_dim = 2
+class_dim = imdb.class_dim
 
 data = data_layer("word", dict_dim)
 # output = convolution_net(data, class_dim)
@@ -111,8 +117,12 @@ if not is_predict:
     lbl = data_layer("label", 2) # 不知道为何现在用的是data_layer("label", 1)，我觉得第二个参数应该是数据维度，所以应该是2。
     loss = classification_cost(input=output, label=lbl)
 
+    # 这里明确地指出了需要优化那一层的输出，用什么方法优化，以及参数。
+    # 删掉了outputs这个函数，觉得outputs()至少命名有一些奇怪，以前是这样用的：
+    # outputs(classification_cost(input=output, label=data_layer('label', 1)))
+    # train的时候是去优化cost，似乎output这个词的意思跟优化没有什么关系。
     optimizer = AdamOptimizer(
-        output
+        output,
         learning_rate=2e-3,
         regularization=L2Regularization(8e-4),
         gradient_clipping_threshold=25,
