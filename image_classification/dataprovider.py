@@ -27,7 +27,7 @@ def initializer(settings, mean_path, is_train, **kwargs):
     }
 
 
-@provider(init_hook=initializer, cache=CacheType.CACHE_PASS_IN_MEM)
+@provider(init_hook=initializer, pool_size=50000)
 def process(settings, file_list):
     with open(file_list, 'r') as fdata:
         for fname in fdata:

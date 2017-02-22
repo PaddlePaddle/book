@@ -21,7 +21,7 @@ log=train.log
 
 paddle train \
     --config=$config \
-    --use_gpu=1 \
+    --use_gpu=true \
     --trainer_count=4 \
     --log_period=100 \
     --num_passes=300 \
