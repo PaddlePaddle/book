@@ -16,14 +16,14 @@ Yann LeCun, one of the founders of Deep Learning, had large contribution on hand
 
 Many algorithms are tested on MNIST. In 1998, LeCun experimented single layer linear classifier, MLP (Multilayer Perceptron) and Multilayer CNN LeNet, which continuously reduced test error from 12% to 0.7% \[[1](#References)\]. Since then, researchers worked on many algorithms such as k-NN (K-Nearest Neighbors) \[[2](#References)\], Support Vector Machine (SVM) \[[3](#References)\], Neural Networks \[[4-7](#References)\] and Boosting \[[8](#References)\], and applied various preprocessing methods, such as distortion removal, noise removal and blurring, to increase recognition accuracy.
 
-In this chapter, we start from simple Softmax regression model, and guide readers to introduction of hand-written character recognition, and gradual improvement of models.
+In this chapter, we start from simple softmax regression model, and guide readers to introduction of hand-written character recognition, and gradual improvement of models.
 
 ## Model Overview
 
 Before introducing the classification algorithms and training procedure, we provide some definitions:
-- $X$ is input：MNIST image is $28\times28$ two dimensional matrix. It is reshaped to $784$ dimensional vector. $X=\left ( x_0, x_1, \dots, x_{783} \right )$.
-- $Y$ is output：Output of classifier is 10 class digits from 0 to 9. $Y=\left ( y_0, y_1, \dots, y_9 \right )$，Each dimension $y_i$ represents a probability that the image belongs to $i$.
-- $L$ is a image's ground truth label：$L=\left ( l_0, l_1, \dots, l_9 \right )$ It is also 10 dimensional, but only one dimension is 1 and others are all 0.
+- $X$ is input: MNIST image is $28\times28$ two dimensional matrix. It is reshaped to $784$ dimensional vector. $X=\left ( x_0, x_1, \dots, x_{783} \right )$.
+- $Y$ is output: Output of classifier is 10 class digits from 0 to 9. $Y=\left ( y_0, y_1, \dots, y_9 \right )$, Each dimension $y_i$ represents a probability that the image belongs to $i$.
+- $L$ is a image's ground truth label: $L=\left ( l_0, l_1, \dots, l_9 \right )$ It is also 10 dimensional, but only one dimension is 1 and others are all 0.
 
 ### Softmax Regression
 
