@@ -15,7 +15,8 @@ When we study programming, the first program is usually printing “Hello World.
 <p align="center">
 <img src="image/mnist_example_image.png" width="400"><br/>
 图1. MNIST图片示例
-Fig 1. MNIST image examples
+
+Fig. 1. MNIST image examples
 </p>
 
 MNIST数据集是从 [NIST](https://www.nist.gov/srd/nist-special-database-19) 的Special Database 3（SD-3）和Special Database 1（SD-1）构建而来。由于SD-3是由美国人口调查局的员工进行标注，SD-1是由美国高中生进行标注，因此SD-3比SD-1更干净也更容易识别。Yann LeCun等人从SD-1和SD-3中各取一半作为MNIST的训练集（60000条数据）和测试集（10000条数据），其中训练集来自250位不同的标注员，此外还保证了训练集和测试集的标注员是不完全相同的。
@@ -40,6 +41,13 @@ In this chapter, we start from simple Softmax regression model, and guide reader
 - $X$是输入：MNIST图片是$28\times28$ 的二维图像，为了进行计算，我们将其转化为$784$维向量，即$X=\left ( x_0, x_1, \dots, x_{783} \right )$。
 - $Y$是输出：分类器的输出是10类数字（0-9），即$Y=\left ( y_0, y_1, \dots, y_9 \right )$，每一维$y_i$代表图片分类为第$i$类数字的概率。
 - $L$是图片的真实标签：$L=\left ( l_0, l_1, \dots, l_9 \right )$也是10维，但只有一维为1，其他都为0。
+
+## Model Overview
+
+Before introducing the classification algorithms and training procedure, we provide some definitions:
+- $X$ is input：MNIST image is $28\times28$ two dimensional matrix. It is reshaped to $784$ dimensional vector. $X=\left ( x_0, x_1, \dots, x_{783} \right )$。
+- $Y$ is output：Output of classifier is 10 class digits from 0 to 9. $Y=\left ( y_0, y_1, \dots, y_9 \right )$，Each dimension $y_i$ represents a probability that the image belongs to $i$.
+- $L$ is a image's ground truth label：$L=\left ( l_0, l_1, \dots, l_9 \right )$ It is also 10 dimensional, but only one dimension is 1 and others are all 0.
 
 ### Softmax回归(Softmax Regression)
 
