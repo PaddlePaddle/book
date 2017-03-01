@@ -211,6 +211,17 @@ For more details of Convolutional Neural Network , please refer to [Stanford ope
 
 更详细的介绍请参考[维基百科激活函数](https://en.wikipedia.org/wiki/Activation_function)。
 
+### List of common activation functions  
+- Sigmoid activation function： $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
+
+- Tanh activation function： $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
+
+  In fact, tang function is just a rescaled version of sigmoid function. It is obtained by magnifying the value of sigmoid function and moving it downwards by 1.
+
+- ReLU activation function： $ f(x) = max(0, x) $
+
+For more information, please refer to [Activation functions in Wikipedia](https://en.wikipedia.org/wiki/Activation_function)。
+
 ## 数据准备
 
 ### 数据介绍与下载
