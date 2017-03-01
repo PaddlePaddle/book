@@ -264,7 +264,7 @@ Execute the following command to download [MNIST](http://yann.lecun.com/exdb/mni
 |train-images-idx3-ubyte|  Training images, 60,000 |
 |train-labels-idx1-ubyte|  Training labels, 60,000 |
 |t10k-images-idx3-ubyte |  Evaluation images, 10,000 |
-|t10k-labels-idx1-ubyte |  Evaluation labels，10,000 |
+|t10k-labels-idx1-ubyte |  Evaluation labels, 10,000 |
 
 Users can randomly generate 10 images with the following script (Refer to Fig. 1.)
 
@@ -299,6 +299,39 @@ def process(settings, filename):  # settings is not used currently.
 		# 读取开头的两个参数
         magic, n = struct.upack(">II", l.read(8))                       
 		# 以无符号字节为单位一个一个的读取数据
+        labels = np.fromfile(l, 'ubyte', count=n).astype("int")         
+
+    for i in xrange(n):
+        yield {"pixel": images[i, :], 'label': labels[i]}
+```
+
+### Provide data for PaddlePaddle
+
+We use python interface to convey data to system. `mnist_provider.py` shows a complete example for MNIST data.
+
+```python
+# Define a py data provider
+@provider(
+    input_types={'pixel': dense_vector(28 * 28),
+                 'label': integer_value(10)})
+def process(settings, filename):  # settings is not used currently.
+		# Open image file
+    with open( filename + "-images-idx3-ubyte", "rb") as f:             
+		# Read first 4 parameters. magic is data format. n is number of data, rows and cols are number of rows and columns, respectively
+        magic, n, rows, cols = struct.upack(">IIII", f.read(16))        
+		# With empty string as a unit, read data one by one
+        images = np.fromfile(                                           
+            f, 'ubyte',
+            count=n * rows * cols).reshape(n, rows, cols).astype('float32')
+		# Normalize data of [0, 255] to [-1,1]
+        images = images / 255.0 * 2.0 - 1.0                             
+
+
+		# Open label file
+    with open( filename + "-labels-idx1-ubyte", "rb") as l:             
+		# Read first two parameters
+        magic, n = struct.upack(">II", l.read(8))                       
+		# With empty string as a unit, read data one by one
         labels = np.fromfile(l, 'ubyte', count=n).astype("int")         
 
     for i in xrange(n):
