@@ -25,7 +25,7 @@ MNIST dataset is made from [NIST](https://www.nist.gov/srd/nist-special-database
 
 Yann LeCun早先在手写字符识别上做了很多研究，并在研究过程中提出了卷积神经网络（Convolutional Neural Network），大幅度地提高了手写字符的识别能力，也因此成为了深度学习领域的奠基人之一。如今的深度学习领域，卷积神经网络占据了至关重要的地位，从最早Yann LeCun提出的简单LeNet，到如今ImageNet大赛上的优胜模型VGGNet、GoogLeNet、ResNet等（请参见[图像分类](https://github.com/PaddlePaddle/book/tree/develop/image_classification) 教程），人们在图像分类领域，利用卷积神经网络得到了一系列惊人的结果。
 
-Yann LeCun, one of the founders of Deep Learning, had large contribution on hand-written character recognition in early dates, and proposed CNN (Convolutional Neural Network), which drastically improved recognition capability for hand-written characters. CNN is now a critical key for Deep Learning. From Yann LeCun’s first proposal of LeNet, to those winning models in ImageNet, such as VGGNet, GoogLeNet, ResNet, etc. (Please refer to [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification) Course) CNN achieved a series of astonishing results in Image Classification.
+Yann LeCun, one of the founders of Deep Learning, had large contribution on hand-written character recognition in early dates, and proposed CNN (Convolutional Neural Network), which drastically improved recognition capability for hand-written characters. CNN is now a critical key for Deep Learning. From Yann LeCun’s first proposal of LeNet, to those winning models in ImageNet, such as VGGNet, GoogLeNet, ResNet, etc. (Please refer to [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification) chapter) CNN achieved a series of astonishing results in Image Classification.
 
 有很多算法在MNIST上进行实验。1998年，LeCun分别用单层线性分类器、多层感知器（Multilayer Perceptron, MLP）和多层卷积神经网络LeNet进行实验，使得测试集上的误差不断下降（从12%下降到0.7%）\[[1](#参考文献)\]。此后，科学家们又基于K近邻（K-Nearest Neighbors）算法\[[2](#参考文献)\]、支持向量机（SVM）\[[3](#参考文献)\]、神经网络\[[4-7](#参考文献)\]和Boosting方法\[[8](#参考文献)\]等做了大量实验，并采用多种预处理方法（如去除歪曲、去噪、模糊等）来提高识别的准确率。
 
@@ -184,6 +184,21 @@ Pooling layer is a sampling method. The main functionality is to reduce computat
 - 共享权重：在CNN中，每个滤波器在整个视野中重复扫描。 这些复制单元共享相同的参数化（权重向量和偏差）并形成特征图。 这意味着给定卷积层中的所有神经元检测完全相同的特征。 以这种方式的复制单元允许不管它们在视野中的位置都能检测到特征，从而构成平移不变性的性质。
 
 更详细的关于卷积神经网络的具体知识可以参考[斯坦福大学公开课]( http://cs231n.github.io/convolutional-networks/ )和[图像分类](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md)教程。
+
+#### LeNet-5 Network 
+
+<p align="center">
+<img src="image/cnn.png"><br/>
+Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
+</p>
+
+[LeNet-5](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Networks. Fig. 6. shows its architecture: 2 dimensional image input is fed into two sets of convolutional layer and pooling layer, then it is fed into fully connected layer and softmax classifier. The following three properties of convolution enable LeNet-5 to better recognize images than Multilayer fully-connected perceptrons:
+
+- 3D properties of neurons: a convolutional layer is organized by width, height and depth. Neurons in each layer are connected to only a small region in previous layer. This region is called receptive field.
+- Local connection: CNN utilizes local space correlation by connecting local neurons. This design guarantees learned filter has strong response to local input features. Stacking many such layers leads non-linear filter becomes more and more global. This allows the network to first obtain good representation for a small parts of input, then combine them to represent larger region.
+- Sharing weights: In CNN, computation is iterated with shared parameters (weights and bias) to form afeature map. This means all neurons in the same depth of output respond to the same feature. This allows detecting a feature regardless of its position in the input, and enables a property of translation equivariance.
+
+For more details of Convolutional Neural Network , please refer to [Stanford open course]( http://cs231n.github.io/convolutional-networks/ ) and [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) chapter。
 
 ### 常见激活函数介绍  
 - sigmoid激活函数： $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
