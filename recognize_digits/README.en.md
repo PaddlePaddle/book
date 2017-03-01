@@ -821,6 +821,9 @@ From the result, this classifier recognizes the digit on the third image as digi
 
 本教程的softmax回归、多层感知器和卷积神经网络是最基础的深度学习模型，后续章节中复杂的神经网络都是从它们衍生出来的，因此这几个模型对之后的学习大有裨益。同时，我们也观察到从最简单的softmax回归变换到稍复杂的卷积神经网络的时候，MNIST数据集上的识别准确率有了大幅度的提升，原因是卷积层具有局部连接和共享权重的特性。在之后学习新模型的时候，希望大家也要深入到新模型相比原模型带来效果提升的关键之处。此外，本教程还介绍了PaddlePaddle模型搭建的基本流程，从dataprovider的编写、网络层的构建，到最后的训练和预测。对这个流程熟悉以后，大家就可以用自己的数据，定义自己的网络模型，并完成自己的训练和预测任务了。
 
+## Conclusion
+Softmax regression, Multi-layer perceptron and Convolutional Neural Network in this chapter are the most basic Deep Learning models. More sophisticated models in the following chapters are derived from them. Therefore, these models are very helpful for the future learning. At the same time, we observed that when evolving from the simplest softmax regression to slightly complex Convolutional Neural Network, recognition accuracy on MNIST data set has large improvement, due to Convolutional layers' local connections and parameter sharing. When learning new models in the future, we hope readers to understand the key ideas for a new model to improve over an old one. Moreover, this chapter introduced basic flow of PaddlePaddle model design, starting from dataprovider, model layer construction, to final training and prediction. By becoming familiar with this flow, readers can use specific data and define specific network models, and complete training and prediction for their tasks.
+
 ## References
 
 1. LeCun, Yann, Léon Bottou, Yoshua Bengio, and Patrick Haffner. ["Gradient-based learning applied to document recognition."](http://ieeexplore.ieee.org/abstract/document/726791/) Proceedings of the IEEE 86, no. 11 (1998): 2278-2324.
@@ -836,3 +839,6 @@ From the result, this classifier recognizes the digit on the third image as digi
 
 <br/>
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
+
+<br/>
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This book</span> is created by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and uses <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Shared knowledge signature - non commercial use-Sharing 4.0 International Licensing Protocal</a>.
