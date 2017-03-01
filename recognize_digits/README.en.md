@@ -111,6 +111,21 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 图3. 多层感知器网络结构图<br/>
 </p>
 
+### Multilayer Perceptron, MLP
+
+Softmax regression model uses the simplest two layer neural network, i.e. it only contains input layer and output layer, so that it's regression ability is limited. To achieve better recognition effect, we consider adding several hidden layers \[[10](#References)\] between the input layer and the output layer.
+
+1.  After the first hidden layer, we get $ H_1 = \phi(W_1X + b_1) $, where $\phi$ represents activation function. Some common ones are sigmoid, tanh and ReLU.
+2.  After the second hidden layer, we get $ H_2 = \phi(W_2H_1 + b_2) $.
+3.  Finally, after output layer, we get $Y=softmax(W_3H_2 + b_3)$, the last classification result vector.
+
+Fig. 3. is multi-layer perceptron network, with weights in black, and bias in red. +1 indicates bias is 1.
+
+<p align="center">
+<img src="image/mlp.png" width=500><br/>
+Fig. 3. Multi-layer perceptron network architecture<br/>
+</p>
+
 ### 卷积神经网络(Convolutional Neural Network, CNN)
 
 #### 卷积层
