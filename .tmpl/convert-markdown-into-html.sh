@@ -1,6 +1,8 @@
 markdown_file=$1
 
-cat <<EOF
+# Notice: the single-quotes around EOF below make outputs
+# verbatium. c.f. http://stackoverflow.com/a/9870274/724872
+cat <<'EOF'
 <html>
 <head>
   <script type="text/x-mathjax-config">
@@ -46,7 +48,7 @@ EOF
 
 cat $markdown_file
 
-cat <<EOF
+cat <<'EOF'
 </div>
 <!-- You can change the lines below now. -->
 
