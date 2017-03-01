@@ -83,6 +83,12 @@ Fig. 2 is softmax regression network, with weights in black, and bias in red. +1
 <p align="center">
 <img src="image/softmax_regression.png" width=400><br/>
 Fig. 2. Softmax regression network architecture<br/>
+输入层 -> input layer<br/>
+权重W -> weights W<br/>
+激活前 -> before activation<br/>
+激活函数 -> activation function<br/>
+输出层 -> output layer<br/>
+偏置b -> bias b<br/>
 </p>
 
 ### Multilayer Perceptron
@@ -98,6 +104,10 @@ Fig. 3. is Multilayer Perceptron network, with weights in black, and bias in red
 <p align="center">
 <img src="image/mlp.png" width=500><br/>
 Fig. 3. Multilayer Perceptron network architecture<br/>
+输入层X -> input layer X<br/>
+隐藏层$H_1$(含激活函数) -> hidden layer $H_1$ (including activation function)<br/>
+隐藏层$H_2$(含激活函数) -> hidden layer $H_2$ (including activation function)<br/>
+输出层Y -> output layer Y<br/>
 </p>
 
 ### Convolutional Neural Network
@@ -107,6 +117,8 @@ Fig. 3. Multilayer Perceptron network architecture<br/>
 <p align="center">
 <img src="image/conv_layer.png" width=500><br/>
 Fig. 4. Convolutional layer<br/>
+输入数据 -> input data<br/>
+卷积输出 -> convolution output<br/>
 </p>
 
 Convolutional layer is the core of Convolutional Neural Network. The parameters in this layer are composed of a set of filters, or kernels. In forward step, each kernel moves horizontally and vertically, and compute dot product of the kernel and the input on corresponding positions, then add bias and apply activation function. The result is two dimensional activation map. For example, some kernel may recognize corners, and some may recognize circles. These convolution kernels may respond strongly to the corresponding features.
@@ -118,6 +130,7 @@ Fig. 4 is a dynamic graph of convolutional layer, where depths are not shown for
 <p align="center">
 <img src="image/max_pooling.png" width="400px"><br/>
 Fig. 5 Pooling layer<br/>
+输入数据 -> input data<br/>
 </p>
 
 Pooling layer performs downsampling. The main functionality is to reduce computation by reducing network parameters. It also prevents overfitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer includes max pooling, average pooling, etc. Max pooling uses rectangles to segment input layer into several parts, and compute maximum value in each part as output (Fig. 5.)
@@ -127,6 +140,11 @@ Pooling layer performs downsampling. The main functionality is to reduce computa
 <p align="center">
 <img src="image/cnn.png"><br/>
 Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
+特征图 -> feature map<br/>
+卷积层 -> convolutional layer<br/>
+降采样层 -> downsampling layer<br/>
+全连接层 -> fully connected layer<br/>
+输出层(全连接+Softmax激活) -> output layer (fully connected + softmax activation)<br/>
 </p>
 
 [LeNet-5](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Networks. Fig. 6. shows its architecture: 2 dimensional image input is fed into two sets of convolutional layer and pooling layer, then it is fed into fully connected layer and softmax classifier. The following three properties of convolution enable LeNet-5 to better recognize images than Multilayer fully-connected perceptrons:
@@ -375,6 +393,10 @@ python evaluate.py softmax_train.log
 <p align="center">
 <img src="image/softmax_train_log.png" width="400px"><br/>
 Fig. 7 Softmax regression error curve<br/>
+训练集 -> training set<br/>
+测试集 -> test set<br/>
+平均代价 -> average cost<br/>
+训练轮数 -> epoch<br/>
 </p>
 
 Evaluation results of the models:
@@ -390,7 +412,11 @@ From the evaluation results, the best pass for softmax regression model is pass-
 
 <p align="center">
 <img src="image/mlp_train_log.png" width="400px"><br/>
-Fig. 8. Multilayer Perceptron error curve
+Fig. 8. Multilayer Perceptron error curve<br/>
+训练集 -> training set<br/>
+测试集 -> test set<br/>
+平均代价 -> average cost<br/>
+训练轮数 -> epoch<br/>
 </p>
 
 Evaluation results of the models：
@@ -406,7 +432,11 @@ From the evaluation results, the final training accuracy is 94.95%. It has signi
 
 <p align="center">
 <img src="image/cnn_train_log.png" width="400px"><br/>
-图9. Convolutional Neural Network error curve
+Fig. 9. Convolutional Neural Network error curve<br/>
+训练集 -> training set<br/>
+测试集 -> test set<br/>
+平均代价 -> average cost<br/>
+训练轮数 -> epoch<br/>
 </p>
 
 Results of model evaluation：
