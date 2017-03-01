@@ -111,7 +111,7 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 图3. 多层感知器网络结构图<br/>
 </p>
 
-### Multilayer Perceptron, MLP
+### Multilayer Perceptron
 
 Softmax regression model uses the simplest two layer neural network, i.e. it only contains input layer and output layer, so that it's regression ability is limited. To achieve better recognition effect, we consider adding several hidden layers \[[10](#References)\] between the input layer and the output layer.
 
@@ -128,6 +128,8 @@ Fig. 3. Multi-layer perceptron network architecture<br/>
 
 ### 卷积神经网络(Convolutional Neural Network, CNN)
 
+### Convolutional Neural Network
+
 #### 卷积层
 
 <p align="center">
@@ -139,6 +141,17 @@ Fig. 3. Multi-layer perceptron network architecture<br/>
 
 图4是卷积层的一个动态图。由于3D量难以表示，所有的3D量（输入的3D量（蓝色），权重3D量（红色），输出3D量（绿色））通过将深度在行上堆叠来表示。如图4，输入层是$W_1=5,H_1=5,D_1=3$，我们常见的彩色图片其实就是类似这样的输入层，彩色图片的宽和高对应这里的$W_1$和$H_1$，而彩色图片有RGB三个颜色通道，对应这里的$D_1$；卷积层的参数为$K=2,F=3,S=2,P=1$，这里的$K$是卷积核的数量，如图4中有$Filter W_0$和$Filter   W_1$两个卷积核，$F$对应卷积核的大小，图中$W0$和$W1$在每一层深度上都是$3\times3$的矩阵，$S$对应卷积核扫描的步长，从动态图中可以看到，方框每次左移或下移2个单位，$P$对应Padding扩展，是对输入层的扩展，图中输入层，原始数据为蓝色部分，可以看到灰色部分是进行了大小为1的扩展，用0来进行扩展；图4的动态可视化对输出层结果（绿色）进行迭代，显示每个输出元素是通过将突出显示的输入（蓝色）与滤波器（红色）进行元素相乘，将其相加，然后通过偏置抵消结果来计算的。
 
+#### Convolutional layer
+
+<p align="center">
+<img src="image/conv_layer.png" width=500><br/>
+Fig. 4. Convolutional layer<br/>
+</p>
+
+Convolutional layer is the core of Convolutional Neural Networks. The parameters in this layer are composed of a set of filters, or kernels. In forward step, each kernel moves horizontally and vertically, and compute dot product of the kernel and input on corresponding positions, then add bias and apply activation function. The result is two dimensional activation map. For example, some kernel may recognize corners, and some may recognize circles. These convolution kernels may respond strongly to the corresponding features.
+
+Fig. 4 is a dynamic graph for a convolutional layer, where depths are not shown for simplicity. Input is $W_1=5,H_1=5,D_1=3$. In fact, this is a common representation for colored images. The width and height of a colored image corresponds to $W_1$ and $H_1$, and the 3 color channels for RGB corresponds to $D_1$. The parameters of convolutional layers are $K=2,F=3,S=2,P=1$. $K$ is the number of kernels. Here, $Filter W_0$ and $Filter   W_1$ are two convolution kernels. $F$ is kernel size. $W0$ and $W1$ are both $3\times3$ matrix in all depths. $S$ is stride. Kernels moves leftwards or downwards by 2 units each time. $P$ is padding, which is the extension for the input.
+
 #### 池化层
 
 <p align="center">
@@ -147,6 +160,15 @@ Fig. 3. Multi-layer perceptron network architecture<br/>
 </p>
 
 池化是非线性下采样的一种形式，主要作用是通过减少网络的参数来减小计算量，并且能够在一定程度上控制过拟合。通常在卷积层的后面会加上一个池化层。池化包括最大池化、平均池化等。其中最大池化是用不重叠的矩形框将输入层分成不同的区域，对于每个矩形框的数取最大值作为输出层，如图5所示。
+
+#### Pooling layer
+
+<p align="center">
+<img src="image/max_pooling.png" width="400px"><br/>
+Fig. 5 Pooling layer<br/>
+</p>
+
+Pooling layer is a sampling method. The main functionality is to reduce computation by reducing network parameters. It also prevents over-fitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer includes max pooling, average pooling, etc. Max pooling uses rectangles to divide input layer into several parts, and compute maximum value in each part as output (Fig. 5.)
 
 #### LeNet-5网络 
 
