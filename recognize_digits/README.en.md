@@ -463,6 +463,15 @@ def softmax_regression(img):
     return predict
 ```
 
+#### Softmax Regression
+
+One simple fully connected layer with softmax activation function outputs classification result.
+
+```python
+def softmax_regression(img):
+    predict = fc_layer(input=img, size=10, act=SoftmaxActivation())
+    return predict
+```
 #### 多层感知器
 
 下面代码实现了一个含有两个隐藏层（即全连接层）的多层感知器。其中两个隐藏层的激活函数均采用ReLU，输出层的激活函数用Softmax。
@@ -474,6 +483,21 @@ def multilayer_perceptron(img):
     # 第二个全连接层，激活函数为ReLU
     hidden2 = fc_layer(input=hidden1, size=64, act=ReluActivation())
     # 以softmax为激活函数的全连接输出层，输出层的大小必须为数字的个数10
+    predict = fc_layer(input=hidden2, size=10, act=SoftmaxActivation())
+    return predict
+```
+
+#### MultiLayer Perceptron
+
+One simple fully connected layer with softmax activation function outputs classification result.
+
+```python
+def multilayer_perceptron(img):
+    # First fully connected layer with ReLU
+    hidden1 = fc_layer(input=img, size=128, act=ReluActivation())
+    # Second fully connected layer with ReLU
+    hidden2 = fc_layer(input=hidden1, size=64, act=ReluActivation())
+    # Output layer as fully connected layer and softmax activation. The size must be 10.
     predict = fc_layer(input=hidden2, size=10, act=SoftmaxActivation())
     return predict
 ```
@@ -505,6 +529,37 @@ def convolutional_neural_network(img):
     # 全连接层
     fc1 = fc_layer(input=conv_pool_2, size=128, act=TanhActivation())
     # 以softmax为激活函数的全连接输出层，输出层的大小必须为数字的个数10
+    predict = fc_layer(input=fc1, size=10, act=SoftmaxActivation())
+    return predict
+```
+
+#### Convolutional Neural Network LeNet-5
+
+The following is the LeNet-5 network architecture. 2D input image is first fed into two sets of convolutional layer and pooling layer, and it is fed to fully connected layer, and another fully connected layer with softmax activation.
+
+```python
+def convolutional_neural_network(img):
+    # First convolutional layer - pooling layer
+    conv_pool_1 = simple_img_conv_pool(
+        input=img,
+        filter_size=5,
+        num_filters=20,
+        num_channel=1,
+        pool_size=2,
+        pool_stride=2,
+        act=TanhActivation())
+    # Second convolutional layer - pooling layer
+    conv_pool_2 = simple_img_conv_pool(
+        input=conv_pool_1,
+        filter_size=5,
+        num_filters=50,
+        num_channel=20,
+        pool_size=2,
+        pool_stride=2,
+        act=TanhActivation())
+    # Fully connected layer
+    fc1 = fc_layer(input=conv_pool_2, size=128, act=TanhActivation())
+    # Output layer as fully connected layer and softmax activation. The size must be 10.
     predict = fc_layer(input=fc1, size=10, act=SoftmaxActivation())
     return predict
 ```
