@@ -15,16 +15,24 @@ When we study programming, the first program is usually printing “Hello World.
 <p align="center">
 <img src="image/mnist_example_image.png" width="400"><br/>
 图1. MNIST图片示例
+Fig 1. MNIST image examples
 </p>
 
 MNIST数据集是从 [NIST](https://www.nist.gov/srd/nist-special-database-19) 的Special Database 3（SD-3）和Special Database 1（SD-1）构建而来。由于SD-3是由美国人口调查局的员工进行标注，SD-1是由美国高中生进行标注，因此SD-3比SD-1更干净也更容易识别。Yann LeCun等人从SD-1和SD-3中各取一半作为MNIST的训练集（60000条数据）和测试集（10000条数据），其中训练集来自250位不同的标注员，此外还保证了训练集和测试集的标注员是不完全相同的。
 
+MNIST dataset is made from [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3 (SD-3) and Special Database 1 (SD-1). Since SD-3 is labeled by staffs in U.S. Census Bureau, while SD-1 is labeled by high school students in U.S., SD-3 is cleaner and easier to recognize than SD-1 is. Yann LeCun et al. extracted half of samples from each of SD-1 and SD-3 for MNIST training set (60,000 samples) and test set (10,000 samples), where training set was labeled by 250 different annotators, and it was guaranteed that annotators of training set and test set are not completely overlapped.
+
 Yann LeCun早先在手写字符识别上做了很多研究，并在研究过程中提出了卷积神经网络（Convolutional Neural Network），大幅度地提高了手写字符的识别能力，也因此成为了深度学习领域的奠基人之一。如今的深度学习领域，卷积神经网络占据了至关重要的地位，从最早Yann LeCun提出的简单LeNet，到如今ImageNet大赛上的优胜模型VGGNet、GoogLeNet、ResNet等（请参见[图像分类](https://github.com/PaddlePaddle/book/tree/develop/image_classification) 教程），人们在图像分类领域，利用卷积神经网络得到了一系列惊人的结果。
+
+Yann LeCun, one of the founders of Deep Learning, had large contribution on hand-written character recognition in early dates, and proposed CNN (Convolutional Neural Network), which drastically improved recognition capability for hand-written characters. CNN is now a critical key for Deep Learning. From Yann LeCun’s first proposal of LeNet, to those winning models in ImageNet, such as VGGNet, GoogLeNet, ResNet, etc. (Please refer to [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification) Course) CNN achieved a series of astonishing results in Image Classification.
 
 有很多算法在MNIST上进行实验。1998年，LeCun分别用单层线性分类器、多层感知器（Multilayer Perceptron, MLP）和多层卷积神经网络LeNet进行实验，使得测试集上的误差不断下降（从12%下降到0.7%）\[[1](#参考文献)\]。此后，科学家们又基于K近邻（K-Nearest Neighbors）算法\[[2](#参考文献)\]、支持向量机（SVM）\[[3](#参考文献)\]、神经网络\[[4-7](#参考文献)\]和Boosting方法\[[8](#参考文献)\]等做了大量实验，并采用多种预处理方法（如去除歪曲、去噪、模糊等）来提高识别的准确率。
 
+Many algorithms are tested on MNIST. In 1998, LeCun experimented single layer linear classifier, MLP (Multilayer Perceptron) and Multilayer CNN LeNet, which continuously reduced test error from 12% to 0.7% \[[1](#References)\]. Since then, researchers worked on many algorithms such as k-NN (K-Nearest Neighbors) \[[2](#References)\], Support Vector Machine (SVM) \[[3](#References)\], Neural Networks \[[4-7](#References)\] and Boosting \[[8](#References)\], and applied various preprocessing methods, such as distortion removal, noise removal and blurring, to increase recognition accuracy.
+
 本教程中，我们从简单的模型Softmax回归开始，带大家入门手写字符识别，并逐步进行模型优化。
 
+In this chapter, we start from simple Softmax regression model, and guide readers to introduction of hand-written character recognition, and gradual improvement of models.
 
 ## 模型概览
 
@@ -422,7 +430,7 @@ Actual Number: 0
 
 本教程的softmax回归、多层感知器和卷积神经网络是最基础的深度学习模型，后续章节中复杂的神经网络都是从它们衍生出来的，因此这几个模型对之后的学习大有裨益。同时，我们也观察到从最简单的softmax回归变换到稍复杂的卷积神经网络的时候，MNIST数据集上的识别准确率有了大幅度的提升，原因是卷积层具有局部连接和共享权重的特性。在之后学习新模型的时候，希望大家也要深入到新模型相比原模型带来效果提升的关键之处。此外，本教程还介绍了PaddlePaddle模型搭建的基本流程，从dataprovider的编写、网络层的构建，到最后的训练和预测。对这个流程熟悉以后，大家就可以用自己的数据，定义自己的网络模型，并完成自己的训练和预测任务了。
 
-## 参考文献
+## References
 
 1. LeCun, Yann, Léon Bottou, Yoshua Bengio, and Patrick Haffner. ["Gradient-based learning applied to document recognition."](http://ieeexplore.ieee.org/abstract/document/726791/) Proceedings of the IEEE 86, no. 11 (1998): 2278-2324.
 2. Wejéus, Samuel. ["A Neural Network Approach to Arbitrary SymbolRecognition on Modern Smartphones."](http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A753279&dswid=-434) (2014).
