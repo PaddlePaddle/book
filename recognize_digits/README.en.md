@@ -72,6 +72,29 @@ $$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
 图2. softmax回归网络结构图<br/>
 </p>
 
+### Softmax Regression
+
+The simplest softmax regression model is to feed input to fully connected layers, and directly use softmax for multi-class classification \[[9](#References)\].
+
+Input $X$ is multiplied with weights $W$, added by bias $b$, and activated.
+
+$$ y_i = softmax(\sum_j W_{i,j}x_j + b_i) $$
+
+where $ softmax(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
+
+For a $N$ class classification problem with $N$ output nodes, a $N$ dimensional input features is normalized to $N$ real values in [0, 1], each representing the probability of the sample to belong to the class. Here $y_i$ is the prediction probability that an image is digit $i$.
+
+In classification problem, we usually use cross entropy loss function:
+
+$$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
+
+Fig. 2 is softmax regression network, with weights in black, and bias in red. +1 indicates bias is 1.
+
+<p align="center">
+<img src="image/softmax_regression.png" width=400><br/>
+Fig. 2. Softmax regression network architecture<br/>
+</p>
+
 ### 多层感知器(Multilayer Perceptron, MLP)
 
 Softmax回归模型采用了最简单的两层神经网络，即只有输入层和输出层，因此其拟合能力有限。为了达到更好的识别效果，我们考虑在输入层和输出层中间加上若干个隐藏层\[[10](#参考文献)\]。
