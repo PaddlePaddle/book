@@ -1,6 +1,6 @@
 # Recognize Digits
 
-Source code of this chapter is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits)， For the first-time use, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+Source code of this chapter is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits)， For the first-time use, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
 
 ## Background
 When we study programming, the first program is usually printing “Hello World.” In Machine Learning, or Deep Learning, this is hand-written digit recognition with [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a typical image classification problem. The problem is relatively easy, and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains hand-written digits and corresponding labels (Fig. 1). An image is a 28x28 matrix, and a label corresponds to one of the 10 digits from 0 to 9. Each image is normalized in size and centered.
@@ -21,7 +21,7 @@ In this chapter, we start from simple Softmax regression model, and guide reader
 ## Model Overview
 
 Before introducing the classification algorithms and training procedure, we provide some definitions:
-- $X$ is input：MNIST image is $28\times28$ two dimensional matrix. It is reshaped to $784$ dimensional vector. $X=\left ( x_0, x_1, \dots, x_{783} \right )$。
+- $X$ is input：MNIST image is $28\times28$ two dimensional matrix. It is reshaped to $784$ dimensional vector. $X=\left ( x_0, x_1, \dots, x_{783} \right )$.
 - $Y$ is output：Output of classifier is 10 class digits from 0 to 9. $Y=\left ( y_0, y_1, \dots, y_9 \right )$，Each dimension $y_i$ represents a probability that the image belongs to $i$.
 - $L$ is a image's ground truth label：$L=\left ( l_0, l_1, \dots, l_9 \right )$ It is also 10 dimensional, but only one dimension is 1 and others are all 0.
 
@@ -56,16 +56,16 @@ Softmax regression model uses the simplest two layer neural network, i.e. it onl
 2.  After the second hidden layer, we get $ H_2 = \phi(W_2H_1 + b_2) $.
 3.  Finally, after output layer, we get $Y=softmax(W_3H_2 + b_3)$, the last classification result vector.
 
-Fig. 3. is multi-layer perceptron network, with weights in black, and bias in red. +1 indicates bias is 1.
+Fig. 3. is Multilayer perceptron network, with weights in black, and bias in red. +1 indicates bias is 1.
 
 <p align="center">
 <img src="image/mlp.png" width=500><br/>
-Fig. 3. Multi-layer perceptron network architecture<br/>
+Fig. 3. Multilayer perceptron network architecture<br/>
 </p>
 
 ### Convolutional Neural Network
 
-#### Convolutional layer
+#### Convolutional Layer
 
 <p align="center">
 <img src="image/conv_layer.png" width=500><br/>
@@ -76,7 +76,7 @@ Convolutional layer is the core of Convolutional Neural Networks. The parameters
 
 Fig. 4 is a dynamic graph for a convolutional layer, where depths are not shown for simplicity. Input is $W_1=5,H_1=5,D_1=3$. In fact, this is a common representation for colored images. The width and height of a colored image corresponds to $W_1$ and $H_1$, and the 3 color channels for RGB corresponds to $D_1$. The parameters of convolutional layers are $K=2,F=3,S=2,P=1$. $K$ is the number of kernels. Here, $Filter W_0$ and $Filter   W_1$ are two convolution kernels. $F$ is kernel size. $W0$ and $W1$ are both $3\times3$ matrix in all depths. $S$ is stride. Kernels moves leftwards or downwards by 2 units each time. $P$ is padding, which is the extension for the input.
 
-#### Pooling layer
+#### Pooling Layer
 
 <p align="center">
 <img src="image/max_pooling.png" width="400px"><br/>
@@ -98,9 +98,9 @@ Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
 - Local connection: CNN utilizes local space correlation by connecting local neurons. This design guarantees learned filter has strong response to local input features. Stacking many such layers leads non-linear filter becomes more and more global. This allows the network to first obtain good representation for a small parts of input, then combine them to represent larger region.
 - Sharing weights: In CNN, computation is iterated with shared parameters (weights and bias) to form afeature map. This means all neurons in the same depth of output respond to the same feature. This allows detecting a feature regardless of its position in the input, and enables a property of translation equivariance.
 
-For more details of Convolutional Neural Network , please refer to [Stanford open course]( http://cs231n.github.io/convolutional-networks/ ) and [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) chapter。
+For more details of Convolutional Neural Network , please refer to [Stanford open course]( http://cs231n.github.io/convolutional-networks/ ) and [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) chapter.
 
-### List of common activation functions  
+### List of Common Activation Functions  
 - Sigmoid activation function： $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
 
 - Tanh activation function： $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
@@ -109,7 +109,7 @@ For more details of Convolutional Neural Network , please refer to [Stanford ope
 
 - ReLU activation function： $ f(x) = max(0, x) $
 
-For more information, please refer to [Activation functions in Wikipedia](https://en.wikipedia.org/wiki/Activation_function)。
+For more information, please refer to [Activation functions in Wikipedia](https://en.wikipedia.org/wiki/Activation_function).
 
 ## Data Preparation
 
@@ -136,7 +136,7 @@ Users can randomly generate 10 images with the following script (Refer to Fig. 1
 ./load_data.py
 ```
 
-### Provide data for PaddlePaddle
+### Provide Data for PaddlePaddle
 
 We use python interface to convey data to system. `mnist_provider.py` shows a complete example for MNIST data.
 
@@ -173,8 +173,6 @@ def process(settings, filename):  # settings is not used currently.
 ## Model Configurations
 
 ### Data Definition
-
-在模型配置中，定义通过 `define_py_data_sources2` 函数从 `dataprovider` 中读入数据。如果该配置用于预测，则不需要数据定义部分。
 
 In model configuration, define data reading from `dataprovider` by `define_py_data_sources2`. If this configuration is used for prediction, data definition is not necessary.
 
@@ -365,7 +363,7 @@ Best pass is 00085, testing Avgcost is 0.164746
 The classification accuracy is 94.95%
 ```
 
-From the evaluation results, the final training accuracy is 94.95%. It has significant improvement comparing with softmax regression model. The reason is that softmax regression is simple, and it cannot fit complex data, but Multi-layer perceptron with hidden layers has stronger fitting capacity.
+From the evaluation results, the final training accuracy is 94.95%. It has significant improvement comparing with softmax regression model. The reason is that softmax regression is simple, and it cannot fit complex data, but Multilayer perceptron with hidden layers has stronger fitting capacity.
 
 ### Training results for Convolutional Neural Network
 
@@ -411,7 +409,7 @@ Actual Number: 0
 From the result, this classifier recognizes the digit on the third image as digit 0 with near to 100% probability, and the ground truth is actually consistent.
 
 ## Conclusion
-Softmax regression, Multi-layer perceptron and Convolutional Neural Network in this chapter are the most basic Deep Learning models. More sophisticated models in the following chapters are derived from them. Therefore, these models are very helpful for the future learning. At the same time, we observed that when evolving from the simplest softmax regression to slightly complex Convolutional Neural Network, recognition accuracy on MNIST data set has large improvement, due to Convolutional layers' local connections and parameter sharing. When learning new models in the future, we hope readers to understand the key ideas for a new model to improve over an old one. Moreover, this chapter introduced basic flow of PaddlePaddle model design, starting from dataprovider, model layer construction, to final training and prediction. By becoming familiar with this flow, readers can use specific data and define specific network models, and complete training and prediction for their tasks.
+Softmax regression, Multilayer perceptron and Convolutional Neural Network in this chapter are the most basic Deep Learning models. More sophisticated models in the following chapters are derived from them. Therefore, these models are very helpful for the future learning. At the same time, we observed that when evolving from the simplest softmax regression to slightly complex Convolutional Neural Network, recognition accuracy on MNIST data set has large improvement, due to Convolutional layers' local connections and parameter sharing. When learning new models in the future, we hope readers to understand the key ideas for a new model to improve over an old one. Moreover, this chapter introduced basic flow of PaddlePaddle model design, starting from dataprovider, model layer construction, to final training and prediction. By becoming familiar with this flow, readers can use specific data and define specific network models, and complete training and prediction for their tasks.
 
 ## References
 
