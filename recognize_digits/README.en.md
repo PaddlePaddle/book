@@ -566,6 +566,8 @@ def convolutional_neural_network(img):
 
 ## 训练模型
 
+## Training Model
+
 ### 训练命令及日志
 
 1.通过配置训练脚本 `train.sh` 来执行训练过程：
@@ -610,6 +612,55 @@ python plot_cost.py softmax_train.log
 ```
 
 3.用脚本 `evaluate.py ` 可以选出最佳训练的模型：
+
+```bash
+python evaluate.py softmax_train.log
+```
+
+### Training Commands and Logs
+
+1.By configuring `train.sh` to execute training:
+
+```bash
+config=mnist_model.py                   # Select network in mnist_model.py
+output=./softmax_mnist_model            
+log=softmax_train.log                   
+
+paddle train \
+--config=$config \                      # Scripts for network configuration.
+--dot_period=10 \                       # After `dot_period` steps, print one `.`
+--log_period=100 \						# Print a log every batchs
+--test_all_data_in_one_period=1 \		# Whether to use all data in every test
+--use_gpu=0 \							# Whether to use GPU
+--trainer_count=1 \						# Number of CPU or GPU
+--num_passes=100 \						# Passes for training (One pass uses all data.)
+--save_dir=$output \					# Path to saved model
+2>&1 | tee $log
+
+python -m paddle.utils.plotcurve -i $log > plot.png
+```
+
+After configuring parameters, execute `./train.sh`. Training log is as follows.
+
+```
+I0117 12:52:29.628617  4538 TrainerInternal.cpp:165]  Batch=100 samples=12800 AvgCost=2.63996 CurrentCost=2.63996 Eval: classification_error_evaluator=0.241172  CurrentEval: classification_error_evaluator=0.241172 
+.........
+I0117 12:52:29.768741  4538 TrainerInternal.cpp:165]  Batch=200 samples=25600 AvgCost=1.74027 CurrentCost=0.840582 Eval: classification_error_evaluator=0.185234  CurrentEval: classification_error_evaluator=0.129297 
+.........
+I0117 12:52:29.916970  4538 TrainerInternal.cpp:165]  Batch=300 samples=38400 AvgCost=1.42119 CurrentCost=0.783026 Eval: classification_error_evaluator=0.167786  CurrentEval: classification_error_evaluator=0.132891 
+.........
+I0117 12:52:30.061213  4538 TrainerInternal.cpp:165]  Batch=400 samples=51200 AvgCost=1.23965 CurrentCost=0.695054 Eval: classification_error_evaluator=0.160039  CurrentEval: classification_error_evaluator=0.136797 
+......I0117 12:52:30.223270  4538 TrainerInternal.cpp:181]  Pass=0 Batch=469 samples=60000 AvgCost=1.1628 Eval: classification_error_evaluator=0.156233 
+I0117 12:52:30.366894  4538 Tester.cpp:109]  Test samples=10000 cost=0.50777 Eval: classification_error_evaluator=0.0978 
+```
+
+2.Use `plot_cost.py` to plot error curve during training.
+
+```bash
+python plot_cost.py softmax_train.log            
+```
+
+3.Use `evaluate.py ` to select the best trained model.
 
 ```bash
 python evaluate.py softmax_train.log
