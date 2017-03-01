@@ -317,7 +317,7 @@ We use python interface to convey data to system. `mnist_provider.py` shows a co
 def process(settings, filename):  # settings is not used currently.
 		# Open image file
     with open( filename + "-images-idx3-ubyte", "rb") as f:             
-		# Read first 4 parameters. magic is data format. n is number of data, rows and cols are number of rows and columns, respectively
+		# Read first 4 parameters. magic is data format. n is number of data. rows and cols are number of rows and columns, respectively
         magic, n, rows, cols = struct.upack(">IIII", f.read(16))        
 		# With empty string as a unit, read data one by one
         images = np.fromfile(                                           
@@ -341,9 +341,27 @@ def process(settings, filename):  # settings is not used currently.
 
 ## 模型配置说明
 
+## Model Configurations
+
 ### 数据定义
 
 在模型配置中，定义通过 `define_py_data_sources2` 函数从 `dataprovider` 中读入数据。如果该配置用于预测，则不需要数据定义部分。
+
+```python
+ if not is_predict:
+     data_dir = './data/'
+     define_py_data_sources2(
+         train_list=data_dir + 'train.list',
+         test_list=data_dir + 'test.list',
+         module='mnist_provider',
+         obj='process')
+```
+
+### Data Definition
+
+在模型配置中，定义通过 `define_py_data_sources2` 函数从 `dataprovider` 中读入数据。如果该配置用于预测，则不需要数据定义部分。
+
+In model configuration, define data reading from `dataprovider` by `define_py_data_sources2`. If this configuration is used for prediction, data definition is not necessary.
 
 ```python
  if not is_predict:
