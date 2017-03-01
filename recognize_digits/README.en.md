@@ -1,18 +1,18 @@
 # Recognize Digits
 
-Source code of this tutorial is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits) For the first-time use, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
+Source code of this tutorial is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits). For the first-time use, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
 
 ## Introduction
-When we learn programming, the first program is typically printing “Hello World.” In Machine Learning, or Deep Learning, this is usually handwritten digit recognition with [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a typical image classification problem. The problem is relatively easy, and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains handwritten digits and corresponding labels (Fig. 1). An image is a 28x28 matrix, and a label corresponds to one of the 10 digits from 0 to 9. Each image is normalized in size and centered.
+When we learn programming, the first program is usually printing “Hello World.” In Machine Learning, or Deep Learning, this is handwritten digit recognition with [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a typical image classification problem. The problem is relatively easy, and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and corresponding labels (Fig. 1). An image is a 28x28 matrix, and a label is to one of the 10 digits from 0 to 9. Each image is normalized in size and centered.
 
 <p align="center">
 <img src="image/mnist_example_image.png" width="400"><br/>
 Fig. 1. Examples of MNIST images
 </p>
 
-MNIST dataset is made from [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3 (SD-3) and Special Database 1 (SD-1). Since SD-3 is labeled by staffs in U.S. Census Bureau, while SD-1 is labeled by high school students in U.S., SD-3 is cleaner and easier to recognize than SD-1 is. Yann LeCun et al. used half of samples from each of SD-1 and SD-3 for MNIST training set (60,000 samples) and test set (10,000 samples), where training set was labeled by 250 different annotators, and it was guaranteed that annotators of training set and test set are not completely overlapped.
+MNIST dataset is made from [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3 (SD-3) and Special Database 1 (SD-1). Since SD-3 is labeled by staffs in U.S. Census Bureau, while SD-1 is labeled by high school students in U.S., SD-3 is cleaner and easier to recognize than SD-1 is. Yann LeCun et al. used half of samples from each of SD-1 and SD-3 to make MNIST training set (60,000 samples) and test set (10,000 samples), where training set was labeled by 250 different annotators, and it was guaranteed that annotators of training set and test set are not completely overlapped.
 
-Yann LeCun, one of the founders of Deep Learning, had huge contribution on handwritten character recognition in early dates, and proposed CNN (Convolutional Neural Network), which drastically improved recognition capability for handwritten characters. CNN is now a critical key for Deep Learning. From Yann LeCun’s first proposal of LeNet, to those winning models in ImageNet, such as VGGNet, GoogLeNet, ResNet, etc. (Please refer to [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification) tutorial.) CNN achieved a series of impressive results in Image Classification tasks.
+Yann LeCun, one of the founders of Deep Learning, had huge contribution on handwritten character recognition in early dates, and proposed CNN (Convolutional Neural Network), which drastically improved recognition capability for handwritten characters. CNN is now a critical key for Deep Learning. From Yann LeCun’s first proposal of LeNet, to those winning models in ImageNet, such as VGGNet, GoogLeNet, ResNet, etc. (Please refer to [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification) tutorial), CNN achieved a series of impressive results in Image Classification tasks.
 
 Many algorithms are tested on MNIST. In 1998, LeCun experimented single layer linear classifier, MLP (Multilayer Perceptron) and Multilayer CNN LeNet. These algorithms constantly reduced test error from 12% to 0.7% \[[1](#References)\]. Since then, researchers worked on many algorithms such as k-NN (K-Nearest Neighbors) \[[2](#References)\], Support Vector Machine (SVM) \[[3](#References)\], Neural Networks \[[4-7](#References)\] and Boosting \[[8](#References)\], and applied various preprocessing methods, such as distortion removal, noise removal and blurring, to increase recognition accuracy.
 
@@ -74,7 +74,7 @@ Fig. 4. Convolutional layer<br/>
 
 Convolutional layer is the core of Convolutional Neural Network. The parameters in this layer are composed of a set of filters, or kernels. In forward step, each kernel moves horizontally and vertically, and compute dot product of the kernel and the input on corresponding positions, then add bias and apply activation function. The result is two dimensional activation map. For example, some kernel may recognize corners, and some may recognize circles. These convolution kernels may respond strongly to the corresponding features.
 
-Fig. 4 is a dynamic graph of convolutional layer, where depths are not shown for simplicity. Input is $W_1=5,H_1=5,D_1=3$. In fact, this is a common representation for colored images. The width and height of a colored image corresponds to $W_1$ and $H_1$, and the 3 color channels for RGB corresponds to $D_1$. The parameters of convolutional layers are $K=2,F=3,S=2,P=1$. $K$ is the number of kernels. Here, $Filter W_0$ and $Filter   W_1$ are two convolution kernels. $F$ is kernel size. $W0$ and $W1$ are both $3\times3$ matrix in all depths. $S$ is stride. Kernels moves leftwards or downwards by 2 units each time. $P$ is padding, the extension for the input.
+Fig. 4 is a dynamic graph of convolutional layer, where depths are not shown for simplicity. Input is $W_1=5,H_1=5,D_1=3$. In fact, this is a common representation for colored images. The width and the height of a colored image correspond to $W_1$ and $H_1$, respectively, and the 3 color channels for RGB correspond to $D_1$. The parameters of the convolutional layer are $K=2,F=3,S=2,P=1$. $K$ is the number of kernels. Here, $Filter W_0$ and $Filter   W_1$ are two kernels. $F$ is kernel size. $W0$ and $W1$ are both $3\times3$ matrix in all depths. $S$ is stride. Kernels moves leftwards or downwards by 2 units each time. $P$ is padding, an extension of the input. The gray area in the figure shows zero padding with size 1.
 
 #### Pooling Layer
 
@@ -83,7 +83,7 @@ Fig. 4 is a dynamic graph of convolutional layer, where depths are not shown for
 Fig. 5 Pooling layer<br/>
 </p>
 
-Pooling layer performs downsampling. The main functionality is to reduce computation by reducing network parameters. It also prevents over-fitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer includes max pooling, average pooling, etc. Max pooling uses rectangles to divide input layer into several parts, and compute maximum value in each part as output (Fig. 5.)
+Pooling layer performs downsampling. The main functionality is to reduce computation by reducing network parameters. It also prevents overfitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer includes max pooling, average pooling, etc. Max pooling uses rectangles to segment input layer into several parts, and compute maximum value in each part as output (Fig. 5.)
 
 #### LeNet-5 Network 
 
@@ -92,7 +92,7 @@ Pooling layer performs downsampling. The main functionality is to reduce computa
 Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
 </p>
 
-[LeNet-5](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Network. Fig. 6. shows its architecture: 2 dimensional image input is fed into two sets of convolutional layer and pooling layer, then it is fed into fully connected layer and softmax classifier. The following three properties of convolution enable LeNet-5 to better recognize images than Multilayer fully-connected perceptrons:
+[LeNet-5](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Networks. Fig. 6. shows its architecture: 2 dimensional image input is fed into two sets of convolutional layer and pooling layer, then it is fed into fully connected layer and softmax classifier. The following three properties of convolution enable LeNet-5 to better recognize images than Multilayer fully-connected perceptrons:
 
 - 3D properties of neurons: a convolutional layer is organized by width, height and depth. Neurons in each layer are connected to only a small region in previous layer. This region is called receptive field.
 - Local connection: CNN utilizes local space correlation by connecting local neurons. This design guarantees learned filter has strong response to local input features. Stacking many such layers leads non-linear filter becomes more and more global. This allows the network to first obtain good representation for a small parts of input, then combine them to represent larger region.
@@ -174,7 +174,7 @@ def process(settings, filename):  # settings is not used currently.
 
 ### Data Definition
 
-In model configuration, define data reading from `dataprovider` by `define_py_data_sources2`. If this configuration is used for prediction, data definition is not necessary.
+In model configuration, use `define_py_data_sources2` to define reading of data from `dataprovider`. If this configuration is used for prediction, data definition is not necessary.
 
 ```python
  if not is_predict:
