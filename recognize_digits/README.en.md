@@ -390,6 +390,23 @@ settings(
     regularization=L2Regularization(0.0005 * 128))
 ```
 
+### Algorithm Configuration
+
+Set training related parameters.
+
+- batch_size: use 128 samples in each training step.
+- learning_rate: rating of iteration, related to the rate of convergence.
+- learning_method: Optimizer `MomentumOptimizer` for training. The parameter 0.9 indicates momentum keeps 0.9 of previous speed.
+- regularization: A method to prevent overfitting. Here L2 regularization is used.
+
+```python
+settings(
+    batch_size=128,
+    learning_rate=0.1 / 128.0,
+    learning_method=MomentumOptimizer(0.9),
+    regularization=L2Regularization(0.0005 * 128))
+```
+
 ### 模型结构
 
 #### 整体结构
