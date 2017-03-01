@@ -224,6 +224,8 @@ For more information, please refer to [Activation functions in Wikipedia](https:
 
 ## 数据准备
 
+## Data Preparation
+
 ### 数据介绍与下载
 
 执行以下命令，下载[MNIST](http://yann.lecun.com/exdb/mnist/)数据库并解压缩，然后将训练集和测试集的地址分别写入train.list和test.list两个文件，供PaddlePaddle读取。
@@ -242,6 +244,29 @@ For more information, please refer to [Activation functions in Wikipedia](https:
 |t10k-labels-idx1-ubyte |  测试数据标签，10,000条数据 |
 
 用户可以通过以下脚本随机绘制10张图片（可参考图1）：
+
+```bash
+./load_data.py
+```
+
+### Data and Download
+
+Execute the following command to download [MNIST](http://yann.lecun.com/exdb/mnist/) dataset and unzip, then put paths of training set and test set to train.list and test.list respectively for PaddlePaddle to read.
+
+```bash
+./data/get_mnist_data.sh
+```
+
+`gzip` downloaded data. The following files can be found in `data/raw_data`:
+
+|    File name          |       Description              |
+|----------------------|-------------------------|
+|train-images-idx3-ubyte|  Training images, 60,000 |
+|train-labels-idx1-ubyte|  Training labels, 60,000 |
+|t10k-images-idx3-ubyte |  Evaluation images, 10,000 |
+|t10k-labels-idx1-ubyte |  Evaluation labels，10,000 |
+
+Users can randomly generate 10 images with the following script (Refer to Fig. 1.)
 
 ```bash
 ./load_data.py
