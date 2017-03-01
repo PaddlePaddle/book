@@ -409,6 +409,8 @@ settings(
 
 ### 模型结构
 
+### Model Architecture
+
 #### 整体结构
 
 首先通过`data_layer`调用来获取数据，然后调用分类器（这里我们提供了三个不同的分类器）得到分类结果。训练时，对该结果计算其损失函数，分类问题常常选择交叉熵损失函数；而预测时直接输出该结果即可。
@@ -421,6 +423,27 @@ img = data_layer(name='pixel', size=data_size)
 predict = softmax_regression(img) # Softmax回归
 #predict = multilayer_perceptron(img) #多层感知器
 #predict = convolutional_neural_network(img) #LeNet5卷积神经网络
+ 
+if not is_predict:
+    lbl = data_layer(name="label", size=label_size)
+    inputs(img, lbl)
+    outputs(classification_cost(input=predict, label=lbl))
+else:
+    outputs(predict)
+```
+
+#### Overview
+
+First get data by `data_layer`, and get classification result by classifier. Here we provided three different classifiers. In training, we compute loss function, which is usually cross entropy for classification problem. In prediction, we can directly output results.
+
+``` python
+data_size = 1 * 28 * 28
+label_size = 10
+img = data_layer(name='pixel', size=data_size)
+
+predict = softmax_regression(img) # Softmax Regression
+#predict = multilayer_perceptron(img) # Multilayer Perceptron
+#predict = convolutional_neural_network(img) #LeNet5 Convolutional Neural Network
  
 if not is_predict:
     lbl = data_layer(name="label", size=label_size)
