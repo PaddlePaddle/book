@@ -682,6 +682,22 @@ The classification accuracy is 90.01%
 
 从评估结果可以看到，softmax回归模型分类效果最好的时候是pass-00013，分类准确率为90.01%，而最终的pass-00099的准确率为89.3%。从图7中也可以看出，最好的准确率不一定出现在最后一个pass。原因是中间的Pass可能就已经收敛获得局部最优值，后面的Pass只是在该值附近震荡，或者获得更低的局部最优值。
 
+### Training Results for Softmax Regression
+
+<p align="center">
+<img src="image/softmax_train_log.png" width="400px"><br/>
+Fig. 7 Softmax regression error curve<br/>
+</p>
+
+Evaluation results of the models:
+
+```text
+Best pass is 00013, testing Avgcost is 0.484447
+The classification accuracy is 90.01%
+```
+
+From the evaluation results, the best step for softmax regression model is pass-00013, where classification accuracy is 90.01%, and the last pass-00099 has accuracy of 89.3%. From Fig. 7, we also see that the best accuracy may not appear in the last pass. A explanation is that during training, the model may already arrive at local optimum, and it just swings around nearby in the following passes, or it gets lower local optimum.
+
 ### 多层感知器的训练结果
 
 <p align="center">
@@ -697,6 +713,22 @@ The classification accuracy is 94.95%
 ```
 
 从评估结果可以看到，最终训练的准确率为94.95%，相比于softmax回归模型有了显著的提升。原因是softmax回归模型较为简单，无法拟合更为复杂的数据，而加入了隐藏层之后的多层感知器则具有更强的拟合能力。
+
+### Results of Multilayer Perceptron
+
+<p align="center">
+<img src="image/mlp_train_log.png" width="400px"><br/>
+Fig. 8. Multilayer perceptron error curve
+</p>
+
+Evaluation results of the models：
+
+```text
+Best pass is 00085, testing Avgcost is 0.164746
+The classification accuracy is 94.95%
+```
+
+From the evaluation results, the final training accuracy is 94.95%. It has significant improvement comparing with softmax regression model. The reason is that softmax regression is simple, and it cannot fit complex data, but Multi-layer perceptron with hidden layers has stronger fitting capacity.
 
 ### 卷积神经网络的训练结果
 
@@ -714,7 +746,25 @@ The classification accuracy is 99.20%
 
 从评估结果可以看到，卷积神经网络的最好分类准确率达到惊人的99.20%。说明对于图像问题而言，卷积神经网络能够比一般的全连接网络达到更好的识别效果，而这与卷积层具有局部连接和共享权重的特性是分不开的。同时，从图9中可以看到，卷积神经网络在很早的时候就能达到很好的效果，说明其收敛速度非常快。
 
+### Training results for Convolutional Neural Network
+
+<p align="center">
+<img src="image/cnn_train_log.png" width="400px"><br/>
+图9. Convolutional Neural Network error curve
+</p>
+
+Results of model evaluation：
+
+```text
+Best pass is 00076, testing Avgcost is 0.0244684
+The classification accuracy is 99.20%
+```
+
+From the evaluation result, the best accuracy of Convolutional Neural Network is 99.20%. This means, for image problem, Convolutional Neural Network has better recognition effect than fully connected network. This should be related to the local connection and parameter sharing of convolutional layers. Also, in Fig. 9, Convolutional Neural Network achieves good effect in early steps, which indicates that it is fast to converge.
+
 ## 应用模型
+
+## Application Model
 
 ### 预测命令与结果
 脚本  `predict.py` 可以对训练好的模型进行预测，例如softmax回归中：
@@ -740,6 +790,31 @@ Actual Number: 0
 ```
 
 从结果看出，该分类器接近100%地认为第3张图片上面的数字为0，而实际标签给出的类也确实如此。
+
+### Prediction Commands and Results
+Script `predict.py` can make prediction for trained models. For example, in softmax regression:
+
+```bash
+python predict.py -c mnist_model.py -d data/raw_data/ -m softmax_mnist_model/pass-00047
+```
+
+- -c sets model architecture
+- -d sets data for prediction
+- -m sets model parameters, here the best trained model is used for prediction
+
+Follow to instruction to input image ID for prediction. The classifier can output probabilities for each digit, predicted results with the highest probability, and ground truth label.
+
+```
+Input image_id [0~9999]: 3
+Predicted probability of each digit:
+[[  1.00000000e+00   1.60381094e-28   1.60381094e-28   1.60381094e-28
+    1.60381094e-28   1.60381094e-28   1.60381094e-28   1.60381094e-28
+    1.60381094e-28   1.60381094e-28]]
+Predict Number: 0 
+Actual Number: 0
+```
+
+From the result, this classifier recognizes the digit on the third image as digit 0 with near to 100% probability, and the ground truth is actually consistent.
 
 
 ## 总结
