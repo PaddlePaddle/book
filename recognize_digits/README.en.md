@@ -1,6 +1,6 @@
 # Recognize Digits
 
-Source code of this chapter is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits)， For the first-time use, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
+Source code of this chapter is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits) For the first-time use, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
 
 ## Background
 When we study programming, the first program is usually printing “Hello World.” In Machine Learning, or Deep Learning, this is hand-written digit recognition with [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a typical image classification problem. The problem is relatively easy, and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains hand-written digits and corresponding labels (Fig. 1). An image is a 28x28 matrix, and a label corresponds to one of the 10 digits from 0 to 9. Each image is normalized in size and centered.
@@ -98,7 +98,7 @@ Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
 - Local connection: CNN utilizes local space correlation by connecting local neurons. This design guarantees learned filter has strong response to local input features. Stacking many such layers leads non-linear filter becomes more and more global. This allows the network to first obtain good representation for a small parts of input, then combine them to represent larger region.
 - Sharing weights: In CNN, computation is iterated with shared parameters (weights and bias) to form afeature map. This means all neurons in the same depth of output respond to the same feature. This allows detecting a feature regardless of its position in the input, and enables a property of translation equivariance.
 
-For more details of Convolutional Neural Network , please refer to [Stanford open course]( http://cs231n.github.io/convolutional-networks/ ) and [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) chapter.
+For more details of Convolutional Neural Network, please refer to [Stanford open course]( http://cs231n.github.io/convolutional-networks/ ) and [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) chapter.
 
 ### List of Common Activation Functions  
 - Sigmoid activation function： $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
