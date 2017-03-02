@@ -33,7 +33,8 @@ CNN mainly contains convolution and pooling operation, with various extensions. 
 
 <p align="center">
 <img src="image/text_cnn.png" width = "80%" align="center"/><br/>
-Figure 1. CNN for text modeling
+Figure 1. CNN for text modeling. 
+将一句话表示为矩阵 -> represent a sentence as a $n\times k$ matrix; 使用不同大小的卷积层 -> apply convolution of different kernel sizes; 时间维最大池化 -> max-pooling across temporal channel; 全连接层 -> fully-connected layer.
 </p>
 Assuming the length of the sentence is $n$, where the $i$-th word has embedding as $x_i\in\mathbb{R}^k$，where $k$ is the embedding dimensionality. 
 
@@ -88,9 +89,9 @@ h_t & = o_t\odot tanh(c_t)\\\\
 In the equation，$i_t, f_t, c_t, o_t$ stand for input gate, forget gate, memory cell and output gate separately; $W$ and $b$ are model parameters. The $tanh$ is a hyperbolic tangent， and $\odot$ denotes an element-wise product operation. Input gate controls the magnitude of new input into the memory cell $c$; forget gate controls memory propagated from the last time step; output gate controls output magnitude. The three gates are computed similarly with different parameters, and they influence memory cell $c$ separately, as shown in Figure 3:
 <p align="center">
 <img src="image/lstm.png" width = "65%" align="center"/><br/>
-Figure 3. LSTM at time step $t$ [7]
+Figure 3. LSTM at time step $t$ [7]. 输入门 -> input gate, 记忆单元 -> memory cell, 遗忘门 -> forget gate, 输出门 -> output gate.
 </p>
-LSTM enhance the ability of considering long-term reliance, with the help of memory cell and gate. Similar structures are also proposed in Gated Recurrent Unit (GRU)\[[8](Reference)\] with simpler design. **The structures are still similar to RNN, though with some modifications (As shown in Figure 2), i.e., latent status depends on input as well as the latent status of last time-step, and the process goes on recurrently until all input are consumed:**
+LSTM enhances the ability of considering long-term reliance, with the help of memory cell and gate. Similar structures are also proposed in Gated Recurrent Unit (GRU)\[[8](Reference)\] with simpler design. **The structures are still similar to RNN, though with some modifications (As shown in Figure 2), i.e., latent status depends on input as well as the latent status of last time-step, and the process goes on recurrently until all input are consumed:**
 
 $$ h_t=Recrurent(x_t,h_{t-1})$$
 where $Recrurent$ is a simple RNN, GRU or LSTM.
@@ -102,7 +103,7 @@ As shown in Figure 4 (3-layer RNN), odd/even layers are forward/reverse LSTM. Hi
 
 <p align="center">
 <img src="image/stacked_lstm.jpg" width=450><br/>
-Figure 4. Stacked Bidirectional LSTM for NLP modeling
+Figure 4. Stacked Bidirectional LSTM for NLP modeling. 词向量映射 -> word embedding mapping; 全连接层 -> fully-connected layer; 反向LSTM -> reverse-directional LSTM; 池化层 -> pooling layer.
 </p>
 
 ## Data Preparation
@@ -487,5 +488,3 @@ In this chapter, we use sentiment analysis as an example to introduce applying d
 
 <br/>
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
-
-
