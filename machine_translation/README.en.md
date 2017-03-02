@@ -1,6 +1,6 @@
 # Machine Translation
 
-Source codes are located at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation). Please refer to the PaddlePaddle[installation tutorial](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html) if you are a first time user.
+Source codes are located at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation). Please refer to the PaddlePaddle [installation tutorial](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html) if you are a first time user.
 
 ## Background
 
@@ -15,7 +15,7 @@ The recent development of deep learning provides new solutions to those challeng
 
 <p align="center">
 <img src="image/nmt.png" width=400><br/>
-Figure 1. Neural Network based Machine Translation
+Figure 1. Neural Network based Machine Translation (Words in Figure: 源语言: Source Language; 目标语言: Target Language; 统计机器翻译: Statistical Machine Translation; 神经网络: Neural Network)
 </p>
 
 
@@ -27,7 +27,7 @@ Taking Chinese-to-English translation as an example, after training of the model
 ```text
 这些 是 希望 的 曙光 和 解脱 的 迹象 .
 ```
-with a beam-search size of 3, the generated sentences are as follows:
+with a beam-search size of 3, the generated translations are as follows:
 ```text
 0 -5.36816   these are signs of hope and relief . <e>
 1 -6.23177   these are the light of hope and relief . <e>
@@ -51,7 +51,7 @@ GRU\[[2](#References)\] proposed by Cho et al is a simplified LSTM and an extens
 
 <p align="center">
 <img src="image/gru.png" width=700><br/>
-Figure 2. GRU
+Figure 2. GRU (更新门: Update Gate; 重置门: Reset Gate; 节点状态: Node State; 输出: Output)
 </p>
 
 Generally speaking, sequences with short distance dependency will have active reset gate while sequences with long distance dependency will have active update date.
@@ -65,7 +65,7 @@ Specifically, this bi-directional RNN processes the input sequence in the origin
 
 <p align="center">
 <img src="image/bi_rnn.png" width=450><br/>
-Figure 3. Temporally unrolled bi-directional RNN
+Figure 3. Temporally unrolled bi-directional RNN (输出层: Output Layer; 后向隐层: Backward Hidden Layer; 前向隐层: Forward Hidden Layer; 输入层: Input Layer)
 </p>
 
 ### Encoder-Decoder Framework
@@ -74,7 +74,8 @@ Encoder-Decoder\[[2](#References)\] framework aims to solve the mapping of a seq
 
 <p align="center">
 <img src="image/encoder_decoder.png" width=700><br/>
-Figure 4. Encoder-Decoder Framework
+Figure 4. Encoder-Decoder Framework (源语言词序列: Word Sequence for the Source Language; 源语编码状态: Word Embedding Sequence for the Source Language;  独热编码: One-hot Encoding; 词向量: Word Embedding;  隐层状态: Hidden State; 词概率: Word Probability; 词样本: Word Sample; 编码器: Encoder; 解码器: Decoder.)
+**Note: there is an error in the original figure. The locations for 源语言词序列 and 源语编码状态 should be switched.**
 </p>
 
 #### Encoder
@@ -91,12 +92,12 @@ Bi-directional RNN can also be used in step 3 for more complicated sentence enco
 
 <p align="center">
 <img src="image/encoder_attention.png" width=500><br/>
-Figure 5. Encoder using bi-directional GRU
+Figure 5. Encoder using bi-directional GRU (源语编码状态: Word Embedding Sequence for the Source Language; 词向量: Word Embedding; 独热编码: One-hot Encoding; 编码器: Encoder)
 </p>
 
 #### Decoder
 
-The goal of the decoder is to maximize the probability of the next correct word. The main idea is as follows:
+The goal of the decoder is to maximize the probability of the next correct word in target language. The main idea is as follows:
 
 1. At each time step $i$, given the encoding vector (or context vector) $c$ of the source sentence, the $i$-th word $u_i$ from the ground-truth target language and the RNN hidden state $z_i$, the next hidden state $z_{i+1}$ is computated as:
 
@@ -137,7 +138,7 @@ where $align$ is an alignment model, measuring the fitness between the $i$-th wo
 
 <p align="center">
 <img src="image/decoder_attention.png" width=500><br/>
-Figure 6. Decoder with Attention Mechianism
+Figure 6. Decoder with Attention Mechanism ( 源语编码状态: Word Embedding Sequence for the Source Language; 权重: Attention Weight;  隐层状态: Hidden State; 词概率: Word Probability; 词样本: Word Sample; 解码器: Decoder.)
 </p>
 
 ### Beam Search Algorithm
@@ -159,7 +160,7 @@ Note: $z_{i+1}$ and $p_{i+1}$ are computed the same way as in [Decoder](#Decoder
 
 ### Download and Uncompression
 
-This tutorial uses a dataset from [WMT-14](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/), where the dataset [bitexts(after selection)](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/bitexts.tgz) is used as training set, and [dev+test data](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/dev+test.tgz) is used as testing and generating set.
+This tutorial uses a dataset from [WMT-14](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/), where the dataset [bitexts (after selection)](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/bitexts.tgz) is used as training set, and [dev+test data](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/dev+test.tgz) is used as testing and generating set.
 
 Run the following command in Linux to obtain the data:
 ```bash
