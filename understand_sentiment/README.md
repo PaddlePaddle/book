@@ -329,55 +329,53 @@ stacked_lstm_net(
 ```
 
 ## 训练模型
-使用`train.sh`脚本可以开启本地的训练：
+通过`paddle.trainer.SGD`构造一个sgd trainer，并调用`trainer.train`训练获得模型。
+```python
+    paddle.init(use_gpu=True, trainer_count=4)
+
+    # create trainer
+    trainer = paddle.trainer.SGD(cost=cost,
+                                 parameters=parameters,
+                                 update_equation=adam_optimizer)
+
+    trainer.train(
+        reader=paddle.reader.batched(
+            paddle.reader.shuffle(
+                data_reader(train_file, dict_file), buf_size=4096),
+            batch_size=128),
+        event_handler=event_handler,
+        reader_dict={'word': 0,
+                     'label': 1},
+        num_passes=10)
 
 ```
-./train.sh
+可以通过给train函数传递一个`event_handler`来获取每个batch或者每个pass结束的状态。比如构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；再每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
+```python
+    # End batch and end pass event handler
+    def event_handler(event):
+        if isinstance(event, paddle.event.EndIteration):
+            if event.batch_id % 100 == 0:
+                print "\nPass %d, Batch %d, Cost %f, %s" % (
+                    event.pass_id, event.batch_id, event.cost, event.metrics)
+            else:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+        if isinstance(event, paddle.event.EndPass):
+            result = trainer.test(
+                reader=paddle.reader.batched(
+                    data_reader(test_file, dict_file), batch_size=128),
+                reader_dict={'word': 0,
+                             'label': 1})
+            print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
-
-train.sh内容如下:
-
-```bash
-paddle train --config=trainer_config.py \
-             --save_dir=./model_output \
-             --job=train \
-             --use_gpu=false \
-             --trainer_count=4 \
-             --num_passes=10 \
-             --log_period=20 \
-             --dot_period=20 \
-             --show_parameter_stats_period=100 \
-             --test_all_data_in_one_period=1 \
-             2>&1 | tee 'train.log'
+程序运行之后的输入如下。
 ```
-
-* \--config=trainer_config.py: 设置模型配置。
-* \--save\_dir=./model_output: 设置输出路径以保存训练完成的模型。
-* \--job=train: 设置工作模式为训练。
-* \--use\_gpu=false: 使用CPU训练，如果您安装GPU版本的PaddlePaddle，并想使用GPU来训练可将此设置为true。
-* \--trainer\_count=4:设置线程数（或GPU个数）。
-* \--num\_passes=15: 设置pass，PaddlePaddle中的一个pass意味着对数据集中的所有样本进行一次训练。
-* \--log\_period=20: 每20个batch打印一次日志。
-* \--show\_parameter\_stats\_period=100: 每100个batch打印一次统计信息。
-* \--test\_all_data\_in\_one\_period=1: 每次测试都测试所有数据。
-
-如果运行成功，输出日志保存在 `train.log`中，模型保存在目录`model_output/`中。  输出日志说明如下：
-
+Pass 0, Batch 0, Cost 0.693721, {'classification_error_evaluator': 0.5546875}
+...................................................................................................
+Pass 0, Batch 100, Cost 0.294321, {'classification_error_evaluator': 0.1015625}
+...............................................................................................
+Test with Pass 0, {'classification_error_evaluator': 0.11432000249624252}
 ```
-Batch=20 samples=2560 AvgCost=0.681644 CurrentCost=0.681644 Eval: classification_error_evaluator=0.36875  CurrentEval: classification_error_evaluator=0.36875
-...
-Pass=0 Batch=196 samples=25000 AvgCost=0.418964 Eval: classification_error_evaluator=0.1922
-Test samples=24999 cost=0.39297 Eval: classification_error_evaluator=0.149406
-```
-
-* Batch=xx: 表示训练了xx个Batch。
-* samples=xx: 表示训练了xx个样本。
-* AvgCost=xx: 从第0个batch到当前batch的平均损失。
-* CurrentCost=xx: 最新log_period个batch的损失。
-* Eval: classification\_error\_evaluator=xx: 表示第0个batch到当前batch的分类错误。
-* CurrentEval: classification\_error\_evaluator: 最新log_period个batch的分类错误。
-* Pass=0: 通过所有训练集一次称为一个Pass。 0表示第一次经过训练集。
-
 
 ## 应用模型
 ### 测试
