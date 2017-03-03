@@ -103,7 +103,7 @@ where $f(w_t, w_{t-1}, ..., w_{t-n+1})$ represents the conditional probability o
 (Translation of words in figure 2: 图2文字翻译
 
 - 输入：Input;
-- 全连接：Fully-Connection Layer
+- 全连接：Fully-Connected Layer
 - 词向量：Word Embedding
 - 词向量连接：Word Embedding Concatenation
 - 分类：Classification
@@ -172,6 +172,18 @@ As illustrated in the figure above, skip-gram model maps the word embedding of t
 ## Data Preparation
 
 ## Model Configuration
+<p align="center">	
+	<img src="image/ngram.png" width=400><br/>
+	Figure 5. N-gram neural network model in model configuration
+</p>
+
+(Translation of words in figure 5: 图5文字翻译
+
+- 词向量映射： Word Embedding Mapping
+- 词向量连接： Word Embedding Concatenation
+- 全连接层： Fully-Connected Layer
+- 隐层： Hidden Layer)
+
 	
 ## Model Training
 
