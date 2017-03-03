@@ -14,7 +14,7 @@ where $\omega_{d}$ and $b$ are the model parameters we want to estimate. Once th
 We first show the training result of our model. We use the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) to train a linear model and predict the house prices in Boston. The figure below shows the predictions the model makes for some house prices. The $X$ coordinate of each point represents the median value of the prices of a certain type of houses, while the $Y$ coordinate represents the predicted value by our linear model. When $X=Y$, the point lies exactly on the dotted line. In other words, the more precise the model predicts, the closer the point is to the dotted line.
 <p align="center">
 	<img src = "image/predictions.png" width=400><br/>
-	Figure 1. Predicted Value V.S. Real Value
+	Figure 1. Predicted Value V.S. Actual Value (波士顿房价预测->Prediction of Boston house prices; 预测价格->Predicted prices; 单位->Units; 实际价格->Actual prices)
 </p>
 
 ## Model Overview
@@ -25,9 +25,9 @@ In the UCI Housing Data Set, there are 13 house properties $x_{i,d}$ that are re
 
 $$\hat{Y} = \omega_1X_{1} + \omega_2X_{2} + \ldots + \omega_{13}X_{13} + b$$
 
-where $\hat{Y}$ is the predicted value used to differentiate from the real value $Y$. The model parameters to be learned are: $\omega_1, \ldots, \omega_{13}, b$, where $\omega$ are called the weights and $b$ is called the bias.
+where $\hat{Y}$ is the predicted value used to differentiate from the actual value $Y$. The model parameters to be learned are: $\omega_1, \ldots, \omega_{13}, b$, where $\omega$ are called the weights and $b$ is called the bias.
 
-Now we need an optimization goal, so that with the learned parameters, $\hat{Y}$ is close to $Y$ as much as possible. Here we introduce the concept of [Loss Function (Cost Function)](https://en.wikipedia.org/wiki/Loss_function). The Loss Function has such property: given any pair of the real value $y_i$ and the predicted value $\hat{y_i}$, its output is always non-negative. This non-negative value reflects the model error.
+Now we need an optimization goal, so that with the learned parameters, $\hat{Y}$ is close to $Y$ as much as possible. Here we introduce the concept of [Loss Function (Cost Function)](https://en.wikipedia.org/wiki/Loss_function). The Loss Function has such property: given any pair of the actual value $y_i$ and the predicted value $\hat{y_i}$, its output is always non-negative. This non-negative value reflects the model error.
 
 For Linear Regression, the most common Loss Function is [Mean Square Error (MSE)](https://en.wikipedia.org/wiki/Mean_squared_error) which has the following form:
 
@@ -86,7 +86,7 @@ There are at least three reasons for [Feature Normalization](https://en.wikipedi
 
 <p align="center">
 	<img src = "image/ranges.png" width=550><br/>
-	Figure 2. The value ranges of the features
+	Figure 2. The value ranges of the features (特征尺度->Feature value range)
 </p>
 
 #### Prepare Training and Test Sets
@@ -169,7 +169,7 @@ Now we can use the trained model to do prediction.
 ```bash
 python predict.py
 ```
-Here by default we use the model in `output/pass-00029` for prediction, and compare the real house price with the predicted one. The result is shown in `predictions.png`.
+Here by default we use the model in `output/pass-00029` for prediction, and compare the actual house price with the predicted one. The result is shown in `predictions.png`.
 If you want to use another model or test on other data, you can pass in a new model path or data path:
 ```bash
 python predict.py -m output/pass-00020 -t data/housing.test.npy
