@@ -148,7 +148,7 @@ We can try above method. Here, we propose some modifications by introducing two 
 After modification, the model is as follows:
 
 1. Construct inputs
- - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, 1 if word locates in the predicate context region, 0 otherwise.
+ - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, element value will be 1 if word locates in the predicate context region, 0 otherwise.
  - expand input 2~3 as sequences with the same length with input 1
 2. Convert input 1~4 to vector sequences via lookup table; input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables
 3. Take four vector sequences from step 2 as inputs of bidirectional LSTMs; Train LSTMs to update representations
@@ -170,7 +170,7 @@ Fig 6. DB-LSTM for SRL tasks
 
 ## Data Preparation
 
-In the tutorial, we use[CoNLL 2005](http://www.cs.upc.edu/~srlconll/)SRL task open dataset as an example. Run `sh ./get_data.sh` will automatically download raw data from the official website. It is important to note that the training set and development set of the CoNLL 2005 SRL task are not open for free after the competition. Currently, only the test set can be obtained, including 23 sections of the Wall Street Journal and 3 sections of the Brown corpus. In this tutorial, we use the WSJ corpus as training set to explain the model. However, since the training set is small, if you want to train a usable neural network SRL system, consider paying for the full data corpus.
+In the tutorial, we use [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL task open dataset as an example. It is important to note that the training set and development set of the CoNLL 2005 SRL task are not free to download after the competition. Currently, only the test set can be obtained, including 23 sections of the Wall Street Journal and 3 sections of the Brown corpus. In this tutorial, we use the WSJ corpus as training set to explain the model. However, since the training set is small, if you want to train a usable neural network SRL system, consider paying for the full corpus.
 
 The original data includes a variety of information such as POS tagging, naming entity recognition, parsing tree, and so on. In this tutorial, we only use the data under the words folder (text sequence) and the props folder (label results) inside test.wsj parent folder. The data directory used in this tutorial is as follows:
 
@@ -193,14 +193,14 @@ The raw data needs to be preprocessed before used by PaddlePaddle. The preproces
 
 ```python
 # import paddle.v2.dataset.conll05 as conll05
-# conll05.corpus_reader函数完成上面第1步和第2步.
-# conll05.reader_creator函数完成上面第3步到第5步.
-# conll05.test函数可以获取处理之后的每条样本来供PaddlePaddle训练.
+# conll05.corpus_reader does step 1 and 2 as mentioned above.
+# conll05.reader_creator does step 3 to 5.
+# conll05.test gets preprocessed training instances.
 ```
 
-After preprocessing completes, a training sample contains 9 features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, sequence label. Following table is an example of one training sample.
+After preprocessing completes, a training sample contains 9 features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, label sequence. Following table is an example of one training sample.
 
-| word sequence | predicate | predicate context（5 columns） | region mark sequence | label |
+| word sequence | predicate | predicate context（5 columns） | region mark sequence | label sequence|
 |---|---|---|---|---|
 | A | set | n't been set . × | 0 | B-A1 |
 | record | set | n't been set . × | 0 | I-A1 |
@@ -211,7 +211,7 @@ After preprocessing completes, a training sample contains 9 features, namely: wo
 | set | set | n't been set . × | 1 | B-V |
 | . | set | n't been set . × | 1 | O |
 
-In addition to the data, `get_data.sh` also downloads the following resources:
+In addition to the data, we provide following resources:
 
 | filename | explanation |
 |---|---|
@@ -220,7 +220,7 @@ In addition to the data, `get_data.sh` also downloads the following resources:
 | predicate_dict | predicate dictionary, total 3162 predicates |
 | emb | a pre-trained word vector lookup table, 32-dimentional |
 
-We trained in the English Wikipedia language model to get a word vector used to initialize the SRL model. During the SRL model training process, the word vector is no longer updated. About the language model and the word vector can refer to [word vector](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md) tutorial. There are 995,000,000 token in training corpus, and the dictionary size is 4900,000 words. In the CoNLL 2005 training corpus, 5% of the words are not in the 4900,000 words, and we see them all as unknown words, represented by `<unk>`.
+We trained in the English Wikipedia language model to get a word vector lookup table used to initialize the SRL model. During the SRL model training process, the word vector lookup table is no longer updated. About the language model and the word vector lookup table can refer to [word vector](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md) tutorial. There are 995,000,000 token in training corpus, and the dictionary size is 4900,000 words. In the CoNLL 2005 training corpus, 5% of the words are not in the 4900,000 words, and we see them all as unknown words, represented by `<unk>`.
 
 Get dictionary, print dictionary size:
 
@@ -243,7 +243,7 @@ print len(pred_len)
 1. Define input data dimensions and model hyperparameters.
 
 	```python
-	mark_dict_len = 2    # Range of predicate context area. Could be 0 or 1, so range is 2
+	mark_dict_len = 2    # Value range of region mark. Region mark is either 0 or 1, so range is 2
 	word_dim = 32        # word vector dimension
 	mark_dim = 5         # adjacent dimension
 	hidden_dim = 512     # the dimension of LSTM hidden layer vector is 128 (512/4)
@@ -266,10 +266,10 @@ print len(pred_len)
     ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
     ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
     
-    # predicate upper and lower area markers
+    # region marker sequence
     mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
     
-    # sequence label
+    # label sequence
     target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 	```
 	
@@ -304,7 +304,7 @@ print len(pred_len)
     emb_layers.append(mark_embedding)
 	```
 
-3. 8个LSTM units will be trained in "forward / backward" order.
+3. 8 LSTM units will be trained in "forward / backward" order.
 
 	```python  
 	hidden_0 = paddle.layer.mixed(
@@ -328,7 +328,7 @@ print len(pred_len)
         bias_attr=std_0,
         param_attr=lstm_para_attr)
 
-    #stack L-LSTM and R-LSTM with direct edges
+    # stack L-LSTM and R-LSTM with direct edges
     input_tmp = [hidden_0, lstm_0]
 
     for i in range(1, depth):
@@ -354,7 +354,7 @@ print len(pred_len)
         input_tmp = [mix_hidden, lstm]
 	```
 
-4. We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it. We will get the final vector representation.
+4. We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
 
 	```python
     feature_out = paddle.layer.mixed(
@@ -381,7 +381,7 @@ print len(pred_len)
             learning_rate=mix_hidden_lr))
 	```
 
-6.  CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer. Parameter is shared by using same name.
+6.  CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer. Parameter is shared by using the same name.
 
     ```python
     crf_dec = paddle.layer.crf_decoding(
@@ -396,10 +396,9 @@ print len(pred_len)
 
 ### Create Parameters
 
-All parameters that we need will be traced created given output layers that we need to use.
+All necessary parameters will be traced created given output layers that we need to use.
 
 ```python
-# create parameters
 parameters = paddle.parameters.create([crf_cost, crf_dec])
 ```
 
@@ -421,10 +420,9 @@ parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 
 ### Create Trainer
 
-We will create trainer according to model topology, parameters and optimization method. We will use most basic SGD method (special case for momentum optimizer when momentum is 0). In the meantime, we will set learning rate and regularization.
+We will create trainer given model topology, parameters and optimization method. We will use most basic SGD method (momentum optimizer with 0 momentum). In the meantime, we will set learning rate and regularization.
 
 ```python
-# create optimizer
 optimizer = paddle.optimizer.Momentum(
     momentum=0,
     learning_rate=2e-2,
@@ -439,7 +437,7 @@ trainer = paddle.trainer.SGD(cost=crf_cost,
 
 ### Trainer
 
-As mentioned in data preparation section, we will use CoNLL 2005 test corpus as training data set. `conll05.test()` outputs one training instance at a time. It will be shuffled, and batched into mini batches as training input.
+As mentioned in data preparation section, we will use CoNLL 2005 test corpus as training data set. `conll05.test()` outputs one training instance at a time. It will be shuffled, and batched into mini batches as input.
 
 ```python
 reader = paddle.reader.batched(
@@ -463,7 +461,7 @@ reader_dict = {
 }
 ```
 
-`event_handle` can be used as callback for training events, it will be an argument for `train`. We will print cost during training.
+`event_handle` can be used as callback for training events, it will be used as an argument for `train`. Following `event_handle` prints cost during training.
 
 ```python
 def event_handler(event):
