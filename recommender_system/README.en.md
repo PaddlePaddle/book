@@ -4,7 +4,7 @@ The source code of this tutorial is in [book/recommender_system](https://github.
 
 ## Background
 
-With the fast growth of e-commerce, online video, and online reading business, users have to rely on recommender systems to avoid manually browsing tremendous volume of choices.  Recommender systems understand users' interest by mining user behavior and other properties of users and products.
+With the fast growth of e-commerce, online videos, and online reading business, users have to rely on recommender systems to avoid manually browsing tremendous volume of choices.  Recommender systems understand users' interest by mining user behavior and other properties of users and products.
 
 Some well know approaches include:
 
@@ -16,7 +16,7 @@ Some well know approaches include:
 
 Among these options, collaborative filtering might be the most studied one.  Some of its variants include user-based[[3](#reference)], item-based [[4](#reference)], social network based[[5](#reference)], and model-based.
 
-This tutorial explains a deep learning based approach and how to implement it using PaddlePaddle.  We will train a model using a dataset that includes user information, movie information, and rates.  Once we train the model, we will be able to get a predicted rate given a pair of user and movie IDs.
+This tutorial explains a deep learning based approach and how to implement it using PaddlePaddle.  We will train a model using a dataset that includes user information, movie information, and ratings.  Once we train the model, we will be able to get a predicted rating given a pair of user and movie IDs.
 
 
 ## Model Overview
@@ -35,7 +35,7 @@ Figure 1. YouTube recommender system overview.
 
 #### Candidate Generation Network
 
-Youtube poses candiate generation as extreme multiclass classification where the input is a user and related information, and the classification labels are  all (millions of) videos.  The architecture of the model is as follows:
+Youtube models candidate generation as a multiclass classification problem with a huge number of classes equal to the number of videos.  The architecture of the model is as follows:
 
 <p align="center">
 <img src="image/Deep_candidate_generation_model_architecture.en.png" width="70%" ><br/>
@@ -108,4 +108,4 @@ This tutorial goes over traditional approaches in recommender system and a deep 
 7. Covington P, Adams J, Sargin E. [Deep neural networks for youtube recommendations](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45530.pdf)[C]//Proceedings of the 10th ACM Conference on Recommender Systems. ACM, 2016: 191-198.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> was created by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">the PaddlePaddle community</a> and published under <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Common Creative 4.0 License</a>。
