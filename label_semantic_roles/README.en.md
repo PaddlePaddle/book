@@ -1,10 +1,10 @@
 # Semantic Role Labeling
 
-Source code of this chpater is in [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
+Source code of this chapter is in [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
 
 ## Background
 
-Natural Language Analysis contains three components: Lexical Analysis, Syntactic Analysis, and Semantic Analysis. Semantic Role Labelling (SRL) is one way for Shallow Semantic Analysis. A predicate of a sentence is seen as a property that a subject has or is characterized by, such as what it does, what it is or how it is, which mostly corresponds to the core of an event. The noun associated with predicate is called Arugment. Sementic roles express the abstract roles that arguments of a predicate can take in the event, such as Agent, Patient, Theme, Experiencer, Beneficiary, Instrument, Location, Goal and Source etc.
+Natural Language Analysis contains three components: Lexical Analysis, Syntactic Analysis, and Semantic Analysis. Semantic Role Labelling (SRL) is one way for Shallow Semantic Analysis. A predicate of a sentence is seen as a property that a subject has or is characterized by, such as what it does, what it is or how it is, which mostly corresponds to the core of an event. The noun associated with a predicate is called Argument. Semantic roles express the abstract roles that arguments of a predicate can take in the event, such as Agent, Patient, Theme, Experiencer, Beneficiary, Instrument, Location, Goal and Source etc.
 
 In the following example, “遇到” is Predicate (“Pred”)，“小明” is Agent，“小红” is Patient，“昨天” means when the event occurs (Time), and “公园” means where the event occurs (Location).
 
@@ -12,7 +12,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 
 Instead of in-depth analysis on semantic information, the goal of Semantic Role Labeling is to identify the relation of predicate and other constituents, e.g., predicate-argument structure, as specific semantic roles, which is an important intermediate step in a wide range of natural language understanding tasks (Information Extraction, Discourse Analysis, DeepQA etc). Predicates are always assumed to be given, the only thing is to identify arguments and their semantic roles.
 
-Standard SRL system mostly build on top of Syntactic Analysis and contains 5 steps:
+Standard SRL system mostly builds on top of Syntactic Analysis and contains 5 steps:
 
 1. Construct a syntactic parse tree, as shown in Fig. 1
 2. Identity candidate arguments of given predicate from constructed syntactic parse tree.
@@ -36,7 +36,7 @@ Fig 1. Syntactic parse tree
 标点-> WP
 
 
-However, complete syntactic analysis requires to identify the relation among all constitutes and the performance of SRL is sensitive to the precision of syntactic analysis, which make SRL a very challenging task. In order to reduce the complexity and obtain some syntactic structure information, shallow syntactic analysis is proposed. Shallow Syntactic Analysis is also called partial parsing or chunking. Unlike complete syntactic analysis which requires constructing complete parsing tree, Shallow Syntactic Analysis only need to identify some idependent components with relatively simple structure, such as verb phrases (chunk). In order to avoid constructing syntactic tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking based SRL methods, which convert SRL as a sequence tagging problem.  Sequence tagging tasks classify syntactic chunks using BIO representation. For syntactic chunks forming a chunk of type A, the first chunk receives the B-A tag (Begin), the remaining ones receive the tag I-A (Inside), and all chunks outside receive the tag O-A.
+However, complete syntactic analysis requires identifying the relation among all constitutes and the performance of SRL is sensitive to the precision of syntactic analysis, which makes SRL a very challenging task. In order to reduce the complexity and obtain some syntactic structure information, the shallow syntactic analysis is proposed. Shallow Syntactic Analysis is also called partial parsing or chunking. Unlike complete syntactic analysis which requires constructing complete parsing tree, Shallow Syntactic Analysis only need to identify some independent components with relatively simple structure, such as verb phrases (chunk). In order to avoid difficulties in constructing a syntactic tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking based SRL methods, which convert SRL as a sequence tagging problem. Sequence tagging tasks classify syntactic chunks using BIO representation. For syntactic chunks forming a chunk of type A, the first chunk receives the B-A tag (Begin), the remaining ones receive the tag I-A (Inside), and all chunks outside receive the tag O-A.
 
 The BIO representation of above example is shown in Fig.1.
 
@@ -50,23 +50,23 @@ Fig 2. BIO represention
 标注序列-> label sequence
 角色-> role
 
-This example illustrates the simplicity of sequence tagging because (1) shallow syntactic analysis reduces precision requirement of syntactic analysis; (2) pruning candidate arguments is removed; 3) argument identification and tagging are finished at the same time. Such unified methods simplify the precedure, reduce the risk of accumulating errors and boost the performance further.
+This example illustrates the simplicity of sequence tagging because (1) shallow syntactic analysis reduces the precision requirement of syntactic analysis; (2) pruning candidate arguments is removed; 3) argument identification and tagging are finished at the same time. Such unified methods simplify the procedure, reduce the risk of accumulating errors and boost the performance further.
 
 In this tutorial, our SRL system is built as an end-to-end system via neural network. We take only text sequences, without using any syntactic parsing results or complex hand-designed features. We give public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) as an example to illustrate: given a sentence and it's predicates, identify the corresponding arguments and their semantic roles by sequence tagging method.
 
 ## Model
 
-Recurrent Nerual Networks are important tools for sequence modeling and have been successfully used in some natural language processing tasks. Unlike Feed-forward neural netowrks, RNNs can model the dependency between elements of sequences. LSTMs as variants of RNNs aim to model long-term dependency in long sequences. We have introduced this in [understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). In this chapter, we continue to use LSTMs to solve SRL problems.
+Recurrent Neural Networks are important tools for sequence modeling and have been successfully used in some natural language processing tasks. Unlike Feed-forward neural networks, RNNs can model the dependency between elements of sequences. LSTMs as variants of RNNs aim to model long-term dependency in long sequences. We have introduced this in [understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). In this chapter, we continue to use LSTMs to solve SRL problems.
 
 ### Stacked Recurrent Neural Network
 
-Deep Neural Networks allows to extract hierarchical represetations, higher layer can form more abstract/complex representations on top of lower layers. LSTMs when unfolded in time is deep, because a computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. However, the computation carried out at each time-step is only linear transformation, which makes LSTMs a shallow model. Deep LSTMs are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical nerual networks can be much efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
+Deep Neural Networks allows to extract hierarchical representations. Higher layers can form more abstract/complex representations on top of lower layers. LSTMs when unfolded in time is a deep feed-forward neural network, because a computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. However, the computation carried out at each time-step is only linear transformation, which makes LSTMs a shallow model. Deep LSTMs are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be much efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
 
 
-However, deep LSTMs increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. For example, 4 layer LSTMs can be trained properly, but the performance becomes worse as the number of layers up to 4-8. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introduce shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
+However, deep LSTMs increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. For example, 4 layer LSTMs can be trained properly, but the performance becomes worse as the number of layers up to 4-8. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
 
 
-The operation of a single LSTM cell contain 3 parts: (1) input-to-hidden: map input $x$ to the input of forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping); (2) hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs; (3)hidden-to-output: this part typically involves an activation operation on hidden states. Based on the above stacked LSTMs, we add a shortcut connection: take the input-to-hidden from previous layer as a new input and learn another linear transfermation.
+The operation of a single LSTM cell contain 3 parts: (1) input-to-hidden: map input $x$ to the input of forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping); (2) hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs; (3)hidden-to-output: this part typically involves an activation operation on hidden states. Based on the above stacked LSTMs, we add a shortcut connection: take the input-to-hidden from the previous layer as a new input and learn another linear transformation.
 
 Fig.3 illustrate the final stacked recurrent neural networks.
 
@@ -80,7 +80,7 @@ Fig 3. Stacked Recurrent Neural Networks
 
 ### Bidirectional Recurrent Neural Network
 
- LSTMs can summarize the history of previous inputs seen up to now, but can not see the future. In most of natural language processing tasks, the entire sentences are ready to use. Therefore, sequencal learning might be much effecient if the future can be encoded as well like histories.
+LSTMs can summarize the history of previous inputs seen up to now, but can not see the future. In most of natural language processing tasks, the entire sentences are ready to use. Therefore, sequential learning might be much efficient if the future can be encoded as well like histories.
 
 To address the above drawbacks, we can design bidirectional recurrent neural networks by making a minor modification. Higher LSTM layers process the sequence in reversed direction with previous lower LSTM layers, i.e., Deep LSTMs operate from left-to-right, right-to-left, left-to-right,..., in depth. Therefore, LSTM layers at time-step $t$ can see both histories and the future since the second layer. Fig. 4 illustrates the bidirectional recurrent neural networks.
 
@@ -150,7 +150,7 @@ After modification, the model is as follows:
 1. Construct inputs
  - input 1: sentence, input 2: predicate sequence, input 3: predicate context, extract $n$ words before and after predicate and get one-hot representation, input 4: region mark, annotate argument position if it locates in the predicate context region
  - expand input 2~3 as sequences with the same length with input 1
-2. Convert input 1~4 to real-vector sequences via lookup table; input 1 and 3 share the same lookup table, input 2 and 4 have separate lookup tables
+2. Convert input 1~4 to real-vector sequences via lookup table; input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables
 3. Take four real-vector sequences from step 2 as inputs of bidirectional LSTMs; Train LSTMs to update representations
 4. Take representation from step 3 as input of CRF, label sequence as supervision signal, do sequence tagging tasks
 
@@ -170,7 +170,7 @@ Fig 6. DB-LSTM for SRL tasks
 
 ## Data Preparation
 
-In the tutorial, we use[CoNLL 2005](http://www.cs.upc.edu/~srlconll/)SRL task open dataset as an example. Run `sh ./get_data.sh` will automatically download raw data from the official website. It is important to note that the training set and development set of the CoNLL 2005 SRL task are not open for free after the competition. Currently, only the test set can be obtained, including 23 sections of the Wall Street Journal and 3 sections of the Brown corpus. In this tutorial, we use the WSJ corpus as training set to explain the model. However, since the training set is small, if you want to train an usable neural network SRL system, consider paying for the full data corpus.
+In the tutorial, we use[CoNLL 2005](http://www.cs.upc.edu/~srlconll/)SRL task open dataset as an example. Run `sh ./get_data.sh` will automatically download raw data from the official website. It is important to note that the training set and development set of the CoNLL 2005 SRL task are not open for free after the competition. Currently, only the test set can be obtained, including 23 sections of the Wall Street Journal and 3 sections of the Brown corpus. In this tutorial, we use the WSJ corpus as training set to explain the model. However, since the training set is small, if you want to train a usable neural network SRL system, consider paying for the full data corpus.
 
 The original data includes a variety of information such as POS tagging, naming entity recognition, parsing tree, and so on. In this tutorial, we only use the data under the words folder (text sequence) and the props folder (label results) inside test.wsj parent folder. The data directory used in this tutorial is as follows:
 
@@ -354,7 +354,7 @@ print len(pred_len)
         input_tmp = [mix_hidden, lstm]
 	```
 
-4. We will concat the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it. We will get the final vector representation.
+4. We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it. We will get the final vector representation.
 
 	```python
     feature_out = paddle.layer.mixed(
@@ -421,7 +421,7 @@ parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 
 ### Create Trainer
 
-We will create trainer according to model topology, parameters and optimization method. We will use most basic SGD method (special case for momentum optimizer when momentum is 0). In the mean time, we will set learning rate and regularization.
+We will create trainer according to model topology, parameters and optimization method. We will use most basic SGD method (special case for momentum optimizer when momentum is 0). In the meantime, we will set learning rate and regularization.
 
 ```python
 # create optimizer
@@ -439,7 +439,7 @@ trainer = paddle.trainer.SGD(cost=crf_cost,
 
 ### Trainer
 
-As mentioned in data preparation section, we will use CoNLL 2005 test corpus as training data set. `conll05.test()` outputs one training instance at a time. It will be shuffled, and batched into mini batch as training input.
+As mentioned in data preparation section, we will use CoNLL 2005 test corpus as training data set. `conll05.test()` outputs one training instance at a time. It will be shuffled, and batched into mini batches as training input.
 
 ```python
 reader = paddle.reader.batched(
@@ -485,7 +485,7 @@ trainer.train(
 
 ## Conclusion
 
-Semantic Role Labeling is an important intermediate step in a wide range of natural language processing tasks. In this tutorial, we give SRL as an example to introduce how to use PaddlePaddle to do sequence tagging tasks. Proposed models are from our published paper\[[10](#Reference)\]. We only use test data as illustration since train data on CoNLL 2005 dataset is not completely public. We hope to propose an end-to-end neural network model with less dependencies on natural language processing tools, but is comparable, or even better than trandional models. Please check out our paper for more information and discussions.
+Semantic Role Labeling is an important intermediate step in a wide range of natural language processing tasks. In this tutorial, we give SRL as an example to introduce how to use PaddlePaddle to do sequence tagging tasks. Proposed models are from our published paper\[[10](#Reference)\]. We only use test data as an illustration since train data on CoNLL 2005 dataset is not completely public. We hope to propose an end-to-end neural network model with fewer dependencies on natural language processing tools but is comparable, or even better than traditional models. Please check out our paper for more information and discussions.
 
 ## Reference
 1. Sun W, Sui Z, Wang M, et al. [Chinese semantic role labeling with shallow parsing](http://www.aclweb.org/anthology/D09-1#page=1513)[C]//Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 3-Volume 3. Association for Computational Linguistics, 2009: 1475-1483.
