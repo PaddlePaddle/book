@@ -133,25 +133,25 @@ This objective function can be solved via back-propagation in an end-to-end mann
 Given predicates and a sentence, SRL tasks aim to identify arguments of the given predicate and their semantic roles. If a sequence has n predicates, we will process this sequence n times. One model is as follows:
 
 1. Construct inputs;
- - output 1: predicate, output 2: sentence
+ - input 1: predicate, input 2: sentence
  - expand input 1 as a sequence with the same length with input 2 using one-hot representation;
-2. Convert one-hot sequences from step 1 to real-vector sequences via lookup table;
-3. Learn the representation of input sequences by taking real-vector sequences from step 2 as inputs;
+2. Convert one-hot sequences from step 1 to vector sequences via lookup table;
+3. Learn the representation of input sequences by taking vector sequences from step 2 as inputs;
 4. Take representations from step 3 as inputs, label sequence as supervision signal, do sequence tagging tasks
 
 We can try above method. Here, we propose some modifications by introducing two simple but effective features:
 
 - predicate context (ctx-p): A single predicate word can not exactly describe the predicate information, especially when the same words appear more than one times in a sentence. With the expanded context, the ambiguity can be largely eliminated. Thus, we extract $n$ words before and after predicate to construct a window chunk.
 
-- region mark ($m_r$): $m_r = 1$ to denote the argument position if it locates in the predicate context region, or $m_r = 0$ if not.
+- region mark ($m_r$): $m_r = 1$ to denote word in that position locates in the predicate context region, or $m_r = 0$ if not.
 
 After modification, the model is as follows:
 
 1. Construct inputs
- - input 1: sentence, input 2: predicate sequence, input 3: predicate context, extract $n$ words before and after predicate and get one-hot representation, input 4: region mark, annotate argument position if it locates in the predicate context region
+ - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, 1 if word locates in the predicate context region, 0 otherwise.
  - expand input 2~3 as sequences with the same length with input 1
-2. Convert input 1~4 to real-vector sequences via lookup table; input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables
-3. Take four real-vector sequences from step 2 as inputs of bidirectional LSTMs; Train LSTMs to update representations
+2. Convert input 1~4 to vector sequences via lookup table; input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables
+3. Take four vector sequences from step 2 as inputs of bidirectional LSTMs; Train LSTMs to update representations
 4. Take representation from step 3 as input of CRF, label sequence as supervision signal, do sequence tagging tasks
 
 
@@ -198,9 +198,9 @@ The raw data needs to be preprocessed before used by PaddlePaddle. The preproces
 # conll05.test函数可以获取处理之后的每条样本来供PaddlePaddle训练.
 ```
 
-After preprocessing completes, a training sample contains 9 features, namely: word sequence, predicate, predicate context (5 columns), predicate upper and lower area markers, sequence label. Following table is an example of one training sample.
+After preprocessing completes, a training sample contains 9 features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, sequence label. Following table is an example of one training sample.
 
-| word sequence | predicate | predicate context（5 columns） | predicate upper and lower area markers | sequence label | 
+| word sequence | predicate | predicate context（5 columns） | region mark sequence | label |
 |---|---|---|---|---|
 | A | set | n't been set . × | 0 | B-A1 |
 | record | set | n't been set . × | 0 | I-A1 |
@@ -218,7 +218,7 @@ In addition to the data, `get_data.sh` also downloads the following resources:
 | word_dict | dictionary of input sentences, total 44068 words |
 | label_dict | dictionary of labels, total 106 labels |
 | predicate_dict | predicate dictionary, total 3162 predicates |
-| emb | a pre-trained word embedding, 32-dimentional |
+| emb | a pre-trained word vector lookup table, 32-dimentional |
 
 We trained in the English Wikipedia language model to get a word vector used to initialize the SRL model. During the SRL model training process, the word vector is no longer updated. About the language model and the word vector can refer to [word vector](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md) tutorial. There are 995,000,000 token in training corpus, and the dictionary size is 4900,000 words. In the CoNLL 2005 training corpus, 5% of the words are not in the 4900,000 words, and we see them all as unknown words, represented by `<unk>`.
 
@@ -275,12 +275,12 @@ print len(pred_len)
 	
    Speciala note: hidden_dim = 512 means LSTM hidden vector of 128 dimension (512/4). Please refer PaddlePaddle official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
 
-2. The word sequence, predicate, predicate context, and predicate upper and lower area markers are transformed into embedding vector sequences.
+2. The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
 
 	```python   
    
-    # Since embedding is pre-trained, we won't update it this time.
-    # is_static being True prevents updating embedding during training.
+    # Since word vectorlookup table is pre-trained, we won't update it this time.
+    # is_static being True prevents updating the lookup table during training.
     emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
     # hyperparameter configurations
     default_std = 1 / math.sqrt(hidden_dim) / 3.0
@@ -409,7 +409,7 @@ We can print out parameter name. It will be generated if not specified.
 print parameters.keys()
 ```
 
-Now we load pre-trained word embedding.
+Now we load pre-trained word lookup table.
 
 ```python
 def load_parameter(file_name, h, w):
