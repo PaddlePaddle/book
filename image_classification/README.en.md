@@ -38,6 +38,13 @@ A good model should be able to recognize objects of different categories correct
 <p align="center">
 <img src="image/variations.png" width="550" ><br/>
 Figure 3. Disturbed images [22]
+不同视角 ==> various perspective
+不同大小 ==> various sizes
+形变 ==> shape deformation
+遮挡 ==> occlusion
+不同光照 ==> various illumination
+背景干扰 ==> cluttered background
+同类异形 ==> homogeneous
 </p>
 
 ## Model Overview
@@ -67,6 +74,11 @@ Traditional CNNs consist of convolutional and fully-connected layers, and employ
 <p align="center">
 <img src="image/lenet.png"><br/>
 Figure 5. A CNN example [20]
+输入层 ==> input layer
+卷积层 ==> convolutional layer
+特征图 ==> feature maps
+降采样（池化）层 ==> pooling layer
+全连接层 ==> fully-connected layer
 </p>
 
 - convolutional layer: It uses convolution operation to extract low-level and high-level features, and to discover local correlation and spatial invariance.
@@ -103,6 +115,11 @@ Figure 7 depicts two Inception blocks. Figure 7(a) is the simplest design, the o
 <p align="center">
 <img src="image/inception.png" width="800" ><br/>
 Figure 7. Inception block
+输入层 ==> input layer
+卷积层 ==> convolutional layer
+最大池化层 ==> max-pooling layer
+Inception简单模块 ==> Inception module, naive version
+Inception含降维模块 ==> Inception module with dimensionality reduction 
 </p>
 
 GoogleNet consists of multiple stacking Inception blocks followed by an avg-pooling layer as in NIN in place of by traditional fully connected layers. The difference between GoogleNet and NIN is that GoogleNet adds a fully connected layer after avg-pooling layer to output a vector of category size. Besides these two characteristics, the features from middle layers of a GoogleNet are also very discriminative. Therefore, GoogeleNet inserts two auxiliary classifiers in the model for enhancing gradient and regularization when doing backpropagating. The loss function of the whole network is the weighted sum of these three classifiers.
@@ -461,6 +478,10 @@ Figure 12 shows the curve of training error rate, which indicates it converges a
 <p align="center">
 <img src="image/plot.png" width="400" ><br/>
 Figure 12. The error rate of VGG model on CIFAR10
+训练轮数 ==> epoch
+误差 ==> error
+训练误差 ==> training error
+测试误差 ==> test error
 </p>
 
 ## Model Application
