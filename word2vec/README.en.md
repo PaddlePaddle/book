@@ -100,6 +100,15 @@ where $f(w_t, w_{t-1}, ..., w_{t-n+1})$ represents the conditional probability o
    	Figure 2. N-gram neural network model
 </p>
 
+(Translation of words in figure 2: 图2文字翻译
+
+- 输入：Input;
+- 全连接：Fully-Connection Layer
+- 词向量：Word Embedding
+- 词向量连接：Word Embedding Concatenation
+- 分类：Classification
+- 词ID: Word ID)
+
 Figure 2 shows the N-gram neural network model. From the bottom up, the model has the following components:
 
  - For each sample, the model gets input $w_{t-n+1},...w_{t-1}$, and outputs the probability that the t-th word is one of `|V|` in the dictionary.
@@ -131,6 +140,12 @@ CBOW model predicts the current word based on the N words both before and after 
 	Figure 3. CBOW model
 </p>
 
+(Translation of words in figure 3: 图3文字翻译
+
+- 输入词：Input Word
+- 词向量：Word Embedding
+- 输出词：Output Word)
+
 Specifically, by ignoring the order of words in the sequence, CBOW uses the average value of the word embedding of the context to predict the current word:
 
 $$\text{context} = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
@@ -146,6 +161,11 @@ The advantages of CBOW is that it smooths over the word embeddings of the contex
 	Figure 4. Skip-gram model
 </p>
 
+(Translation of words in figure 4: 图4文字翻译
+
+- 输入词：Input Word
+- 词向量：Word Embedding
+- 输出词：Output Word)
 
 As illustrated in the figure above, skip-gram model maps the word embedding of the given word onto $2n$ word embeddings (including $n$ words before and $n$ words after the given word), and then combine the classification loss of all those $2n$ words by softmax. 
 
