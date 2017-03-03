@@ -13,7 +13,7 @@ where $\omega_{d}$ and $b$ are the model parameters we want to estimate. Once th
 ## Results Demonstration
 We first show the training result of our model. We use the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) to train a linear model and predict the house prices in Boston. The figure below shows the predictions the model makes for some house prices. The $X$ coordinate of each point represents the median value of the prices of a certain type of houses, while the $Y$ coordinate represents the predicted value by our linear model. When $X=Y$, the point lies exactly on the dotted line. In other words, the more precise the model predicts, the closer the point is to the dotted line.
 <p align="center">
-	<img src = "image/predictions.png" width=400><br/>
+	<img src = "image/predictions_en.png" width=400><br/>
 	Figure 1. Predicted Value V.S. Actual Value (波士顿房价预测->Prediction of Boston house prices; 预测价格->Predicted prices; 单位->Units; 实际价格->Actual prices)
 </p>
 
@@ -85,7 +85,7 @@ There are at least three reasons for [Feature Normalization](https://en.wikipedi
 - Many Machine Learning techniques or models (e.g., L1/L2 regularization and Vector Space Model) are based on the assumption that all the features have roughly zero means and their value ranges are similar.
 
 <p align="center">
-	<img src = "image/ranges.png" width=550><br/>
+	<img src = "image/ranges_en.png" width=550><br/>
 	Figure 2. The value ranges of the features (特征尺度->Feature value range)
 </p>
 
