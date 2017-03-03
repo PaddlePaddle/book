@@ -113,17 +113,10 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 更详细的介绍请参考[维基百科激活函数](https://en.wikipedia.org/wiki/Activation_function)。
 
-## 数据准备
+## 数据介绍
 
-### 数据介绍与下载
+PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mnist/)数据的模块`paddle.dataset.mnist`。加载后的数据位于`/home/username/.cache/paddle/dataset/mnist`下：
 
-执行以下命令，下载[MNIST](http://yann.lecun.com/exdb/mnist/)数据库并解压缩，然后将训练集和测试集的地址分别写入train.list和test.list两个文件，供PaddlePaddle读取。
-
-```bash
-./data/get_mnist_data.sh
-```
-
-将下载下来的数据进行 `gzip` 解压，可以在文件夹 `data/raw_data` 中找到以下文件：
 
 |    文件名称          |       说明              |
 |----------------------|-------------------------|
@@ -132,284 +125,176 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 |t10k-images-idx3-ubyte |  测试数据图片，10,000条数据 |
 |t10k-labels-idx1-ubyte |  测试数据标签，10,000条数据 |
 
-用户可以通过以下脚本随机绘制10张图片（可参考图1）：
+## 配置说明
 
-```bash
-./load_data.py
-```
-
-### 提供数据给PaddlePaddle
-
-我们使用python接口传递数据给系统，下面 `mnist_provider.py`针对MNIST数据给出了完整示例。
+首先，加载PaddlePaddle的V2 api包。
 
 ```python
-# Define a py data provider
-@provider(
-    input_types={'pixel': dense_vector(28 * 28),
-                 'label': integer_value(10)})
-def process(settings, filename):  # settings is not used currently.
-		# 打开图片文件
-    with open( filename + "-images-idx3-ubyte", "rb") as f:             
-		# 读取开头的四个参数，magic代表数据的格式，n代表数据的总量，rows和cols分别代表行数和列数
-        magic, n, rows, cols = struct.upack(">IIII", f.read(16))        
-		# 以无符号字节为单位一个一个的读取数据
-        images = np.fromfile(                                           
-            f, 'ubyte',
-            count=n * rows * cols).reshape(n, rows, cols).astype('float32')
-		# 将0~255的数据归一化到[-1,1]的区间
-        images = images / 255.0 * 2.0 - 1.0                             
-
-
-		# 打开标签文件
-    with open( filename + "-labels-idx1-ubyte", "rb") as l:             
-		# 读取开头的两个参数
-        magic, n = struct.upack(">II", l.read(8))                       
-		# 以无符号字节为单位一个一个的读取数据
-        labels = np.fromfile(l, 'ubyte', count=n).astype("int")         
-
-    for i in xrange(n):
-        yield {"pixel": images[i, :], 'label': labels[i]}
+import paddle.v2 as paddle
 ```
+其次，定义三个不同的分类器：
 
-
-## 模型配置说明
-
-### 数据定义
-
-在模型配置中，定义通过 `define_py_data_sources2` 函数从 `dataprovider` 中读入数据。如果该配置用于预测，则不需要数据定义部分。
-
-```python
- if not is_predict:
-     data_dir = './data/'
-     define_py_data_sources2(
-         train_list=data_dir + 'train.list',
-         test_list=data_dir + 'test.list',
-         module='mnist_provider',
-         obj='process')
-```
-
-### 算法配置
-
-指定训练相关的参数。
-
-- batch_size： 表示神经网络每次训练使用的数据为128条。
-- 训练速度（learning_rate）： 迭代的速度，与网络的训练收敛速度有关系。
-- 训练方法（learning_method）： 代表训练过程在更新权重时采用动量优化器 `MomentumOptimizer` ，其中参数0.9代表动量优化每次保持前一次速度的0.9倍。
-- 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
-
-```python
-settings(
-    batch_size=128,
-    learning_rate=0.1 / 128.0,
-    learning_method=MomentumOptimizer(0.9),
-    regularization=L2Regularization(0.0005 * 128))
-```
-
-### 模型结构
-
-#### 整体结构
-
-首先通过`data_layer`调用来获取数据，然后调用分类器（这里我们提供了三个不同的分类器）得到分类结果。训练时，对该结果计算其损失函数，分类问题常常选择交叉熵损失函数；而预测时直接输出该结果即可。
-
-``` python
-data_size = 1 * 28 * 28
-label_size = 10
-img = data_layer(name='pixel', size=data_size)
-
-predict = softmax_regression(img) # Softmax回归
-#predict = multilayer_perceptron(img) #多层感知器
-#predict = convolutional_neural_network(img) #LeNet5卷积神经网络
- 
-if not is_predict:
-    lbl = data_layer(name="label", size=label_size)
-    inputs(img, lbl)
-    outputs(classification_cost(input=predict, label=lbl))
-else:
-    outputs(predict)
-```
-
-#### Softmax回归
-
-只通过一层简单的以softmax为激活函数的全连接层，就可以得到分类的结果。
+- Softmax回归：只通过一层简单的以softmax为激活函数的全连接层，就可以得到分类的结果。
 
 ```python
 def softmax_regression(img):
-    predict = fc_layer(input=img, size=10, act=SoftmaxActivation())
+    predict = paddle.layer.fc(input=img,
+                              size=10,
+                              act=paddle.activation.Softmax())
     return predict
 ```
-
-#### 多层感知器
-
-下面代码实现了一个含有两个隐藏层（即全连接层）的多层感知器。其中两个隐藏层的激活函数均采用ReLU，输出层的激活函数用Softmax。
+- 多层感知器：下面代码实现了一个含有两个隐藏层（即全连接层）的多层感知器。其中两个隐藏层的激活函数均采用ReLU，输出层的激活函数用Softmax。
 
 ```python
 def multilayer_perceptron(img):
     # 第一个全连接层，激活函数为ReLU
-    hidden1 = fc_layer(input=img, size=128, act=ReluActivation())
+    hidden1 = paddle.layer.fc(input=img, size=128, act=paddle.activation.Relu())
     # 第二个全连接层，激活函数为ReLU
-    hidden2 = fc_layer(input=hidden1, size=64, act=ReluActivation())
+    hidden2 = paddle.layer.fc(input=hidden1,
+                              size=64,
+                              act=paddle.activation.Relu())
     # 以softmax为激活函数的全连接输出层，输出层的大小必须为数字的个数10
-    predict = fc_layer(input=hidden2, size=10, act=SoftmaxActivation())
+    predict = paddle.layer.fc(input=hidden2,
+                              size=10,
+                              act=paddle.activation.Softmax())
     return predict
 ```
-
-#### 卷积神经网络LeNet-5 
-
-以下为LeNet-5的网络结构：输入的二维图像，首先经过两次卷积层到池化层，再经过全连接层，最后使用以softmax为激活函数的全连接层作为输出层。
+- 卷积神经网络LeNet-5: 输入的二维图像，首先经过两次卷积层到池化层，再经过全连接层，最后使用以softmax为激活函数的全连接层作为输出层。
 
 ```python
 def convolutional_neural_network(img):
     # 第一个卷积-池化层
-    conv_pool_1 = simple_img_conv_pool(
+    conv_pool_1 = paddle.networks.simple_img_conv_pool(
         input=img,
         filter_size=5,
         num_filters=20,
         num_channel=1,
         pool_size=2,
         pool_stride=2,
-        act=TanhActivation())
+        act=paddle.activation.Tanh())
     # 第二个卷积-池化层
-    conv_pool_2 = simple_img_conv_pool(
+    conv_pool_2 = paddle.networks.simple_img_conv_pool(
         input=conv_pool_1,
         filter_size=5,
         num_filters=50,
         num_channel=20,
         pool_size=2,
         pool_stride=2,
-        act=TanhActivation())
+        act=paddle.activation.Tanh())
     # 全连接层
-    fc1 = fc_layer(input=conv_pool_2, size=128, act=TanhActivation())
+    fc1 = paddle.layer.fc(input=conv_pool_2,
+                          size=128,
+                          act=paddle.activation.Tanh())
     # 以softmax为激活函数的全连接输出层，输出层的大小必须为数字的个数10
-    predict = fc_layer(input=fc1, size=10, act=SoftmaxActivation())
+    predict = paddle.layer.fc(input=fc1,
+                              size=10,
+                              act=paddle.activation.Softmax())
     return predict
 ```
 
-## 训练模型
+接着，通过`layer.data`调用来获取数据，然后调用分类器（这里我们提供了三个不同的分类器）得到分类结果。训练时，对该结果计算其损失函数，分类问题常常选择交叉熵损失函数。
 
-### 训练命令及日志
+```python
+def main():
+    # 该模型运行在单个CPU上
+    paddle.init(use_gpu=False, trainer_count=1)
 
-1.通过配置训练脚本 `train.sh` 来执行训练过程：
+    images = paddle.layer.data(
+        name='pixel', type=paddle.data_type.dense_vector(784))
+    label = paddle.layer.data(
+        name='label', type=paddle.data_type.integer_value(10))
 
-```bash
-config=mnist_model.py                   # 在mnist_model.py中可以选择网络
-output=./softmax_mnist_model            
-log=softmax_train.log                   
+    predict = softmax_regression(images) # Softmax回归
+    #predict = multilayer_perceptron(images) #多层感知器
+    #predict = convolutional_neural_network(images) #LeNet5卷积神经网络
 
-paddle train \
---config=$config \                      # 网络配置的脚本
---dot_period=10 \                       # 每训练 `dot_period` 个批次后打印一个 `.`
---log_period=100 \						# 每隔多少batch打印一次日志
---test_all_data_in_one_period=1 \		# 每次测试是否用所有的数据
---use_gpu=0 \							# 是否使用GPU
---trainer_count=1 \						# 使用CPU或GPU的个数
---num_passes=100 \						# 训练进行的轮数（每次训练使用完所有数据为1轮）
---save_dir=$output \					# 模型存储的位置
-2>&1 | tee $log
-
-python -m paddle.utils.plotcurve -i $log > plot.png
+    cost = paddle.layer.classification_cost(input=predict, label=label)
 ```
 
-配置好参数之后，执行脚本 `./train.sh` 训练日志类似如下所示：
+然后，指定训练相关的参数。
+- 训练方法（optimizer)： 代表训练过程在更新权重时采用动量优化器 `Momentum` ，其中参数0.9代表动量优化每次保持前一次速度的0.9倍。
+- 训练速度（learning_rate）： 迭代的速度，与网络的训练收敛速度有关系。
+- 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
 
-```
-I0117 12:52:29.628617  4538 TrainerInternal.cpp:165]  Batch=100 samples=12800 AvgCost=2.63996 CurrentCost=2.63996 Eval: classification_error_evaluator=0.241172  CurrentEval: classification_error_evaluator=0.241172 
-.........
-I0117 12:52:29.768741  4538 TrainerInternal.cpp:165]  Batch=200 samples=25600 AvgCost=1.74027 CurrentCost=0.840582 Eval: classification_error_evaluator=0.185234  CurrentEval: classification_error_evaluator=0.129297 
-.........
-I0117 12:52:29.916970  4538 TrainerInternal.cpp:165]  Batch=300 samples=38400 AvgCost=1.42119 CurrentCost=0.783026 Eval: classification_error_evaluator=0.167786  CurrentEval: classification_error_evaluator=0.132891 
-.........
-I0117 12:52:30.061213  4538 TrainerInternal.cpp:165]  Batch=400 samples=51200 AvgCost=1.23965 CurrentCost=0.695054 Eval: classification_error_evaluator=0.160039  CurrentEval: classification_error_evaluator=0.136797 
-......I0117 12:52:30.223270  4538 TrainerInternal.cpp:181]  Pass=0 Batch=469 samples=60000 AvgCost=1.1628 Eval: classification_error_evaluator=0.156233 
-I0117 12:52:30.366894  4538 Tester.cpp:109]  Test samples=10000 cost=0.50777 Eval: classification_error_evaluator=0.0978 
-```
+```python
+    parameters = paddle.parameters.create(cost)
 
-2.用脚本 `plot_cost.py` 可以画出训练过程中的误差变化曲线：
+    optimizer = paddle.optimizer.Momentum(
+        learning_rate=0.1 / 128.0,
+        momentum=0.9,
+        regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
 
-```bash
-python plot_cost.py softmax_train.log            
+    trainer = paddle.trainer.SGD(cost=cost,
+                                 parameters=parameters,
+                                 update_equation=optimizer)
 ```
 
-3.用脚本 `evaluate.py ` 可以选出最佳训练的模型：
+下一步，我们开始训练过程。`paddle.dataset.movielens.train()`和`paddle.dataset.movielens.test()`分别做训练和测试数据集，每次训练使用的数据为128条。
 
-```bash
-python evaluate.py softmax_train.log
+```python
+    lists = []
+
+    def event_handler(event):
+        if isinstance(event, paddle.event.EndIteration):
+            if event.batch_id % 100 == 0:
+                print "Pass %d, Batch %d, Cost %f, %s" % (
+                    event.pass_id, event.batch_id, event.cost, event.metrics)
+        if isinstance(event, paddle.event.EndPass):
+            result = trainer.test(reader=paddle.reader.batched(
+                paddle.dataset.mnist.test(), batch_size=128))
+            print "Test with Pass %d, Cost %f, %s\n" % (
+                event.pass_id, result.cost, result.metrics)
+            lists.append((event.pass_id, result.cost,
+                          result.metrics['classification_error_evaluator']))
+
+    trainer.train(
+        reader=paddle.reader.batched(
+            paddle.reader.shuffle(
+                paddle.dataset.mnist.train(), buf_size=8192),
+            batch_size=128),
+        event_handler=event_handler,
+        num_passes=100)
 ```
 
-### softmax回归的训练结果
+训练过程是完全自动的，event_handler里打印的日志类似如下所示：
 
-<p align="center">
-<img src="image/softmax_train_log.png" width="400px"><br/>
-图7. softmax回归的误差曲线图<br/>
-</p>
-
-评估模型结果如下：
-
-```text
-Best pass is 00013, testing Avgcost is 0.484447
-The classification accuracy is 90.01%
+```python
+    # Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
+    # Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
+    # Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
+    # Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
+    # Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
+    # Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
 ```
 
-从评估结果可以看到，softmax回归模型分类效果最好的时候是pass-00013，分类准确率为90.01%，而最终的pass-00099的准确率为89.3%。从图7中也可以看出，最好的准确率不一定出现在最后一个pass。原因是中间的Pass可能就已经收敛获得局部最优值，后面的Pass只是在该值附近震荡，或者获得更低的局部最优值。
+最后，选出最佳模型，并评估其效果。
 
-### 多层感知器的训练结果
+```python
+    # find the best pass
+    best = sorted(lists, key=lambda list: float(list[1]))[0]
+    print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
+    print 'The classification accuracy is %.2f%%' % (100 - float(best[2]) * 100)
+```
+- softmax回归模型：分类效果最好的时候是pass-34，分类准确率为92.34%。
 
-<p align="center">
-<img src="image/mlp_train_log.png" width="400px"><br/>
-图8. 多层感知器的误差曲线图
-</p>
-
-评估模型结果如下：
-
-```text
-Best pass is 00085, testing Avgcost is 0.164746
-The classification accuracy is 94.95%
+```python
+    # Best pass is 34, testing Avgcost is 0.275004139346
+    # The classification accuracy is 92.34%
 ```
 
-从评估结果可以看到，最终训练的准确率为94.95%，相比于softmax回归模型有了显著的提升。原因是softmax回归模型较为简单，无法拟合更为复杂的数据，而加入了隐藏层之后的多层感知器则具有更强的拟合能力。
+- 多层感知器：最终训练的准确率为97.66%，相比于softmax回归模型有了显著的提升。原因是softmax回归模型较为简单，无法拟合更为复杂的数据，而加入了隐藏层之后的多层感知器则具有更强的拟合能力。
 
-### 卷积神经网络的训练结果
-
-<p align="center">
-<img src="image/cnn_train_log.png" width="400px"><br/>
-图9. 卷积神经网络的误差曲线图
-</p>
-
-评估模型结果如下：
-
-```text
-Best pass is 00076, testing Avgcost is 0.0244684
-The classification accuracy is 99.20%
+```python
+    # Best pass is 85, testing Avgcost is 0.0784368447196
+    # The classification accuracy is 97.66%
 ```
 
-从评估结果可以看到，卷积神经网络的最好分类准确率达到惊人的99.20%。说明对于图像问题而言，卷积神经网络能够比一般的全连接网络达到更好的识别效果，而这与卷积层具有局部连接和共享权重的特性是分不开的。同时，从图9中可以看到，卷积神经网络在很早的时候就能达到很好的效果，说明其收敛速度非常快。
+- 卷积神经网络：最好分类准确率达到惊人的99.20%。说明对于图像问题而言，卷积神经网络能够比一般的全连接网络达到更好的识别效果，而这与卷积层具有局部连接和共享权重的特性是分不开的。同时，从训练日志中可以看到，卷积神经网络在很早的时候就能达到很好的效果，说明其收敛速度非常快。
 
-## 应用模型
-
-### 预测命令与结果
-脚本  `predict.py` 可以对训练好的模型进行预测，例如softmax回归中：
-
-```bash
-python predict.py -c mnist_model.py -d data/raw_data/ -m softmax_mnist_model/pass-00047
+```python
+    # Best pass is 76, testing Avgcost is 0.0244684
+    # The classification accuracy is 99.20%
 ```
-
-- -c 指定模型的结构
-- -d 指定需要预测的数据源，这里用测试数据集进行预测
-- -m 指定模型的参数，这里用之前训练效果最好的模型进行预测
-
-根据提示，输入需要预测的图片序号，分类器能够给出各个数字的生成概率、预测的结果（取最大生成概率对应的数字）和实际的标签。
-
-```
-Input image_id [0~9999]: 3
-Predicted probability of each digit:
-[[  1.00000000e+00   1.60381094e-28   1.60381094e-28   1.60381094e-28
-    1.60381094e-28   1.60381094e-28   1.60381094e-28   1.60381094e-28
-    1.60381094e-28   1.60381094e-28]]
-Predict Number: 0 
-Actual Number: 0
-```
-
-从结果看出，该分类器接近100%地认为第3张图片上面的数字为0，而实际标签给出的类也确实如此。
-
 
 ## 总结
 
