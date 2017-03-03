@@ -14,8 +14,8 @@ To address the problems mentioned above, statistical machine translation techniq
 The recent development of deep learning provides new solutions to those challenges. There are mainly two categories for deep learning based machine translation techniques: 1) techniques based on the statistical machine translation system but with some key components improved with neural networks, e.g., language model, reordering model (please refer to the left part of Figure 1); 2) techniques mapping from source language to target language directly using neural network, or end-to-end neural machine translation (NMT).
 
 <p align="center">
-<img src="image/nmt.png" width=400><br/>
-Figure 1. Neural Network based Machine Translation (Words in Figure: 源语言: Source Language; 目标语言: Target Language; 统计机器翻译: Statistical Machine Translation; 神经网络: Neural Network)
+<img src="image/nmt_en.png" width=400><br/>
+Figure 1. Neural Network based Machine Translation.
 </p>
 
 
@@ -50,8 +50,8 @@ GRU\[[2](#References)\] proposed by Cho et al is a simplified LSTM and an extens
 - update gate: it combines input gate and forget gate, and is used to control the impact of historical information on the hidden output. The historical information will be passes over when the update gate is close to 1.
 
 <p align="center">
-<img src="image/gru.png" width=700><br/>
-Figure 2. GRU (更新门: Update Gate; 重置门: Reset Gate; 节点状态: Node State; 输出: Output)
+<img src="image/gru_en.png" width=700><br/>
+Figure 2. A GRU Gate.
 </p>
 
 Generally speaking, sequences with short distance dependency will have active reset gate while sequences with long distance dependency will have active update date.
@@ -64,8 +64,8 @@ We have already introduce one instance of bi-directional RNN in the Chapter of [
 Specifically, this bi-directional RNN processes the input sequence in the original and reverse order respectively, and then concatenates the output feature vectors at each time step as the final output, thus the output node at each time step contains information from the past and future as context. The figure below shows an unrolled bi-directional RNN. This network contains a forward RNN and backward RNN with six weight matrices: weight matrices from input to forward hidden layer and backward hidden ($W_1, W_3$), weight matrices from hidden to itself ($W_2, W_5$), matrices from forward hidden and backward hidden to output layer ($W_4, W_6$). Note that there is no connections between forward hidden and backward hidden layers.
 
 <p align="center">
-<img src="image/bi_rnn.png" width=450><br/>
-Figure 3. Temporally unrolled bi-directional RNN (输出层: Output Layer; 后向隐层: Backward Hidden Layer; 前向隐层: Forward Hidden Layer; 输入层: Input Layer)
+<img src="image/bi_rnn_en.png" width=450><br/>
+Figure 3. Temporally unrolled bi-directional RNN.
 </p>
 
 ### Encoder-Decoder Framework
@@ -73,9 +73,8 @@ Figure 3. Temporally unrolled bi-directional RNN (输出层: Output Layer; 后�
 Encoder-Decoder\[[2](#References)\] framework aims to solve the mapping of a sequence to another sequence, where both sequences can have arbitrary lengths. The source sequence is encoded into a vector via encoder, which is then decoded to a target sequence via a decoder by maximizing the predictive probability. Both encoder and decoder are typically implemented via RNN.
 
 <p align="center">
-<img src="image/encoder_decoder.png" width=700><br/>
-Figure 4. Encoder-Decoder Framework (源语言词序列: Word Sequence for the Source Language; 源语编码状态: Word Embedding Sequence for the Source Language;  独热编码: One-hot Encoding; 词向量: Word Embedding;  隐层状态: Hidden State; 词概率: Word Probability; 词样本: Word Sample; 编码器: Encoder; 解码器: Decoder.)
-**Note: there is an error in the original figure. The locations for 源语言词序列 and 源语编码状态 should be switched.**
+<img src="image/encoder_decoder_en.png" width=700><br/>
+Figure 4. Encoder-Decoder Framework.
 </p>
 
 #### Encoder
@@ -91,8 +90,8 @@ There are three steps for encoding a sentence:
 Bi-directional RNN can also be used in step 3 for more complicated sentence encoding. This can be implemeted using bi-directional GRU. Forward GRU performs encoding of the source sequence acooding to the its original order, i.e., $(x_1,x_2,...,x_T)$, generating a sequence of hidden states $(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$. Similarily, backward GRU encodes the source sequence in the reserse order, i.e., $(x_T,x_{T-1},...,x_1), generating $(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$. Then for each word $x_i$, its complete hidden state is the concatenation of the corresponding hidden states from the two GRUs, i.e., $h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T}$.
 
 <p align="center">
-<img src="image/encoder_attention.png" width=500><br/>
-Figure 5. Encoder using bi-directional GRU (源语编码状态: Word Embedding Sequence for the Source Language; 词向量: Word Embedding; 独热编码: One-hot Encoding; 编码器: Encoder)
+<img src="image/encoder_attention_en.png" width=500><br/>
+Figure 5. Encoder using bi-directional GRU.
 </p>
 
 #### Decoder
@@ -137,8 +136,8 @@ e_{ij}&=align(z_i,h_j)\\\\
 where $align$ is an alignment model, measuring the fitness between the $i$-th word in the target language sentence and the $j$-th word in the source sentence. More concretely, the fitness is computed with the $i$-th hidden state $z_i$ of the decoder RNN and the $j$-th context vector $h_j$ of the source sentence. Hard alignment is used in the conventional alignment model, meaning each word in the target language explicitly corresponds to one or more words from the target language sentence. In attention model, soft alignment is used, where any word in source sentence is related to any word in the target language sentence, where the strength of the relation is a real number computed via the model, thus can be incorporated into the NMT framework and can be trained via back-propagation.
 
 <p align="center">
-<img src="image/decoder_attention.png" width=500><br/>
-Figure 6. Decoder with Attention Mechanism ( 源语编码状态: Word Embedding Sequence for the Source Language; 权重: Attention Weight;  隐层状态: Hidden State; 词概率: Word Probability; 词样本: Word Sample; 解码器: Decoder.)
+<img src="image/decoder_attention_en.png" width=500><br/>
+Figure 6. Decoder with Attention Mechanism.
 </p>
 
 ### Beam Search Algorithm

@@ -36,15 +36,8 @@ Figure 2. Fine-grained image classification
 A good model should be able to recognize objects of different categories correctly, and meanwhile can correctly classify images taken from different points of view, under different illuminations, with object distortion or partial occlusion (we call these image disturbance). Figure 3 show some images with various disturbance. A good model should be able to classify these images correctly like humans.
 
 <p align="center">
-<img src="image/variations.png" width="550" ><br/>
+<img src="image/variations_en.png" width="550" ><br/>
 Figure 3. Disturbed images [22]
-不同视角 ==> various perspective
-不同大小 ==> various sizes
-形变 ==> shape deformation
-遮挡 ==> occlusion
-不同光照 ==> various illumination
-背景干扰 ==> cluttered background
-同类异形 ==> homogeneous
 </p>
 
 ## Model Overview
@@ -72,13 +65,8 @@ Figure 4. Top-5 error rates on ILSVRC image classification
 Traditional CNNs consist of convolutional and fully-connected layers, and employ softmax multi-category classifier and cross-entropy as loss function. Figure 5 shows a typical CNN. We first introduce the common parts of a CNN.
 
 <p align="center">
-<img src="image/lenet.png"><br/>
+<img src="image/lenet_en.png"><br/>
 Figure 5. A CNN example [20]
-输入层 ==> input layer
-卷积层 ==> convolutional layer
-特征图 ==> feature maps
-降采样（池化）层 ==> pooling layer
-全连接层 ==> fully-connected layer
 </p>
 
 - convolutional layer: It uses convolution operation to extract low-level and high-level features, and to discover local correlation and spatial invariance.
@@ -113,13 +101,8 @@ NIN model has two main characteristics: 1) it replaces the single-layer convolut
 Figure 7 depicts two Inception blocks. Figure 7(a) is the simplest design, the output of which is a concat of features from three convolutional layers and one pooling layer. The disadvantage of this design is that the pooling layer does not change the number of filters and leads to an increase of outputs. After going through several of such blocks, the number of outputs and parameters will become larger and larger, leading to higher computation complexity. To overcome this drawback, the Inception block in Figure 7(b) employs three 1x1 convolutional layers to reduce dimension or the number of channels, meanwhile improves non-linearity of the network.
 
 <p align="center">
-<img src="image/inception.png" width="800" ><br/>
+<img src="image/inception_en.png" width="800" ><br/>
 Figure 7. Inception block
-输入层 ==> input layer
-卷积层 ==> convolutional layer
-最大池化层 ==> max-pooling layer
-Inception简单模块 ==> Inception module, naive version
-Inception含降维模块 ==> Inception module with dimensionality reduction 
 </p>
 
 GoogleNet consists of multiple stacking Inception blocks followed by an avg-pooling layer as in NIN in place of by traditional fully connected layers. The difference between GoogleNet and NIN is that GoogleNet adds a fully connected layer after avg-pooling layer to output a vector of category size. Besides these two characteristics, the features from middle layers of a GoogleNet are also very discriminative. Therefore, GoogeleNet inserts two auxiliary classifiers in the model for enhancing gradient and regularization when doing backpropagating. The loss function of the whole network is the weighted sum of these three classifiers.
@@ -476,12 +459,8 @@ Tester.cpp:115]  Test samples=10000 cost=1.99246 Eval: classification_error_eval
 Figure 12 shows the curve of training error rate, which indicates it converges at Pass 200 with error rate 8.54%.
 
 <p align="center">
-<img src="image/plot.png" width="400" ><br/>
+<img src="image/plot_en.png" width="400" ><br/>
 Figure 12. The error rate of VGG model on CIFAR10
-训练轮数 ==> epoch
-误差 ==> error
-训练误差 ==> training error
-测试误差 ==> test error
 </p>
 
 ## Model Application

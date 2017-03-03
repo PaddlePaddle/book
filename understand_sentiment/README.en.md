@@ -32,10 +32,10 @@ CNN mainly contains convolution and pooling operation, with various extensions. 
 
 
 <p align="center">
-<img src="image/text_cnn.png" width = "80%" align="center"/><br/>
+<img src="image/text_cnn_en.png" width = "80%" align="center"/><br/>
 Figure 1. CNN for text modeling. 
-将一句话表示为矩阵 -> represent a sentence as a $n\times k$ matrix; 使用不同大小的卷积层 -> apply convolution of different kernel sizes; 时间维最大池化 -> max-pooling across temporal channel; 全连接层 -> fully-connected layer.
 </p>
+
 Assuming the length of the sentence is $n$, where the $i$-th word has embedding as $x_i\in\mathbb{R}^k$，where $k$ is the embedding dimensionality. 
 
 First, we concatenate the words together: we piece every $h$ words as a window of length $h$: $x_{i:i+h-1}$. It refers to $x_{i},x_{i+1},\ldots,x_{i+h-1}$, where $i$ is the first word in the window, ranging from $1$ to $n-h+1$: $x_{i:i+h-1}\in\mathbb{R}^{hk}$.
@@ -87,10 +87,12 @@ h_t & = o_t\odot tanh(c_t)\\\\
 \end{align}
 
 In the equation，$i_t, f_t, c_t, o_t$ stand for input gate, forget gate, memory cell and output gate separately; $W$ and $b$ are model parameters. The $tanh$ is a hyperbolic tangent， and $\odot$ denotes an element-wise product operation. Input gate controls the magnitude of new input into the memory cell $c$; forget gate controls memory propagated from the last time step; output gate controls output magnitude. The three gates are computed similarly with different parameters, and they influence memory cell $c$ separately, as shown in Figure 3:
+
 <p align="center">
-<img src="image/lstm.png" width = "65%" align="center"/><br/>
-Figure 3. LSTM at time step $t$ [7]. 输入门 -> input gate, 记忆单元 -> memory cell, 遗忘门 -> forget gate, 输出门 -> output gate.
+<img src="image/lstm_en.png" width = "65%" align="center"/><br/>
+Figure 3. LSTM at time step $t$ [7].
 </p>
+
 LSTM enhances the ability of considering long-term reliance, with the help of memory cell and gate. Similar structures are also proposed in Gated Recurrent Unit (GRU)\[[8](Reference)\] with simpler design. **The structures are still similar to RNN, though with some modifications (As shown in Figure 2), i.e., latent status depends on input as well as the latent status of last time-step, and the process goes on recurrently until all input are consumed:**
 
 $$ h_t=Recrurent(x_t,h_{t-1})$$
@@ -102,8 +104,8 @@ For vanilla LSTM, $h_t$ contains input information from previous time-step $1..t
 As shown in Figure 4 (3-layer RNN), odd/even layers are forward/reverse LSTM. Higher layers of LSTM take lower-layers LSTM as input, and the top-layer LSTM produces a fixed length vector by max-pooling (this representation considers contexts from previous and successive words for higher-level abstractions). Finally, we concatenate the output to a softmax layer for classification.
 
 <p align="center">
-<img src="image/stacked_lstm.jpg" width=450><br/>
-Figure 4. Stacked Bidirectional LSTM for NLP modeling. 词向量映射 -> word embedding mapping; 全连接层 -> fully-connected layer; 反向LSTM -> reverse-directional LSTM; 池化层 -> pooling layer.
+<img src="image/stacked_lstm_en.png" width=450><br/>
+Figure 4. Stacked Bidirectional LSTM for NLP modeling.
 </p>
 
 ## Data Preparation
@@ -336,6 +338,7 @@ outputs(classification_cost(input=output, label=data_layer('label', 1)))
 ```
 
 Our model defined in `trainer_config.py` uses the `stacked_lstm_net` structure as default. If you want to use `convolution_net`, you can comment related lines.
+
 ```python
 stacked_lstm_net(
 dict_dim, class_dim=class_dim, stacked_num=3, is_predict=is_predict)
