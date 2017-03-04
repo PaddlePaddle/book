@@ -3,3 +3,5 @@ data/*.list
 *.pyc
 data/*.pyc
 output
+*.un~
+*.tar.gz
