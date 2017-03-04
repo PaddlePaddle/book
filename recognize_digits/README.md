@@ -271,34 +271,7 @@ def main():
     # Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
 ```
 
-训练之后，我们可以选出最佳模型，并评估其效果。
-
-```
-    # find the best pass
-    best = sorted(lists, key=lambda list: float(list[1]))[0]
-    print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
-    print 'The classification accuracy is %.2f%%' % (100 - float(best[2]) * 100)
-```
-- softmax回归模型：分类效果最好的时候是pass-34，分类准确率为92.34%。
-
-```
-    # Best pass is 34, testing Avgcost is 0.275004139346
-    # The classification accuracy is 92.34%
-```
-
-- 多层感知器：最终训练的准确率为97.66%，相比于softmax回归模型有了显著的提升。原因是softmax回归模型较为简单，无法拟合更为复杂的数据，而加入了隐藏层之后的多层感知器则具有更强的拟合能力。
-
-```
-    # Best pass is 85, testing Avgcost is 0.0784368447196
-    # The classification accuracy is 97.66%
-```
-
-- 卷积神经网络：最好分类准确率达到惊人的99.20%。说明对于图像问题而言，卷积神经网络能够比一般的全连接网络达到更好的识别效果，而这与卷积层具有局部连接和共享权重的特性是分不开的。同时，从训练日志中可以看到，卷积神经网络在很早的时候就能达到很好的效果，说明其收敛速度非常快。
-
-```
-    # Best pass is 76, testing Avgcost is 0.0244684
-    # The classification accuracy is 99.20%
-```
+训练之后，检查模型的预测准确度。用 MNIST 训练的时候，一般 softmax回归模型的分类准确率为约为 92.34%，多层感知器为97.66%，卷积神经网络可以达到 99.20%。
 
 ## 总结
 

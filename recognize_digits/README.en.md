@@ -136,7 +136,7 @@ import paddle.v2 as paddle
 
 We want to use this program to demonstrate multiple kinds of models.  Let define each of them as a Python function:
 
-- softmax regression: the network has a fully-connection layer and a softmax output layer:
+- softmax regression: the network has a fully-connection layer with softmax activation:
 
 ```python
 def softmax_regression(img):
@@ -146,7 +146,7 @@ def softmax_regression(img):
     return predict
 ```
 
-- multi-layer perceptron: this network has two hidden fully-connected layers, both using ReLU activation.  The output layer is softmax:
+- multi-layer perceptron: this network has two hidden fully-connected layers, one with LeRU and the other with softmax activation:
 
 ```python
 def multilayer_perceptron(img):
@@ -226,7 +226,7 @@ Now, it is time to specify training parameters. The number 0.9 in the following 
                                  update_equation=optimizer)
 ```
 
-Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`.  These two functions are *reader creators*, once called, returns a *reader*.  A reader is a Python function, which, once called, returns a Python yield generator, which yields instances of data.  
+Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`.  These two functions are *reader creators*, once called, returns a *reader*.  A reader is a Python function, which, once called, returns a Python generator, which yields instances of data.  
 
 Here `shuffle` is a reader decorator, which takes a reader A as its parameter, and returns a new reader B, where B calls A to read in `buffer_size` data instances everytime into a buffer, then shuffles and yield instances in the buffer.  If you want very shuffled data, try use a larger buffer size. 
 
@@ -268,7 +268,7 @@ During training, `trainer.train` invokes `event_handler` for certain events. Thi
     # Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
 ```
 
-After the training, we can choose the best model:
+After the training, we can check the model's prediction accuracy.
 
 ```
     # find the best pass
