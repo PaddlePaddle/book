@@ -52,7 +52,7 @@ Fig 2. BIO represention
 
 This example illustrates the simplicity of sequence tagging because (1) shallow syntactic analysis reduces the precision requirement of syntactic analysis; (2) pruning candidate arguments is removed; 3) argument identification and tagging are finished at the same time. Such unified methods simplify the procedure, reduce the risk of accumulating errors and boost the performance further.
 
-In this tutorial, our SRL system is built as an end-to-end system via a neural network. We take only text sequences, without using any syntactic parsing results or complex hand-designed features. We give public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) as an example to illustrate: given a sentence and it's predicated, identify the corresponding arguments and their semantic roles by sequence tagging method.
+In this tutorial, our SRL system is built as an end-to-end system via a neural network. We take only text sequences, without using any syntactic parsing results or complex hand-designed features. We give public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) as an example to illustrate: given a sentence with predicates marked, identify the corresponding arguments and their semantic roles by sequence tagging method.
 
 ## Model
 
@@ -92,7 +92,7 @@ Fig 4. Bidirectional LSTMs
 
 线性变换-> linear transformation
 输入层到隐层-> input-to-hidden
-正向处理输出序列->process sequence in forwarding direction
+正向处理输出序列->process sequence in the forward direction
 反向处理上一层序列-> process sequence from the previous layer in backward direction
 
 Note that, this bidirectional RNNs is different with the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks[machine translation](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.md)
@@ -148,9 +148,9 @@ We can try above method. Here, we propose some modifications by introducing two 
 After modification, the model is as follows:
 
 1. Construct inputs
- - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, element value will be one if word locates in the predicate context region, 0 otherwise.
+ - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, element value will be 1 if word locates in the predicate context region, 0 otherwise.
  - expand input 2~3 as sequences with the same length with input 1
-2. Convert input 1~4 to vector sequences via lookup table; input 1 and three shares the same lookup table, input 2 and 4 have separate lookup tables
+2. Convert input 1~4 to vector sequences via lookup table; input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables
 3. Take four vector sequences from step 2 as inputs of bidirectional LSTMs; Train LSTMs to update representations
 4. Take representation from step 3 as input of CRF, label sequence as supervision signal, do sequence tagging tasks
 
@@ -198,7 +198,7 @@ The raw data needs to be preprocessed before used by PaddlePaddle. The preproces
 # conll05.test gets preprocessed training instances.
 ```
 
-After preprocessing completes, a training sample contains nine features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, label sequence. Following table is an example of one training sample.
+After preprocessing completes, a training sample contains nine features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, label sequence. Following table is an example of a training sample.
 
 | word sequence | predicate | predicate context（5 columns） | region mark sequence | label sequence|
 |---|---|---|---|---|
