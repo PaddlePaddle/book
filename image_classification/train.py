@@ -14,8 +14,8 @@
 
 import sys
 import paddle.v2 as paddle
-from api_v2_vgg import vgg_bn_drop
-from api_v2_resnet import resnet_cifar10
+from vgg import vgg_bn_drop
+from resnet import resnet_cifar10
 
 
 def main():
@@ -30,9 +30,9 @@ def main():
 
     # Add neural network config
     # option 1. resnet
-    net = resnet_cifar10(image, depth=32)
+    # net = resnet_cifar10(image, depth=32)
     # option 2. vgg
-    # net = vgg_bn_drop(image)
+    net = vgg_bn_drop(image)
 
     out = paddle.layer.fc(input=net,
                           size=classdim,
