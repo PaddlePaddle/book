@@ -39,134 +39,175 @@
 
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
-# 语义角色标注
+# Semantic Role Labeling
 
-本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+Source code of this chpater is in [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
 
-## 背景介绍
+## Background
 
-自然语言分析技术大致分为三个层面：词法分析、句法分析和语义分析。语义角色标注是实现浅层语义分析的一种方式。在一个句子中，谓词是对主语的陈述或说明，指出“做什么”、“是什么”或“怎么样，代表了一个事件的核心，跟谓词搭配的名词称为论元。语义角色是指论元在动词所指事件中担任的角色。主要有：施事者（Agent）、受事者（Patient）、客体（Theme）、经验者（Experiencer）、受益者（Beneficiary）、工具（Instrument）、处所（Location）、目标（Goal）和来源（Source）等。
+Natural Language Analysis contains three components: Lexical Analysis, Syntactic Analysis, and Semantic Analysis. Semantic Role Labelling (SRL) is one way for Shallow Semantic Analysis. A predicate of a sentence is seen as a property that a subject has or is characterized by, such as what it does, what it is or how it is, which mostly corresponds to the core of an event. The noun associated with predicate is called Arugment. Sementic roles express the abstract roles that arguments of a predicate can take in the event, such as Agent, Patient, Theme, Experiencer, Beneficiary, Instrument, Location, Goal and Source etc.
 
-请看下面的例子，“遇到” 是谓词（Predicate，通常简写为“Pred”），“小明”是施事者（Agent），“小红”是受事者（Patient），“昨天” 是事件发生的时间（Time），“公园”是事情发生的地点（Location）。
+In the following example, “遇到” is Predicate (“Pred”)，“小明” is Agent，“小红” is Patient，“昨天” means when the event occurs (Time), and “公园” means where the event occurs (Location).
 
 $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mbox{Time}\mbox{在[公园]}_{\mbox{Location}}\mbox{[遇到]}_{\mbox{Predicate}}\mbox{了[小红]}_{\mbox{Patient}}\mbox{。}$$
 
-语义角色标注（Semantic Role Labeling，SRL）以句子的谓词为中心，不对句子所包含的语义信息进行深入分析，只分析句子中各成分与谓词之间的关系，即句子的谓词（Predicate）- 论元（Argument）结构，并用语义角色来描述这些结构关系，是许多自然语言理解任务（如信息抽取，篇章分析，深度问答等）的一个重要中间步骤。在研究中一般都假定谓词是给定的，所要做的就是找出给定谓词的各个论元和它们的语义角色。
+Instead of in-depth analysis on semantic information, the goal of Semantic Role Labeling is to identify the relation of predicate and other constituents, e.g., predicate-argument structure, as specific semantic roles, which is an important intermediate step in a wide range of natural language understanding tasks (Information Extraction, Discourse Analysis, DeepQA etc). Predicates are always assumed to be given, the only thing is to identify arguments and their semantic roles.
 
-传统的SRL系统大多建立在句法分析基础之上，通常包括5个流程：
+Standard SRL system mostly build on top of Syntactic Analysis and contains 5 steps:
 
-1. 构建一棵句法分析树，例如，图1是对上面例子进行依存句法分析得到的一棵句法树。
-2. 从句法树上识别出给定谓词的候选论元。
-3. 候选论元剪除；一个句子中的候选论元可能很多，候选论元剪除就是从大量的候选项中剪除那些最不可能成为论元的候选项。
-4. 论元识别：这个过程是从上一步剪除之后的候选中判断哪些是真正的论元，通常当做一个二分类问题来解决。
-5. 对第4步的结果，通过多分类得到论元的语义角色标签。可以看到，句法分析是基础，并且后续步骤常常会构造的一些人工特征，这些特征往往也来自句法分析。
+1. Construct a syntactic parse tree, as shown in Fig. 1
+2. Identity candidate arguments of given predicate from constructed syntactic parse tree.
+3. Prune most unlikely candidate arguments.
+4. Identify argument, which is usually solved as a binary classification problem.
+5. Multi-class semantic role labeling. Steps 2-3 usually introduce hand-designed features based on Syntactic Analysis (step 1).
+
 
 <div  align="center">
 <img src="image/dependency_parsing.png" width = "80%" align=center /><br>
-图1. 依存句法分析句法树示例
+Fig 1. Syntactic parse tree
 </div>
 
-然而，完全句法分析需要确定句子所包含的全部句法信息，并确定句子各成分之间的关系，是一个非常困难的任务，目前技术下的句法分析准确率并不高，句法分析的细微错误都会导致SRL的错误。为了降低问题的复杂度，同时获得一定的句法结构信息，“浅层句法分析”的思想应运而生。浅层句法分析也称为部分句法分析（partial parsing）或语块划分（chunking）。和完全句法分析得到一颗完整的句法树不同，浅层句法分析只需要识别句子中某些结构相对简单的独立成分，例如：动词短语，这些被识别出来的结构称为语块。为了回避 “无法获得准确率较高的句法树” 所带来的困难，一些研究\[[1](#参考文献)\]也提出了基于语块（chunk）的SRL方法。基于语块的SRL方法将SRL作为一个序列标注问题来解决。序列标注任务一般都会采用BIO表示方式来定义序列标注的标签集，我们先来介绍这种表示方法。在BIO表示法中，B代表语块的开始，I代表语块的中间，O代表语块结束。通过B、I、O 三种标记将不同的语块赋予不同的标签，例如：对于一个角色为A的论元，将它所包含的第一个语块赋予标签B-A，将它所包含的其它语块赋予标签I-A，不属于任何论元的语块赋予标签O。
+核心关系-> HED
+定中关系-> ATT
+主谓关系-> SBV
+状中结构-> ADV
+介宾关系-> POB
+右附加关系-> RAD
+动宾关系-> VOB
+标点-> WP
 
-我们继续以上面的这句话为例，图1展示了BIO表示方法。
+
+However, complete syntactic analysis requires to identify the relation among all constitutes and the performance of SRL is sensitive to the precision of syntactic analysis, which make SRL a very challenging task. In order to reduce the complexity and obtain some syntactic structure information, shallow syntactic analysis is proposed. Shallow Syntactic Analysis is also called partial parsing or chunking. Unlike complete syntactic analysis which requires constructing complete parsing tree, Shallow Syntactic Analysis only need to identify some idependent components with relatively simple structure, such as verb phrases (chunk). In order to avoid constructing syntactic tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking based SRL methods, which convert SRL as a sequence tagging problem.  Sequence tagging tasks classify syntactic chunks using BIO representation. For syntactic chunks forming a chunk of type A, the first chunk receives the B-A tag (Begin), the remaining ones receive the tag I-A (Inside), and all chunks outside receive the tag O-A.
+
+The BIO representation of above example is shown in Fig.1.
 
 <div  align="center">
 <img src="image/bio_example.png" width = "90%"  align=center /><br>
-图2. BIO标注方法示例
+Fig 2. BIO represention
 </div>
 
-从上面的例子可以看到，根据序列标注结果可以直接得到论元的语义角色标注结果，是一个相对简单的过程。这种简单性体现在：（1）依赖浅层句法分析，降低了句法分析的要求和难度；（2）没有了候选论元剪除这一步骤；（3）论元的识别和论元标注是同时实现的。这种一体化处理论元识别和论元标注的方法，简化了流程，降低了错误累积的风险，往往能够取得更好的结果。
+输入序列-> input sequence
+语块-> chunk
+标注序列-> label sequence
+角色-> role
 
-与基于语块的SRL方法类似，在本教程中我们也将SRL看作一个序列标注问题，不同的是，我们只依赖输入文本序列，不依赖任何额外的语法解析结果或是复杂的人造特征，利用深度神经网络构建一个端到端学习的SRL系统。我们以[CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/)任务中SRL任务的公开数据集为例，实践下面的任务：给定一句话和这句话里的一个谓词，通过序列标注的方式，从句子中找到谓词对应的论元，同时标注它们的语义角色。
+This example illustrates the simplicity of sequence tagging because (1) shallow syntactic analysis reduces precision requirement of syntactic analysis; (2) pruning candidate arguments is removed; 3) argument identification and tagging are finished at the same time. Such unified methods simplify the precedure, reduce the risk of accumulating errors and boost the performance further.
 
-## 模型概览
+In this tutorial, our SRL system is built as an end-to-end system via neural network. We take only text sequences, without using any syntactic parsing results or complex hand-designed features. We give public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) as an example to illustrate: given a sentence and it's predicates, identify the corresponding arguments and their semantic roles by sequence tagging method.
 
-循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于前馈神经网络（Feed-forward Neural Network），RNN能够处理输入之间前后关联的问题。LSTM是RNN的一种重要变种，常用来学习长序列中蕴含的长程依赖关系，我们在[情感分析](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment)一篇中已经介绍过，这一篇中我们依然利用LSTM来解决SRL问题。
+## Model
 
-### 栈式循环神经网络（Stacked Recurrent Neural Network）
+Recurrent Nerual Networks are important tools for sequence modeling and have been successfully used in some natural language processing tasks. Unlike Feed-forward neural netowrks, RNNs can model the dependency between elements of sequences. LSTMs as variants of RNNs aim to model long-term dependency in long sequences. We have introduced this in [understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). In this chapter, we continue to use LSTMs to solve SRL problems.
 
-深层网络有助于形成层次化特征，网络上层在下层已经学习到的初级特征基础上，形成更复杂的高级特征。尽管LSTM沿时间轴展开后等价于一个非常“深”的前馈网络，但由于LSTM各个时间步参数共享，$t-1$时刻状态到$t$时刻的映射，始终只经过了一次非线性映射，也就是说单层LSTM对状态转移的建模是 “浅” 的。堆叠多个LSTM单元，令前一个LSTM$t$时刻的输出，成为下一个LSTM单元$t$时刻的输入，帮助我们构建起一个深层网络，我们把它称为第一个版本的栈式循环神经网络。深层网络提高了模型拟合复杂模式的能力，能够更好地建模跨不同时间步的模式\[[2](#参考文献)\]。
+### Stacked Recurrent Neural Network
 
-然而，训练一个深层LSTM网络并非易事。纵向堆叠多个LSTM单元可能遇到梯度在纵向深度上传播受阻的问题。通常，堆叠4层LSTM单元可以正常训练，当层数达到4~8层时，会出现性能衰减，这时必须考虑一些新的结构以保证梯度纵向顺畅传播，这是训练深层LSTM网络必须解决的问题。我们可以借鉴LSTM解决 “梯度消失梯度爆炸” 问题的智慧之一：在记忆单元（Memory Cell）这条信息传播的路线上没有非线性映射，当梯度反向传播时既不会衰减、也不会爆炸。因此，深层LSTM模型也可以在纵向上添加一条保证梯度顺畅传播的路径。
+Deep Neural Networks allows to extract hierarchical represetations, higher layer can form more abstract/complex representations on top of lower layers. LSTMs when unfolded in time is deep, because a computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. However, the computation carried out at each time-step is only linear transformation, which makes LSTMs a shallow model. Deep LSTMs are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical nerual networks can be much efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
 
-一个LSTM单元完成的运算可以被分为三部分：（1）输入到隐层的映射（input-to-hidden） ：每个时间步输入信息$x$会首先经过一个矩阵映射，再作为遗忘门，输入门，记忆单元，输出门的输入，注意，这一次映射没有引入非线性激活；（2）隐层到隐层的映射（hidden-to-hidden）：这一步是LSTM计算的主体，包括遗忘门，输入门，记忆单元更新，输出门的计算；（3）隐层到输出的映射（hidden-to-output）：通常是简单的对隐层向量进行激活。我们在第一个版本的栈式网络的基础上，加入一条新的路径：除上一层LSTM输出之外，将前层LSTM的输入到隐层的映射作为的一个新的输入，同时加入一个线性映射去学习一个新的变换。
 
-图3是最终得到的栈式循环神经网络结构示意图。
+However, deep LSTMs increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. For example, 4 layer LSTMs can be trained properly, but the performance becomes worse as the number of layers up to 4-8. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introduce shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
+
+
+The operation of a single LSTM cell contain 3 parts: (1) input-to-hidden: map input $x$ to the input of forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping); (2) hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs; (3)hidden-to-output: this part typically involves an activation operation on hidden states. Based on the above stacked LSTMs, we add a shortcut connection: take the input-to-hidden from previous layer as a new input and learn another linear transfermation.
+
+Fig.3 illustrate the final stacked recurrent neural networks.
 
 <p align="center">    
 <img src="./image/stacked_lstm.png" width = "40%"  align=center><br>
-图3. 基于LSTM的栈式循环神经网络结构示意图
+Fig 3. Stacked Recurrent Neural Networks
 </p>
 
-### 双向循环神经网络（Bidirectional Recurrent Neural Network）
+线性变换-> linear transformation
+输入层到隐层-> input-to-hidden
 
-在LSTM中，$t$时刻的隐藏层向量编码了到$t$时刻为止所有输入的信息，但$t$时刻的LSTM可以看到历史，却无法看到未来。在绝大多数自然语言处理任务中，我们几乎总是能拿到整个句子。这种情况下，如果能够像获取历史信息一样，得到未来的信息，对序列学习任务会有很大的帮助。
+### Bidirectional Recurrent Neural Network
 
-为了克服这一缺陷，我们可以设计一种双向循环网络单元，它的思想简单且直接：对上一节的栈式循环神经网络进行一个小小的修改，堆叠多个LSTM单元，让每一层LSTM单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第2层开始，$t$时刻我们的LSTM单元便总是可以看到历史和未来的信息。图4是基于LSTM的双向循环神经网络结构示意图。
+ LSTMs can summarize the history of previous inputs seen up to now, but can not see the future. In most of natural language processing tasks, the entire sentences are ready to use. Therefore, sequencal learning might be much effecient if the future can be encoded as well like histories.
+
+To address the above drawbacks, we can design bidirectional recurrent neural networks by making a minor modification. Higher LSTM layers process the sequence in reversed direction with previous lower LSTM layers, i.e., Deep LSTMs operate from left-to-right, right-to-left, left-to-right,..., in depth. Therefore, LSTM layers at time-step $t$ can see both histories and the future since the second layer. Fig. 4 illustrates the bidirectional recurrent neural networks.
+
 
 <p align="center">    
 <img src="./image/bidirectional_stacked_lstm.png" width = "60%" align=center><br>
-图4. 基于LSTM的双向循环神经网络结构示意图
+Fig 4. Bidirectional LSTMs
 </p>
 
-需要说明的是，这种双向RNN结构和Bengio等人在机器翻译任务中使用的双向RNN结构\[[3](#参考文献), [4](#参考文献)\] 并不相同，我们会在后续[机器翻译](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.md)任务中，介绍另一种双向循环神经网络。
+线性变换-> linear transformation
+输入层到隐层-> input-to-hidden
+正向处理输出序列->process sequence in forward direction
+反向处理上一层序列-> process sequence from previous layer in backward direction
 
-### 条件随机场 (Conditional Random Field)
+Note that, this bidirectional RNNs is different with the one proposed by Bengio et al in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks[machine translation](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.md)
 
-使用神经网络模型解决问题的思路通常是：前层网络学习输入的特征表示，网络的最后一层在特征基础上完成最终的任务。在SRL任务中，深层LSTM网络学习输入的特征表示，条件随机场（Conditional Random Filed， CRF）在特征的基础上完成序列标注，处于整个网络的末端。
+### Conditional Random Field
 
-CRF是一种概率化结构模型，可以看作是一个概率无向图模型，结点表示随机变量，边表示随机变量之间的概率依赖关系。简单来讲，CRF学习条件概率$P(X|Y)$，其中 $X = (x_1, x_2, ... , x_n)$ 是输入序列，$Y = (y_1, y_2, ... , y_n)$ 是标记序列；解码过程是给定 $X$序列求解令$P(Y|X)$最大的$Y$序列，即$Y^* = \mbox{arg max}_{Y} P(Y | X)$。
+The basic pipeline of Neural Networks solving problems is 1) all lower layers aim to learn representations; 2) the top layer is designed for learning the final task. In SRL tasks, CRF is built on top of the network for the final tag sequence prediction. It takes the representations provided by the last LSTM layer as input.
 
-序列标注任务只需要考虑输入和输出都是一个线性序列，并且由于我们只是将输入序列作为条件，不做任何条件独立假设，因此输入序列的元素之间并不存在图结构。综上，在序列标注任务中使用的是如图5所示的定义在链式图上的CRF，称之为线性链条件随机场（Linear Chain Conditional Random Field）。
+
+CRF is a probabilistic graph model (undirected) with nodes denoting random variables and edges denoting dependencies between nodes. To be simplicity, CRFs learn conditional probability $P(Y|X)$, where $X = (x_1, x_2, ... , x_n)$ are sequences of input, $Y = (y_1, y_2, ... , y_n)$ are label sequences; Decoding is to search sequence $Y$ to maximize conditional probability $P(Y|X)$, i.e., $Y^* = \mbox{arg max}_{Y} P(Y | X)$。
+
+Sequence tagging tasks only consider input and output as linear sequences without extra dependent assumptions on graph model. Thus, the graph model of sequence tagging tasks is simple chain or line, which results in a Linear Chain Conditional Random Field, shown in Fig.5.
 
 <p align="center">    
 <img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
-图5. 序列标注任务中使用的线性链条件随机场
+Fig 5. Linear Chain Conditional Random Field used in SRL tasks
 </p>
 
-根据线性链条件随机场上的因子分解定理\[[5](#参考文献)\]，在给定观测序列$X$时，一个特定标记序列$Y$的概率可以定义为：
+By the fundamental theorem of random fields \[[5](#Reference)\], the joint distribution over the label sequence $Y$ given $X$ has the form: 
 
 $$p(Y | X) = \frac{1}{Z(X)} \text{exp}\left(\sum_{i=1}^{n}\left(\sum_{j}\lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} \mu_k s_k (y_i, X, i)\right)\right)$$
 
-其中$Z(X)$是归一化因子，$t_j$ 是定义在边上的特征函数，依赖于当前和前一个位置，称为转移特征，表示对于输入序列$X$及其标注序列在 $i$及$i - 1$位置上标记的转移概率。$s_k$是定义在结点上的特征函数，称为状态特征，依赖于当前位置，表示对于观察序列$X$及其$i$位置的标记概率。$\lambda_j$ 和 $\mu_k$ 分别是转移特征函数和状态特征函数对应的权值。实际上，$t$和$s$可以用相同的数学形式表示，再对转移特征和状态特在各个位置$i$求和有：$f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$，把$f$统称为特征函数，于是$P(Y|X)$可表示为：
+
+where, $Z(X)$ is normalization constant, $t_j$ is feature function defined on edges, called transition feature, depending on $y_i$ and $y_{i-1}$ which represents transition probabilities from $y_{i-1}$ to $y_i$ given input sequence $X$. $s_k$ is feature function defined on nodes, called state feature, depending on $y_i$ and represents the probality of $y_i$ given input sequence $X$. $\lambda_j$ 和 $\mu_k$ are weights corresponding to $t_j$ and $s_k$. Actually, $t$ and $s$ can be wrtten in the same form, then take summation over all nodes $i$: $f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$, $f$ is defined as feature function. Thus, $P(Y|X)$ can be wrtten as:
 
 $$p(Y|X, W) = \frac{1}{Z(X)}\text{exp}\sum_{k}\omega_{k}f_{k}(Y, X)$$
 
-$\omega$是特征函数对应的权值，是CRF模型要学习的参数。训练时，对于给定的输入序列和对应的标记序列集合$D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$ ，通过正则化的极大似然估计，求解如下优化目标：
+$\omega$ are weights of feature function which should be learned in CRF models. At training stage, given input sequences and label sequences $D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$, solve following objective function using MLE:
+
 
 $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
 
-这个优化目标可以通过反向传播算法和整个神经网络一起求解。解码时，对于给定的输入序列$X$，通过解码算法（通常有：维特比算法、Beam Search）求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
 
-### 深度双向LSTM（DB-LSTM）SRL模型
+This objective function can be solved via back-propagation in an end-to-end manner. At decoding stage, given input sequences $X$, search sequence $\bar{Y}$ to maximize conditional probability $\bar{P}(Y|X)$ via decoding methods (such as Viterbi, Beam Search).
 
-在SRL任务中，输入是 “谓词” 和 “一句话”，目标是从这句话中找到谓词的论元，并标注论元的语义角色。如果一个句子含有$n$个谓词，这个句子会被处理$n$次。一个最为直接的模型是下面这样：
+### DB-LSTM SRL model
 
-1. 构造输入；
- - 输入1是谓词，输入2是句子
- - 将输入1扩展成和输入2一样长的序列，用one-hot方式表示；
-2. one-hot方式的谓词序列和句子序列通过词表，转换为实向量表示的词向量序列；
-3. 将步骤2中的2个词向量序列作为双向LSTM的输入，学习输入序列的特征表示；
-4. CRF以步骤3中模型学习到的特征为输入，以标记序列为监督信号，实现序列标注；
+Given predicates and a sentence, SRL tasks aim to identify arguments of the given predicate and their semantic roles. If a sequence has n predicates, we will process this sequence n times. One model is as follows:
 
-大家可以尝试上面这种方法。这里，我们提出一些改进，引入两个简单但对提高系统性能非常有效的特征：
+1. Construct inputs;
+ - output 1: predicate, output 2: sentence
+ - expand input 1 as a sequence with the same length with input 2 using one-hot representation;
+2. Convert one-hot sequences from step 1 to real-vector sequences via lookup table;
+3. Learn the representation of input sequences by taking real-vector sequences from step 2 as inputs;
+4. Take representations from step 3 as inputs, label sequence as supervision signal, do sequence tagging tasks
 
-- 谓词上下文：上面的方法中，只用到了谓词的词向量表达谓词相关的所有信息，这种方法始终是非常弱的，特别是如果谓词在句子中出现多次，有可能引起一定的歧义。从经验出发，谓词前后若干个词的一个小片段，能够提供更丰富的信息，帮助消解歧义。于是，我们把这样的经验也添加到模型中，为每个谓词同时抽取一个“谓词上下文” 片段，也就是从这个谓词前后各取$n$个词构成的一个窗口片段；
-- 谓词上下文区域标记：为句子中的每一个词引入一个0-1二值变量，表示它们是否在“谓词上下文”片段中；
+We can try above method. Here, we propose some modifications by introducing two simple but effective features:
 
-修改后的模型如下（图6是一个深度为4的模型结构示意图）：
+- predicate context (ctx-p): A single predicate word can not exactly describe the predicate information, especially when the same words appear more than one times in a sentence. With the expanded context, the ambiguity can be largely eliminated. Thus, we extract $n$ words before and after predicate to construct a window chunk.
 
-1. 构造输入
- - 输入1是句子序列，输入2是谓词序列，输入3是谓词上下文，从句子中抽取这个谓词前后各$n$个词，构成谓词上下文，用one-hot方式表示，输入4是谓词上下文区域标记，标记了句子中每一个词是否在谓词上下文中；
- - 将输入2~3均扩展为和输入1一样长的序列；
-2. 输入1~4均通过词表取词向量转换为实向量表示的词向量序列；其中输入1、3共享同一个词表，输入2和4各自独有词表；
-3. 第2步的4个词向量序列作为双向LSTM模型的输入；LSTM模型学习输入序列的特征表示，得到新的特性表示序列；
-4. CRF以第3步中LSTM学习到的特征为输入，以标记序列为监督信号，完成序列标注；
+- region mark ($m_r$): $m_r = 1$ to denote the argument position if it locates in the predicate context region, or $m_r = 0$ if not.
+
+After modification, the model is as follows:
+
+1. Construct inputs
+ - input 1: sentence, input 2: predicate sequence, input 3: predicate context, extract $n$ words before and after predicate and get one-hot representation, input 4: region mark, annotate argument position if it locates in the predicate context region
+ - expand input 2~3 as sequences with the same length with input 1
+2. Convert input 1~4 to real-vector sequences via lookup table; input 1 and 3 share the same lookup table, input 2 and 4 have separate lookup tables
+3. Take four real-vector sequences from step 2 as inputs of bidirectional LSTMs; Train LSTMs to update representations
+4. Take representation from step 3 as input of CRF, label sequence as supervision signal, do sequence tagging tasks
+
 
 <div  align="center">    
 <img src="image/db_lstm_network.png" width = "60%"  align=center /><br>
-图6. SRL任务上的深层双向LSTM模型
+Fig 6. DB-LSTM for SRL tasks
 </div>
+
+论元-> argu
+谓词-> pred
+谓词上下文-> ctx-p
+谓词上下文区域标记-> $m_r$
+输入-> input
+原句-> sentence
+反向LSTM-> LSTM Reverse
 
 ## 数据准备
 ### 数据介绍与下载
@@ -500,11 +541,11 @@ python predict.py
 The interest-only securities were priced at 35 1\/2 to yield 10.72 % .  B-A0 I-A0 I-A0 O O O O O O B-V B-A1 I-A1 O
 ```
 
-## 总结
+## Conclusion
 
-语义角色标注是许多自然语言理解任务的重要中间步骤。这篇教程中我们以语义角色标注任务为例，介绍如何利用PaddlePaddle进行序列标注任务。教程中所介绍的模型来自我们发表的论文\[[10](#参考文献)\]。由于 CoNLL 2005 SRL任务的训练数据目前并非完全开放，教程中只使用测试数据作为示例。在这个过程中，我们希望减少对其它自然语言处理工具的依赖，利用神经网络数据驱动、端到端学习的能力，得到一个和传统方法可比、甚至更好的模型。在论文中我们证实了这种可能性。关于模型更多的信息和讨论可以在论文中找到。
+Semantic Role Labeling is an important intermediate step in a wide range of natural language processing tasks. In this tutorial, we give SRL as an example to introduce how to use PaddlePaddle to do sequence tagging tasks. Proposed models are from our published paper\[[10](#Reference)\]. We only use test data as illustration since train data on CoNLL 2005 dataset is not completely public. We hope to propose an end-to-end neural network model with less dependencies on natural language processing tools, but is comparable, or even better than trandional models. Please check out our paper for more information and discussions.
 
-## 参考文献
+## Reference
 1. Sun W, Sui Z, Wang M, et al. [Chinese semantic role labeling with shallow parsing](http://www.aclweb.org/anthology/D09-1#page=1513)[C]//Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 3-Volume 3. Association for Computational Linguistics, 2009: 1475-1483.
 2. Pascanu R, Gulcehre C, Cho K, et al. [How to construct deep recurrent neural networks](https://arxiv.org/abs/1312.6026)[J]. arXiv preprint arXiv:1312.6026, 2013.
 3. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.

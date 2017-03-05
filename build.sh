@@ -1,6 +1,9 @@
 #!/bin/bash
 
-for file in `find . -name '*.md' | grep -v '^./README.md'`
-do
-	bash .tmpl/build.sh $file .tmpl/template.html > `dirname $file`/index.html
+for i in $(du -a | grep '\.\/.\+\/README.md' | cut -f 2); do
+    .tmpl/convert-markdown-into-html.sh $i > $(dirname $i)/index.html
+done
+
+for i in $(du -a | grep '\.\/.\+\/README.en.md' | cut -f 2); do
+    .tmpl/convert-markdown-into-html.sh $i > $(dirname $i)/index.en.html
 done
