@@ -124,34 +124,30 @@ def main():
 使用`fc_layer`和`LinearActivation`来表示线性回归的模型本身。  
 
 ```python
-	#输入数据，13维的房屋信息
-	x = paddle.layer.data(name='x',
-	                type=paddle.data_type.dense_vector(13))
-	
-	y_predict = paddle.layer.fc(input=x,
-	                            param_attr=paddle.attr.Param(name='w'),
-	                            size=1,
-	                            act=paddle.activation.Linear(),
-	                            bias_attr=paddle.attr.Param(name='b'))
-	                            
-	y = paddle.layer.data(name='y',
-	            type=paddle.data_type.dense_vector(1))
-	cost = paddle.layer.regression_cost(input=y_predict, label=y)
+    #输入数据，13维的房屋信息
+    x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
+    y_predict = paddle.layer.fc(input=x,
+                                param_attr=paddle.attr.Param(name='w'),
+                                size=1,
+                                act=paddle.activation.Linear(),
+                                bias_attr=paddle.attr.Param(name='b'))
+    y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
+    cost = paddle.layer.regression_cost(input=y_predict, label=y)
 ```
 ### 接着创建参数和优化器  
 
 ```python
-	# create parameters
-	parameters = paddle.parameters.create(cost)
+    # create parameters
+    parameters = paddle.parameters.create(cost)
 
-	# create optimizer
-	optimizer = paddle.optimizer.Momentum(momentum=0)
+    # create optimizer
+    optimizer = paddle.optimizer.Momentum(momentum=0)
 ```
 
 ### 创建trainer  
 
 ```python
-	trainer = paddle.trainer.SGD(cost=cost,
+    trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
                                  update_equation=optimizer)
 ```
@@ -161,7 +157,7 @@ def main():
 reader_dict中设置了训练数据和测试数据的下标,reader通过下标区分训练和测试数据。
 
 ```python
-	reader_dict={'x': 0,
+    reader_dict={'x': 0,
                  'y': 1}
 
     # event_handler to print training and testing info
