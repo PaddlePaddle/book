@@ -96,18 +96,10 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 where $f(w_t, w_{t-1}, ..., w_{t-n+1})$ represents the conditional probability of the current word $w_t$ given its previous $n-1$ words, and $R(\theta)$ represents parameter regularization term. 
 
 <p align="center">	
-   	<img src="image/nnlm.png" width=500><br/>
+   	<img src="image/nnlm_en.png" width=500><br/>
    	Figure 2. N-gram neural network model
 </p>
 
-(Translation of words in figure 2: 图2文字翻译
-
-- 输入：Input;
-- 全连接：Fully-Connection Layer
-- 词向量：Word Embedding
-- 词向量连接：Word Embedding Concatenation
-- 分类：Classification
-- 词ID: Word ID)
 
 Figure 2 shows the N-gram neural network model. From the bottom up, the model has the following components:
 
@@ -136,15 +128,9 @@ Figure 2 shows the N-gram neural network model. From the bottom up, the model ha
 CBOW model predicts the current word based on the N words both before and after it. When $N=2$, the model is as the figure below:
 
 <p align="center">	
-	<img src="image/cbow.png" width=250><br/>
+	<img src="image/cbow_en.png" width=250><br/>
 	Figure 3. CBOW model
 </p>
-
-(Translation of words in figure 3: 图3文字翻译
-
-- 输入词：Input Word
-- 词向量：Word Embedding
-- 输出词：Output Word)
 
 Specifically, by ignoring the order of words in the sequence, CBOW uses the average value of the word embedding of the context to predict the current word:
 
@@ -157,21 +143,20 @@ where $x_t$ is the word embedding of the t-th word, classification score vector 
 The advantages of CBOW is that it smooths over the word embeddings of the context and reduces noise, so it is very effective on small dataset. Skip-gram uses a word to predict its context and get multiple context for the given word, so it can be used in larger datasets. 
 
 <p align="center">	
-	<img src="image/skipgram.png" width=250><br/>
+	<img src="image/skipgram_en.png" width=250><br/>
 	Figure 4. Skip-gram model
 </p>
-
-(Translation of words in figure 4: 图4文字翻译
-
-- 输入词：Input Word
-- 词向量：Word Embedding
-- 输出词：Output Word)
 
 As illustrated in the figure above, skip-gram model maps the word embedding of the given word onto $2n$ word embeddings (including $n$ words before and $n$ words after the given word), and then combine the classification loss of all those $2n$ words by softmax. 
 
 ## Data Preparation
 
 ## Model Configuration
+<p align="center">	
+	<img src="image/ngram.en.png" width=400><br/>
+	Figure 5. N-gram neural network model in model configuration
+</p>
+
 	
 ## Model Training
 
