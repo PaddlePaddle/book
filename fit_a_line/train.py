@@ -1,6 +1,7 @@
 import paddle.v2 as paddle
 import paddle.v2.dataset.uci_housing as uci_housing
 
+
 def main():
     # init
     paddle.init(use_gpu=False, trainer_count=1)
@@ -25,8 +26,7 @@ def main():
                                  parameters=parameters,
                                  update_equation=optimizer)
 
-    reader_dict={'x': 0,
-                 'y': 1}
+    reader_dict = {'x': 0, 'y': 1}
 
     # event_handler to print training and testing info
     def event_handler(event):
@@ -51,6 +51,7 @@ def main():
         reader_dict=reader_dict,
         event_handler=event_handler,
         num_passes=30)
+
 
 if __name__ == '__main__':
     main()
