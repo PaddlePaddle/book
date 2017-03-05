@@ -168,7 +168,7 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 	
 ### 数据预处理
 
-本章训练的是5-Gram，表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。PaddlePaddle提供了对应PTB数据集的python包`paddle.dataset.imikolov`，自动做数据的下载与预处理，方便大家使用。
+本章训练的是5-gram模型，表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。PaddlePaddle提供了对应PTB数据集的python包`paddle.dataset.imikolov`，自动做数据的下载与预处理，方便大家使用。
 
 预处理会把数据集中的每一句话前后加上开始符号`<s>`以及结束符号`<e>`。然后依据窗口大小（本教程中为5），从头到尾每次向右滑动窗口并生成一条数据。
 
@@ -182,7 +182,7 @@ a dream that one day
 dream that one day <e>
 ```
 
-## 配置说明
+## 编程实现
 
 本配置的模型结构如下图所示：
 
