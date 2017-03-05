@@ -153,7 +153,7 @@ As illustrated in the figure above, skip-gram model maps the word embedding of t
 
 ## Model Configuration
 <p align="center">	
-	<img src="image/ngram.png" width=400><br/>
+	<img src="image/ngram.en.png" width=400><br/>
 	Figure 5. N-gram neural network model in model configuration
 </p>
 
