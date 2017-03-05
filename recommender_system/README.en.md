@@ -70,7 +70,7 @@ Given the feature vectors of users and movies, we compute the relevance using co
 
 <p align="center">
 
-<img src="image/rec_regression_network.png" width="90%" ><br/>
+<img src="image/rec_regression_network_en.png" width="90%" ><br/>
 Figure 3. A hybrid recommendation model.
 </p> 
 
