@@ -111,14 +111,14 @@ import paddle.v2.dataset.uci_housing as uci_housing
 ## 训练
 fit_a_line下trainer.py演示了训练的整体过程  
 
-### 首先初始化paddle  
+### 初始化paddlepaddle  
 
 ```python
 # init
 paddle.init(use_gpu=False, trainer_count=1)
 ```
 
-### 然后进行模型配置  
+### 模型配置  
 
 使用`fc_layer`和`LinearActivation`来表示线性回归的模型本身。  
 
@@ -131,19 +131,19 @@ y_predict = paddle.layer.fc(input=x,
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
 cost = paddle.layer.regression_cost(input=y_predict, label=y)
 ```
-### 接着创建参数和优化器  
+### 创建参数 
 
 ```python
 # create parameters
 parameters = paddle.parameters.create(cost)
-
-# create optimizer
-optimizer = paddle.optimizer.Momentum(momentum=0)
 ```
 
 ### 创建trainer  
 
 ```python
+# create optimizer
+optimizer = paddle.optimizer.Momentum(momentum=0)
+
 trainer = paddle.trainer.SGD(cost=cost,
                              parameters=parameters,
                              update_equation=optimizer)
