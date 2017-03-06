@@ -151,10 +151,10 @@ trainer = paddle.trainer.SGD(cost=cost,
 
 ### 读取数据且打印训练的中间信息  
 在程序中，我们通过reader接口来获取训练或者测试的数据,通过eventhandler来打印训练的中间信息  
-reader_dict中设置了训练数据和测试数据的下标,reader通过下标区分训练和测试数据。
+feeding中设置了训练数据和测试数据的下标,reader通过下标区分训练和测试数据。
 
 ```python
-reader_dict={'x': 0,
+feeding={'x': 0,
              'y': 1}
 
 # event_handler to print training and testing info
@@ -168,7 +168,7 @@ def event_handler(event):
         result = trainer.test(
             reader=paddle.batch(
                 uci_housing.test(), batch_size=2),
-            reader_dict=reader_dict)
+            feeding=feeding)
         print "Test %d, Cost %f" % (event.pass_id, result.cost)
 ```
 ### 开始训练  
@@ -180,7 +180,7 @@ trainer.train(
         paddle.reader.shuffle(
             uci_housing.train(), buf_size=500),
         batch_size=2),
-    reader_dict=reader_dict,
+    feeding=feeding,
     event_handler=event_handler,
     num_passes=30)
 ```

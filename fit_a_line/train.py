@@ -22,7 +22,7 @@ def main():
                                  parameters=parameters,
                                  update_equation=optimizer)
 
-    reader_dict = {'x': 0, 'y': 1}
+    feeding = {'x': 0, 'y': 1}
 
     # event_handler to print training and testing info
     def event_handler(event):
@@ -35,7 +35,7 @@ def main():
             result = trainer.test(
                 reader=paddle.batch(
                     uci_housing.test(), batch_size=2),
-                reader_dict=reader_dict)
+                feeding=feeding)
             print "Test %d, Cost %f" % (event.pass_id, result.cost)
 
     # training
@@ -44,7 +44,7 @@ def main():
             paddle.reader.shuffle(
                 uci_housing.train(), buf_size=500),
             batch_size=2),
-        reader_dict=reader_dict,
+        feeding=feeding,
         event_handler=event_handler,
         num_passes=30)
 
