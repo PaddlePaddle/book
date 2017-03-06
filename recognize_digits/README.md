@@ -42,7 +42,7 @@ $$ y_i = softmax(\sum_j W_{i,j}x_j + b_i) $$
 
 $$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
 
-图2为softmax回归的网络图，图中权重用黑线表示、偏置用红线表示、+1代表偏置参数的系数为1。
+图2为softmax回归的网络图，图中权重用蓝线表示、偏置用红线表示、+1代表偏置参数的系数为1。
 
 <p align="center">
 <img src="image/softmax_regression.png" width=400><br/>
@@ -58,7 +58,7 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 3.  最后，再经过输出层，得到的$Y=softmax(W_3H_2 + b_3)$，即为最后的分类结果向量。
       
 
-图3为多层感知器的网络结构图，图中权重用黑线表示、偏置用红线表示、+1代表偏置参数的系数为1。
+图3为多层感知器的网络结构图，图中权重用蓝线表示、偏置用红线表示、+1代表偏置参数的系数为1。
 
 <p align="center">
 <img src="image/mlp.png" width=500><br/>
