@@ -8,9 +8,7 @@ def main():
 
     # network config
     x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
-    y_predict = paddle.layer.fc(input=x,
-                                size=1,
-                                act=paddle.activation.Linear())
+    y_predict = paddle.layer.fc(input=x, size=1, act=paddle.activation.Linear())
     y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
     cost = paddle.layer.regression_cost(input=y_predict, label=y)
 
@@ -35,14 +33,14 @@ def main():
 
         if isinstance(event, paddle.event.EndPass):
             result = trainer.test(
-                reader=paddle.reader.batched(
+                reader=paddle.batch(
                     uci_housing.test(), batch_size=2),
                 reader_dict=reader_dict)
             print "Test %d, Cost %f" % (event.pass_id, result.cost)
 
     # training
     trainer.train(
-        reader=paddle.reader.batched(
+        reader=paddle.batch(
             paddle.reader.shuffle(
                 uci_housing.train(), buf_size=500),
             batch_size=2),

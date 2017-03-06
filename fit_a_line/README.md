@@ -166,7 +166,7 @@ def event_handler(event):
 
     if isinstance(event, paddle.event.EndPass):
         result = trainer.test(
-            reader=paddle.reader.batched(
+            reader=paddle.batch(
                 uci_housing.test(), batch_size=2),
             reader_dict=reader_dict)
         print "Test %d, Cost %f" % (event.pass_id, result.cost)
@@ -176,7 +176,7 @@ def event_handler(event):
 ```python
 # training
 trainer.train(
-    reader=paddle.reader.batched(
+    reader=paddle.batch(
         paddle.reader.shuffle(
             uci_housing.train(), buf_size=500),
         batch_size=2),
