@@ -113,11 +113,11 @@ if __name__ == '__main__':
     word_dict = paddle.dataset.imdb.word_dict()
     dict_dim = len(word_dict)
     class_dim = 2
-    train_reader = paddle.reader.batched(
+    train_reader = paddle.batch(
         paddle.reader.shuffle(
             lambda: paddle.dataset.imdb.train(word_dict), buf_size=1000),
         batch_size=100)
-    test_reader = paddle.reader.batched(
+    test_reader = paddle.batch(
         lambda: paddle.dataset.imdb.test(word_dict),
         batch_size=100)
 
