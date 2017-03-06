@@ -409,11 +409,11 @@ reader = paddle.batch(
         conll05.test(), buf_size=8192), batch_size=20)
 ```
 
-通过`reader_dict`来指定每一个数据和data_layer的对应关系。 例如 下面`reader_dict`表示: `conll05.test()`产生数据的第0列对应`word_data`层的特征。
+通过`feeding`来指定每一个数据和data_layer的对应关系。 例如 下面`feeding`表示: `conll05.test()`产生数据的第0列对应`word_data`层的特征。
 
 
 ```python
-reader_dict = {
+feeding = {
     'word_data': 0,
     'ctx_n2_data': 1,
     'ctx_n1_data': 2,
@@ -443,7 +443,7 @@ trainer.train(
     reader=reader,
     event_handler=event_handler,
     num_passes=10000,
-    reader_dict=reader_dict)
+    feeding=feeding)
 ```
 
 ## 总结
