@@ -384,7 +384,7 @@ trainer.train(
 ```
 
 
-![png](image/output_31_0.png)
+![png](./image/output_32_0.png)
 
 ## 应用模型
 
