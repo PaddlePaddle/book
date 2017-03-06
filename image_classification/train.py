@@ -81,7 +81,7 @@ def main():
             paddle.reader.shuffle(
                 paddle.dataset.cifar.train10(), buf_size=50000),
             batch_size=128),
-        num_passes=5,
+        num_passes=200,
         event_handler=event_handler,
         reader_dict={'image': 0,
                      'label': 1})
