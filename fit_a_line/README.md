@@ -114,9 +114,8 @@ fit_a_line下trainer.py演示了训练的整体过程
 ### 首先初始化paddle  
 
 ```python
-def main():
-    # init
-    paddle.init(use_gpu=False, trainer_count=1)
+# init
+paddle.init(use_gpu=False, trainer_count=1)
 ```
 
 ### 然后进行模型配置  
@@ -124,32 +123,30 @@ def main():
 使用`fc_layer`和`LinearActivation`来表示线性回归的模型本身。  
 
 ```python
-    #输入数据，13维的房屋信息
-    x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
-    y_predict = paddle.layer.fc(input=x,
-                                param_attr=paddle.attr.Param(name='w'),
+#输入数据，13维的房屋信息
+x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
+y_predict = paddle.layer.fc(input=x,
                                 size=1,
-                                act=paddle.activation.Linear(),
-                                bias_attr=paddle.attr.Param(name='b'))
-    y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
-    cost = paddle.layer.regression_cost(input=y_predict, label=y)
+                                act=paddle.activation.Linear())
+y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
+cost = paddle.layer.regression_cost(input=y_predict, label=y)
 ```
 ### 接着创建参数和优化器  
 
 ```python
-    # create parameters
-    parameters = paddle.parameters.create(cost)
+# create parameters
+parameters = paddle.parameters.create(cost)
 
-    # create optimizer
-    optimizer = paddle.optimizer.Momentum(momentum=0)
+# create optimizer
+optimizer = paddle.optimizer.Momentum(momentum=0)
 ```
 
 ### 创建trainer  
 
 ```python
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+trainer = paddle.trainer.SGD(cost=cost,
+                             parameters=parameters,
+                             update_equation=optimizer)
 ```
 
 ### 读取数据且打印训练的中间信息  
@@ -157,38 +154,38 @@ def main():
 reader_dict中设置了训练数据和测试数据的下标,reader通过下标区分训练和测试数据。
 
 ```python
-    reader_dict={'x': 0,
-                 'y': 1}
+reader_dict={'x': 0,
+             'y': 1}
 
-    # event_handler to print training and testing info
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 100 == 0:
-                print "Pass %d, Batch %d, Cost %f" % (
-                    event.pass_id, event.batch_id, event.cost)
+# event_handler to print training and testing info
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f" % (
+                event.pass_id, event.batch_id, event.cost)
 
-        if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(
-                reader=paddle.reader.batched(
-                    uci_housing.test(), batch_size=2),
-                reader_dict=reader_dict)
-            print "Test %d, Cost %f" % (event.pass_id, result.cost)
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
+            reader=paddle.reader.batched(
+                uci_housing.test(), batch_size=2),
+            reader_dict=reader_dict)
+        print "Test %d, Cost %f" % (event.pass_id, result.cost)
 ```
 ### 开始训练  
 
 ```python
-    # training
-    trainer.train(
-        reader=paddle.reader.batched(
-            paddle.reader.shuffle(
-                uci_housing.train(), buf_size=500),
-            batch_size=2),
-        reader_dict=reader_dict,
-        event_handler=event_handler,
-        num_passes=30)
+# training
+trainer.train(
+    reader=paddle.reader.batched(
+        paddle.reader.shuffle(
+            uci_housing.train(), buf_size=500),
+        batch_size=2),
+    reader_dict=reader_dict,
+    event_handler=event_handler,
+    num_passes=30)
 ```
 
-## 执行训练程序  
+## bash中执行训练程序  
 **注意设置好paddle的安装包路径**
 
 ```bash

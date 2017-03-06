@@ -9,10 +9,8 @@ def main():
     # network config
     x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
     y_predict = paddle.layer.fc(input=x,
-                                param_attr=paddle.attr.Param(name='w'),
                                 size=1,
-                                act=paddle.activation.Linear(),
-                                bias_attr=paddle.attr.Param(name='b'))
+                                act=paddle.activation.Linear())
     y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
     cost = paddle.layer.regression_cost(input=y_predict, label=y)
 
