@@ -18,10 +18,7 @@ from paddle.trainer_config_helpers.poolings import MaxPooling
 import paddle.v2 as paddle
 
 
-def convolution_net(input_dim,
-                    class_dim=2,
-                    emb_dim=128,
-                    hid_dim=128):
+def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
     data = paddle.layer.data("word",
                              paddle.data_type.integer_value_sequence(input_dim))
     emb = paddle.layer.embedding(input=data, size=emb_dim)
@@ -118,10 +115,9 @@ if __name__ == '__main__':
             lambda: paddle.dataset.imdb.train(word_dict), buf_size=1000),
         batch_size=100)
     test_reader = paddle.batch(
-        lambda: paddle.dataset.imdb.test(word_dict),
-        batch_size=100)
+        lambda: paddle.dataset.imdb.test(word_dict), batch_size=100)
 
-    reader_dict={'word': 0, 'label': 1}
+    reader_dict = {'word': 0, 'label': 1}
 
     # network config
     # Please choose the way to build the network
