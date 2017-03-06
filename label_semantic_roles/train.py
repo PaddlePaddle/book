@@ -155,7 +155,7 @@ def main():
                                  parameters=parameters,
                                  update_equation=optimizer)
 
-    reader = paddle.reader.batched(
+    reader = paddle.batch(
         paddle.reader.shuffle(
             conll05.test(), buf_size=8192), batch_size=10)
 
