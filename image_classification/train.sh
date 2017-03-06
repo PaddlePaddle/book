@@ -14,15 +14,15 @@
 # limitations under the License.
 set -e
 
-#config=models/resnet.py
-config=models/vgg.py
+#cfg=models/resnet.py
+cfg=models/vgg.py
 output=output
 log=train.log
 
 paddle train \
-    --config=$config \
-    --use_gpu=1 \
-    --trainer_count=4 \
+    --config=$cfg \
+    --use_gpu=true \
+    --trainer_count=1 \
     --log_period=100 \
     --num_passes=300 \
     --save_dir=$output \

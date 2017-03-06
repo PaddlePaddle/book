@@ -1,5 +1,7 @@
 # 机器翻译
 
+本教程源代码目录在[book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+
 ## 背景介绍
 
 机器翻译（machine translation, MT）是用计算机来实现不同语言之间翻译的技术。被翻译的语言通常称为源语言（source language），翻译成的结果语言称为目标语言（target language）。机器翻译即实现从源语言到目标语言转换的过程，是自然语言处理的重要研究领域之一。
@@ -66,6 +68,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 <p align="center">
 <img src="image/encoder_decoder.png" width=700><br/>
 图4. 编码器-解码器框架
+**Note: "源语言词序列" 和 "源语编码状态" 位置标反了,需要互换**
 </p>
 
 #### 编码器
@@ -87,7 +90,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 #### 解码器
 
-机器翻译任务的训练过程中，解码阶段的目标是最大化下一个正确的源语言词的概率。思路是：
+机器翻译任务的训练过程中，解码阶段的目标是最大化下一个正确的目标语言词的概率。思路是：
 
 1. 每一个时刻，根据源语言句子的编码信息（又叫上下文向量，context vector）$c$、真实目标语言序列的第$i$个词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$。计算公式如下：
    
@@ -97,7 +100,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 2. 将$z_{i+1}$通过`softmax`归一化，得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。概率分布公式如下：
 
-   $$p\left ( u_{i+1}|u_{<i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
+   $$p\left ( u_{i+1}|u_{&lt;i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
 
    其中$W_sz_{i+1}+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到第$i+1$个词的概率$p_{i+1}$。
 
@@ -280,7 +283,7 @@ pre-wmt14
    - 训练模式：有三个输入序列，其中“源语言序列”和“目标语言序列”作为输入数据，“目标语言的下一个词序列”作为标签数据。
    - 生成模式：有两个输入序列，其中“源语言序列”作为输入数据，“源语言序列编号”作为输入数据的编号（该输入非必须，可以省略）。
   
-  `hook`函数中的`src_dict_path`是源语言字典路径，`trg_dict_path`是目标语言字典路径，`is_generating`（训练或生成模式）是从模型配置中传入的对象。`hook`函数的具体调用方式请见[训练模型配置说明](#训练模型配置说明)。
+  `hook`函数中的`src_dict_path`是源语言字典路径，`trg_dict_path`是目标语言字典路径，`is_generating`（训练或生成模式）是从模型配置中传入的对象。`hook`函数的具体调用方式请见[模型配置说明](#模型配置说明)。
 
    ```python
    def hook(settings, src_dict_path, trg_dict_path, is_generating, file_list, 
@@ -413,12 +416,12 @@ settings(
    ```python
    source_dict_dim = len(open(src_lang_dict, "r").readlines()) # 源语言字典维度
    target_dict_dim = len(open(trg_lang_dict, "r").readlines()) # 目标语言字典维度
-   word_vector_dim = 512 # dimension of word vector # 词向量维度
+   word_vector_dim = 512 # 词向量维度
    encoder_size = 512 # 编码器中的GRU隐层大小
    decoder_size = 512 # 解码器中的GRU隐层大小
 
    if is_generating:
-       beam_size=3 # # 柱搜索算法中的宽度
+       beam_size=3  # 柱搜索算法中的宽度
        max_length=250 # 生成句子的最大长度
        gen_trans_file = get_config_arg("gen_trans_file", str, None) # 生成后的文件
   ```
@@ -470,7 +473,7 @@ settings(
       - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
-      - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{<i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。 
+      - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。 
         
    ```python
    def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
@@ -681,3 +684,6 @@ BLEU = 26.92
 3. Chung J, Gulcehre C, Cho K H, et al. [Empirical evaluation of gated recurrent neural networks on sequence modeling](https://arxiv.org/abs/1412.3555)[J]. arXiv preprint arXiv:1412.3555, 2014.
 4.  Bahdanau D, Cho K, Bengio Y. [Neural machine translation by jointly learning to align and translate](https://arxiv.org/abs/1409.0473)[C]//Proceedings of ICLR 2015, 2015.
 5. Papineni K, Roukos S, Ward T, et al. [BLEU: a method for automatic evaluation of machine translation](http://dl.acm.org/citation.cfm?id=1073135)[C]//Proceedings of the 40th annual meeting on association for computational linguistics. Association for Computational Linguistics, 2002: 311-318.
+
+<br/>
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。

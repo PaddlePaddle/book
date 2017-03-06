@@ -1,6 +1,8 @@
 图像分类
 =======
 
+本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+
 ## 背景介绍 
 
 图像相比文字能够提供更加生动、容易理解及更具艺术感的信息，是人们转递与交换信息的重要来源。在本教程中，我们专注于图像识别领域的一个重要问题，即图像分类。
@@ -136,9 +138,9 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 
 ### 数据介绍与下载
 
-通用图像分类公开的标准数据集常用的有[CIFAR](<https://www.cs.toronto.edu/~kriz/cifar.html)、[ImageNet](http://image-net.org/)、[COCO](http://mscoco.org/)等，常用的细粒度图像分类数据集包括[CUB-200-2011](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html)、[Stanford Dog](http://vision.stanford.edu/aditya86/ImageNetDogs/)、[Oxford-flowers](http://www.robots.ox.ac.uk/~vgg/data/flowers/)等。其中ImageNet数据集规模相对较大，如[模型概览](#模型概览)一章所讲，大量研究成果基于ImageNet。ImageNet数据从2010年来稍有变化，常用的是ImageNet-2012数据集，该数据集包含1000个类别：训练集包含1,281,167张图片，每个类别数据732至1300张不等，验证集包含50,000张图片，平均每个类别50张图片。
+通用图像分类公开的标准数据集常用的有[CIFAR](https://www.cs.toronto.edu/~kriz/cifar.html)、[ImageNet](http://image-net.org/)、[COCO](http://mscoco.org/)等，常用的细粒度图像分类数据集包括[CUB-200-2011](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html)、[Stanford Dog](http://vision.stanford.edu/aditya86/ImageNetDogs/)、[Oxford-flowers](http://www.robots.ox.ac.uk/~vgg/data/flowers/)等。其中ImageNet数据集规模相对较大，如[模型概览](#模型概览)一章所讲，大量研究成果基于ImageNet。ImageNet数据从2010年来稍有变化，常用的是ImageNet-2012数据集，该数据集包含1000个类别：训练集包含1,281,167张图片，每个类别数据732至1300张不等，验证集包含50,000张图片，平均每个类别50张图片。
 
-由于ImageNet数据集较大，下载和训练较慢，为了方便大家学习，我们使用[CIFAR10](<https://www.cs.toronto.edu/~kriz/cifar.html>)数据集。CIFAR10数据集包含60,000张32x32的彩色图片，10个类别，每个类包含6,000张。其中50,000张图片作为训练集，10000张作为测试集。图11从每个类别中随机抽取了10张图片，展示了所有的类别。
+由于ImageNet数据集较大，下载和训练较慢，为了方便大家学习，我们使用[CIFAR10](https://www.cs.toronto.edu/~kriz/cifar.html)数据集。CIFAR10数据集包含60,000张32x32的彩色图片，10个类别，每个类包含6,000张。其中50,000张图片作为训练集，10000张作为测试集。图11从每个类别中随机抽取了10张图片，展示了所有的类别。
 
 <p align="center">
 <img src="image/cifar.png" width="350"><br/>
@@ -175,7 +177,7 @@ def initializer(settings, mean_path, is_train, **kwargs):
     }
 
 
-@provider(init_hook=initializer, cache=CacheType.CACHE_PASS_IN_MEM)
+@provider(init_hook=initializer, pool_size=50000)
 def process(settings, file_list):
     with open(file_list, 'r') as fdata:
         for fname in fdata:
@@ -186,7 +188,9 @@ def process(settings, file_list):
             labels = batch['labels']
             for im, lab in zip(images, labels):
                 if settings.is_train and np.random.randint(2):
+                    im = im.reshape(3, 32, 32)
                     im = im[:,:,::-1]
+                    im = im.flatten()
                 im = im - settings.mean
                 yield {
                     'image': im.astype('float32'),
@@ -245,7 +249,6 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 	网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)，类别大小为10，即10分类。
 	
 	```python
-	
 	datadim = 3 * 32 * 32
 	classdim = 10
 	data = data_layer(name='image', size=datadim)
@@ -297,7 +300,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 3. 定义分类器
 
 	通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
-	
+
 	```python
 	out = fc_layer(input=net, size=class_num, act=SoftmaxActivation())
 	```
@@ -539,3 +542,6 @@ python classify.py --job=extract --model=output/pass-00299 --data=image/dog.png 
 [21] https://www.cs.toronto.edu/~kriz/cifar.html
 
 [22] http://cs231n.github.io/classification/
+
+<br/>
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。

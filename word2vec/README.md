@@ -1,5 +1,7 @@
 # 词向量
 
+本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/word2vec)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+
 ## 背景介绍
 
 本章我们介绍词的向量表征，也称为word embedding。词向量是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
@@ -34,6 +36,7 @@ $$X = USV^T$$
 </p>
 
 另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
+
 ```
 similarity: 0.899180685161
 please input two words: big huge
@@ -80,6 +83,7 @@ $$P(w_1, ..., w_T) = \prod_{t=n}^TP(w_t|w_{t-1}, w_{t-2}, ..., w_{t-n+1})$$
 $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
+
 <p align="center">	
    	<img src="image/nnlm.png" width=500><br/>
    	图2. N-gram神经网络模型
@@ -111,6 +115,7 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 ### Continuous Bag-of-Words model(CBOW) 
 
 CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时，模型如下图所示：
+
 <p align="center">	
 	<img src="image/cbow.png" width=250><br/>
 	图3. CBOW模型
@@ -125,17 +130,18 @@ $$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
 ### Skip-gram model 
 
 CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效。而Skip-gram的方法中，用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
+
 <p align="center">	
 	<img src="image/skipgram.png" width=250><br/>
 	图4. Skip-gram模型
 </p>
+
 如上图所示，Skip-gram模型的具体做法是，将一个词的词向量映射到$2n$个词的词向量（$2n$表示当前输入词的前后各$n$个词），然后分别通过softmax得到这$2n$个词的分类损失值之和。
 
 
-
 ## 数据准备
-	
-### 数据介绍与下载
+
+### 数据介绍
 
 本教程使用Penn Tree Bank (PTB)数据集。PTB数据集较小，训练速度快，应用于Mikolov的公开语言模型训练工具\[[2](#参考文献)\]中。其统计情况如下：
 
@@ -159,110 +165,24 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 </table>
 </p>
 
-执行以下命令，可下载该数据集，并分别将训练数据和验证数据输入`train.list`和`test.list`文件中，供PaddlePaddle训练时使用。
-
-```bash
-./data/getdata.sh
-```
-
 	
-### 提供数据给PaddlePaddle
+### 数据预处理
 
-1. 使用initializer函数进行dataprovider的初始化，包括字典的建立（build_dict函数中）和PaddlePaddle输入字段的格式定义。注意：这里N为n-gram模型中的`n`, 本章代码中，定义$N=5$, 表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。大家也可以根据自己的数据和需求自行调整N，但调整的同时要在模型配置文件中加入/减少相应输入字段。
+本章训练的是5-gram模型，表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。PaddlePaddle提供了对应PTB数据集的python包`paddle.dataset.imikolov`，自动做数据的下载与预处理，方便大家使用。
 
-    ```python
-    from paddle.trainer.PyDataProvider2 import *
-    import collections
-    import logging
-    import pdb
-    
-    logging.basicConfig(
-        format='[%(levelname)s %(asctime)s %(filename)s:%(lineno)s] %(message)s', )
-    logger = logging.getLogger('paddle')
-    logger.setLevel(logging.INFO)
-    
-    N = 5  # Ngram
-    cutoff = 50  # select words with frequency > cutoff to dictionary
-    def build_dict(ftrain, fdict):
-    	sentences = []
-        with open(ftrain) as fin:
-            for line in fin:
-                line = ['<s>'] + line.strip().split() + ['<e>']
-                sentences += line
-        wordfreq = collections.Counter(sentences)
-        wordfreq = filter(lambda x: x[1] > cutoff, wordfreq.items())
-        dictionary = sorted(wordfreq, key = lambda x: (-x[1], x[0]))
-        words, _ = list(zip(*dictionary))
-        for word in words:
-            print >> fdict, word
-        word_idx = dict(zip(words, xrange(len(words))))
-        logger.info("Dictionary size=%s" %len(words))
-        return word_idx
-    
-    def initializer(settings, srcText, dictfile, **xargs):
-        with open(dictfile, 'w') as fdict:
-            settings.dicts = build_dict(srcText, fdict)
-        input_types = []
-        for i in xrange(N):
-            input_types.append(integer_value(len(settings.dicts)))
-        settings.input_types = input_types
-    ```
+预处理会把数据集中的每一句话前后加上开始符号`<s>`以及结束符号`<e>`。然后依据窗口大小（本教程中为5），从头到尾每次向右滑动窗口并生成一条数据。
 
-2. 使用process函数中将数据逐一提供给PaddlePaddle。具体来说，将每句话前面补上N-1个开始符号 `<s>`, 末尾补上一个结束符号 `<e>`，然后以N为窗口大小，从头到尾每次向右滑动窗口并生成一条数据。
+如"I have a dream that one day" 一句提供了5条数据：
 
-    ```python
-    @provider(init_hook=initializer)
-    def process(settings, filename):
-        UNKID = settings.dicts['<unk>']
-        with open(filename) as fin:
-            for line in fin:
-                line = ['<s>']*(N-1)  + line.strip().split() + ['<e>']
-                line = [settings.dicts.get(w, UNKID) for w in line]
-                for i in range(N, len(line) + 1):
-                    yield line[i-N: i]
-    ```
-    
-    如"I have a dream" 一句提供了5条数据:
-    
-    > `<s> <s> <s> <s> I `<br/>
-    > `<s> <s> <s> I have`<br/>
-    > `<s> <s> I have a `<br/>
-    > `<s> I have a dream`<br/>
-    > `I have a dream <e>`<br/>
-
-
-
-## 模型配置说明
-
-### 数据定义
-
-通过`define_py_data_sources2`函数从dataprovider中读入数据，其中args指定了训练文本(srcText)和词汇表(dictfile)。
-
-```python
-from paddle.trainer_config_helpers import *
-import math
-
-args = {'srcText': 'data/simple-examples/data/ptb.train.txt',
-        'dictfile': 'data/vocabulary.txt'}
-		
-define_py_data_sources2(
-    train_list="data/train.list",
-    test_list="data/test.list",
-    module="dataprovider",
-    obj="process",
-    args=args)
+```text
+<s> I have a dream
+I have a dream that
+have a dream that one
+a dream that one day
+dream that one day <e>
 ```
 
-### 算法配置
-
-在这里，我们指定了模型的训练参数, L2正则项系数、学习率和batch size。
-
-```python
-settings(
-    batch_size=100, regularization=L2Regularization(8e-4), learning_rate=3e-3)
-```
-
-### 模型结构
+## 编程实现
 
 本配置的模型结构如下图所示：
 
@@ -271,94 +191,132 @@ settings(
 	图5. 模型配置中的N-gram神经网络模型
 </p>
 
-1. 定义参数维度和和数据输入。
+首先，加载所需要的包：
 
-    ```python
-    dictsize = 1953 # 字典大小
-    embsize = 32 # 词向量维度
-    hiddensize = 256 # 隐层维度
-    
-    firstword = data_layer(name = "firstw", size = dictsize)
-    secondword = data_layer(name = "secondw", size = dictsize)
-    thirdword = data_layer(name = "thirdw", size = dictsize)
-    fourthword = data_layer(name = "fourthw", size = dictsize)
-    nextword = data_layer(name = "fifthw", size = dictsize)
-    ```
-
-2. 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
-	
-	```python	
-	def wordemb(inlayer):
-		wordemb = table_projection(
-        input = inlayer,
-        size = embsize,
-        param_attr=ParamAttr(name = "_proj",
-            initial_std=0.001, # 参数初始化标准差
-            l2_rate= 0,))      # 词向量不需要稀疏化，因此其l2_rate设为0
-    return wordemb
-
-	Efirst = wordemb(firstword)
-	Esecond = wordemb(secondword)
-	Ethird = wordemb(thirdword)
-	Efourth = wordemb(fourthword)
-	```
-
-3. 接着，将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
-
-	```python
-	contextemb = concat_layer(input = [Efirst, Esecond, Ethird, Efourth])
-	```
-4. 然后，将历史文本特征经过一个全连接得到文本隐层特征。
-
-    ```python
-	hidden1 = fc_layer(
-	        input = contextemb,
-	        size = hiddensize,
-	        act = SigmoidActivation(),
-	        layer_attr = ExtraAttr(drop_rate=0.5),
-	        bias_attr = ParamAttr(learning_rate = 2),
-	        param_attr = ParamAttr(
-	            initial_std = 1./math.sqrt(embsize*8),
-	            learning_rate = 1))
-    ```
-	
-5. 最后，将文本隐层特征，再经过一个全连接，映射成一个$|V|$维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
-
-    ```python
-	# use context embedding to predict nextword
-	predictword = fc_layer(
-	        input = hidden1,
-	        size = dictsize,
-	        bias_attr = ParamAttr(learning_rate = 2),
-	        act = SoftmaxActivation())
-	```
-
-6. 网络的损失函数为多分类交叉熵，可直接调用`classification_cost`函数。
-
-	```python
-	cost = classification_cost(
-	        input = predictword,
-	        label = nextword)
-	# network input and output
-	outputs(cost)
-	```
-	
-##训练模型
-
-模型训练命令为`./train.sh`。脚本内容如下，其中指定了总共需要执行30个pass。
-
-```bash
-paddle train \
-       --config ngram.py \
-       --use_gpu=1 \
-       --dot_period=100 \
-       --log_period=3000 \
-       --test_period=0 \
-       --save_dir=model \
-       --num_passes=30
+```python
+import math
+import paddle.v2 as paddle
 ```
 
-一个pass的训练日志如下所示：
+然后，定义参数：
+```python
+embsize = 32 # 词向量维度
+hiddensize = 256 # 隐层维度
+N = 5 # 训练5-Gram
+```
+
+接着，定义网络结构：
+
+- 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
+	
+```python	
+def wordemb(inlayer):
+    wordemb = paddle.layer.table_projection(
+        input=inlayer,
+        size=embsize,
+        param_attr=paddle.attr.Param(
+            name="_proj",
+            initial_std=0.001,
+            learning_rate=1,
+            l2_rate=0, ))
+    return wordemb
+```
+
+- 定义输入层接受的数据类型以及名字。
+
+```python
+def main():
+    paddle.init(use_gpu=False, trainer_count=1) # 初始化PaddlePaddle
+    word_dict = paddle.dataset.imikolov.build_dict()
+    dict_size = len(word_dict)
+	# 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)
+    firstword = paddle.layer.data(
+        name="firstw", type=paddle.data_type.integer_value(dict_size))
+    secondword = paddle.layer.data(
+        name="secondw", type=paddle.data_type.integer_value(dict_size))
+    thirdword = paddle.layer.data(
+        name="thirdw", type=paddle.data_type.integer_value(dict_size))
+    fourthword = paddle.layer.data(
+        name="fourthw", type=paddle.data_type.integer_value(dict_size))
+    nextword = paddle.layer.data(
+        name="fifthw", type=paddle.data_type.integer_value(dict_size))
+
+    Efirst = wordemb(firstword)
+    Esecond = wordemb(secondword)
+    Ethird = wordemb(thirdword)
+    Efourth = wordemb(fourthword)
+```
+
+- 将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
+
+```python
+    contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
+```
+
+- 将历史文本特征经过一个全连接得到文本隐层特征。
+
+```python
+    hidden1 = paddle.layer.fc(input=contextemb,
+                              size=hiddensize,
+                              act=paddle.activation.Sigmoid(),
+                              layer_attr=paddle.attr.Extra(drop_rate=0.5),
+                              bias_attr=paddle.attr.Param(learning_rate=2),
+                              param_attr=paddle.attr.Param(
+                                  initial_std=1. / math.sqrt(embsize * 8),
+                                  learning_rate=1))
+```
+	
+- 将文本隐层特征，再经过一个全连接，映射成一个$|V|$维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
+
+```python
+    predictword = paddle.layer.fc(input=hidden1,
+                                  size=dict_size,
+                                  bias_attr=paddle.attr.Param(learning_rate=2),
+                                  act=paddle.activation.Softmax())
+```
+
+- 网络的损失函数为多分类交叉熵，可直接调用`classification_cost`函数。
+
+```python
+cost = paddle.layer.classification_cost(input=predictword, label=nextword)
+```
+
+然后，指定训练相关的参数：
+
+- 训练方法（optimizer)： 代表训练过程在更新权重时采用动量优化器，本教程使用Adam优化器。
+- 训练速度（learning_rate）： 迭代的速度，与网络的训练收敛速度有关系。
+- 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
+
+```python
+    parameters = paddle.parameters.create(cost)
+    adam_optimizer = paddle.optimizer.Adam(
+        learning_rate=3e-3,
+        regularization=paddle.optimizer.L2Regularization(8e-4))
+    trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
+```
+
+下一步，我们开始训练过程。`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python generator。
+
+`paddle.batch`的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
+
+```python
+    def event_handler(event):
+        if isinstance(event, paddle.event.EndIteration):
+            if event.batch_id % 100 == 0:
+                result = trainer.test(
+                    paddle.batch(
+                        paddle.dataset.imikolov.test(word_dict, N), 32))
+                print "Pass %d, Batch %d, Cost %f, %s, Testing metrics %s" % (
+                    event.pass_id, event.batch_id, event.cost, event.metrics,
+                    result.metrics)
+
+    trainer.train(
+        paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
+        num_passes=30,
+        event_handler=event_handler)
+```
+
+训练过程是完全自动的，event_handler里打印的日志类似如下所示：
 
 ```text
 .............................
@@ -459,3 +417,6 @@ python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt
 3. Mikolov T, Chen K, Corrado G, et al. [Efficient estimation of word representations in vector space](https://arxiv.org/pdf/1301.3781.pdf)[J]. arXiv preprint arXiv:1301.3781, 2013.
 4. Maaten L, Hinton G. [Visualizing data using t-SNE](https://lvdmaaten.github.io/publications/papers/JMLR_2008.pdf)[J]. Journal of Machine Learning Research, 2008, 9(Nov): 2579-2605.
 5. https://en.wikipedia.org/wiki/Singular_value_decomposition
+
+<br/>
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。

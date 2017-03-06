@@ -1,5 +1,7 @@
 # 语义角色标注
 
+本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+
 ## 背景介绍
 
 自然语言分析技术大致分为三个层面：词法分析、句法分析和语义分析。语义角色标注是实现浅层语义分析的一种方式。在一个句子中，谓词是对主语的陈述或说明，指出“做什么”、“是什么”或“怎么样，代表了一个事件的核心，跟谓词搭配的名词称为论元。语义角色是指论元在动词所指事件中担任的角色。主要有：施事者（Agent）、受事者（Patient）、客体（Theme）、经验者（Experiencer）、受益者（Beneficiary）、工具（Instrument）、处所（Location）、目标（Goal）和来源（Source）等。
@@ -19,7 +21,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 5. 对第4步的结果，通过多分类得到论元的语义角色标签。可以看到，句法分析是基础，并且后续步骤常常会构造的一些人工特征，这些特征往往也来自句法分析。
 
 <div  align="center">
-<img src="image/dependency_parsing.png" width = "80%" height = "80%" align=center /><br>
+<img src="image/dependency_parsing.png" width = "80%" align=center /><br>
 图1. 依存句法分析句法树示例
 </div>
 
@@ -28,7 +30,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 我们继续以上面的这句话为例，图1展示了BIO表示方法。
 
 <div  align="center">
-<img src="image/bio_example.png" width = "90%" height = "90%" align=center /><br>
+<img src="image/bio_example.png" width = "90%"  align=center /><br>
 图2. BIO标注方法示例
 </div>
 
@@ -51,7 +53,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 图3是最终得到的栈式循环神经网络结构示意图。
 
 <p align="center">    
-<img src="./image/stacked_lstm.png" width = "40%" height = "40%" align=center><br>
+<img src="./image/stacked_lstm.png" width = "40%"  align=center><br>
 图3. 基于LSTM的栈式循环神经网络结构示意图
 </p>
 
@@ -62,7 +64,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 为了克服这一缺陷，我们可以设计一种双向循环网络单元，它的思想简单且直接：对上一节的栈式循环神经网络进行一个小小的修改，堆叠多个LSTM单元，让每一层LSTM单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第2层开始，$t$时刻我们的LSTM单元便总是可以看到历史和未来的信息。图4是基于LSTM的双向循环神经网络结构示意图。
 
 <p align="center">    
-<img src="./image/bidirectional_stacked_lstm.png" width = "60%" height = "60%" align=center><br>
+<img src="./image/bidirectional_stacked_lstm.png" width = "60%" align=center><br>
 图4. 基于LSTM的双向循环神经网络结构示意图
 </p>
 
@@ -77,7 +79,7 @@ CRF是一种概率化结构模型，可以看作是一个概率无向图模型�
 序列标注任务只需要考虑输入和输出都是一个线性序列，并且由于我们只是将输入序列作为条件，不做任何条件独立假设，因此输入序列的元素之间并不存在图结构。综上，在序列标注任务中使用的是如图5所示的定义在链式图上的CRF，称之为线性链条件随机场（Linear Chain Conditional Random Field）。
 
 <p align="center">    
-<img src="./image/linear_chain_crf.png" width = "35%" height = "35%" align=center><br>
+<img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
 图5. 序列标注任务中使用的线性链条件随机场
 </p>
 
@@ -121,7 +123,7 @@ $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \fra
 4. CRF以第3步中LSTM学习到的特征为输入，以标记序列为监督信号，完成序列标注；
 
 <div  align="center">    
-<img src="image/db_lstm_network.png" width = "60%" height = "60%" align=center /><br>
+<img src="image/db_lstm_network.png" width = "60%"  align=center /><br>
 图6. SRL任务上的深层双向LSTM模型
 </div>
 
@@ -472,3 +474,6 @@ The interest-only securities were priced at 35 1\/2 to yield 10.72 % .  B-A0 I-A
 8. Palmer M, Gildea D, Kingsbury P. [The proposition bank: An annotated corpus of semantic roles](http://www.mitpressjournals.org/doi/pdfplus/10.1162/0891201053630264)[J]. Computational linguistics, 2005, 31(1): 71-106.
 9. Carreras X, Màrquez L. [Introduction to the CoNLL-2005 shared task: Semantic role labeling](http://www.cs.upc.edu/~srlconll/st05/papers/intro.pdf)[C]//Proceedings of the Ninth Conference on Computational Natural Language Learning. Association for Computational Linguistics, 2005: 152-164.
 10. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
+
+<br/>
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。

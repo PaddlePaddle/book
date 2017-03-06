@@ -27,7 +27,7 @@ def initializer(settings, mean_path, is_train, **kwargs):
     }
 
 
-@provider(init_hook=initializer, cache=CacheType.CACHE_PASS_IN_MEM)
+@provider(init_hook=initializer, pool_size=50000)
 def process(settings, file_list):
     with open(file_list, 'r') as fdata:
         for fname in fdata:
@@ -38,6 +38,8 @@ def process(settings, file_list):
             labels = batch['labels']
             for im, lab in zip(images, labels):
                 if settings.is_train and np.random.randint(2):
+                    im = im.reshape(3, 32, 32)
                     im = im[:, :, ::-1]
+                    im = im.flatten()
                 im = im - settings.mean
                 yield {'image': im.astype('float32'), 'label': int(lab)}
