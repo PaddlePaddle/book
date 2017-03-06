@@ -68,6 +68,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 <p align="center">
 <img src="image/encoder_decoder.png" width=700><br/>
 图4. 编码器-解码器框架
+**Note: "源语言词序列" 和 "源语编码状态" 位置标反了,需要互换**
 </p>
 
 #### 编码器
@@ -89,7 +90,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 #### 解码器
 
-机器翻译任务的训练过程中，解码阶段的目标是最大化下一个正确的源语言词的概率。思路是：
+机器翻译任务的训练过程中，解码阶段的目标是最大化下一个正确的目标语言词的概率。思路是：
 
 1. 每一个时刻，根据源语言句子的编码信息（又叫上下文向量，context vector）$c$、真实目标语言序列的第$i$个词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$。计算公式如下：
    
@@ -282,7 +283,7 @@ pre-wmt14
    - 训练模式：有三个输入序列，其中“源语言序列”和“目标语言序列”作为输入数据，“目标语言的下一个词序列”作为标签数据。
    - 生成模式：有两个输入序列，其中“源语言序列”作为输入数据，“源语言序列编号”作为输入数据的编号（该输入非必须，可以省略）。
   
-  `hook`函数中的`src_dict_path`是源语言字典路径，`trg_dict_path`是目标语言字典路径，`is_generating`（训练或生成模式）是从模型配置中传入的对象。`hook`函数的具体调用方式请见[训练模型配置说明](#训练模型配置说明)。
+  `hook`函数中的`src_dict_path`是源语言字典路径，`trg_dict_path`是目标语言字典路径，`is_generating`（训练或生成模式）是从模型配置中传入的对象。`hook`函数的具体调用方式请见[模型配置说明](#模型配置说明)。
 
    ```python
    def hook(settings, src_dict_path, trg_dict_path, is_generating, file_list, 
@@ -415,12 +416,12 @@ settings(
    ```python
    source_dict_dim = len(open(src_lang_dict, "r").readlines()) # 源语言字典维度
    target_dict_dim = len(open(trg_lang_dict, "r").readlines()) # 目标语言字典维度
-   word_vector_dim = 512 # dimension of word vector # 词向量维度
+   word_vector_dim = 512 # 词向量维度
    encoder_size = 512 # 编码器中的GRU隐层大小
    decoder_size = 512 # 解码器中的GRU隐层大小
 
    if is_generating:
-       beam_size=3 # # 柱搜索算法中的宽度
+       beam_size=3  # 柱搜索算法中的宽度
        max_length=250 # 生成句子的最大长度
        gen_trans_file = get_config_arg("gen_trans_file", str, None) # 生成后的文件
   ```

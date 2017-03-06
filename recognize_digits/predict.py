@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Usage: predict.py -c CONF -d ./data/raw_data/  -m MODEL
-
+"""Usage: predict.py -c CONF -d DATA -m MODEL
 
 Arguments:
     CONF        train conf
@@ -29,7 +28,6 @@ Options:
 import os
 import sys
 from docopt import docopt
-import matplotlib.pyplot as plt
 import numpy as np
 
 from py_paddle import swig_paddle, DataProviderConverter
@@ -48,6 +46,7 @@ class Prediction():
         self.network.loadParameters(model_dir)
 
         self.images, self.labels = read_data(data_dir, "t10k")
+        self.images = self.images / 255.0 * 2.0 - 1.0  # normalized to [-1,1]
 
         slots = [dense_vector(28 * 28)]
         self.converter = DataProviderConverter(slots)

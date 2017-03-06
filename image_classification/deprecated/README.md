@@ -138,9 +138,9 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 
 ### 数据介绍与下载
 
-通用图像分类公开的标准数据集常用的有[CIFAR](<https://www.cs.toronto.edu/~kriz/cifar.html)、[ImageNet](http://image-net.org/)、[COCO](http://mscoco.org/)等，常用的细粒度图像分类数据集包括[CUB-200-2011](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html)、[Stanford Dog](http://vision.stanford.edu/aditya86/ImageNetDogs/)、[Oxford-flowers](http://www.robots.ox.ac.uk/~vgg/data/flowers/)等。其中ImageNet数据集规模相对较大，如[模型概览](#模型概览)一章所讲，大量研究成果基于ImageNet。ImageNet数据从2010年来稍有变化，常用的是ImageNet-2012数据集，该数据集包含1000个类别：训练集包含1,281,167张图片，每个类别数据732至1300张不等，验证集包含50,000张图片，平均每个类别50张图片。
+通用图像分类公开的标准数据集常用的有[CIFAR](https://www.cs.toronto.edu/~kriz/cifar.html)、[ImageNet](http://image-net.org/)、[COCO](http://mscoco.org/)等，常用的细粒度图像分类数据集包括[CUB-200-2011](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html)、[Stanford Dog](http://vision.stanford.edu/aditya86/ImageNetDogs/)、[Oxford-flowers](http://www.robots.ox.ac.uk/~vgg/data/flowers/)等。其中ImageNet数据集规模相对较大，如[模型概览](#模型概览)一章所讲，大量研究成果基于ImageNet。ImageNet数据从2010年来稍有变化，常用的是ImageNet-2012数据集，该数据集包含1000个类别：训练集包含1,281,167张图片，每个类别数据732至1300张不等，验证集包含50,000张图片，平均每个类别50张图片。
 
-由于ImageNet数据集较大，下载和训练较慢，为了方便大家学习，我们使用[CIFAR10](<https://www.cs.toronto.edu/~kriz/cifar.html>)数据集。CIFAR10数据集包含60,000张32x32的彩色图片，10个类别，每个类包含6,000张。其中50,000张图片作为训练集，10000张作为测试集。图11从每个类别中随机抽取了10张图片，展示了所有的类别。
+由于ImageNet数据集较大，下载和训练较慢，为了方便大家学习，我们使用[CIFAR10](https://www.cs.toronto.edu/~kriz/cifar.html)数据集。CIFAR10数据集包含60,000张32x32的彩色图片，10个类别，每个类包含6,000张。其中50,000张图片作为训练集，10000张作为测试集。图11从每个类别中随机抽取了10张图片，展示了所有的类别。
 
 <p align="center">
 <img src="image/cifar.png" width="350"><br/>
@@ -177,7 +177,7 @@ def initializer(settings, mean_path, is_train, **kwargs):
     }
 
 
-@provider(init_hook=initializer, cache=CacheType.CACHE_PASS_IN_MEM)
+@provider(init_hook=initializer, pool_size=50000)
 def process(settings, file_list):
     with open(file_list, 'r') as fdata:
         for fname in fdata:
@@ -188,7 +188,9 @@ def process(settings, file_list):
             labels = batch['labels']
             for im, lab in zip(images, labels):
                 if settings.is_train and np.random.randint(2):
+                    im = im.reshape(3, 32, 32)
                     im = im[:,:,::-1]
+                    im = im.flatten()
                 im = im - settings.mean
                 yield {
                     'image': im.astype('float32'),
