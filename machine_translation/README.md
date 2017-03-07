@@ -216,6 +216,16 @@ cd data
 
 ## 训练流程说明
 
+### paddle初始化
+
+```python
+# 加载 paddle的python包
+import paddle.v2 as paddle
+
+# 配置只使用cpu，并且使用一个cpu进行训练
+paddle.init(use_gpu=False, trainer_count=1)
+```
+
 ### 数据定义
 
 首先要定义词典大小，数据生成和网络配置都需要用到。然后获取wmt14的dataset reader。
