@@ -148,9 +148,9 @@ Since ImageNet is too large to be downloaded and trained efficiently, we use CIF
 Figure 11. CIFAR10 dataset[21]
 </p>
 
- `paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually donwload and preprocess CIFAR-10.
+ `paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually download and preprocess CIFAR-10.
 
-After issuing a command `python train.py`, trainning is starting immediately! The details will be unpacked by the following sessions to see how it works.
+After issuing a command `python train.py`, training will starting immediately. The details will be unpacked by the following sessions to see how it works.
 
 ## Model Architecture
 
@@ -166,11 +166,11 @@ import paddle.v2 as paddle
 paddle.init(use_gpu=False, trainer_count=1)
 ```
 
-As alluded to in section `Overview Models`, here we provide the implementations of both VGG and ResNet models.
+As alluded to in section [Model Overview](#model-overview), here we provide the implementations of both VGG and ResNet models.
 
 ### VGG
 
-First we define VGG network. Since the image size and amount of CIFAR10 are relatively small comparing to ImageNet, we uses a small version of VGG network for CIFAR10. Convolution groups incorporate BN and dropout operations.
+First, we use a VGG network. Since the image size and amount of CIFAR10 are relatively small comparing to ImageNet, we uses a small version of VGG network for CIFAR10. Convolution groups incorporate BN and dropout operations.
 
 1. Define input data and its dimension
 
@@ -188,7 +188,7 @@ First we define VGG network. Since the image size and amount of CIFAR10 are rela
 	```python
 	net = vgg_bn_drop(image)
 	```
-        The input to VGG main module is from data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
+        The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
 
 	```python
     def vgg_bn_drop(input):
@@ -258,7 +258,7 @@ net = resnet_cifar10(data, depth=32)
 Here are some basic functions used in `resnet_cifar10`:
 
   - `conv_bn_layer` : convolutional layer followed by BN.
-  - `shortcut` : the shortcut branch in a residual block. There are two kinds of shortcuts: 1x1 convolution used when the number of channels between input and output are different; direct connection used otherwise.
+  - `shortcut` : the shortcut branch in a residual block. There are two kinds of shortcuts: 1x1 convolution used when the number of channels between input and output is different; direct connection used otherwise.
 
   - `basicblock` : a basic residual module as shown in the left of Figure 9, consisting of two sequential 3x3 convolutions and one "shortcut" branch.
   - `bottleneck` : a bottleneck module as shown in the right of Figure 9, consisting of a two 1x1 convolutions with one 3x3 convolution in between branch and a "shortcut" branch.
@@ -332,14 +332,14 @@ def resnet_cifar10(ipt, depth=32):
 
 ### Define Parameters
 
-First, we define the model parameters according to the previous model configuration `cost`.
+First, we create the model parameters according to the previous model configuration `cost`.
 
 ```python
 # Create parameters
 parameters = paddle.parameters.create(cost)
 ```
 
-### Construct Trainer
+### Create Trainer
 
 Before jumping into creating a training module, algorithm setting is also necessary.
 Here we specified `Momentum` optimization algorithm via `paddle.optimizer`.
@@ -384,7 +384,8 @@ feeding={'image': 0,
          'label': 1}
 ```
 
-Callback function `event_handler` is used to track training and testing process that might be triggered once the action to which it is attached is executed.
+Callback function `event_handler` will be called during training when a pre-defined event happens.
+
 
 ```python
 # event handler to track training and testing process
@@ -415,7 +416,7 @@ trainer.train(
     feeding=feeding)
 ```
 
-Here is an example log after training for one pass. The average error rates are 0.6875 on training set and 0.8852 on validation set.
+Here is an example log after training for one pass. The average error rates are 0.6875 on the training set and 0.8852 on the validation set.
 
 ```text
 Pass 0, Batch 0, Cost 2.473182, {'classification_error_evaluator': 0.9140625}
