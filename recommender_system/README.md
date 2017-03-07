@@ -91,278 +91,330 @@ $$P(\omega=i|u)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
 
 我们以 [MovieLens 百万数据集（ml-1m）](http://files.grouplens.org/datasets/movielens/ml-1m.zip)为例进行介绍。ml-1m 数据集包含了 6,000 位用户对 4,000 部电影的 1,000,000 条评价（评分范围 1~5 分，均为整数），由 GroupLens Research 实验室搜集整理。
 
-您可以运行 `data/getdata.sh` 下载数据，如果数椐获取成功，您将在目录`data/ml-1m`中看到下面的文件：
+Paddle在API中提供了自动加载数据的模块。数据模块为 `paddle.dataset.movielens`
 
-```
-movies.dat  ratings.dat  users.dat  README 
-```
-
-- movies.dat：电影特征数据，格式为`电影ID::电影名称::电影类型`
-- ratings.dat：评分数据，格式为`用户ID::电影ID::评分::时间戳`
-- users.dat：用户特征数据，格式为`用户ID::性别::年龄::职业::邮编`
-- README：数据集的详细描述
-
-### 数据预处理
-
-首先安装 Python 第三方库（推荐使用 Virtualenv）：
-
-```shell
-pip install -r data/requirements.txt
-```
-
-其次在预处理`./preprocess.sh`过程中，我们将字段配置文件`data/config.json`转化为meta配置文件`meta_config.json`，并生成对应的meta文件`meta.bin`，以完成数据文件的序列化。然后再将`ratings.dat`分为训练集、测试集两部分，把它们的地址写入`train.list`和`test.list`。
-
-运行成功后目录`./data` 新增以下文件：
-
-```
-meta_config.json  meta.bin  ratings.dat.train  ratings.dat.test  train.list  test.list
-```
-
-- meta.bin: meta文件是Python的pickle对象， 存储着电影和用户信息。
-- meta_config.json: meta配置文件，用来具体描述如何解析数据集中的每一个字段，由字段配置文件生成。
-- ratings.dat.train和ratings.dat.test: 训练集和测试集，训练集已经随机打乱。
-- train.list和test.list: 训练集和测试集的文件地址列表。
-
-### 提供数据给 PaddlePaddle
-
-我们使用 Python 接口传递数据给系统，下面 `dataprovider.py` 给出了完整示例。
 
 ```python
-from paddle.trainer.PyDataProvider2 import *
-from common_utils import meta_to_header
-
-def __list_to_map__(lst):  # 将list转为map
-    ret_val = dict()
-    for each in lst:
-        k, v = each
-        ret_val[k] = v
-    return ret_val
-
-def hook(settings, meta, **kwargs): # 读取meta.bin
-    # 定义电影特征
-    movie_headers = list(meta_to_header(meta, 'movie'))
-    settings.movie_names = [h[0] for h in movie_headers]
-    headers = movie_headers
-    
-    # 定义用户特征
-    user_headers = list(meta_to_header(meta, 'user'))
-    settings.user_names = [h[0] for h in user_headers]
-    headers.extend(user_headers)
-    
-    # 加载评分信息
-    headers.append(("rating", dense_vector(1)))
-    
-    settings.input_types = __list_to_map__(headers)
-    settings.meta = meta
-    
-@provider(init_hook=hook, cache=CacheType.CACHE_PASS_IN_MEM)
-def process(settings, filename):
-    with open(filename, 'r') as f:
-        for line in f:
-            # 从评分文件中读取评分
-            user_id, movie_id, score = map(int, line.split('::')[:-1])
-            # 将评分平移到[-2, +2]范围内的整数
-            score = float(score - 3)
-            
-            movie_meta = settings.meta['movie'][movie_id]
-            user_meta = settings.meta['user'][user_id]
-
-            # 添加电影ID与电影特征
-            outputs = [('movie_id', movie_id - 1)]
-            for i, each_meta in enumerate(movie_meta):
-                outputs.append((settings.movie_names[i + 1], each_meta))
-            
-            # 添加用户ID与用户特征
-            outputs.append(('user_id', user_id - 1))
-            for i, each_meta in enumerate(user_meta):
-                outputs.append((settings.user_names[i + 1], each_meta))
-            
-            # 添加评分
-            outputs.append(('rating', [score]))
-            # 将数据返回给 paddle
-            yield __list_to_map__(outputs)
+import paddle.v2 as paddle
+paddle.init(use_gpu=False)
 ```
+
+
+```python
+# Run this block to show dataset's documentation
+# help(paddle.dataset.movielens)
+```
+
+在原始数据中包含电影的特征数据，用户的特征数据，和用户对电影的评分。
+
+例如，其中某一个电影特征为:
+
+
+```python
+movie_info = paddle.dataset.movielens.movie_info()
+print movie_info.values()[0]
+```
+
+    <MovieInfo id(1), title(Toy Story ), categories(['Animation', "Children's", 'Comedy'])>
+
+
+这表示，电影的id是1，标题是《Toy Story》，该电影被分为到三个类别中。这三个类别是动画，儿童，喜剧。
+
+
+```python
+user_info = paddle.dataset.movielens.user_info()
+print user_info.values()[0]
+```
+
+    <UserInfo id(1), gender(F), age(1), job(10)>
+
+
+这表示，该用户ID是1，女性，年龄比18岁还年轻。职业ID是10。
+
+
+其中，年龄使用下列分布
+*  1:  "Under 18"
+* 18:  "18-24"
+* 25:  "25-34"
+* 35:  "35-44"
+* 45:  "45-49"
+* 50:  "50-55"
+* 56:  "56+"
+
+职业是从下面几种选项里面选则得出:
+*  0:  "other" or not specified
+*  1:  "academic/educator"
+*  2:  "artist"
+*  3:  "clerical/admin"
+*  4:  "college/grad student"
+*  5:  "customer service"
+*  6:  "doctor/health care"
+*  7:  "executive/managerial"
+*  8:  "farmer"
+*  9:  "homemaker"
+* 10:  "K-12 student"
+* 11:  "lawyer"
+* 12:  "programmer"
+* 13:  "retired"
+* 14:  "sales/marketing"
+* 15:  "scientist"
+* 16:  "self-employed"
+* 17:  "technician/engineer"
+* 18:  "tradesman/craftsman"
+* 19:  "unemployed"
+* 20:  "writer"
+
+而对于每一条训练/测试数据，均为 <用户特征> + <电影特征> + 评分。
+
+例如，我们获得第一条训练数据:
+
+
+```python
+train_set_creator = paddle.dataset.movielens.train()
+train_sample = next(train_set_creator())
+uid = train_sample[0]
+mov_id = train_sample[len(user_info[uid].value())]
+print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1])
+```
+
+    User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest ), categories(['Drama'])> with Score [5.0]
+
+
+即用户1对电影1193的评价为5分。
 
 ## 模型配置说明
 
-### 数据定义
+下面我们开始根据输入数据的形式配置模型。
 
-加载`meta.bin`文件并定义通过`define_py_data_sources2`从dataprovider中读入数据：
-
-```python
-from paddle.trainer_config_helpers import *
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
-is_predict = get_config_arg('is_predict', bool, False)
-
-META_FILE = 'data/meta.bin'
-
-# 加载 meta 文件
-with open(META_FILE, 'rb') as f:
-    meta = pickle.load(f)
-
-if not is_predict:
-    define_py_data_sources2(
-        'data/train.list',
-        'data/test.list',
-        module='dataprovider',
-        obj='process',
-        args={'meta': meta})
-```
-
-### 算法配置
-
-这里我们设置了batch size、网络初始学习率和RMSProp自适应优化方法。
 
 ```python
-settings(
-    batch_size=1600, learning_rate=1e-3, learning_method=RMSPropOptimizer())
+uid = paddle.layer.data(
+        name='user_id',
+        type=paddle.data_type.integer_value(
+            paddle.dataset.movielens.max_user_id() + 1))
+usr_emb = paddle.layer.embedding(input=uid, size=32)
+
+usr_gender_id = paddle.layer.data(
+        name='gender_id', type=paddle.data_type.integer_value(2))
+usr_gender_emb = paddle.layer.embedding(input=usr_gender_id, size=16)
+
+usr_age_id = paddle.layer.data(
+        name='age_id',
+        type=paddle.data_type.integer_value(
+            len(paddle.dataset.movielens.age_table)))
+usr_age_emb = paddle.layer.embedding(input=usr_age_id, size=16)
+
+usr_job_id = paddle.layer.data(
+        name='job_id',
+        type=paddle.data_type.integer_value(paddle.dataset.movielens.max_job_id(
+        ) + 1))
+usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
 ```
 
-### 模型结构
+如上述代码所示，对于每个用户，我们输入4维特征。其中包括`user_id`,`gender_id`,`age_id`,`job_id`。这几维特征均是简单的整数值。为了后续神经网络处理这些特征方便，我们借鉴NLP中的语言模型，将这几维离散的整数值，变换成embedding取出。分别形成`usr_emb`, `usr_gender_emb`, `usr_age_emb`, `usr_job_emb`。
 
-1. 定义数据输入和参数维度。
 
-   ```python
-   movie_meta = meta['movie']['__meta__']['raw_meta']
-   user_meta = meta['user']['__meta__']['raw_meta']
+```python
+usr_combined_features = paddle.layer.fc(
+        input=[usr_emb, usr_gender_emb, usr_age_emb, usr_job_emb],
+        size=200,
+        act=paddle.activation.Tanh())
+```
 
-   movie_id = data_layer('movie_id', size=movie_meta[0]['max'])    # 电影ID
-   title = data_layer('title', size=len(movie_meta[1]['dict']))    # 电影名称
-   genres = data_layer('genres', size=len(movie_meta[2]['dict']))  # 电影类型
-   user_id = data_layer('user_id', size=user_meta[0]['max'])	    # 用户ID
-   gender = data_layer('gender', size=len(user_meta[1]['dict']))   # 用户性别
-   age = data_layer('age', size=len(user_meta[2]['dict']))			# 用户年龄
-   occupation = data_layer('occupation', size=len(user_meta[3]['dict'])) # 用户职业
+然后，我们对于所有的用户特征，均输入到一个全连接层(fc)中。将所有特征融合为一个200维度的特征。
 
-   embsize = 256  # 向量维度
-   ```
+进而，我们对每一个电影特征做类似的变换，网络配置为:
 
-2. 构造“电影”特征。
 
-   ```python
-   # 电影ID和电影类型分别映射到其对应的特征隐层（256维）。
-   movie_id_emb = embedding_layer(input=movie_id, size=embsize)
-   movie_id_hidden = fc_layer(input=movie_id_emb, size=embsize)
+```python
+mov_id = paddle.layer.data(
+    name='movie_id',
+    type=paddle.data_type.integer_value(
+        paddle.dataset.movielens.max_movie_id() + 1))
+mov_emb = paddle.layer.embedding(input=mov_id, size=32)
 
-   genres_emb = fc_layer(input=genres, size=embsize)
+mov_categories = paddle.layer.data(
+    name='category_id',
+    type=paddle.data_type.sparse_binary_vector(
+        len(paddle.dataset.movielens.movie_categories())))
 
-   # 对于电影名称，一个ID序列表示的词语序列，在输入卷积层后，
-   # 将得到每个时间窗口的特征（序列特征），然后通过在时间维度
-   # 降采样得到固定维度的特征，整个过程在text_conv_pool实现
-   title_emb = embedding_layer(input=title, size=embsize)
-   title_hidden = text_conv_pool(
-       input=title_emb, context_len=5, hidden_size=embsize)
+mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
 
-   # 将三个属性的特征表示分别全连接并相加，结果即是电影特征的最终表示
-   movie_feature = fc_layer(
-       input=[movie_id_hidden, title_hidden, genres_emb], size=embsize)
-   ```
 
-3. 构造“用户”特征。
+movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
+mov_title_id = paddle.layer.data(
+    name='movie_title',
+    type=paddle.data_type.integer_value_sequence(len(movie_title_dict)))
+mov_title_emb = paddle.layer.embedding(input=mov_title_id, size=32)
+mov_title_conv = paddle.networks.sequence_conv_pool(
+    input=mov_title_emb, hidden_size=32, context_len=3)
 
-   ```python
-   # 将用户ID，性别，职业，年龄四个属性分别映射到其特征隐层。
-   user_id_emb = embedding_layer(input=user_id, size=embsize)
-   user_id_hidden = fc_layer(input=user_id_emb, size=embsize)
+mov_combined_features = paddle.layer.fc(
+    input=[mov_emb, mov_categories_hidden, mov_title_conv],
+    size=200,
+    act=paddle.activation.Tanh())
+```
 
-   gender_emb = embedding_layer(input=gender, size=embsize)
-   gender_hidden = fc_layer(input=gender_emb, size=embsize)
+电影ID和电影类型分别映射到其对应的特征隐层。对于电影标题名称(title)，一个ID序列表示的词语序列，在输入卷积层后，将得到每个时间窗口的特征（序列特征），然后通过在时间维度降采样得到固定维度的特征，整个过程在text_conv_pool实现。
 
-   age_emb = embedding_layer(input=age, size=embsize)
-   age_hidden = fc_layer(input=age_emb, size=embsize)
+最后再将电影的特征融合进`mov_combined_features`中。
 
-   occup_emb = embedding_layer(input=occupation, size=embsize)
-   occup_hidden = fc_layer(input=occup_emb, size=embsize)
 
-   # 同样将这四个属性分别全连接并相加形成用户特征的最终表示。
-   user_feature = fc_layer(
-       input=[user_id_hidden, gender_hidden, age_hidden, occup_hidden],
-       size=embsize)
-   ```
+```python
+inference = paddle.layer.cos_sim(a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
+```
 
-4. 计算余弦相似度，定义损失函数和网络输出。
+进而，我们使用余弦相似度计算用户特征与电影特征的相似性。并将这个相似性拟合(回归)到用户评分上。
 
-   ```python
-   similarity = cos_sim(a=movie_feature, b=user_feature, scale=2)
 
-   # 训练时，采用regression_cost作为损失函数计算回归误差代价，并作为网络的输出。
-   # 预测时，网络的输出即为余弦相似度。
-   if not is_predict:
-       lbl=data_layer('rating', size=1)
-   	cost=regression_cost(input=similarity, label=lbl)
-   	outputs(cost)
-   else:
-       outputs(similarity)
-   ```
+```python
+cost = paddle.layer.regression_cost(
+        input=inference,
+        label=paddle.layer.data(
+            name='score', type=paddle.data_type.dense_vector(1)))
+```
+
+至此，我们的优化目标就是这个网络配置中的`cost`了。
 
 ## 训练模型
 
-执行`sh train.sh` 开始训练模型，将日志写入文件 `log.txt` 并打印在屏幕上。其中指定了总共需要执行 50 个pass。
+### 定义参数
+神经网络的模型，我们可以简单的理解为网络拓朴结构+参数。之前一节，我们定义出了优化目标`cost`。这个`cost`即为网络模型的拓扑结构。我们开始训练模型，需要先定义出参数。定义方法为:
 
-```shell
-set -e
-paddle train \
-    --config=trainer_config.py \		 # 神经网络配置文件
-    --save_dir=./output \				 # 模型保存路径
-    --use_gpu=false \					 # 是否使用GPU(默认不使用)
-    --trainer_count=4\					 # 一台机器上面的线程数量
-    --test_all_data_in_one_period=true \ # 每个训练周期训练一次所有数据，否则每个训练周期测试batch_size个batch数据
-    --log_period=100 \					 # 训练log_period个batch后打印日志
-    --dot_period=1 \					 # 每训练dot_period个batch后打印一个"."
-    --num_passes=50  2>&1 | tee 'log.txt'
+
+```python
+parameters = paddle.parameters.create(cost)
 ```
 
-成功的输出类似如下：
+    [INFO 2017-03-06 17:12:13,284 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
+    [INFO 2017-03-06 17:12:13,287 networks.py:1478] The output order is [__regression_cost_0__]
 
-```bash
-I0117 01:01:48.585651  9998 TrainerInternal.cpp:165]  Batch=100 samples=160000 AvgCost=0.600042 CurrentCost=0.600042 Eval:  CurrentEval:
-...................................................................................................
-I0117 01:02:53.821918  9998 TrainerInternal.cpp:165]  Batch=200 samples=320000 AvgCost=0.602855 CurrentCost=0.605668 Eval:  CurrentEval:
-...................................................................................................
-I0117 01:03:58.937922  9998 TrainerInternal.cpp:165]  Batch=300 samples=480000 AvgCost=0.605199 CurrentCost=0.609887 Eval:  CurrentEval:
-...................................................................................................
-I0117 01:05:04.083251  9998 TrainerInternal.cpp:165]  Batch=400 samples=640000 AvgCost=0.608693 CurrentCost=0.619175 Eval:  CurrentEval:
-...................................................................................................
-I0117 01:06:09.155859  9998 TrainerInternal.cpp:165]  Batch=500 samples=800000 AvgCost=0.613273 CurrentCost=0.631591 Eval:  CurrentEval:
-.................................................................I0117 01:06:51.109654  9998 TrainerInternal.cpp:181]
- Pass=49 Batch=565 samples=902826 AvgCost=0.614772 Eval:
-I0117 01:07:04.205142  9998 Tester.cpp:115]  Test samples=97383 cost=0.721995 Eval:
-I0117 01:07:04.205281  9998 GradientMachine.cpp:113] Saving parameters to ./output/pass-00049
+
+`parameters`是模型的所有参数集合。他是一个python的dict。我们可以查看到这个网络中的所有参数名称。因为之前定义模型的时候，我们没有指定参数名称，这里参数名称是自动生成的。当然，我们也可以指定每一个参数名称，方便日后维护。
+
+
+```python
+print parameters.keys()
 ```
+
+    [u'___fc_layer_2__.wbias', u'___fc_layer_2__.w2', u'___embedding_layer_3__.w0', u'___embedding_layer_5__.w0', u'___embedding_layer_2__.w0', u'___embedding_layer_1__.w0', u'___fc_layer_1__.wbias', u'___fc_layer_0__.wbias', u'___fc_layer_1__.w0', u'___fc_layer_0__.w2', u'___fc_layer_0__.w3', u'___fc_layer_0__.w0', u'___fc_layer_0__.w1', u'___fc_layer_2__.w1', u'___fc_layer_2__.w0', u'___embedding_layer_4__.w0', u'___sequence_conv_pool_0___conv_fc.w0', u'___embedding_layer_0__.w0', u'___sequence_conv_pool_0___conv_fc.wbias']
+
+
+### 构造训练(trainer)
+
+下面，我们根据网络拓扑结构和模型参数来构造出一个本地训练(trainer)。在构造本地训练的时候，我们还需要指定这个训练的优化方法。这里我们使用Adam来作为优化算法。
+
+
+```python
+trainer = paddle.trainer.SGD(cost=cost, parameters=parameters, 
+                            update_equation=paddle.optimizer.Adam(learning_rate=1e-4))
+```
+
+    [INFO 2017-03-06 17:12:13,378 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
+    [INFO 2017-03-06 17:12:13,379 networks.py:1478] The output order is [__regression_cost_0__]
+
+
+### 训练
+
+下面我们开始训练过程。
+
+我们直接使用Paddle提供的数据集读取程序。`paddle.dataset.movielens.train()`和`paddle.dataset.movielens.test()`分别做训练和预测数据集。并且通过`reader_dict`来指定每一个数据和data_layer的对应关系。
+
+例如，这里的reader_dict表示的是，对于数据层 `user_id`，使用了reader中每一条数据的第0个元素。`gender_id`数据层使用了第1个元素。以此类推。
+
+训练过程是完全自动的。我们可以使用event_handler来观察训练过程，或进行测试等。这里我们在event_handler里面绘制了训练误差曲线和测试误差曲线。并且保存了模型。
+
+
+```python
+%matplotlib inline
+
+import matplotlib.pyplot as plt
+from IPython import display
+import cPickle
+
+feeding = {
+    'user_id': 0,
+    'gender_id': 1,
+    'age_id': 2,
+    'job_id': 3,
+    'movie_id': 4,
+    'category_id': 5,
+    'movie_title': 6,
+    'score': 7
+}
+
+step=0
+
+train_costs=[],[]
+test_costs=[],[]
+
+def event_handler(event):
+    global step
+    global train_costs
+    global test_costs
+    if isinstance(event, paddle.event.EndIteration):
+        need_plot = False
+        if step % 10 == 0:  # every 10 batches, record a train cost
+            train_costs[0].append(step)
+            train_costs[1].append(event.cost)
+            
+        if step % 1000 == 0: # every 1000 batches, record a test cost
+            result = trainer.test(reader=paddle.batch(
+                  paddle.dataset.movielens.test(), batch_size=256))
+            test_costs[0].append(step)
+            test_costs[1].append(result.cost)
+        
+        if step % 100 == 0: # every 100 batches, update cost plot
+            plt.plot(*train_costs)
+            plt.plot(*test_costs)
+            plt.legend(['Train Cost', 'Test Cost'], loc='upper left')
+            display.clear_output(wait=True)
+            display.display(plt.gcf())
+            plt.gcf().clear()
+        step += 1
+
+trainer.train(
+    reader=paddle.batch(
+            paddle.reader.shuffle(
+            paddle.dataset.movielens.train(), buf_size=8192),
+                            batch_size=256),
+    event_handler=event_handler,
+    feeding=feeding,
+    num_passes=2)
+```
+
+
+![png](./image/output_32_0.png)
 
 ## 应用模型
 
-在训练了几轮以后，您可以对模型进行评估。运行以下命令，可以通过选择最小训练误差的一轮参数得到最好轮次的模型。
+在训练了几轮以后，您可以对模型进行推断。我们可以使用任意一个用户ID和电影ID，来预测该用户对该电影的评分。示例程序为:
 
-```shell
-./evaluate.py log.txt
+
+```python
+import copy
+user_id = 234
+movie_id = 345
+
+user = user_info[user_id]
+movie = movie_info[movie_id]
+
+feature = user.value() + movie.value()
+
+infer_dict = copy.copy(feeding)
+del infer_dict['score']
+
+prediction = paddle.infer(output=inference, parameters=parameters, input=[feature], feeding=infer_dict)
+score = (prediction[0][0] + 5.0) / 2
+print "[Predict] User %d Rating Movie %d With Score %.2f"%(user_id, movie_id, score)
 ```
 
-您将看到：
+    [INFO 2017-03-06 17:17:08,132 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title]
+    [INFO 2017-03-06 17:17:08,134 networks.py:1478] The output order is [__cos_sim_0__]
 
-```shell
-Best pass is 00036, error is 0.719281, which means predict get error as 0.424052
-evaluating from pass output/pass-00036
-```
 
-预测任何用户对于任何一部电影评价的命令如下：
+    [Predict] User 234 Rating Movie 345 With Score 4.16
 
-```shell
-python prediction.py 'output/pass-00036/'
-```
-
-预测程序将读取用户的输入，然后输出预测分数。您会看到如下命令行界面：
-
-```
-Input movie_id: 1962
-Input user_id: 1
-Prediction Score is 4.25
-```
 
 ## 总结
 
