@@ -39,20 +39,32 @@ $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 
 ### 训练过程
 
-定义好模型结构之后，我们要通过以下几个步骤进行模型训练
- 1. 初始化参数，其中包括权重$\omega_i$和偏置$b$，对其进行初始化（如0均值，1方差）。
- 2. 网络正向传播计算网络输出和损失函数。
- 3. 根据损失函数进行反向误差传播 （[backpropagation](https://en.wikipedia.org/wiki/Backpropagation)），将网络误差从输出层依次向前传递, 并更新网络中的参数。
- 4. 重复2~3步骤，直至网络训练误差达到规定的程度或训练轮次达到设定值。
+定义好模型结构之后，我们要通过以下几个步骤进行模型训练  
+ 1. 初始化参数，其中包括权重$\omega_i$和偏置$b$，对其进行初始化（如0均值，1方差）。  
+ 2. 网络正向传播计算网络输出和损失函数。  
+ 3. 根据损失函数进行反向误差传播 （[backpropagation](https://en.wikipedia.org/wiki/Backpropagation)），将网络误差从输出层依次向前传递, 并更新网络中的参数。  
+ 4. 重复2~3步骤，直至网络训练误差达到规定的程度或训练轮次达到设定值。  
+ 
+## 数据集
 
+### 数据集接口的封装
+首先加载需要的包   
 
-## 数据准备
-执行以下命令来准备数据:
-```bash
-cd data && python prepare_data.py
+```python
+import paddle.v2 as paddle
+import paddle.v2.dataset.uci_housing as uci_housing
 ```
-这段代码将从[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)下载数据并进行[预处理](#数据预处理)，最后数据将被分为训练集和测试集。
 
+我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)
+
+其中，在uci_housing模块中封装了：
+
+1.   数据下载的过程<br>
+      下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data<br>
+2.   [数据预处理](#数据预处理)的过程<br>
+
+
+### 数据集介绍
 这份数据集共506行，每行包含了波士顿郊区的一类房屋的相关信息及该类房屋价格的中位数。其各维属性的意义如下：
 
 | 属性名 | 解释 | 类型 |
@@ -90,89 +102,94 @@ cd data && python prepare_data.py
 </p>
 
 #### 整理训练集与测试集
-我们将数据集分割为两份：一份用于调整模型的参数，即进行模型的训练，模型在这份数据集上的误差被称为**训练误差**；另外一份被用来测试，模型在这份数据集上的误差被称为**测试误差**。我们训练模型的目的是为了通过从训练数据中找到规律来预测未知的新数据，所以测试误差是更能反映模型表现的指标。分割数据的比例要考虑到两个因素：更多的训练数据会降低参数估计的方差，从而得到更可信的模型；而更多的测试数据会降低测试误差的方差，从而得到更可信的测试误差。一种常见的分割比例为$8:2$，感兴趣的读者朋友们也可以尝试不同的设置来观察这两种误差的变化。
+我们将数据集分割为两份：一份用于调整模型的参数，即进行模型的训练，模型在这份数据集上的误差被称为**训练误差**；另外一份被用来测试，模型在这份数据集上的误差被称为**测试误差**。我们训练模型的目的是为了通过从训练数据中找到规律来预测未知的新数据，所以测试误差是更能反映模型表现的指标。分割数据的比例要考虑到两个因素：更多的训练数据会降低参数估计的方差，从而得到更可信的模型；而更多的测试数据会降低测试误差的方差，从而得到更可信的测试误差。我们这个例子中设置的分割比例为$8:2$
 
-执行如下命令可以分割数据集，并将训练集和测试集的地址分别写入train.list 和 test.list两个文件中，供PaddlePaddle读取。
-```python
-python prepare_data.py -r 0.8 #默认使用8:2的比例进行分割
-```
+
 
 在更复杂的模型训练过程中，我们往往还会多使用一种数据集：验证集。因为复杂的模型中常常还有一些超参数（[Hyperparameter](https://en.wikipedia.org/wiki/Hyperparameter_optimization)）需要调节，所以我们会尝试多种超参数的组合来分别训练多个模型，然后对比它们在验证集上的表现选择相对最好的一组超参数，最后才使用这组参数下训练的模型在测试集上评估测试误差。由于本章训练的模型比较简单，我们暂且忽略掉这个过程。
 
-### 提供数据给PaddlePaddle
-准备好数据之后，我们使用一个Python data provider来为PaddlePaddle的训练过程提供数据。一个 data provider 就是一个Python函数，它会被PaddlePaddle的训练过程调用。在这个例子里，只需要读取已经保存好的数据，然后一行一行地返回给PaddlePaddle的训练进程即可。
+## 训练
+fit_a_line下trainer.py演示了训练的整体过程  
+
+### 初始化paddlepaddle  
 
 ```python
-from paddle.trainer.PyDataProvider2 import *
-import numpy as np
-#定义数据的类型和维度
-@provider(input_types=[dense_vector(13), dense_vector(1)])
-def process(settings, input_file):
-    data = np.load(input_file.strip())
-    for row in data:
-	    yield row[:-1].tolist(), row[-1:].tolist()
-
+# init
+paddle.init(use_gpu=False, trainer_count=1)
 ```
 
-## 模型配置说明
+### 模型配置  
 
-### 数据定义
-首先，通过 `define_py_data_sources2` 来配置PaddlePaddle从上面的`dataprovider.py`里读入训练数据和测试数据。 PaddlePaddle接受从命令行读入的配置信息，例如这里我们传入一个名为`is_predict`的变量来控制模型在训练和测试时的不同结构。
-```python
-from paddle.trainer_config_helpers import *
+使用`fc_layer`和`LinearActivation`来表示线性回归的模型本身。  
 
-is_predict = get_config_arg('is_predict', bool, False)
-
-define_py_data_sources2(
-    train_list='data/train.list',
-    test_list='data/test.list',
-    module='dataprovider',
-    obj='process')
-
-```
-
-### 算法配置
-接着，指定模型优化算法的细节。由于线性回归模型比较简单，我们只要设置基本的`batch_size`即可，它指定每次更新参数的时候使用多少条数据计算梯度信息。
-```python
-settings(batch_size=2)
-```
-
-### 网络结构
-最后，使用`fc_layer`和`LinearActivation`来表示线性回归的模型本身。
 ```python
 #输入数据，13维的房屋信息
-x = data_layer(name='x', size=13)
+x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
+y_predict = paddle.layer.fc(input=x,
+                                size=1,
+                                act=paddle.activation.Linear())
+y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
+cost = paddle.layer.regression_cost(input=y_predict, label=y)
+```
+### 创建参数 
 
-y_predict = fc_layer(
-    input=x,
-    param_attr=ParamAttr(name='w'),
-    size=1,
-    act=LinearActivation(),
-    bias_attr=ParamAttr(name='b'))
-
-if not is_predict: #训练时，我们使用MSE，即regression_cost作为损失函数
-    y = data_layer(name='y', size=1)
-    cost = regression_cost(input=y_predict, label=y)
-    outputs(cost) #训练时输出MSE来监控损失的变化
-else: #测试时，输出预测值
-    outputs(y_predict)
+```python
+# create parameters
+parameters = paddle.parameters.create(cost)
 ```
 
-## 训练模型
-在对应代码的根目录下执行PaddlePaddle的命令行训练程序。这里指定模型配置文件为`trainer_config.py`，训练30轮，结果保存在`output`路径下。
-```bash
-./train.sh
+### 创建trainer  
+
+```python
+# create optimizer
+optimizer = paddle.optimizer.Momentum(momentum=0)
+
+trainer = paddle.trainer.SGD(cost=cost,
+                             parameters=parameters,
+                             update_equation=optimizer)
 ```
 
-## 应用模型
-现在来看下如何使用已经训练好的模型进行预测。
-```bash
-python predict.py
+### 读取数据且打印训练的中间信息  
+在程序中，我们通过reader接口来获取训练或者测试的数据,通过eventhandler来打印训练的中间信息  
+feeding中设置了训练数据和测试数据的下标,reader通过下标区分训练和测试数据。
+
+```python
+feeding={'x': 0,
+             'y': 1}
+
+# event_handler to print training and testing info
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f" % (
+                event.pass_id, event.batch_id, event.cost)
+
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
+            reader=paddle.batch(
+                uci_housing.test(), batch_size=2),
+            feeding=feeding)
+        print "Test %d, Cost %f" % (event.pass_id, result.cost)
 ```
-这里默认使用`output/pass-00029`中保存的模型进行预测，并将数据中的房价与预测结果进行对比，结果保存在 `predictions.png`中。
-如果你想使用别的模型或者其它的数据进行预测，只要传入新的路径即可：
+### 开始训练  
+
+```python
+# training
+trainer.train(
+    reader=paddle.batch(
+        paddle.reader.shuffle(
+            uci_housing.train(), buf_size=500),
+        batch_size=2),
+    feeding=feeding,
+    event_handler=event_handler,
+    num_passes=30)
+```
+
+## bash中执行训练程序  
+**注意设置好paddle的安装包路径**
+
 ```bash
-python predict.py -m output/pass-00020 -t data/housing.test.npy
+python train.py
 ```
 
 ## 总结
