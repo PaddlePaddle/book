@@ -202,20 +202,19 @@ def convolutional_neural_network(img):
 接着，通过`layer.data`调用来获取数据，然后调用分类器（这里我们提供了三个不同的分类器）得到分类结果。训练时，对该结果计算其损失函数，分类问题常常选择交叉熵损失函数。
 
 ```python
-def main():
-    # 该模型运行在单个CPU上
-    paddle.init(use_gpu=False, trainer_count=1)
+# 该模型运行在单个CPU上
+paddle.init(use_gpu=False, trainer_count=1)
 
-    images = paddle.layer.data(
-        name='pixel', type=paddle.data_type.dense_vector(784))
-    label = paddle.layer.data(
-        name='label', type=paddle.data_type.integer_value(10))
+images = paddle.layer.data(
+    name='pixel', type=paddle.data_type.dense_vector(784))
+label = paddle.layer.data(
+    name='label', type=paddle.data_type.integer_value(10))
 
-    predict = softmax_regression(images) # Softmax回归
-    #predict = multilayer_perceptron(images) #多层感知器
-    #predict = convolutional_neural_network(images) #LeNet5卷积神经网络
+predict = softmax_regression(images) # Softmax回归
+#predict = multilayer_perceptron(images) #多层感知器
+#predict = convolutional_neural_network(images) #LeNet5卷积神经网络
 
-    cost = paddle.layer.classification_cost(input=predict, label=label)
+cost = paddle.layer.classification_cost(input=predict, label=label)
 ```
 
 然后，指定训练相关的参数。
@@ -224,16 +223,16 @@ def main():
 - 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
 
 ```python
-    parameters = paddle.parameters.create(cost)
+parameters = paddle.parameters.create(cost)
 
-    optimizer = paddle.optimizer.Momentum(
-        learning_rate=0.1 / 128.0,
-        momentum=0.9,
-        regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
+optimizer = paddle.optimizer.Momentum(
+    learning_rate=0.1 / 128.0,
+    momentum=0.9,
+    regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
 
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+trainer = paddle.trainer.SGD(cost=cost,
+                             parameters=parameters,
+                             update_equation=optimizer)
 ```
 
 下一步，我们开始训练过程。`paddle.dataset.movielens.train()`和`paddle.dataset.movielens.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python yield generator。
@@ -243,39 +242,39 @@ def main():
 `batch`是一个特殊的decorator，它的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
 
 ```python
-    lists = []
+lists = []
 
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 100 == 0:
-                print "Pass %d, Batch %d, Cost %f, %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics)
-        if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(reader=paddle.reader.batched(
-                paddle.dataset.mnist.test(), batch_size=128))
-            print "Test with Pass %d, Cost %f, %s\n" % (
-                event.pass_id, result.cost, result.metrics)
-            lists.append((event.pass_id, result.cost,
-                          result.metrics['classification_error_evaluator']))
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(reader=paddle.reader.batched(
+            paddle.dataset.mnist.test(), batch_size=128))
+        print "Test with Pass %d, Cost %f, %s\n" % (
+            event.pass_id, result.cost, result.metrics)
+        lists.append((event.pass_id, result.cost,
+                      result.metrics['classification_error_evaluator']))
 
-    trainer.train(
-        reader=paddle.batch(
-            paddle.reader.shuffle(
-                paddle.dataset.mnist.train(), buf_size=8192),
-            batch_size=128),
-        event_handler=event_handler,
-        num_passes=100)
+trainer.train(
+    reader=paddle.reader.batched(
+        paddle.reader.shuffle(
+            paddle.dataset.mnist.train(), buf_size=8192),
+        batch_size=128),
+    event_handler=event_handler,
+    num_passes=100)
 ```
 
 训练过程是完全自动的，event_handler里打印的日志类似如下所示：
 
 ```
-    # Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
-    # Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
-    # Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
-    # Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
-    # Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
-    # Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
+# Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
+# Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
+# Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
+# Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
+# Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
+# Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
 ```
 
 训练之后，检查模型的预测准确度。用 MNIST 训练的时候，一般 softmax回归模型的分类准确率为约为 92.34%，多层感知器为97.66%，卷积神经网络可以达到 99.20%。
