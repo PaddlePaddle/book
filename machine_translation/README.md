@@ -150,17 +150,19 @@ e_{ij}&=align(z_i,h_j)\\\\
 
 注意：$z_{i+1}$和$p_{i+1}$的计算公式同[解码器](#解码器)中的一样。且由于生成时的每一步都是通过贪心法实现的，因此并不能保证得到全局最优解。
 
-## 数据准备(默认已提供测试数据，可跳过)
+## 数据介绍
 
 ### 下载与解压缩
 
 本教程使用[WMT-14](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/)数据集中的[bitexts(after selection)](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/bitexts.tgz)作为训练集，[dev+test data](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/dev+test.tgz)作为测试集和生成集。
 
 在Linux下，只需简单地运行以下命令：
+
 ```bash
 cd data
 ./wmt14_data.sh
 ```
+
 得到的数据集`data/wmt14`包含如下三个文件夹：
 <p align = "center">
 <table>
@@ -198,29 +200,6 @@ cd data
 - `XXX.src`是源法语文件，`XXX.trg`是目标英语文件，文件中的每行存放一个句子
 - `XXX.src`和`XXX.trg`的行数一致，且两者任意第$i$行的句子之间都有着一一对应的关系。
 
-### 用户自定义数据集（可选）
-
-如果您想使用自己的数据集，只需按照如下方式组织，并将它们放在`data`目录下：
-```text
-user_dataset
-├── train
-│   ├── train_file1.src
-│   ├── train_file1.trg
-│   └── ...
-├── test
-│   ├── test_file1.src
-│   ├── test_file1.trg
-│   └── ...
-├── gen
-│   ├── gen_file1.src
-│   ├── gen_file1.trg
-│   └── ...
-```
-  
-- 一级目录`user_dataset`：用户自定义的数据集名字。
-- 二级目录`train`、`test`和`gen`：必须使用这三个文件夹名字。
-- 三级目录：存放源语言到目标语言的平行语料库文件，后缀名必须使用`.src`和`.trg`。
-
 ### 数据预处理
 
 我们的预处理流程包括两步：
@@ -229,128 +208,11 @@ user_dataset
   - `XXX`中的第$i$行内容为`XXX.src`中的第$i$行和`XXX.trg`中的第$i$行连接，用'\t'分隔。
 - 创建训练数据的“源字典”和“目标字典”。每个字典都有**DICTSIZE**个单词，包括：语料中词频最高的（DICTSIZE - 3）个单词，和3个特殊符号`<s>`（序列的开始）、`<e>`（序列的结束）和`<unk>`（未登录词）。
 
-预处理可以使用`preprocess.py`：
-```python
-python preprocess.py -i INPUT [-d DICTSIZE] [-m]
-```
-- `-i INPUT`：输入的原始数据集路径。
-- `-d DICTSIZE`：指定的字典单词数，如果没有设置，字典会包含输入数据集中的所有单词。
-- `-m --mergeDict`：合并“源字典”和“目标字典”，即这两个字典的内容完全一样。
-
-本教程的具体命令如下：
-```python
-python preprocess.py -i data/wmt14 -d 30000
-```
-请耐心等待几分钟的时间，您会在屏幕上看到：
-```text
-concat parallel corpora for dataset
-build source dictionary for train data
-build target dictionary for train data
-dictionary size is 30000
-```
-预处理好的数据集存放在`data/pre-wmt14`目录下：
-```text
-pre-wmt14
-├── train
-│   └── train
-├── test
-│   └── test
-├── gen
-│   └── gen
-├── train.list
-├── test.list
-├── gen.list
-├── src.dict
-└── trg.dict
-```
-- `train`、`test`和`gen`：分别包含了法英平行语料库的训练、测试和生成数据。其每个文件的每一行以“\t”分为两列，第一列是法语序列，第二列是对应的英语序列。
-- `train.list`、`test.list`和`gen.list`：分别记录了`train`、`test`和`gen`文件夹中的文件路径。
-- `src.dict`和`trg.dict`：源（法语）和目标（英语）字典。每个字典都含有30000个单词，包括29997个最高频单词和3个特殊符号。
-
 ### 示例数据
 
-因为完整的数据集数据量较大，为了验证训练流程，在paddle的dataset.wmt14中默认提供了一个经过预处理的[较小规模的数据集](http://paddlepaddle.bj.bcebos.com/demo/wmt_shrinked_data/wmt14.tgz)。
-该数据集有193319条训练数据，6003条测试数据， 词典长度都为30000。因为数据规模限制，使用该数据集训练出来的模型效果无法保证。
-如果需要使用完整的数据集，请参照[数据准备](#数据准备)流程生成需要的训练和测试数据集。
+因为完整的数据集数据量较大，为了验证训练流程，PaddlePaddle接口paddle.dataset.wmt14中默认提供了一个经过预处理的[较小规模的数据集](http://paddlepaddle.bj.bcebos.com/demo/wmt_shrinked_data/wmt14.tgz)。
 
-### 提供数据给PaddlePaddle
-
-1. 生成词典
-
-    根据用户配置的词典长度，将数据预处理阶段生成的词典文件(src.dict, trg.dict)load到内存中生成一个map，结构为 {"word": index}.
-    
-    ```python
-    def __read_to_dict__(tar_file, dict_size):
-        def __to_dict__(fd, size):
-            out_dict = dict()
-            for line_count, line in enumerate(fd):
-                if line_count < size:
-                    out_dict[line.strip()] = line_count
-                else:
-                    break
-            return out_dict
-    
-        with tarfile.open(tar_file, mode='r') as f:
-            names = [
-                each_item.name for each_item in f
-                if each_item.name.endswith("src.dict")
-            ]
-            assert len(names) == 1
-            src_dict = __to_dict__(f.extractfile(names[0]), dict_size)
-            names = [
-                each_item.name for each_item in f
-                if each_item.name.endswith("trg.dict")
-            ]
-            assert len(names) == 1
-            trg_dict = __to_dict__(f.extractfile(names[0]), dict_size)
-            return src_dict, trg_dict
-```
-
-2. 读取训练数据
-
-    读取预处理之后的数据文件，如pre-wmt14/train/train, 通过词典将word转换为对应的index。注意:
-    
-    - 在源语言序列的每句话前面补上开始符号`<s>`、末尾补上结束符号`<e>`，得到“source_language_word”；
-    - 在目标语言序列的每句话前面补上`<s>`，得到“target_language_word”；
-    - 在目标语言序列的每句话末尾补上`<e>`，作为目标语言的下一个词序列（“target_language_next_word”)
-    
-    然后通过yield返回给trainer.
-    
-    ```python
-    def reader_creator(tar_file, file_name, dict_size):
-        def reader():
-            src_dict, trg_dict = __read_to_dict__(tar_file, dict_size)
-            with tarfile.open(tar_file, mode='r') as f:
-                names = [
-                    each_item.name for each_item in f
-                    if each_item.name.endswith(file_name)
-                ]
-                for name in names:
-                    for line in f.extractfile(name):
-                        line_split = line.strip().split('\t')
-                        if len(line_split) != 2:
-                            continue
-                        src_seq = line_split[0]  # one source sequence
-                        src_words = src_seq.split()
-                        src_ids = [
-                            src_dict.get(w, UNK_IDX)
-                            for w in [START] + src_words + [END]
-                        ]
-    
-                        trg_seq = line_split[1]  # one target sequence
-                        trg_words = trg_seq.split()
-                        trg_ids = [trg_dict.get(w, UNK_IDX) for w in trg_words]
-    
-                        # remove sequence whose length > 80 in training mode
-                        if len(src_ids) > 80 or len(trg_ids) > 80:
-                            continue
-                        trg_ids_next = trg_ids + [trg_dict[END]]
-                        trg_ids = [trg_dict[START]] + trg_ids
-    
-                        yield src_ids, trg_ids, trg_ids_next
-    
-        return reader
-    ```
+该数据集有193319条训练数据，6003条测试数据，词典长度为30000。因为数据规模限制，使用该数据集训练出来的模型效果无法保证。
 
 ## 训练流程说明
 
@@ -512,19 +374,20 @@ wmt14_reader = paddle.batch(
 注意：我们提供的配置在Bahdanau的论文\[[4](#参考文献)\]上做了一些简化，可参考[issue #1133](https://github.com/PaddlePaddle/Paddle/issues/1133)。
 
 ### 参数定义
-    首先依据模型配置的`cost`定义模型参数。
+
+首先依据模型配置的`cost`定义模型参数。
     
-    ```python
-    # create parameters
-    parameters = paddle.parameters.create(cost)
-    ```
+```python
+# create parameters
+parameters = paddle.parameters.create(cost)
+```
     
-    可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
+可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
     
-    ```python
-    for param in parameters.keys():
-        print param
-    ```
+```python
+for param in parameters.keys():
+    print param
+```
 
 ### 训练模型
 1. 构造trainer
@@ -537,25 +400,10 @@ wmt14_reader = paddle.batch(
                                  parameters=parameters,
                                  update_equation=optimizer)
 ```
-2. 构造数据reader
 
-    reader负责读取数据变转换为paddle需要的格式。reader_dict指定字段在模型中的顺序。
-    ```python
-    wmt14_reader = paddle.reader.batched(
-        paddle.reader.shuffle(
-            train_reader("data/pre-wmt14/train/train"), buf_size=8192),
-        batch_size=5)
-        
-    feeding = {
-        'source_language_word': 0,
-        'target_language_word': 1,
-        'target_language_next_word': 2
-    }
-    ```
-3. 开始训练
+2. 构造event_handler
 
-    可以通过自定义回调函数来评估训练过程中的各种述职，比如错误率等。下面的代码通过event.batch_id % 10 == 0
-    指定没10个batch打印一次日志，包含cost等信息。
+    可以通过自定义回调函数来评估训练过程中的各种状态，比如错误率等。下面的代码通过event.batch_id % 10 == 0 指定没10个batch打印一次日志，包含cost等信息。
     ```python
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):
@@ -563,7 +411,7 @@ wmt14_reader = paddle.batch(
                 print "Pass %d, Batch %d, Cost %f, %s" % (
                     event.pass_id, event.batch_id, event.cost, event.metrics)
     ```
-4. 启动训练：
+3. 启动训练：
 
     ```python
     trainer.train(
