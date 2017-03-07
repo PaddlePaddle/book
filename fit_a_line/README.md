@@ -39,16 +39,16 @@ $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 
 ### 训练过程
 
-定义好模型结构之后，我们要通过以下几个步骤进行模型训练  
- 1. 初始化参数，其中包括权重$\omega_i$和偏置$b$，对其进行初始化（如0均值，1方差）。  
- 2. 网络正向传播计算网络输出和损失函数。  
- 3. 根据损失函数进行反向误差传播 （[backpropagation](https://en.wikipedia.org/wiki/Backpropagation)），将网络误差从输出层依次向前传递, 并更新网络中的参数。  
- 4. 重复2~3步骤，直至网络训练误差达到规定的程度或训练轮次达到设定值。  
- 
+定义好模型结构之后，我们要通过以下几个步骤进行模型训练
+ 1. 初始化参数，其中包括权重$\omega_i$和偏置$b$，对其进行初始化（如0均值，1方差）。
+ 2. 网络正向传播计算网络输出和损失函数。
+ 3. 根据损失函数进行反向误差传播 （[backpropagation](https://en.wikipedia.org/wiki/Backpropagation)），将网络误差从输出层依次向前传递, 并更新网络中的参数。
+ 4. 重复2~3步骤，直至网络训练误差达到规定的程度或训练轮次达到设定值。
+
 ## 数据集
 
 ### 数据集接口的封装
-首先加载需要的包   
+首先加载需要的包
 
 ```python
 import paddle.v2 as paddle
@@ -59,9 +59,8 @@ import paddle.v2.dataset.uci_housing as uci_housing
 
 其中，在uci_housing模块中封装了：
 
-1.   数据下载的过程<br>
-      下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data<br>
-2.   [数据预处理](#数据预处理)的过程<br>
+1. 数据下载的过程。下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data。
+2. [数据预处理](#数据预处理)的过程。
 
 
 ### 数据集介绍
@@ -105,25 +104,23 @@ import paddle.v2.dataset.uci_housing as uci_housing
 我们将数据集分割为两份：一份用于调整模型的参数，即进行模型的训练，模型在这份数据集上的误差被称为**训练误差**；另外一份被用来测试，模型在这份数据集上的误差被称为**测试误差**。我们训练模型的目的是为了通过从训练数据中找到规律来预测未知的新数据，所以测试误差是更能反映模型表现的指标。分割数据的比例要考虑到两个因素：更多的训练数据会降低参数估计的方差，从而得到更可信的模型；而更多的测试数据会降低测试误差的方差，从而得到更可信的测试误差。我们这个例子中设置的分割比例为$8:2$
 
 
-
 在更复杂的模型训练过程中，我们往往还会多使用一种数据集：验证集。因为复杂的模型中常常还有一些超参数（[Hyperparameter](https://en.wikipedia.org/wiki/Hyperparameter_optimization)）需要调节，所以我们会尝试多种超参数的组合来分别训练多个模型，然后对比它们在验证集上的表现选择相对最好的一组超参数，最后才使用这组参数下训练的模型在测试集上评估测试误差。由于本章训练的模型比较简单，我们暂且忽略掉这个过程。
 
 ## 训练
-fit_a_line下trainer.py演示了训练的整体过程  
 
-### 初始化paddlepaddle  
+`fit_a_line/trainer.py`演示了训练的整体过程。
+
+### 初始化PaddlePaddle
 
 ```python
-# init
 paddle.init(use_gpu=False, trainer_count=1)
 ```
 
-### 模型配置  
+### 模型配置
 
-使用`fc_layer`和`LinearActivation`来表示线性回归的模型本身。  
+线性回归的模型其实就是一个采用线性激活函数（linear activation，`LinearActivation`）的全连接层（fully-connected layer，`fc_layer`）：
 
 ```python
-#输入数据，13维的房屋信息
 x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
 y_predict = paddle.layer.fc(input=x,
                                 size=1,
@@ -131,17 +128,15 @@ y_predict = paddle.layer.fc(input=x,
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
 cost = paddle.layer.regression_cost(input=y_predict, label=y)
 ```
-### 创建参数 
+### 创建参数
 
 ```python
-# create parameters
 parameters = paddle.parameters.create(cost)
 ```
 
-### 创建trainer  
+### 创建Trainer
 
 ```python
-# create optimizer
 optimizer = paddle.optimizer.Momentum(momentum=0)
 
 trainer = paddle.trainer.SGD(cost=cost,
@@ -149,14 +144,20 @@ trainer = paddle.trainer.SGD(cost=cost,
                              update_equation=optimizer)
 ```
 
-### 读取数据且打印训练的中间信息  
-在程序中，我们通过reader接口来获取训练或者测试的数据,通过eventhandler来打印训练的中间信息  
-feeding中设置了训练数据和测试数据的下标,reader通过下标区分训练和测试数据。
+### 读取数据且打印训练的中间信息
+
+PaddlePaddle提供一个
+[reader机制](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader)
+来读取数据。 Reader返回的数据可以包括多列，我们需要一个Python dict把列
+序号映射到网络里的数据层。
 
 ```python
-feeding={'x': 0,
-             'y': 1}
+feeding={'x': 0, 'y': 1}
+```
 
+此外，我们还可以提供一个 event handler，来打印训练的进度：
+
+```python
 # event_handler to print training and testing info
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
@@ -171,10 +172,10 @@ def event_handler(event):
             feeding=feeding)
         print "Test %d, Cost %f" % (event.pass_id, result.cost)
 ```
-### 开始训练  
+
+### 开始训练
 
 ```python
-# training
 trainer.train(
     reader=paddle.batch(
         paddle.reader.shuffle(
@@ -183,13 +184,6 @@ trainer.train(
     feeding=feeding,
     event_handler=event_handler,
     num_passes=30)
-```
-
-## bash中执行训练程序  
-**注意设置好paddle的安装包路径**
-
-```bash
-python train.py
 ```
 
 ## 总结
