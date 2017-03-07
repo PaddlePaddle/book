@@ -206,7 +206,7 @@ print pred_len
 
 ## 模型配置说明
 
-1. 定义输入数据维度及模型超参数。
+- 1. 定义输入数据维度及模型超参数。
 
 ```python
 mark_dict_len = 2    # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
@@ -240,7 +240,7 @@ target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 	
 这里需要特别说明的是hidden_dim = 512指定了LSTM隐层向量的维度为128维，关于这一点请参考PaddlePaddle官方文档中[lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)的说明。
 
-2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
+- 2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
 
 ```python   
 
@@ -269,7 +269,7 @@ emb_layers.append(predicate_embedding)
 emb_layers.append(mark_embedding)
 ```
 
-3. 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
+- 3. 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
 
 ```python  
 hidden_0 = paddle.layer.mixed(
@@ -319,7 +319,7 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-4. 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，经过一个全连接层映射到标记字典的维度，得到最终的特征向量表示。
+- 4. 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，经过一个全连接层映射到标记字典的维度，得到最终的特征向量表示。
 
 ```python
 feature_out = paddle.layer.mixed(
@@ -333,7 +333,7 @@ input=[
 ], )
 ```
 
-5.  网络的末端定义CRF层计算损失(cost)，指定参数名字为 `crfw`，该层需要输入正确的数据标签(target)。
+- 5. 网络的末端定义CRF层计算损失(cost)，指定参数名字为 `crfw`，该层需要输入正确的数据标签(target)。
 
 ```python
 crf_cost = paddle.layer.crf(
@@ -346,7 +346,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-6.  CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。
+- 6. CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
