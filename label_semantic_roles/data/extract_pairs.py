@@ -20,7 +20,7 @@ from optparse import OptionParser
 def read_labels(props_file):
     '''
     a sentence maybe has more than one verb, each verb has its label sequence
-    label[],  is a 3-dimension list. 
+    label[],  is a 3-dimension list.
     the first dim is to store all sentence's label seqs, len is the sentence number
     the second dim is to store all label sequences for one sentences
     the third dim is to store each label for one word

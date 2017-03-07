@@ -9,19 +9,19 @@ Machine translation (MT) leverages computers to translate from one language to a
 Early machine translation systems are mainly rule-based i.e. they rely on a language expert to specify the translation rules between the two languages. It is quite difficult to cover all the rules used in one languge. So it is quite a challenge for language experts to specify all possible rules in two or more different languages. Hence, a major challenge in conventional machine translation has been the difficulty in obtaining a complete rule set \[[1](#References)\]。
 
 
-To address the aforementioned problems, statistical machine translation techniques have been developed. These techniques learn the translation rules from a large corpus, instead of being designed by a language expert. While these techniques overcome the bottleneck of knowledge acquisition, there are still quite a lot of challenges, for example: 
+To address the aforementioned problems, statistical machine translation techniques have been developed. These techniques learn the translation rules from a large corpus, instead of being designed by a language expert. While these techniques overcome the bottleneck of knowledge acquisition, there are still quite a lot of challenges, for example:
 
-1. human designed features cannot cover all possible linguistic variations; 
+1. human designed features cannot cover all possible linguistic variations;
 
-2. it is difficult to use global features; 
+2. it is difficult to use global features;
 
 3. the techniques heavily rely on pre-processing techniques like word alignment, word segmentation and tokenization, rule-extraction and syntactic parsing etc. The error introduced in any of these steps could accumulate and impact translation quality.
 
 
 
-The recent development of deep learning provides new solutions to these challenges. The two main categories for deep learning based machine translation techniques are: 
+The recent development of deep learning provides new solutions to these challenges. The two main categories for deep learning based machine translation techniques are:
 
-1. techniques based on the statistical machine translation system but with some key components improved with neural networks, e.g., language model, reordering model (please refer to the left part of Figure 1); 
+1. techniques based on the statistical machine translation system but with some key components improved with neural networks, e.g., language model, reordering model (please refer to the left part of Figure 1);
 
 2. techniques mapping from source language to target language directly using a neural network, or end-to-end neural machine translation (NMT).
 
@@ -57,7 +57,7 @@ This section will introduce Gated Recurrent Unit (GRU), Bi-directional Recurrent
 We already introduced RNN and LSTM in the [Sentiment Analysis](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md) chapter.
 Compared to a simple RNN, the LSTM added memory cell, input gate, forget gate and output gate. These gates combined with the memory cell greatly improve the ability to handle long-term dependencies.
 
-GRU\[[2](#References)\] proposed by Cho et al is a simplified LSTM and an extension of a simple RNN. It is shown in the figure below. 
+GRU\[[2](#References)\] proposed by Cho et al is a simplified LSTM and an extension of a simple RNN. It is shown in the figure below.
 A GRU unit has only two gates:
 - reset gate: when this gate is closed, the history information is discarded, i.e., the irrelevant historical information has no effect on the future output.
 - update gate: it combines the input gate and the forget gate and is used to control the impact of historical information on the hidden output. The historical information is passed over when the update gate is close to 1.
@@ -96,20 +96,20 @@ There are three steps for encoding a sentence:
 
 1. One-hot vector representation of a word: Each word $x_i$ in the source sentence $x=\left \{ x_1,x_2,...,x_T \right \}$ is represented as a vector $w_i\epsilon R^{\left | V \right |},i=1,2,...,T$   where $w_i$ has the same dimensionality as the size of the dictionary, i.e., $\left | V \right |$, and has an element of one at the location corresponding to the location of the word in the dictionary and zero elsewhere.
 
-2. Word embedding as a representation in the low-dimensional semantic space: There are two problems with one-hot vector representation 
+2. Word embedding as a representation in the low-dimensional semantic space: There are two problems with one-hot vector representation
 
-  * the dimensionality of the vector is typically large, leading to the curse of dimensionality; 
+  * the dimensionality of the vector is typically large, leading to the curse of dimensionality;
 
   * it is hard to capture the relationships between words, i.e., semantic similarities. Therefore, it is useful to project the one-hot vector into a low-dimensional semantic space as a dense vector with fixed dimensions, i.e., $s_i=Cw_i$ for the $i$-th word, with $C\epsilon R^{K\times \left | V \right |}$ as the projection matrix and $K$ is the dimensionality of the word embedding vector.
 
 3. Encoding of the source sequence via RNN: This can be described mathematically as:
 
     $$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$$
-    
-    where 
-    $h_0$ is a zero vector, 
-    $\varnothing _\theta$ is a non-linear activation function, and 
-    $\mathbf{h}=\left \{ h_1,..., h_T \right \}$ 
+
+    where
+    $h_0$ is a zero vector,
+    $\varnothing _\theta$ is a non-linear activation function, and
+    $\mathbf{h}=\left \{ h_1,..., h_T \right \}$
     is the sequential encoding of the first $T$ words from the source sequence. The vector representation of the whole sentence can be represented as the encoding vector at the last time step $T$ from $\mathbf{h}$, or by temporal pooling over $\mathbf{h}$.
 
 
@@ -142,8 +142,8 @@ The generation process of machine translation is to translate the source sentenc
 
 ### Attention Mechanism
 
-There are a few problems with the fixed dimensional vector representation from the encoding stage: 
-  * It is very challenging to encode both the semantic and syntactic information a sentence with a fixed dimensional vector regardless of the length of the sentence. 
+There are a few problems with the fixed dimensional vector representation from the encoding stage:
+  * It is very challenging to encode both the semantic and syntactic information a sentence with a fixed dimensional vector regardless of the length of the sentence.
   * Intuitively, when translating a sentence, we typically pay more attention to the parts in the source sentence more relevant to the current translation. Moreover, the focus changes along the process of the translation. With a fixed dimensional vector, all the information from the source sentence is treated equally in terms of attention. This is not reasonable. Therefore, Bahdanau et al. \[[4](#References)\] introduced attention mechanism, which can decode based on different fragments of the context sequence in order to address the difficulty of feature learning for long sentences. Decoder with attention will be explained in the following.
 
 Different from the simple decoder, $z_i$ is computed as:
@@ -172,7 +172,7 @@ Figure 6. Decoder with Attention Mechanism
 
 [Beam Search](http://en.wikipedia.org/wiki/Beam_search) is a heuristic search algorithm that explores a graph by expanding the most promising node in a limited set. It is typically used when the solution space is huge  (e.g., for machine translation, speech recognition), and there is not enough memory for all the possible solutions. For example, if we want to translate “`<s>你好<e>`” into English, even if there are only three words in the dictionary (`<s>`, `<e>`, `hello`), it is still possible to generate an infinite number of sentences, where the word `hello` can appear different number of times. Beam search could be used to find a good translation among them.
 
-Beam search builds a search tree using breadth first search and sorts the nodes according to a heuristic cost (sum of the log probability of the generated words) at each level of the tree. Only a fixed number of nodes according to the pre-specified beam size (or beam width) are considered. Thus, only nodes with highest scores are expanded in the next level. This reduces the space and time requirements significantly. However, a globally optimal solution is not guaranteed. 
+Beam search builds a search tree using breadth first search and sorts the nodes according to a heuristic cost (sum of the log probability of the generated words) at each level of the tree. Only a fixed number of nodes according to the pre-specified beam size (or beam width) are considered. Thus, only nodes with highest scores are expanded in the next level. This reduces the space and time requirements significantly. However, a globally optimal solution is not guaranteed.
 
 The goal is to maximize the probability of the generated sequence when using beam search in decoding, The procedure is as follows:
 
@@ -452,7 +452,7 @@ This tutorial will use the default SGD and Adam learning algorithm, with a learn
    source_dict_dim = len(open(src_lang_dict, "r").readlines()) # size of the source language dictionary
    target_dict_dim = len(open(trg_lang_dict, "r").readlines()) # size of target language dictionary
    word_vector_dim = 512 # dimensionality of word vector
-   encoder_size = 512 	 # dimensionality of the hidden state of encoder GRU
+   encoder_size = 512      # dimensionality of the hidden state of encoder GRU
    decoder_size = 512    # dimentionality of the hidden state of decoder GRU
 
    if is_generating:

@@ -30,25 +30,25 @@ import struct
 
 def binary2text(input, output, paraDim):
     """
-    Convert a binary parameter file of embedding model to be a text file.  
+    Convert a binary parameter file of embedding model to be a text file.
     input: the name of input binary parameter file, the format is:
            1) the first 16 bytes is filehead:
                 version(4 bytes): version of paddle, default = 0
                 floatSize(4 bytes): sizeof(float) = 4
                 paraCount(8 bytes): total number of parameter
-           2) the next (paraCount * 4) bytes is parameters, each has 4 bytes 
+           2) the next (paraCount * 4) bytes is parameters, each has 4 bytes
     output: the name of output text parameter file, for example:
            0,4,32156096
            -0.7845433,1.1937413,-0.1704215,...
            0.0000909,0.0009465,-0.0008813,...
            ...
            the format is:
-           1) the first line is filehead: 
+           1) the first line is filehead:
               version=0, floatSize=4, paraCount=32156096
            2) other lines print the paramters
               a) each line prints paraDim paramters splitted by ','
               b) there is paraCount/paraDim lines (embedding words)
-    paraDim: dimension of parameters 
+    paraDim: dimension of parameters
     """
     fi = open(input, "rb")
     fo = open(output, "w")
@@ -78,7 +78,7 @@ def binary2text(input, output, paraDim):
 
 def get_para_count(input):
     """
-    Compute the total number of embedding parameters in input text file. 
+    Compute the total number of embedding parameters in input text file.
     input: the name of input text file
     """
     numRows = 1
@@ -96,14 +96,14 @@ def text2binary(input, output, paddle_head=True):
     Convert a text parameter file of embedding model to be a binary file.
     input: the name of input text parameter file, for example:
            -0.7845433,1.1937413,-0.1704215,...
-           0.0000909,0.0009465,-0.0008813,... 
+           0.0000909,0.0009465,-0.0008813,...
            ...
            the format is:
            1) it doesn't have filehead
-           2) each line stores the same dimension of parameters, 
+           2) each line stores the same dimension of parameters,
               the separator is commas ','
     output: the name of output binary parameter file, the format is:
-           1) the first 16 bytes is filehead: 
+           1) the first 16 bytes is filehead:
              version(4 bytes), floatSize(4 bytes), paraCount(8 bytes)
            2) the next (paraCount * 4) bytes is parameters, each has 4 bytes
     """
@@ -127,7 +127,7 @@ def text2binary(input, output, paddle_head=True):
 
 def main():
     """
-    Main entry for running format_convert.py 
+    Main entry for running format_convert.py
     """
     usage = "usage: \n" \
             "python %prog --b2t -i INPUT -o OUTPUT -d DIM \n" \
