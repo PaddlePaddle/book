@@ -43,15 +43,25 @@ After defining our model, we have several major steps for the training:
 3. Backward to [backpropagate](https://en.wikipedia.org/wiki/Backpropagation) the errors. The errors will be propagated from the output layer back to the input layer, during which the model parameters will be updated with the corresponding errors.
 4. Repeat steps 2~3, until the loss is below a predefined threshold or the maximum number of repeats is reached.
 
-## Data Preparation
-Follow the command below to prepare data:
-```bash
-cd data && python prepare_data.py
+## Dataset
+
+### Python Dataset Modules
+
+Our program starts with importing necessary packages:
+
+```python
+import paddle.v2 as paddle
+import paddle.v2.dataset.uci_housing as uci_housing
 ```
-This line of code will download the dataset from the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) and perform some [preprocessing](#Preprocessing). The dataset is split into a training set and a test set.
 
-The dataset contains 506 lines in total, each line describing the properties and the median price of a certain type of houses in Boston. The meaning of each line is below:
+We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
 
+1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if not yet, and
+2.  [preprocesses](#preprocessing) the dataset.
+
+### An Introduction of the Dataset
+
+The UCI housing dataset has 506 instances.  Each instance is about a house in Boston suburban area.  Properties include:
 
 | Property Name | Explanation | Data Type |
 | ------| ------ | ------ |
@@ -90,89 +100,91 @@ There are at least three reasons for [Feature Normalization](https://en.wikipedi
 </p>
 
 #### Prepare Training and Test Sets
-We split the dataset into two subsets, one for estimating the model parameters, namely, model training, and the other for model testing. The model error on the former is called the **training error**, and the error on the latter is called the **test error**. Our goal of training a model is to find the statistical dependency between the outputs and the inputs, so that we can predict new outputs given new inputs. As a result, the test error reflects the performance of the model better than the training error does. We consider two things when deciding the ratio of the training set to the test set: 1) More training data will decrease the variance of the parameter estimation, yielding more reliable models; 2) More test data will decrease the variance of the test error, yielding more reliable test errors. One standard split ratio is $8:2$. You can try different split ratios to observe how the two variances change.
+We split the dataset into two subsets, one for estimating the model parameters, namely, model training, and the other for model testing. The model error on the former is called the **training error**, and the error on the latter is called the **test error**. Our goal of training a model is to find the statistical dependency between the outputs and the inputs, so that we can predict new outputs given new inputs. As a result, the test error reflects the performance of the model better than the training error does. We consider two things when deciding the ratio of the training set to the test set: 1) More training data will decrease the variance of the parameter estimation, yielding more reliable models; 2) More test data will decrease the variance of the test error, yielding more reliable test errors. One standard split ratio is $8:2$.
 
-Executing the following command to split the dataset and write the training and test set into the `train.list` and `test.list` files, so that later PaddlePaddle can read from them.
-```python
-python prepare_data.py -r 0.8 #8:2 is the default split ratio
-```
 
 When training complex models, we usually have one more split: the validation set. Complex models usually have [Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_optimization) that need to be set before the training process begins. These hyperparameters are not part of the model parameters and cannot be trained using the same Loss Function (e.g., the number of layers in the network). Thus we will try several sets of hyperparameters to get several models, and compare these trained models on the validation set to pick the best one, and finally it on the test set. Because our model is relatively simple in this problem, we ignore this validation process for now.
 
-### Provide Data to PaddlePaddle
-After the data is prepared, we use a Python Data Provider to provide data for PaddlePaddle. A Data Provider is a Python function which will be called by PaddlePaddle during training. In this example, the Data Provider only needs to read the data and return it to the training process of PaddlePaddle line by line.
+
+## Training
+
+`fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
+
+### Initialize PaddlePaddle
 
 ```python
-from paddle.trainer.PyDataProvider2 import *
-import numpy as np
-#define data type and dimensionality
-@provider(input_types=[dense_vector(13), dense_vector(1)])
-def process(settings, input_file):
-    data = np.load(input_file.strip())
-    for row in data:
-	    yield row[:-1].tolist(), row[-1:].tolist()
-
+paddle.init(use_gpu=False, trainer_count=1)
 ```
 
-## Model Configuration
+### Model Configuration
 
-### Data Definition
-We first call the function `define_py_data_sources2` to let PaddlePaddle read training and test data from the `dataprovider.py` in the above. PaddlePaddle can accept configuration info from the command line, for example, here we pass a variable named `is_predict` to control the model to have different structures during training and test.
+Logistic regression is indeed a fully-connected layer with linear activation:
+
 ```python
-from paddle.trainer_config_helpers import *
-
-is_predict = get_config_arg('is_predict', bool, False)
-
-define_py_data_sources2(
-    train_list='data/train.list',
-    test_list='data/test.list',
-    module='dataprovider',
-    obj='process')
-
+x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
+y_predict = paddle.layer.fc(input=x,
+                                size=1,
+                                act=paddle.activation.Linear())
+y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
+cost = paddle.layer.regression_cost(input=y_predict, label=y)
 ```
+### Create Parameters
 
-### Algorithm Settings
-Next we need to set the details of the optimization algorithm. Due to the simplicity of the Linear Regression model, we only need to set the `batch_size` which defines how many samples are used every time for updating the parameters.
 ```python
-settings(batch_size=2)
+parameters = paddle.parameters.create(cost)
 ```
 
-### Network
-Finally, we use `fc_layer` and `LinearActivation` to represent the Linear Regression model.
+### Create Trainer
+
 ```python
-#input data of 13 dimensional house information
-x = data_layer(name='x', size=13)
+optimizer = paddle.optimizer.Momentum(momentum=0)
 
-y_predict = fc_layer(
-    input=x,
-    param_attr=ParamAttr(name='w'),
-    size=1,
-    act=LinearActivation(),
-    bias_attr=ParamAttr(name='b'))
-
-if not is_predict: #when training, we use MSE (i.e., regression_cost) as the Loss Function
-    y = data_layer(name='y', size=1)
-    cost = regression_cost(input=y_predict, label=y)
-    outputs(cost) #output MSE to view the loss change
-else: #during test, output the prediction value
-    outputs(y_predict)
+trainer = paddle.trainer.SGD(cost=cost,
+                             parameters=parameters,
+                             update_equation=optimizer)
 ```
 
-## Training Model
-We can run the PaddlePaddle command line trainer in the root directory of the code. Here we name the configuration file as `trainer_config.py`. We train 30 passes and save the result in the directory `output`:
-```bash
-./train.sh
+### Feeding Data
+
+PaddlePaddle provides the
+[reader mechanism](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader)
+for loadinng training data.  A reader might return multiple columns,
+and we need a Python dictionary to specify the correspondence from
+column number to data layers.
+
+```python
+feeding={'x': 0, 'y': 1}
 ```
 
-## Use Model
-Now we can use the trained model to do prediction.
-```bash
-python predict.py
+Also, we provide an event handler function which prints the training progress:
+
+```python
+# event_handler to print training and testing info
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f" % (
+                event.pass_id, event.batch_id, event.cost)
+
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
+            reader=paddle.batch(
+                uci_housing.test(), batch_size=2),
+            feeding=feeding)
+        print "Test %d, Cost %f" % (event.pass_id, result.cost)
 ```
-Here by default we use the model in `output/pass-00029` for prediction, and compare the actual house price with the predicted one. The result is shown in `predictions.png`.
-If you want to use another model or test on other data, you can pass in a new model path or data path:
-```bash
-python predict.py -m output/pass-00020 -t data/housing.test.npy
+
+### Start Training
+
+```python
+trainer.train(
+    reader=paddle.batch(
+        paddle.reader.shuffle(
+            uci_housing.train(), buf_size=500),
+        batch_size=2),
+    feeding=feeding,
+    event_handler=event_handler,
+    num_passes=30)
 ```
 
 ## Summary
