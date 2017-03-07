@@ -113,11 +113,11 @@ Given the feature vectors of users and movies, we compute the relevance using co
 
 <img src="image/rec_regression_network_en.png" width="90%" ><br/>
 Figure 3. A hybrid recommendation model.
-</p> 
+</p>
 
 ## Dataset
 
-We use the [MovieLens ml-1m](http://files.grouplens.org/datasets/movielens/ml-1m.zip) to train our model.  This dataset includes 10,000 ratings of 4,000 movies from 6,000 users to 4,000 movies.  Each rate is in the range of 1~5.  Thanks to GroupLens Research for collecting, processing and publishing the dataset.  
+We use the [MovieLens ml-1m](http://files.grouplens.org/datasets/movielens/ml-1m.zip) to train our model.  This dataset includes 10,000 ratings of 4,000 movies from 6,000 users to 4,000 movies.  Each rate is in the range of 1~5.  Thanks to GroupLens Research for collecting, processing and publishing the dataset.
 
 We don't have to download and preprocess the data.  Instead, we can use PaddlePaddle's dataset module `paddle.v2.dataset.movielens`.
 
@@ -168,6 +168,6 @@ marked.setOptions({
   }
 });
 document.getElementById("context").innerHTML = marked(
-		document.getElementById("markdown").innerHTML)
+        document.getElementById("markdown").innerHTML)
 </script>
 </body>

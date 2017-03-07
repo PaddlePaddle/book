@@ -3,7 +3,7 @@
 
 本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
 
-## 背景介绍 
+## 背景介绍
 
 图像相比文字能够提供更加生动、容易理解及更具艺术感的信息，是人们转递与交换信息的重要来源。在本教程中，我们专注于图像识别领域的一个重要问题，即图像分类。
 
@@ -51,7 +51,7 @@
   2). **特征编码**: 底层特征中包含了大量冗余与噪声，为了提高特征表达的鲁棒性，需要使用一种特征变换算法对底层特征进行编码，称作特征编码。常用的特征编码包括向量量化编码 \[[4](#参考文献)\]、稀疏编码 \[[5](#参考文献)\]、局部线性约束编码 \[[6](#参考文献)\]、Fisher向量编码 \[[7](#参考文献)\] 等。
   3). **空间特征约束**: 特征编码之后一般会经过空间特征约束，也称作**特征汇聚**。特征汇聚是指在一个空间范围内，对每一维特征取最大值或者平均值，可以获得一定特征不变形的特征表达。金字塔特征匹配是一种常用的特征聚会方法，这种方法提出将图像均匀分块，在分块内做特征汇聚。
   4). **通过分类器分类**: 经过前面步骤之后一张图像可以用一个固定维度的向量进行描述，接下来就是经过分类器对图像进行分类。通常使用的分类器包括SVM(Support Vector Machine, 支持向量机)、随机森林等。而使用核方法的SVM是最为广泛的分类器，在传统图像分类任务上性能很好。
- 
+
 这种方法在PASCAL VOC竞赛中的图像分类算法中被广泛使用 \[[18](#参考文献)\]。[NEC实验室](http://www.nec-labs.com/)在ILSVRC2010中采用SIFT和LBP特征，两个非线性编码器以及SVM分类器获得图像分类的冠军 \[[8](#参考文献)\]。
 
 Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得了历史性的突破，效果大幅度超越传统方法，获得了ILSVRC2012冠军，该模型被称作AlexNet。这也是首次将深度学习用于大规模图像分类中。从AlexNet之后，涌现了一系列CNN模型，不断地在ImageNet上刷新成绩，如图4展示。随着模型变得越来越深以及精妙的结构设计，Top-5的错误率也越来越低，降到了3.5%附近。而在同样的ImageNet数据集上，人眼的辨识错误率大概在5.1%，也就是目前的深度学习模型的识别能力已经超过了人眼。
@@ -67,8 +67,8 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 
 <p align="center">
 <img src="image/lenet.png"><br/>
-图5. CNN网络示例[20] 
-</p> 
+图5. CNN网络示例[20]
+</p>
 
 - 卷积层(convolution layer): 执行卷积操作提取底层到高层的特征，发掘出图片局部关联性质和空间不变性质。
 - 池化层(pooling layer): 执行降采样操作。通过取卷积输出特征图中局部区块的最大值(max-pooling)或者均值(avg-pooling)。降采样也是图像处理中常见的一种操作，可以过滤掉一些不重要的高频信息。
@@ -108,7 +108,7 @@ GoogleNet整体网络结构如图8所示，总共22层网络：开始由3层普�
 
 <p align="center">
 <img src="image/googlenet.jpeg" ><br/>
-图8. GoogleNet[12] 
+图8. GoogleNet[12]
 </p>
 
 
@@ -245,7 +245,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 1. 定义数据输入及其维度
 
 	网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)，类别大小为10，即10分类。
-	
+
 	```python
 	datadim = 3 * 32 * 32
 	classdim = 10
@@ -258,7 +258,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 	net = vgg_bn_drop(data)
 	```
 	VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
-	
+
 	```python
 	def vgg_bn_drop(input, num_channels):
 	    def conv_block(ipt, num_filter, groups, dropouts, num_channels_=None):
@@ -273,26 +273,26 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 	            conv_with_batchnorm=True,
 	            conv_batchnorm_drop_rate=dropouts,
 	            pool_type=MaxPooling())
-	
+
 	    conv1 = conv_block(input, 64, 2, [0.3, 0], 3)
 	    conv2 = conv_block(conv1, 128, 2, [0.4, 0])
 	    conv3 = conv_block(conv2, 256, 3, [0.4, 0.4, 0])
 	    conv4 = conv_block(conv3, 512, 3, [0.4, 0.4, 0])
 	    conv5 = conv_block(conv4, 512, 3, [0.4, 0.4, 0])
-	
+
 	    drop = dropout_layer(input=conv5, dropout_rate=0.5)
 	    fc1 = fc_layer(input=drop, size=512, act=LinearActivation())
 	    bn = batch_norm_layer(
 	        input=fc1, act=ReluActivation(), layer_attr=ExtraAttr(drop_rate=0.5))
 	    fc2 = fc_layer(input=bn, size=512, act=LinearActivation())
 	    return fc2
-	
+
 	```
-	
+
 	2.1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.trainer_config_helpers`中预定义的模块，由若干组 `Conv->BN->ReLu->Dropout` 和 一组 `Pooling` 组成，
-	
+
 	2.2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
-	
+
 	2.3. 最后接两层512维的全连接。
 
 3. 定义分类器
@@ -306,7 +306,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 4. 定义损失函数和网络输出
 
 	在有监督训练中需要输入图像对应的类别信息，同样通过`data_layer`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
-	
+
 	```python
 	if not is_predict:
 	    lbl = data_layer(name="label", size=class_num)
@@ -383,9 +383,9 @@ def layer_warp(block_func, ipt, features, count, stride):
 
 `resnet_cifar10` 的连接结构主要有以下几个过程。
 
-1. 底层输入连接一层 `conv_bn_layer`，即带BN的卷积层。 
+1. 底层输入连接一层 `conv_bn_layer`，即带BN的卷积层。
 2. 然后连接3组残差模块即下面配置3组 `layer_warp` ，每组采用图 10 左边残差模块组成。
-3. 最后对网络做均值池化并返回该层。 
+3. 最后对网络做均值池化并返回该层。
 
 注意：除过第一层卷积层和最后一层全连接层之外，要求三组 `layer_warp` 总的含参层数能够被6整除，即 `resnet_cifar10` 的 depth 要满足 $(depth - 2) % 6 == 0$ 。
 
@@ -487,7 +487,7 @@ python classify.py --job=extract --model=output/pass-00299 --data=image/dog.png 
 
 <p align="center">
 <img src="image/fea_conv0.png" width="500"><br/>
-图13. 卷积特征可视化图 
+图13. 卷积特征可视化图
 </p>
 
 ## 总结
@@ -501,7 +501,7 @@ python classify.py --job=extract --model=output/pass-00299 --data=image/dog.png 
 
 [2] N. Dalal, B. Triggs, [Histograms of Oriented Gradients for Human Detection](http://vision.stanford.edu/teaching/cs231b_spring1213/papers/CVPR05_DalalTriggs.pdf), Proc. IEEE Conf. Computer Vision and Pattern Recognition, 2005.
 
-[3] Ahonen, T., Hadid, A., and Pietikinen, M. (2006). [Face description with local binary patterns: Application to face recognition](http://ieeexplore.ieee.org/document/1717463/). PAMI, 28. 
+[3] Ahonen, T., Hadid, A., and Pietikinen, M. (2006). [Face description with local binary patterns: Application to face recognition](http://ieeexplore.ieee.org/document/1717463/). PAMI, 28.
 
 [4] J. Sivic, A. Zisserman, [Video Google: A Text Retrieval Approach to Object Matching in Videos](http://www.robots.ox.ac.uk/~vgg/publications/papers/sivic03.pdf), Proc. Ninth Int'l Conf. Computer Vision, pp. 1470-1478, 2003.
 
