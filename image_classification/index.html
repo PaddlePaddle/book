@@ -11,15 +11,15 @@
     },
     "HTML-CSS": { availableFonts: ["TeX"] }
   });
-  </script>  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js" async></script>  
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js" async></script>
   <script type="text/javascript" src="../.tmpl/marked.js">
   </script>
   <link href="http://cdn.bootcss.com/highlight.js/9.9.0/styles/darcula.min.css" rel="stylesheet">
-  <script src="http://cdn.bootcss.com/highlight.js/9.9.0/highlight.min.js"></script>  
+  <script src="http://cdn.bootcss.com/highlight.js/9.9.0/highlight.min.js"></script>
   <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/perfect-scrollbar/0.6.14/css/perfect-scrollbar.min.css" rel="stylesheet">
-  <link href="../.tmpl/github-markdown.css" rel='stylesheet'>    
+  <link href="../.tmpl/github-markdown.css" rel='stylesheet'>
 </head>
 <style type="text/css" >
 .markdown-body {
@@ -177,8 +177,6 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 
 ## 数据准备
 
-### 数据介绍与下载
-
 通用图像分类公开的标准数据集常用的有[CIFAR](<https://www.cs.toronto.edu/~kriz/cifar.html)、[ImageNet](http://image-net.org/)、[COCO](http://mscoco.org/)等，常用的细粒度图像分类数据集包括[CUB-200-2011](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html)、[Stanford Dog](http://vision.stanford.edu/aditya86/ImageNetDogs/)、[Oxford-flowers](http://www.robots.ox.ac.uk/~vgg/data/flowers/)等。其中ImageNet数据集规模相对较大，如[模型概览](#模型概览)一章所讲，大量研究成果基于ImageNet。ImageNet数据从2010年来稍有变化，常用的是ImageNet-2012数据集，该数据集包含1000个类别：训练集包含1,281,167张图片，每个类别数据732至1300张不等，验证集包含50,000张图片，平均每个类别50张图片。
 
 由于ImageNet数据集较大，下载和训练较慢，为了方便大家学习，我们使用[CIFAR10](<https://www.cs.toronto.edu/~kriz/cifar.html>)数据集。CIFAR10数据集包含60,000张32x32的彩色图片，10个类别，每个类包含6,000张。其中50,000张图片作为训练集，10000张作为测试集。图11从每个类别中随机抽取了10张图片，展示了所有的类别。
@@ -188,94 +186,25 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 图11. CIFAR10数据集[21]
 </p>
 
-下面命令用于下载数据和基于训练集计算图像均值，在网络输入前，基于该均值对输入数据做预处理。
+Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
 
-```bash
-./data/get_data.sh
-```
-
-### 数据提供给PaddlePaddle
-
-我们使用Python接口传递数据给系统，下面 `dataprovider.py` 针对CIFAR10数据给出了完整示例。
-
-- `initializer` 函数进行dataprovider的初始化，这里加载图像的均值，定义了输入image和label两个字段的类型。
-
-- `process` 函数将数据逐条传输给系统，在图像分类任务里，可以在该函数中完成数据扰动操作，再传输给PaddlePaddle。这里对训练集做随机左右翻转，并将原始图片减去均值后传输给系统。
-
-
-```python
-import numpy as np
-import cPickle
-from paddle.trainer.PyDataProvider2 import *
-
-def initializer(settings, mean_path, is_train, **kwargs):
-    settings.is_train = is_train
-    settings.input_size = 3 * 32 * 32
-    settings.mean = np.load(mean_path)['mean']
-    settings.input_types = {
-        'image': dense_vector(settings.input_size),
-        'label': integer_value(10)
-    }
-
-
-@provider(init_hook=initializer, cache=CacheType.CACHE_PASS_IN_MEM)
-def process(settings, file_list):
-    with open(file_list, 'r') as fdata:
-        for fname in fdata:
-            fo = open(fname.strip(), 'rb')
-            batch = cPickle.load(fo)
-            fo.close()
-            images = batch['data']
-            labels = batch['labels']
-            for im, lab in zip(images, labels):
-                if settings.is_train and np.random.randint(2):
-                    im = im[:,:,::-1]
-                im = im - settings.mean
-                yield {
-                    'image': im.astype('float32'),
-                    'label': int(lab)
-                }
-```
-
-## 模型配置说明
-
-### 数据定义
-
-在模型配置中，定义通过 `define_py_data_sources2` 函数从 dataprovider 中读入数据， 其中 args 指定均值文件的路径。如果该配置文件用于预测，则不需要数据定义部分。
-
-```python
-from paddle.trainer_config_helpers import *
-
-is_predict = get_config_arg("is_predict", bool, False)
-if not is_predict:
-    define_py_data_sources2(
-        train_list='data/train.list',
-        test_list='data/test.list',
-        module='dataprovider',
-        obj='process',
-        args={'mean_path': 'data/mean.meta'})
-```
-
-### 算法配置
-
-在模型配置中，通过 `settings` 设置训练使用的优化算法，并指定batch size 、初始学习率、momentum以及L2正则。
-
-```python
-settings(
-    batch_size=128,
-    learning_rate=0.1 / 128.0,
-    learning_rate_decay_a=0.1,
-    learning_rate_decay_b=50000 * 100,
-    learning_rate_schedule='discexp',
-    learning_method=MomentumOptimizer(0.9),
-    regularization=L2Regularization(0.0005 * 128),)
-```
-
-通过 `learning_rate_decay_a` (简写$a$） 、`learning_rate_decay_b` (简写$b$) 和 `learning_rate_schedule` 指定学习率调整策略，这里采用离散指数的方式调节学习率，计算公式如下， $n$ 代表已经处理过的累计总样本数，$lr_{0}$ 即为 `settings` 里设置的 `learning_rate`。
-
-$$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
+通过输入`python train.py`，就可以开始训练模型了，以下小节将详细介绍`train.py`的相关内容。
 
 ### 模型结构
+
+#### Paddle 初始化
+
+通过 `paddle.init`，初始化Paddle是否使用GPU，trainer的数目等等。
+
+```python
+import sys
+import paddle.v2 as paddle
+from vgg import vgg_bn_drop
+from resnet import resnet_cifar10
+
+# PaddlePaddle init
+paddle.init(use_gpu=False, trainer_count=1)
+```
 
 本教程中我们提供了VGG和ResNet两个模型的配置。
 
@@ -288,49 +217,52 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 	网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)，类别大小为10，即10分类。
 	
 	```python
-	datadim = 3 * 32 * 32
-	classdim = 10
-	data = data_layer(name='image', size=datadim)
+    datadim = 3 * 32 * 32
+    classdim = 10
+
+    image = paddle.layer.data(
+        name="image", type=paddle.data_type.dense_vector(datadim))
 	```
 
 2. 定义VGG网络核心模块
 
 	```python
-	net = vgg_bn_drop(data)
+	net = vgg_bn_drop(image)
 	```
 	VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
 	
 	```python
-	def vgg_bn_drop(input, num_channels):
-	    def conv_block(ipt, num_filter, groups, dropouts, num_channels_=None):
-	        return img_conv_group(
-	            input=ipt,
-	            num_channels=num_channels_,
-	            pool_size=2,
-	            pool_stride=2,
-	            conv_num_filter=[num_filter] * groups,
-	            conv_filter_size=3,
-	            conv_act=ReluActivation(),
-	            conv_with_batchnorm=True,
-	            conv_batchnorm_drop_rate=dropouts,
-	            pool_type=MaxPooling())
-	
-	    conv1 = conv_block(input, 64, 2, [0.3, 0], 3)
-	    conv2 = conv_block(conv1, 128, 2, [0.4, 0])
-	    conv3 = conv_block(conv2, 256, 3, [0.4, 0.4, 0])
-	    conv4 = conv_block(conv3, 512, 3, [0.4, 0.4, 0])
-	    conv5 = conv_block(conv4, 512, 3, [0.4, 0.4, 0])
-	
-	    drop = dropout_layer(input=conv5, dropout_rate=0.5)
-	    fc1 = fc_layer(input=drop, size=512, act=LinearActivation())
-	    bn = batch_norm_layer(
-	        input=fc1, act=ReluActivation(), layer_attr=ExtraAttr(drop_rate=0.5))
-	    fc2 = fc_layer(input=bn, size=512, act=LinearActivation())
-	    return fc2
-	
+    def vgg_bn_drop(input):
+        def conv_block(ipt, num_filter, groups, dropouts, num_channels=None):
+            return paddle.networks.img_conv_group(
+                input=ipt,
+                num_channels=num_channels,
+                pool_size=2,
+                pool_stride=2,
+                conv_num_filter=[num_filter] * groups,
+                conv_filter_size=3,
+                conv_act=paddle.activation.Relu(),
+                conv_with_batchnorm=True,
+                conv_batchnorm_drop_rate=dropouts,
+                pool_type=paddle.pooling.Max())
+
+        conv1 = conv_block(input, 64, 2, [0.3, 0], 3)
+        conv2 = conv_block(conv1, 128, 2, [0.4, 0])
+        conv3 = conv_block(conv2, 256, 3, [0.4, 0.4, 0])
+        conv4 = conv_block(conv3, 512, 3, [0.4, 0.4, 0])
+        conv5 = conv_block(conv4, 512, 3, [0.4, 0.4, 0])
+
+        drop = paddle.layer.dropout(input=conv5, dropout_rate=0.5)
+        fc1 = paddle.layer.fc(input=drop, size=512, act=paddle.activation.Linear())
+        bn = paddle.layer.batch_norm(
+            input=fc1,
+            act=paddle.activation.Relu(),
+            layer_attr=paddle.attr.Extra(drop_rate=0.5))
+        fc2 = paddle.layer.fc(input=bn, size=512, act=paddle.activation.Linear())
+        return fc2
 	```
 	
-	2.1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.trainer_config_helpers`中预定义的模块，由若干组 `Conv->BN->ReLu->Dropout` 和 一组 `Pooling` 组成，
+	2.1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 `Conv->BN->ReLu->Dropout` 和 一组 `Pooling` 组成，
 	
 	2.2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
 	
@@ -341,20 +273,19 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 	通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
 
 	```python
-	out = fc_layer(input=net, size=class_num, act=SoftmaxActivation())
+    out = paddle.layer.fc(input=net,
+                          size=classdim,
+                          act=paddle.activation.Softmax())
 	```
 
 4. 定义损失函数和网络输出
 
-	在有监督训练中需要输入图像对应的类别信息，同样通过`data_layer`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
+	在有监督训练中需要输入图像对应的类别信息，同样通过`paddle.layer.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
 	
 	```python
-	if not is_predict:
-	    lbl = data_layer(name="label", size=class_num)
-	    cost = classification_cost(input=out, label=lbl)
-	    outputs(cost)
-	else:
-	    outputs(out)
+    lbl = paddle.layer.data(
+        name="label", type=paddle.data_type.integer_value(classdim))
+    cost = paddle.layer.classification_cost(input=out, label=lbl)
 	```
 
 ### ResNet
@@ -379,47 +310,38 @@ def conv_bn_layer(input,
                   filter_size,
                   stride,
                   padding,
-                  active_type=ReluActivation(),
+                  active_type=paddle.activation.Relu(),
                   ch_in=None):
-    tmp = img_conv_layer(
+    tmp = paddle.layer.img_conv(
         input=input,
         filter_size=filter_size,
         num_channels=ch_in,
         num_filters=ch_out,
         stride=stride,
         padding=padding,
-        act=LinearActivation(),
+        act=paddle.activation.Linear(),
         bias_attr=False)
-    return batch_norm_layer(input=tmp, act=active_type)
-
+    return paddle.layer.batch_norm(input=tmp, act=active_type)
 
 def shortcut(ipt, n_in, n_out, stride):
     if n_in != n_out:
-        return conv_bn_layer(ipt, n_out, 1, stride, 0, LinearActivation())
+        return conv_bn_layer(ipt, n_out, 1, stride, 0,
+                             paddle.activation.Linear())
     else:
         return ipt
 
 def basicblock(ipt, ch_out, stride):
-    ch_in = ipt.num_filters
+    ch_in = ch_out * 2
     tmp = conv_bn_layer(ipt, ch_out, 3, stride, 1)
-    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, LinearActivation())
+    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, paddle.activation.Linear())
     short = shortcut(ipt, ch_in, ch_out, stride)
-    return addto_layer(input=[ipt, short], act=ReluActivation())
-
-def bottleneck(ipt, ch_out, stride):
-    ch_in = ipt.num_filter
-    tmp = conv_bn_layer(ipt, ch_out, 1, stride, 0)
-    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1)
-    tmp = conv_bn_layer(tmp, ch_out * 4, 1, 1, 0, LinearActivation())
-    short = shortcut(ipt, ch_in, ch_out, stride)
-    return addto_layer(input=[ipt, short], act=ReluActivation())
+    return paddle.layer.addto(input=[tmp, short], act=paddle.activation.Relu())
 
 def layer_warp(block_func, ipt, features, count, stride):
     tmp = block_func(ipt, features, stride)
     for i in range(1, count):
         tmp = block_func(tmp, features, 1)
     return tmp
-
 ```
 
 `resnet_cifar10` 的连接结构主要有以下几个过程。
@@ -431,65 +353,125 @@ def layer_warp(block_func, ipt, features, count, stride):
 注意：除过第一层卷积层和最后一层全连接层之外，要求三组 `layer_warp` 总的含参层数能够被6整除，即 `resnet_cifar10` 的 depth 要满足 $(depth - 2) % 6 == 0$ 。
 
 ```python
-def resnet_cifar10(ipt, depth=56):
+def resnet_cifar10(ipt, depth=32):
     # depth should be one of 20, 32, 44, 56, 110, 1202
     assert (depth - 2) % 6 == 0
     n = (depth - 2) / 6
     nStages = {16, 64, 128}
-    conv1 = conv_bn_layer(ipt,
-        ch_in=3,
-        ch_out=16,
-        filter_size=3,
-        stride=1,
-        padding=1)
+    conv1 = conv_bn_layer(
+        ipt, ch_in=3, ch_out=16, filter_size=3, stride=1, padding=1)
     res1 = layer_warp(basicblock, conv1, 16, n, 1)
     res2 = layer_warp(basicblock, res1, 32, n, 2)
     res3 = layer_warp(basicblock, res2, 64, n, 2)
-    pool = img_pool_layer(input=res3,
-                         pool_size=8,
-                         stride=1,
-                         pool_type=AvgPooling())
+    pool = paddle.layer.img_pool(
+        input=res3, pool_size=8, stride=1, pool_type=paddle.pooling.Avg())
     return pool
 ```
 
-## 模型训练
+## 训练模型
 
-执行脚本 train.sh 进行模型训练， 其中指定配置文件、设备类型、线程个数、总共训练的轮数、模型存储路径等。
+### 定义参数
 
-``` bash
-sh train.sh
+首先依据模型配置的`cost`定义模型参数。
+
+```python
+# Create parameters
+parameters = paddle.parameters.create(cost)
 ```
 
-脚本 `train.sh` 如下：
+可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
 
-```bash
-#cfg=models/resnet.py
-cfg=models/vgg.py
-output=output
-log=train.log
-
-paddle train \
-    --config=$cfg \
-    --use_gpu=true \
-    --trainer_count=1 \
-    --log_period=100 \
-    --num_passes=300 \
-    --save_dir=$output \
-    2>&1 | tee $log
+```python
+print parameters.keys()
 ```
 
-- `--config=$cfg` : 指定配置文件，默认是 `models/vgg.py`。
-- `--use_gpu=true` : 指定使用GPU训练，若使用CPU，设置为false。
-- `--trainer_count=1` : 指定线程个数或GPU个数。
-- `--log_period=100` : 指定日志打印的batch间隔。
-- `--save_dir=$output` : 指定模型存储路径。
+### 构造训练(Trainer)
 
-一轮训练log示例如下所示，经过1个pass， 训练集上平均error为0.79958 ，测试集上平均error为0.7858 。
+根据网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的Momentum方法，同时设定了学习率、正则等。
+
+```python
+# Create optimizer
+momentum_optimizer = paddle.optimizer.Momentum(
+    momentum=0.9,
+    regularization=paddle.optimizer.L2Regularization(rate=0.0002 * 128),
+    learning_rate=0.1 / 128.0,
+    learning_rate_decay_a=0.1,
+    learning_rate_decay_b=50000 * 100,
+    learning_rate_schedule='discexp',
+    batch_size=128)
+
+# Create trainer
+trainer = paddle.trainer.SGD(cost=cost,
+                             parameters=parameters,
+                             update_equation=momentum_optimizer)
+```
+
+通过 `learning_rate_decay_a` (简写$a$） 、`learning_rate_decay_b` (简写$b$) 和 `learning_rate_schedule` 指定学习率调整策略，这里采用离散指数的方式调节学习率，计算公式如下， $n$ 代表已经处理过的累计总样本数，$lr_{0}$ 即为 `settings` 里设置的 `learning_rate`。
+
+$$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
+
+
+### 训练
+
+cifar.train10()每次产生一条样本，在完成shuffle和batch之后，作为训练的输入。
+
+```python
+reader=paddle.reader.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.cifar.train10(), buf_size=50000),
+        batch_size=128)
+```
+
+通过`feeding`来指定每一个数据和`paddle.layer.data`的对应关系。例如: `cifar.train10()`产生数据的第0列对应image层的特征。
+
+```python
+feeding={'image': 0,
+         'label': 1}
+```
+
+可以使用`event_handler`回调函数来观察训练过程，或进行测试等, 该回调函数是`trainer.train`函数里设定。
+
+```python
+# End batch and end pass event handler
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "\nPass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+        else:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
+            reader=paddle.reader.batch(
+                paddle.dataset.cifar.test10(), batch_size=128),
+            reader_dict={'image': 0,
+                         'label': 1})
+        print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
+```
+
+通过`trainer.train`函数训练:
+
+```python
+trainer.train(
+    reader=reader,
+    num_passes=200,
+    event_handler=event_handler,
+    feeding=feeding)
+```
+
+一轮训练log示例如下所示，经过1个pass， 训练集上平均error为0.6875 ，测试集上平均error为0.8852 。
 
 ```text
-TrainerInternal.cpp:165]  Batch=300 samples=38400 AvgCost=2.07708 CurrentCost=1.96158 Eval: classification_error_evaluator=0.81151  CurrentEval: classification_error_evaluator=0.789297
-TrainerInternal.cpp:181]  Pass=0 Batch=391 samples=50000 AvgCost=2.03348 Eval: classification_error_evaluator=0.79958
-Tester.cpp:115]  Test samples=10000 cost=1.99246 Eval: classification_error_evaluator=0.7858
+Pass 0, Batch 0, Cost 2.473182, {'classification_error_evaluator': 0.9140625}
+...................................................................................................
+Pass 0, Batch 100, Cost 1.913076, {'classification_error_evaluator': 0.78125}
+...................................................................................................
+Pass 0, Batch 200, Cost 1.783041, {'classification_error_evaluator': 0.7421875}
+...................................................................................................
+Pass 0, Batch 300, Cost 1.668833, {'classification_error_evaluator': 0.6875}
+..........................................................................................
+Test with Pass 0, {'classification_error_evaluator': 0.885200023651123}
 ```
 
 图12是训练的分类错误率曲线图，运行到第200个pass后基本收敛，最终得到测试集上分类错误率为8.54%。
@@ -499,37 +481,6 @@ Tester.cpp:115]  Test samples=10000 cost=1.99246 Eval: classification_error_eval
 图12. CIFAR10数据集上VGG模型的分类错误率
 </p>
 
-## 模型应用
-
-在训练完成后，模型会保存在路径 `output/pass-%05d` 下，例如第300个pass的模型会保存在路径 `output/pass-00299`。 可以使用脚本 `classify.py` 对图片进行预测或提取特征，注意该脚本默认使用模型配置为 `models/vgg.py`，
-
-
-### 预测
-
-可以按照下面方式预测图片的类别，默认使用GPU预测，如果使用CPU预测，在后面加参数 `-c`即可。
-
-```bash
-python classify.py --job=predict --model=output/pass-00299 --data=image/dog.png # -c
-```
-
-预测结果为：
-
-```text
-Label of image/dog.png is: 5
-```
-
-### 特征提取
-
-可以按照下面方式对图片提取特征，和预测使用方式不同的是指定job类型为extract，并需要指定提取的层。`classify.py` 默认以第一层卷积特征为例提取特征，并画出了类似图13的可视化图。VGG模型的第一层卷积有64个通道，图13展示了每个通道的灰度图。
-
-```bash
-python classify.py --job=extract --model=output/pass-00299 --data=image/dog.png # -c
-```
-
-<p align="center">
-<img src="image/fea_conv0.png" width="500"><br/>
-图13. 卷积特征可视化图 
-</p>
 
 ## 总结
 

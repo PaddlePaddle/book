@@ -36,8 +36,8 @@ def hook(settings, word_dict, label_dict, predicate_dict, **kwargs):
     }
 
 
-def get_batch_size(yeild_data):
-    return len(yeild_data[0])
+def get_batch_size(yield_data):
+    return len(yield_data[0])
 
 
 @provider(
