@@ -7,3 +7,5 @@ done
 for i in $(du -a | grep '\.\/.\+\/README.en.md' | cut -f 2); do
     .tmpl/convert-markdown-into-html.sh $i > $(dirname $i)/index.en.html
 done
+
+.tmpl/convert_2_ipynb.sh
