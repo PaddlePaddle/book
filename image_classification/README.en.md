@@ -341,8 +341,9 @@ parameters = paddle.parameters.create(cost)
 
 ### Construct Trainer
 
-Before jumping into creating a training module, algorithm setting which is defined as `paddle.optimizer` is also necessary.
-Here we specified `Momentum` optimization algorithm and its batch size, learning rate, momentum and L2 regularization.
+Before jumping into creating a training module, algorithm setting is also necessary.
+Here we specified `Momentum` optimization algorithm and its batch size, learning rate, momentum and L2 regularization
+via `paddle.optimizer`.
 
 ```python
 # Create optimizer
