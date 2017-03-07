@@ -267,6 +267,10 @@ pre-wmt14
 - `train.list`、`test.list`和`gen.list`：分别记录了`train`、`test`和`gen`文件夹中的文件路径。
 - `src.dict`和`trg.dict`：源（法语）和目标（英语）字典。每个字典都含有30000个单词，包括29997个最高频单词和3个特殊符号。
 
+### 示例数据
+
+因为完整的数据集数据量较大，为了验证训练流程，在paddle的dataset.wmt14中默认提供了一个经过预处理的[较小规模的数据集]('http://paddlepaddle.bj.bcebos.com/demo/wmt_shrinked_data/wmt14.tgz')。
+
 ### 提供数据给PaddlePaddle
 
 1. 生成词典
@@ -274,15 +278,30 @@ pre-wmt14
     根据用户配置的词典长度，将数据预处理阶段生成的词典文件(src.dict, trg.dict)load到内存中生成一个map，结构为 {"word": index}.
     
     ```python
-    def __read_to_dict__(dict_path, count):
-        with open(dict_path, "r") as fin:
+    def __read_to_dict__(tar_file, dict_size):
+        def __to_dict__(fd, size):
             out_dict = dict()
-            for line_count, line in enumerate(fin):
-                if line_count <= count:
+            for line_count, line in enumerate(fd):
+                if line_count < size:
                     out_dict[line.strip()] = line_count
                 else:
                     break
-        return out_dict
+            return out_dict
+    
+        with tarfile.open(tar_file, mode='r') as f:
+            names = [
+                each_item.name for each_item in f
+                if each_item.name.endswith("src.dict")
+            ]
+            assert len(names) == 1
+            src_dict = __to_dict__(f.extractfile(names[0]), dict_size)
+            names = [
+                each_item.name for each_item in f
+                if each_item.name.endswith("trg.dict")
+            ]
+            assert len(names) == 1
+            trg_dict = __to_dict__(f.extractfile(names[0]), dict_size)
+            return src_dict, trg_dict
 ```
 
 2. 读取训练数据
@@ -295,29 +314,39 @@ pre-wmt14
     
     然后通过yield返回给trainer.
     ```python
-    def __reader__(file_name, src_dict, trg_dict):
-        with open(file_name, 'r') as f:
-            for line_count, line in enumerate(f):
-                line_split = line.strip().split('\t')
-                if len(line_split) != 2:
-                    continue
-                src_seq = line_split[0]  # one source sequence
-                src_words = src_seq.split()
-                src_ids = [
-                    src_dict.get(w, UNK_IDX) for w in [START] + src_words + [END]
+    def reader_creator(tar_file, file_name, dict_size):
+        def reader():
+            src_dict, trg_dict = __read_to_dict__(tar_file, dict_size)
+            with tarfile.open(tar_file, mode='r') as f:
+                names = [
+                    each_item.name for each_item in f
+                    if each_item.name.endswith(file_name)
                 ]
+                for name in names:
+                    for line in f.extractfile(name):
+                        line_split = line.strip().split('\t')
+                        if len(line_split) != 2:
+                            continue
+                        src_seq = line_split[0]  # one source sequence
+                        src_words = src_seq.split()
+                        src_ids = [
+                            src_dict.get(w, UNK_IDX)
+                            for w in [START] + src_words + [END]
+                        ]
     
-                trg_seq = line_split[1]  # one target sequence
-                trg_words = trg_seq.split()
-                trg_ids = [trg_dict.get(w, UNK_IDX) for w in trg_words]
+                        trg_seq = line_split[1]  # one target sequence
+                        trg_words = trg_seq.split()
+                        trg_ids = [trg_dict.get(w, UNK_IDX) for w in trg_words]
     
-                # remove sequence whose length > 80 in training mode
-                if len(src_ids) > 80 or len(trg_ids) > 80:
-                    continue
-                trg_ids_next = trg_ids + [trg_dict[END]]
-                trg_ids = [trg_dict[START]] + trg_ids
+                        # remove sequence whose length > 80 in training mode
+                        if len(src_ids) > 80 or len(trg_ids) > 80:
+                            continue
+                        trg_ids_next = trg_ids + [trg_dict[END]]
+                        trg_ids = [trg_dict[START]] + trg_ids
     
-                yield src_ids, trg_ids, trg_ids_next
+                        yield src_ids, trg_ids, trg_ids_next
+    
+        return reader
     ```
 
 ## 模型配置说明
@@ -403,7 +432,8 @@ pre-wmt14
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。 
-        
+
+
    ```python
     def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
 
