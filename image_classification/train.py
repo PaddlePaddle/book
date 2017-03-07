@@ -13,7 +13,9 @@
 # limitations under the License
 
 import sys
+
 import paddle.v2 as paddle
+
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
 
@@ -23,7 +25,7 @@ def main():
     classdim = 10
 
     # PaddlePaddle init
-    paddle.init(use_gpu=True, trainer_count=1)
+    paddle.init(use_gpu=False, trainer_count=1)
 
     image = paddle.layer.data(
         name="image", type=paddle.data_type.dense_vector(datadim))
@@ -66,10 +68,10 @@ def main():
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
             result = trainer.test(
-                reader=paddle.reader.batched(
+                reader=paddle.batch(
                     paddle.dataset.cifar.test10(), batch_size=128),
-                reader_dict={'image': 0,
-                             'label': 1})
+                feeding={'image': 0,
+                         'label': 1})
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 
     # Create trainer
@@ -77,14 +79,14 @@ def main():
                                  parameters=parameters,
                                  update_equation=momentum_optimizer)
     trainer.train(
-        reader=paddle.reader.batched(
+        reader=paddle.batch(
             paddle.reader.shuffle(
                 paddle.dataset.cifar.train10(), buf_size=50000),
             batch_size=128),
         num_passes=200,
         event_handler=event_handler,
-        reader_dict={'image': 0,
-                     'label': 1})
+        feeding={'image': 0,
+                 'label': 1})
 
 
 if __name__ == '__main__':
