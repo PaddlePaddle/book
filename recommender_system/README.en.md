@@ -163,7 +163,7 @@ print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id]
 User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest), categories(['Drama'])> with Score [5.0]
 ```
 
-User 1 gave movie `1193` a rating of 5.
+The output shows that user 1 gave movie `1193` a rating of 5.
 
 After issuing a command `python train.py`, trainning is starting immediately! The details will be unpacked by the following sessions to see how it works.
 
@@ -174,7 +174,14 @@ After issuing a command `python train.py`, trainning is starting immediately! Th
 First, we must import and initialize PaddlePaddle (enable/disable GPU, set the number of trainers, etc).
 
 ```python
+%matplotlib inline
+
+import matplotlib.pyplot as plt
+from IPython import display
+import cPickle
+
 import paddle.v2 as paddle
+
 paddle.init(use_gpu=False)
 ```
 
@@ -215,7 +222,7 @@ usr_combined_features = paddle.layer.fc(
 
 Then, employing user features as input, directly connecting to a fully-connected layer, which is used to reduce dimension to 200.
 
-Furthermore, we do a similar transformation for each movie feature. The network configuration is:
+Furthermore, we do a similar transformation for each movie feature. The model configuration is:
 
 ```python
 mov_id = paddle.layer.data(
@@ -248,13 +255,10 @@ mov_combined_features = paddle.layer.fc(
 
 The movie ID and the movie type are mapped to their corresponding hidden layers. For movie's title, a sequence of words represented by an ID sequence, the sequence feature of time window will be obtained after the convolution layer, and then sampling to obtain specific dimension features. The entire process is implemented in `text_conv_pool`.
 
-```python
-inference = paddle.layer.cos_sim(a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
-```
-
 Finally, we can use cosine similarity to calculate the similarity between user characteristics and movie features.
 
 ```python
+inference = paddle.layer.cos_sim(a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
 cost = paddle.layer.regression_cost(
         input=inference,
         label=paddle.layer.data(
@@ -265,7 +269,7 @@ cost = paddle.layer.regression_cost(
 
 ### Define Parameters
 
-First we define the model parameters according to the previous model configuration `cost`.
+First, we define the model parameters according to the previous model configuration `cost`.
 
 ```python
 # Create parameters
@@ -315,6 +319,11 @@ feeding = {
 Callback function `event_handler` is used to track training and testing process that might be triggered once the action to which it is attached is executed.
 
 ```python
+step=0
+
+train_costs=[],[]
+test_costs=[],[]
+
 def event_handler(event):
     global step
     global train_costs
@@ -344,17 +353,6 @@ def event_handler(event):
 Finally, we can invoke `trainer.train` to start training:
 
 ```python
-%matplotlib inline
-
-import matplotlib.pyplot as plt
-from IPython import display
-import cPickle
-
-step=0
-
-train_costs=[],[]
-test_costs=[],[]
-
 trainer.train(
     reader=reader,
     event_handler=event_handler,
