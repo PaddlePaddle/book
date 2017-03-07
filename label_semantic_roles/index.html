@@ -93,7 +93,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 
 图3是最终得到的栈式循环神经网络结构示意图。
 
-<p align="center">    
+<p align="center">
 <img src="./image/stacked_lstm.png" width = "40%"  align=center><br>
 图3. 基于LSTM的栈式循环神经网络结构示意图
 </p>
@@ -104,7 +104,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 
 为了克服这一缺陷，我们可以设计一种双向循环网络单元，它的思想简单且直接：对上一节的栈式循环神经网络进行一个小小的修改，堆叠多个LSTM单元，让每一层LSTM单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第2层开始，$t$时刻我们的LSTM单元便总是可以看到历史和未来的信息。图4是基于LSTM的双向循环神经网络结构示意图。
 
-<p align="center">    
+<p align="center">
 <img src="./image/bidirectional_stacked_lstm.png" width = "60%" align=center><br>
 图4. 基于LSTM的双向循环神经网络结构示意图
 </p>
@@ -119,7 +119,7 @@ CRF是一种概率化结构模型，可以看作是一个概率无向图模型�
 
 序列标注任务只需要考虑输入和输出都是一个线性序列，并且由于我们只是将输入序列作为条件，不做任何条件独立假设，因此输入序列的元素之间并不存在图结构。综上，在序列标注任务中使用的是如图5所示的定义在链式图上的CRF，称之为线性链条件随机场（Linear Chain Conditional Random Field）。
 
-<p align="center">    
+<p align="center">
 <img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
 图5. 序列标注任务中使用的线性链条件随机场
 </p>
@@ -163,7 +163,7 @@ $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \fra
 3. 第2步的4个词向量序列作为双向LSTM模型的输入；LSTM模型学习输入序列的特征表示，得到新的特性表示序列；
 4. CRF以第3步中LSTM学习到的特征为输入，以标记序列为监督信号，完成序列标注；
 
-<div  align="center">    
+<div  align="center">
 <img src="image/db_lstm_network.png" width = "60%"  align=center /><br>
 图6. SRL任务上的深层双向LSTM模型
 </div>
@@ -202,7 +202,7 @@ conll05st-release/
 
 预处理完成之后一条训练样本包含9个特征，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。下表是一条训练样本的示例。
 
-| 句子序列 | 谓词 | 谓词上下文（窗口 = 5） | 谓词上下文区域标记 | 标注序列 | 
+| 句子序列 | 谓词 | 谓词上下文（窗口 = 5） | 谓词上下文区域标记 | 标注序列 |
 |---|---|---|---|---|
 | A | set | n't been set . × | 0 | B-A1 |
 | record | set | n't been set . × | 0 | I-A1 |
@@ -255,7 +255,7 @@ word_dim = 32        # 词向量维度
 mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
 hidden_dim = 512     # LSTM隐层向量的维度 ： 512 / 4
 depth = 8            # 栈式LSTM的深度
-    
+
 # 一条样本总共9个特征，下面定义了9个data层，每个层类型为integer_value_sequence，表示整数ID的序列类型.
 def d_type(size):
     return paddle.data_type.integer_value_sequence(size)
@@ -263,10 +263,10 @@ def d_type(size):
 # 句子序列
 word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
 # 谓词
-predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len)) 
+predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len))
 
 # 谓词上下文5个特征
-ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len)) 
+ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len))
 ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
 ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
 ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
@@ -278,12 +278,12 @@ mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
 # 标注序列
 target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 ```
-	
+
 这里需要特别说明的是hidden_dim = 512指定了LSTM隐层向量的维度为128维，关于这一点请参考PaddlePaddle官方文档中[lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)的说明。
 
 - 2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
 
-```python   
+```python
 
 # 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
 # is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
@@ -312,7 +312,7 @@ emb_layers.append(mark_embedding)
 
 - 3. 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
 
-```python  
+```python
 hidden_0 = paddle.layer.mixed(
 size=hidden_dim,
 bias_attr=std_default,
@@ -410,7 +410,7 @@ parameters = paddle.parameters.create([crf_cost, crf_dec])
 ```
 
 可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
-   
+
 ```python
 print parameters.keys()
 ```
@@ -527,6 +527,6 @@ marked.setOptions({
   }
 });
 document.getElementById("context").innerHTML = marked(
-		document.getElementById("markdown").innerHTML)
+        document.getElementById("markdown").innerHTML)
 </script>
 </body>
