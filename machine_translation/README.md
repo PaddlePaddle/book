@@ -269,7 +269,9 @@ pre-wmt14
 
 ### 示例数据
 
-因为完整的数据集数据量较大，为了验证训练流程，在paddle的dataset.wmt14中默认提供了一个经过预处理的[较小规模的数据集]('http://paddlepaddle.bj.bcebos.com/demo/wmt_shrinked_data/wmt14.tgz')。
+因为完整的数据集数据量较大，为了验证训练流程，在paddle的dataset.wmt14中默认提供了一个经过预处理的[较小规模的数据集](http://paddlepaddle.bj.bcebos.com/demo/wmt_shrinked_data/wmt14.tgz)。
+该数据集有193319条训练数据，6003条测试数据， 词典长度都为30000。因为数据规模限制，使用该数据集训练出来的模型效果无法保证。
+如果需要使用完整的数据集，请参照[数据准备](#数据准备)流程生成需要的训练和测试数据集。
 
 ### 提供数据给PaddlePaddle
 
