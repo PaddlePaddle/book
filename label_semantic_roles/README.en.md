@@ -225,6 +225,8 @@ We trained in the English Wikipedia language model to get a word vector lookup t
 Get dictionary, print dictionary size:
 
 ```python
+import math
+import numpy as np
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 
@@ -233,164 +235,164 @@ word_dict_len = len(word_dict)
 label_dict_len = len(label_dict)
 pred_len = len(verb_dict)
 
-print len(word_dict_len)
-print len(label_dict_len)
-print len(pred_len)
+print word_dict_len
+print label_dict_len
+print pred_len
 ```
 
 ## Model configuration
 
-1. Define input data dimensions and model hyperparameters.
+- 1. Define input data dimensions and model hyperparameters.
 
-    ```python
-    mark_dict_len = 2    # Value range of region mark. Region mark is either 0 or 1, so range is 2
-    word_dim = 32        # word vector dimension
-    mark_dim = 5         # adjacent dimension
-    hidden_dim = 512     # the dimension of LSTM hidden layer vector is 128 (512/4)
-    depth = 8            # depth of stacked LSTM
+```python
+mark_dict_len = 2    # Value range of region mark. Region mark is either 0 or 1, so range is 2
+word_dim = 32        # word vector dimension
+mark_dim = 5         # adjacent dimension
+hidden_dim = 512     # the dimension of LSTM hidden layer vector is 128 (512/4)
+depth = 8            # depth of stacked LSTM
+
+# There are 9 features per sample, so we will define 9 data layers.
+# They type for each layer is integer_value_sequence.
+def d_type(value_range):
+    return paddle.data_type.integer_value_sequence(value_range)
+
+# word sequence
+word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
+# predicate
+predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len)) 
+
+# 5 features for predicate context
+ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len)) 
+ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
+ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
+ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
+ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
+
+# region marker sequence
+mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
+
+# label sequence
+target = paddle.layer.data(name='target', type=d_type(label_dict_len))
+```
     
-    # There are 9 features per sample, so we will define 9 data layers.
-    # They type for each layer is integer_value_sequence.
-    def d_type(value_range):
-        return paddle.data_type.integer_value_sequence(value_range)
+Speciala note: hidden_dim = 512 means LSTM hidden vector of 128 dimension (512/4). Please refer PaddlePaddle official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
 
-    # word sequence
-    word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
-    # predicate
-    predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len)) 
+- 2. The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
 
-    # 5 features for predicate context
-    ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len)) 
-    ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
-    ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
-    ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
-    ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
-    
-    # region marker sequence
-    mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
-    
-    # label sequence
-    target = paddle.layer.data(name='target', type=d_type(label_dict_len))
-    ```
-    
-   Speciala note: hidden_dim = 512 means LSTM hidden vector of 128 dimension (512/4). Please refer PaddlePaddle official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
+```python   
 
-2. The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
+# Since word vectorlookup table is pre-trained, we won't update it this time.
+# is_static being True prevents updating the lookup table during training.
+emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
+# hyperparameter configurations
+default_std = 1 / math.sqrt(hidden_dim) / 3.0
+std_default = paddle.attr.Param(initial_std=default_std)
+std_0 = paddle.attr.Param(initial_std=0.)
 
-    ```python   
-   
-    # Since word vectorlookup table is pre-trained, we won't update it this time.
-    # is_static being True prevents updating the lookup table during training.
-    emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
-    # hyperparameter configurations
-    default_std = 1 / math.sqrt(hidden_dim) / 3.0
-    std_default = paddle.attr.Param(initial_std=default_std)
-    std_0 = paddle.attr.Param(initial_std=0.)
+predicate_embedding = paddle.layer.embedding(
+    size=word_dim,
+    input=predicate,
+    param_attr=paddle.attr.Param(
+        name='vemb', initial_std=default_std))
+mark_embedding = paddle.layer.embedding(
+    size=mark_dim, input=mark, param_attr=std_0)
 
-    predicate_embedding = paddle.layer.embedding(
-        size=word_dim,
-        input=predicate,
-        param_attr=paddle.attr.Param(
-            name='vemb', initial_std=default_std))
-    mark_embedding = paddle.layer.embedding(
-        size=mark_dim, input=mark, param_attr=std_0)
+word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
+emb_layers = [
+    paddle.layer.embedding(
+        size=word_dim, input=x, param_attr=emb_para) for x in word_input
+]
+emb_layers.append(predicate_embedding)
+emb_layers.append(mark_embedding)
+```
 
-    word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
-    emb_layers = [
-        paddle.layer.embedding(
-            size=word_dim, input=x, param_attr=emb_para) for x in word_input
-    ]
-    emb_layers.append(predicate_embedding)
-    emb_layers.append(mark_embedding)
-    ```
+- 3. 8 LSTM units will be trained in "forward / backward" order.
 
-3. 8 LSTM units will be trained in "forward / backward" order.
+```python  
+hidden_0 = paddle.layer.mixed(
+    size=hidden_dim,
+    bias_attr=std_default,
+    input=[
+        paddle.layer.full_matrix_projection(
+            input=emb, param_attr=std_default) for emb in emb_layers
+    ])
 
-    ```python  
-    hidden_0 = paddle.layer.mixed(
+mix_hidden_lr = 1e-3
+lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
+hidden_para_attr = paddle.attr.Param(
+    initial_std=default_std, learning_rate=mix_hidden_lr)
+
+lstm_0 = paddle.layer.lstmemory(
+    input=hidden_0,
+    act=paddle.activation.Relu(),
+    gate_act=paddle.activation.Sigmoid(),
+    state_act=paddle.activation.Sigmoid(),
+    bias_attr=std_0,
+    param_attr=lstm_para_attr)
+
+# stack L-LSTM and R-LSTM with direct edges
+input_tmp = [hidden_0, lstm_0]
+
+for i in range(1, depth):
+    mix_hidden = paddle.layer.mixed(
         size=hidden_dim,
         bias_attr=std_default,
         input=[
             paddle.layer.full_matrix_projection(
-                input=emb, param_attr=std_default) for emb in emb_layers
+                input=input_tmp[0], param_attr=hidden_para_attr),
+            paddle.layer.full_matrix_projection(
+                input=input_tmp[1], param_attr=lstm_para_attr)
         ])
 
-    mix_hidden_lr = 1e-3
-    lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
-    hidden_para_attr = paddle.attr.Param(
-        initial_std=default_std, learning_rate=mix_hidden_lr)
-
-    lstm_0 = paddle.layer.lstmemory(
-        input=hidden_0,
+    lstm = paddle.layer.lstmemory(
+        input=mix_hidden,
         act=paddle.activation.Relu(),
         gate_act=paddle.activation.Sigmoid(),
         state_act=paddle.activation.Sigmoid(),
+        reverse=((i % 2) == 1),
         bias_attr=std_0,
         param_attr=lstm_para_attr)
 
-    # stack L-LSTM and R-LSTM with direct edges
-    input_tmp = [hidden_0, lstm_0]
+    input_tmp = [mix_hidden, lstm]
+```
 
-    for i in range(1, depth):
-        mix_hidden = paddle.layer.mixed(
-            size=hidden_dim,
-            bias_attr=std_default,
-            input=[
-                paddle.layer.full_matrix_projection(
-                    input=input_tmp[0], param_attr=hidden_para_attr),
-                paddle.layer.full_matrix_projection(
-                    input=input_tmp[1], param_attr=lstm_para_attr)
-            ])
+- 4. We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
 
-        lstm = paddle.layer.lstmemory(
-            input=mix_hidden,
-            act=paddle.activation.Relu(),
-            gate_act=paddle.activation.Sigmoid(),
-            state_act=paddle.activation.Sigmoid(),
-            reverse=((i % 2) == 1),
-            bias_attr=std_0,
-            param_attr=lstm_para_attr)
+ ```python
+ feature_out = paddle.layer.mixed(
+ size=label_dict_len,
+ bias_attr=std_default,
+ input=[
+     paddle.layer.full_matrix_projection(
+         input=input_tmp[0], param_attr=hidden_para_attr),
+     paddle.layer.full_matrix_projection(
+         input=input_tmp[1], param_attr=lstm_para_attr)
+ ], )
+ ```
 
-        input_tmp = [mix_hidden, lstm]
-    ```
+- 5.  We use CRF as cost function, the parameter of CRF cost will be named `crfw`.
 
-4. We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
-
-    ```python
-    feature_out = paddle.layer.mixed(
+```python
+crf_cost = paddle.layer.crf(
     size=label_dict_len,
-    bias_attr=std_default,
-    input=[
-        paddle.layer.full_matrix_projection(
-            input=input_tmp[0], param_attr=hidden_para_attr),
-        paddle.layer.full_matrix_projection(
-            input=input_tmp[1], param_attr=lstm_para_attr)
-    ], )
-    ```
+    input=feature_out,
+    label=target,
+    param_attr=paddle.attr.Param(
+        name='crfw',
+        initial_std=default_std,
+        learning_rate=mix_hidden_lr))
+```
 
-5.  We use CRF as cost function, the parameter of CRF cost will be named `crfw`.
+- 6.  CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer.  The sharing of parameters among multiple layers is specified by the same parameter name in these layers.
 
-    ```python
-    crf_cost = paddle.layer.crf(
-        size=label_dict_len,
-        input=feature_out,
-        label=target,
-        param_attr=paddle.attr.Param(
-            name='crfw',
-            initial_std=default_std,
-            learning_rate=mix_hidden_lr))
-    ```
-
-6.  CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer.  The sharing of parameters among multiple layers is specified by the same parameter name in these layers.
-
-    ```python
-    crf_dec = paddle.layer.crf_decoding(
-       name='crf_dec_l',
-       size=label_dict_len,
-       input=feature_out,
-       label=target,
-       param_attr=paddle.attr.Param(name='crfw'))
-    ```
+```python
+crf_dec = paddle.layer.crf_decoding(
+   name='crf_dec_l',
+   size=label_dict_len,
+   input=feature_out,
+   label=target,
+   param_attr=paddle.attr.Param(name='crfw'))
+```
 
 ## Train model
 
@@ -413,8 +415,8 @@ Now we load pre-trained word lookup table.
 ```python
 def load_parameter(file_name, h, w):
     with open(file_name, 'rb') as f:
-         f.read(16)
-         return np.fromfile(f, dtype=np.float32).reshape(h, w)
+        f.read(16)
+        return np.fromfile(f, dtype=np.float32).reshape(h, w)
 parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 ```
 
