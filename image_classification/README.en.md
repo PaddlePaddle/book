@@ -152,7 +152,7 @@ Figure 11. CIFAR10 dataset[21]
 
 After issuing a command `python train.py`, trainning is starting immediately! The details will be unpacked by the following sessions to see how it works.
 
-## Architectural Models
+## Model Architecture
 
 ### Initialize PaddlePaddle
 
@@ -332,7 +332,7 @@ def resnet_cifar10(ipt, depth=32):
 
 ### Define Parameters
 
-First we define the model parameters according to the previous model configuration `cost`.
+First, we define the model parameters according to the previous model configuration `cost`.
 
 ```python
 # Create parameters
@@ -342,8 +342,7 @@ parameters = paddle.parameters.create(cost)
 ### Construct Trainer
 
 Before jumping into creating a training module, algorithm setting is also necessary.
-Here we specified `Momentum` optimization algorithm and its batch size, learning rate, momentum and L2 regularization
-via `paddle.optimizer`.
+Here we specified `Momentum` optimization algorithm via `paddle.optimizer`.
 
 ```python
 # Create optimizer
@@ -368,7 +367,7 @@ where $n$ is the number of processed samples, $lr_{0}$ is the learning_rate.
 
 ### Training
 
-`cifar.train10()` will yield an record in each pass, after shuffling, a batch input is generated for training.
+`cifar.train10()` will yield records during each pass, after shuffling, a batch input is generated for training.
 
 ```python
 reader=paddle.reader.batch(
