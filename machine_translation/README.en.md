@@ -1,6 +1,8 @@
 # Machine Translation
 
-Source codes are located at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation). Please refer to the PaddlePaddle [installation tutorial](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html) if you are a first time user.
+The source code of this tutorial lives on [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation).
+
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
 
 ## Background
 

@@ -1,6 +1,8 @@
 # Sentiment Analysis
 
-The source codes of this section can be located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
+The source code of this section lives on [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment).
+
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
 
 ## Background Introduction
 In natural language processing, sentiment analysis refers to describing emotion status in texts. The texts may refer to a sentence, a paragraph or a document. Emotion status can be a binary classification problem (positive/negative or happy/sad), or a three-class problem (positive/neutral/negative). Sentiment analysis can be applied widely in various situations, such as online shopping (Amazon, Taobao), travel and movie websites. It can be used to grasp from the reviews how the customers feel about the product. Table 1 is an example of sentiment analysis in movie reviews:
