@@ -22,18 +22,9 @@ Standard SRL system mostly builds on top of Syntactic Analysis and contains five
 
 
 <div  align="center">
-<img src="image/dependency_parsing.png" width = "80%" align=center /><br>
+<img src="image/dependency_parsing_en.png" width = "80%" align=center /><br>
 Fig 1. Syntactic parse tree
 </div>
-
-核心关系-> HED
-定中关系-> ATT
-主谓关系-> SBV
-状中结构-> ADV
-介宾关系-> POB
-右附加关系-> RAD
-动宾关系-> VOB
-标点-> WP
 
 
 However, complete syntactic analysis requires identifying the relation among all constitutes and the performance of SRL is sensitive to the precision of syntactic analysis, which makes SRL a very challenging task. To reduce the complexity and obtain some syntactic structure information, we often use shallow syntactic analysis. Shallow Syntactic Analysis is also called partial parsing or chunking. Unlike complete syntactic analysis which requires the construction of the complete parsing tree, Shallow Syntactic Analysis only need to identify some independent components with relatively simple structure, such as verb phrases (chunk). To avoid difficulties in constructing a syntactic tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking based SRL methods, which convert SRL as a sequence tagging problem. Sequence tagging tasks classify syntactic chunks using BIO representation. For syntactic chunks forming a chunk of type A, the first chunk receives the B-A tag (Begin), the remaining ones receive the tag I-A (Inside), and all chunks outside receive the tag O-A.
@@ -41,14 +32,9 @@ However, complete syntactic analysis requires identifying the relation among all
 The BIO representation of above example is shown in Fig.1.
 
 <div  align="center">
-<img src="image/bio_example.png" width = "90%"  align=center /><br>
+<img src="image/bio_example_en.png" width = "90%"  align=center /><br>
 Fig 2. BIO represention
 </div>
-
-输入序列-> input sequence
-语块-> chunk
-标注序列-> label sequence
-角色-> role
 
 This example illustrates the simplicity of sequence tagging because (1) shallow syntactic analysis reduces the precision requirement of syntactic analysis; (2) pruning candidate arguments is removed; 3) argument identification and tagging are finished at the same time. Such unified methods simplify the procedure, reduce the risk of accumulating errors and boost the performance further.
 
@@ -71,12 +57,9 @@ The operation of a single LSTM cell contain 3 parts: (1) input-to-hidden: map in
 Fig.3 illustrate the final stacked recurrent neural networks.
 
 <p align="center">    
-<img src="./image/stacked_lstm.png" width = "40%"  align=center><br>
+<img src="./image/stacked_lstm_en.png" width = "40%"  align=center><br>
 Fig 3. Stacked Recurrent Neural Networks
 </p>
-
-线性变换-> linear transformation
-输入层到隐层-> input-to-hidden
 
 ### Bidirectional Recurrent Neural Network
 
@@ -86,14 +69,9 @@ To address the above drawbacks, we can design bidirectional recurrent neural net
 
 
 <p align="center">    
-<img src="./image/bidirectional_stacked_lstm.png" width = "60%" align=center><br>
+<img src="./image/bidirectional_stacked_lstm_en.png" width = "60%" align=center><br>
 Fig 4. Bidirectional LSTMs
 </p>
-
-线性变换-> linear transformation
-输入层到隐层-> input-to-hidden
-正向处理输出序列->process sequence in the forward direction
-反向处理上一层序列-> process sequence from the previous layer in backward direction
 
 Note that, this bidirectional RNNs is different with the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks[machine translation](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.md)
 
@@ -156,17 +134,9 @@ After modification, the model is as follows:
 
 
 <div  align="center">    
-<img src="image/db_lstm_network.png" width = "60%"  align=center /><br>
+<img src="image/db_lstm_en.png" width = "60%"  align=center /><br>
 Fig 6. DB-LSTM for SRL tasks
 </div>
-
-论元-> argu
-谓词-> pred
-谓词上下文-> ctx-p
-谓词上下文区域标记-> $m_r$
-输入-> input
-原句-> sentence
-反向LSTM-> LSTM Reverse
 
 ## Data Preparation
 
