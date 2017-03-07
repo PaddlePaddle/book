@@ -419,9 +419,15 @@ trainer.train(
 Here is an example log after training for one pass. The average error rates are 0.6875 on training set and 0.8852 on validation set.
 
 ```text
-TrainerInternal.cpp:165]  Batch=300 samples=38400 AvgCost=2.07708 CurrentCost=1.96158 Eval: classification_error_evaluator=0.81151  CurrentEval: classification_error_evaluator=0.789297
-TrainerInternal.cpp:181]  Pass=0 Batch=391 samples=50000 AvgCost=2.03348 Eval: classification_error_evaluator=0.79958
-Tester.cpp:115]  Test samples=10000 cost=1.99246 Edval: classification_error_evaluator=0.7858
+Pass 0, Batch 0, Cost 2.473182, {'classification_error_evaluator': 0.9140625}
+...................................................................................................
+Pass 0, Batch 100, Cost 1.913076, {'classification_error_evaluator': 0.78125}
+...................................................................................................
+Pass 0, Batch 200, Cost 1.783041, {'classification_error_evaluator': 0.7421875}
+...................................................................................................
+Pass 0, Batch 300, Cost 1.668833, {'classification_error_evaluator': 0.6875}
+..........................................................................................
+Test with Pass 0, {'classification_error_evaluator': 0.885200023651123}
 ```
 
 Figure 12 shows the curve of training error rate, which indicates it converges at Pass 200 with error rate 8.54%.
