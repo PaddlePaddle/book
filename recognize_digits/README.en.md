@@ -42,7 +42,7 @@ In such a classification problem, we usually use the cross entropy loss function
 
 $$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
 
-Fig. 2 shows a softmax regression network, with weights in black, and bias in red. +1 indicates bias is 1.
+Fig. 2 shows a softmax regression network, with weights in blue, and bias in red. +1 indicates bias is 1.
 
 <p align="center">
 <img src="image/softmax_regression_en.png" width=400><br/>
@@ -57,7 +57,7 @@ The Softmax regression model described above uses the simplest two-layer neural 
 2.  After the second hidden layer, we get $ H_2 = \phi(W_2H_1 + b_2) $.
 3.  Finally, after output layer, we get $Y=softmax(W_3H_2 + b_3)$, the final classification result vector.
 
-Fig. 3. is Multilayer Perceptron network, with weights in black, and bias in red. +1 indicates bias is 1.
+Fig. 3. is Multilayer Perceptron network, with weights in blue, and bias in red. +1 indicates bias is 1.
 
 <p align="center">
 <img src="image/mlp_en.png" width=500><br/>
@@ -196,34 +196,33 @@ def convolutional_neural_network(img):
 PaddlePaddle provides a special layer `layer.data` for reading data. Let us create a data layer for reading images and connect it to a classification network created using one of above three functions.  We also need a cost layer for training the model.
 
 ```python
-def main():
-    paddle.init(use_gpu=False, trainer_count=1)
+paddle.init(use_gpu=False, trainer_count=1)
 
-    images = paddle.layer.data(
-        name='pixel', type=paddle.data_type.dense_vector(784))
-    label = paddle.layer.data(
-        name='label', type=paddle.data_type.integer_value(10))
+images = paddle.layer.data(
+    name='pixel', type=paddle.data_type.dense_vector(784))
+label = paddle.layer.data(
+    name='label', type=paddle.data_type.integer_value(10))
 
-    predict = softmax_regression(images)
-    #predict = multilayer_perceptron(images) # uncomment for MLP
-    #predict = convolutional_neural_network(images) # uncomment for LeNet5
+predict = softmax_regression(images)
+#predict = multilayer_perceptron(images) # uncomment for MLP
+#predict = convolutional_neural_network(images) # uncomment for LeNet5
 
-    cost = paddle.layer.classification_cost(input=predict, label=label)
+cost = paddle.layer.classification_cost(input=predict, label=label)
 ```
 
 Now, it is time to specify training parameters. The number 0.9 in the following `Momentum` optimizer means that 90% of the current the momentum comes from the momentum of the previous iteration.
 
 ```python
-    parameters = paddle.parameters.create(cost)
+parameters = paddle.parameters.create(cost)
 
-    optimizer = paddle.optimizer.Momentum(
-        learning_rate=0.1 / 128.0,
-        momentum=0.9,
-        regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
+optimizer = paddle.optimizer.Momentum(
+    learning_rate=0.1 / 128.0,
+    momentum=0.9,
+    regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
 
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+trainer = paddle.trainer.SGD(cost=cost,
+                             parameters=parameters,
+                             update_equation=optimizer)
 ```
 
 Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`.  These two functions are *reader creators*, once called, returns a *reader*.  A reader is a Python function, which, once called, returns a Python generator, which yields instances of data.  
@@ -233,48 +232,48 @@ Here `shuffle` is a reader decorator, which takes a reader A as its parameter, a
 `batch` is a special decorator, whose input is a reader and output is a *batch reader*, which doesn't yield an instance at a time, but a minibatch.
 
 ```python
-    lists = []
+lists = []
 
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 100 == 0:
-                print "Pass %d, Batch %d, Cost %f, %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics)
-        if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(reader=paddle.reader.batched(
-                paddle.dataset.mnist.test(), batch_size=128))
-            print "Test with Pass %d, Cost %f, %s\n" % (
-                event.pass_id, result.cost, result.metrics)
-            lists.append((event.pass_id, result.cost,
-                          result.metrics['classification_error_evaluator']))
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(reader=paddle.reader.batched(
+            paddle.dataset.mnist.test(), batch_size=128))
+        print "Test with Pass %d, Cost %f, %s\n" % (
+            event.pass_id, result.cost, result.metrics)
+        lists.append((event.pass_id, result.cost,
+                      result.metrics['classification_error_evaluator']))
 
-    trainer.train(
-        reader=paddle.reader.batched(
-            paddle.reader.shuffle(
-                paddle.dataset.mnist.train(), buf_size=8192),
-            batch_size=128),
-        event_handler=event_handler,
-        num_passes=100)
+trainer.train(
+    reader=paddle.reader.batched(
+        paddle.reader.shuffle(
+            paddle.dataset.mnist.train(), buf_size=8192),
+        batch_size=128),
+    event_handler=event_handler,
+    num_passes=100)
 ```
 
 During training, `trainer.train` invokes `event_handler` for certain events. This gives us a chance to print the training progress.
 
 ```
-    # Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
-    # Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
-    # Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
-    # Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
-    # Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
-    # Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
+# Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
+# Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
+# Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
+# Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
+# Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
+# Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
 ```
 
 After the training, we can check the model's prediction accuracy.
 
 ```
-    # find the best pass
-    best = sorted(lists, key=lambda list: float(list[1]))[0]
-    print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
-    print 'The classification accuracy is %.2f%%' % (100 - float(best[2]) * 100)
+# find the best pass
+best = sorted(lists, key=lambda list: float(list[1]))[0]
+print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
+print 'The classification accuracy is %.2f%%' % (100 - float(best[2]) * 100)
 ```
 
 Usually, with MNIST data, the softmax regression model can get accuracy around 92.34%, MLP can get about 97.66%, and convolution network can get up to around 99.20%.  Convolution layers have been widely considered a great invention for image processsing.
