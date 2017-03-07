@@ -481,15 +481,15 @@ trainer = paddle.trainer.SGD(cost=crf_cost,
 As mentioned in data preparation section, we will use CoNLL 2005 test corpus as training data set. `conll05.test()` outputs one training instance at a time. It will be shuffled, and batched into mini batches as input.
 
 ```python
-reader = paddle.reader.batched(
+reader = paddle.batch(
     paddle.reader.shuffle(
         conll05.test(), buf_size=8192), batch_size=20)
 ```
 
-`reader_dict` is used to specify relationship between data instance and layer layer. For example, according to following `reader_dict`, the 0th column of data instance produced by`conll05.test()` correspond to data layer named `word_data`.
+`feeding` is used to specify relationship between data instance and layer layer. For example, according to following `feeding`, the 0th column of data instance produced by`conll05.test()` correspond to data layer named `word_data`.
 
 ```python
-reader_dict = {
+feeding = {
     'word_data': 0,
     'ctx_n2_data': 1,
     'ctx_n1_data': 2,
@@ -519,7 +519,7 @@ trainer.train(
     reader=reader,
     event_handler=event_handler,
     num_passes=10000,
-    reader_dict=reader_dict)
+    feeding=feeding)
 ```
 
 ## Conclusion
