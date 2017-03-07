@@ -1,7 +1,7 @@
 Image Classification
 =======================
 
-The source code of this chapter is in [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification). For the first-time users, please refer to PaddlePaddle[Installation Tutorial](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html) for installation instructions.
+The source code of this chapter is in [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification). For the first-time users, please refer to PaddlePaddle [Installation Tutorial](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html) for installation instructions.
 
 ## Background
 
@@ -141,62 +141,34 @@ Figure 10. ResNet model for ImageNet
 
 Commonly used public datasets for image classification are CIFAR(https://www.cs.toronto.edu/~kriz/cifar.html), ImageNet(http://image-net.org/), COCO(http://mscoco.org/), etc. Those used for fine-grained image classification are CUB-200-2011(http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), Stanford Dog(http://vision.stanford.edu/aditya86/ImageNetDogs/), Oxford-flowers(http://www.robots.ox.ac.uk/~vgg/data/flowers/), etc. Among them, ImageNet are the largest and most research results are reported on ImageNet as mentioned in Model Overview section. Since 2010, the data of Imagenet has gone through some changes. The commonly used ImageNet-2012 dataset contains 1000 categories. There are 1,281,167 training images, ranging from 732 to 1200 images per category, and 50,000 validation images with 50 images per category in average.
 
-Since ImageNet is too large to be downloaded and trained efficiently, we use CIFAR10 (https://www.cs.toronto.edu/~kriz/cifar.html) in this tutorial. The CIFAR-10 dataset consists of 60000 32x32 color images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images. Figure 11 shows all the classes in CIFAR10 as well as 10 images randomly sampled from each category.
+Since ImageNet is too large to be downloaded and trained efficiently, we use CIFAR-10 (https://www.cs.toronto.edu/~kriz/cifar.html) in this tutorial. The CIFAR-10 dataset consists of 60000 32x32 color images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images. Figure 11 shows all the classes in CIFAR-10 as well as 10 images randomly sampled from each category.
 
 <p align="center">
 <img src="image/cifar.png" width="350"><br/>
 Figure 11. CIFAR10 dataset[21]
 </p>
 
-The following command is used for downloading data and calculating the mean image used for data preprocessing.
+ `paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually donwload and preprocess CIFAR-10.
 
-```bash
-./data/get_data.sh
-```
+After issuing a command `python train.py`, trainning is starting immediately! The details will be unpacked by the following sessions to see how it works.
 
-###  Data provider for PaddlePaddle
+## Architectural Models
 
-We use Python interface for providing data to PaddlePaddle. The following file dataprovider.py is a complete example for CIFAR10.
+### Initialize PaddlePaddle
 
-- 'initializer' function performs initialization of dataprovider: loading the mean image, defining two input types -- image and label.
-
-- 'process' function sends preprocessed data to PaddlePaddle. Data preprocessing performed in this function includes data perturbation, random horizontal flipping, deducting mean image from the raw image.
+First, we must import and initialize PaddlePaddle (enable/disable GPU, set the number of trainers, etc).
 
 ```python
-import numpy as np
-import cPickle
-from paddle.trainer.PyDataProvider2 import *
+import sys
+import paddle.v2 as paddle
+from vgg import vgg_bn_drop
+from resnet import resnet_cifar10
 
-def initializer(settings, mean_path, is_train, **kwargs):
-    settings.is_train = is_train
-    settings.input_size = 3 * 32 * 32
-    settings.mean = np.load(mean_path)['mean']
-    settings.input_types = {
-        'image': dense_vector(settings.input_size),
-        'label': integer_value(10)
-    }
-
-
-@provider(init_hook=initializer, pool_size=50000)
-def process(settings, file_list):
-    with open(file_list, 'r') as fdata:
-        for fname in fdata:
-            fo = open(fname.strip(), 'rb')
-            batch = cPickle.load(fo)
-            fo.close()
-            images = batch['data']
-            labels = batch['labels']
-            for im, lab in zip(images, labels):
-                if settings.is_train and np.random.randint(2):
-                    im = im.reshape(3, 32, 32)
-                    im = im[:,:,::-1]
-                    im = im.flatten()
-                im = im - settings.mean
-                yield {
-                    'image': im.astype('float32'),
-                    'label': int(lab)
-                }
+# PaddlePaddle init
+paddle.init(use_gpu=False, trainer_count=1)
 ```
+
+As alluded to in section `Overview Models`, we provide the implementations of both VGG and Resnet as below.
 
 ## Model Config
 
