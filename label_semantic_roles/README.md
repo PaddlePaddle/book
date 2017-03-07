@@ -187,171 +187,175 @@ conll05st-release/
 获取词典，打印词典大小：
 
 ```python
+import math
+import numpy as np
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
+
+paddle.init(use_gpu=False, trainer_count=1)
 
 word_dict, verb_dict, label_dict = conll05.get_dict()
 word_dict_len = len(word_dict)
 label_dict_len = len(label_dict)
 pred_len = len(verb_dict)
 
-print len(word_dict_len)
-print len(label_dict_len)
-print len(pred_len)
+print word_dict_len
+print label_dict_len
+print pred_len
 ```
 
 ## 模型配置说明
 
 1. 定义输入数据维度及模型超参数。
 
-	```python
-	mark_dict_len = 2    # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
-	word_dim = 32        # 词向量维度
-	mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
-	hidden_dim = 512     # LSTM隐层向量的维度 ： 512 / 4
-	depth = 8            # 栈式LSTM的深度
-	
-    # 一条样本总共9个特征，下面定义了9个data层，每个层类型为integer_value_sequence，表示整数ID的序列类型.
-    def d_type(size):
-        return paddle.data_type.integer_value_sequence(size)
-
-    # 句子序列
-    word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
-    # 谓词
-    predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len)) 
-
-    # 谓词上下文5个特征
-    ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len)) 
-    ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
-    ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
-    ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
-    ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
+```python
+mark_dict_len = 2    # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
+word_dim = 32        # 词向量维度
+mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
+hidden_dim = 512     # LSTM隐层向量的维度 ： 512 / 4
+depth = 8            # 栈式LSTM的深度
     
-    # 谓词上下区域标志
-    mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
-    
-    # 标注序列
-    target = paddle.layer.data(name='target', type=d_type(label_dict_len))
-	```
+# 一条样本总共9个特征，下面定义了9个data层，每个层类型为integer_value_sequence，表示整数ID的序列类型.
+def d_type(size):
+    return paddle.data_type.integer_value_sequence(size)
+
+# 句子序列
+word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
+# 谓词
+predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len)) 
+
+# 谓词上下文5个特征
+ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len)) 
+ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
+ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
+ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
+ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
+
+# 谓词上下区域标志
+mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
+
+# 标注序列
+target = paddle.layer.data(name='target', type=d_type(label_dict_len))
+```
 	
-   这里需要特别说明的是hidden_dim = 512指定了LSTM隐层向量的维度为128维，关于这一点请参考PaddlePaddle官方文档中[lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)的说明。
+这里需要特别说明的是hidden_dim = 512指定了LSTM隐层向量的维度为128维，关于这一点请参考PaddlePaddle官方文档中[lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)的说明。
 
 2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
 
-	```python   
-   
-    # 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
-    # is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
-    emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
-    # 设置超参数
-    default_std = 1 / math.sqrt(hidden_dim) / 3.0
-    std_default = paddle.attr.Param(initial_std=default_std)
-    std_0 = paddle.attr.Param(initial_std=0.)
+```python   
 
-    predicate_embedding = paddle.layer.embedding(
-        size=word_dim,
-        input=predicate,
-        param_attr=paddle.attr.Param(
-            name='vemb', initial_std=default_std))
-    mark_embedding = paddle.layer.embedding(
-        size=mark_dim, input=mark, param_attr=std_0)
+# 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
+# is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
+emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
+# 设置超参数
+default_std = 1 / math.sqrt(hidden_dim) / 3.0
+std_default = paddle.attr.Param(initial_std=default_std)
+std_0 = paddle.attr.Param(initial_std=0.)
 
-    word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
-    emb_layers = [
-        paddle.layer.embedding(
-            size=word_dim, input=x, param_attr=emb_para) for x in word_input
-    ]
-    emb_layers.append(predicate_embedding)
-    emb_layers.append(mark_embedding)
-	```
+predicate_embedding = paddle.layer.embedding(
+    size=word_dim,
+    input=predicate,
+    param_attr=paddle.attr.Param(
+        name='vemb', initial_std=default_std))
+mark_embedding = paddle.layer.embedding(
+    size=mark_dim, input=mark, param_attr=std_0)
+
+word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
+emb_layers = [
+    paddle.layer.embedding(
+        size=word_dim, input=x, param_attr=emb_para) for x in word_input
+]
+emb_layers.append(predicate_embedding)
+emb_layers.append(mark_embedding)
+```
 
 3. 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
 
-	```python  
-	hidden_0 = paddle.layer.mixed(
+```python  
+hidden_0 = paddle.layer.mixed(
+size=hidden_dim,
+bias_attr=std_default,
+input=[
+    paddle.layer.full_matrix_projection(
+        input=emb, param_attr=std_default) for emb in emb_layers
+])
+
+mix_hidden_lr = 1e-3
+lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
+hidden_para_attr = paddle.attr.Param(
+    initial_std=default_std, learning_rate=mix_hidden_lr)
+
+lstm_0 = paddle.layer.lstmemory(
+    input=hidden_0,
+    act=paddle.activation.Relu(),
+    gate_act=paddle.activation.Sigmoid(),
+    state_act=paddle.activation.Sigmoid(),
+    bias_attr=std_0,
+    param_attr=lstm_para_attr)
+
+#stack L-LSTM and R-LSTM with direct edges
+input_tmp = [hidden_0, lstm_0]
+
+for i in range(1, depth):
+    mix_hidden = paddle.layer.mixed(
         size=hidden_dim,
         bias_attr=std_default,
         input=[
             paddle.layer.full_matrix_projection(
-                input=emb, param_attr=std_default) for emb in emb_layers
+                input=input_tmp[0], param_attr=hidden_para_attr),
+            paddle.layer.full_matrix_projection(
+                input=input_tmp[1], param_attr=lstm_para_attr)
         ])
 
-    mix_hidden_lr = 1e-3
-    lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
-    hidden_para_attr = paddle.attr.Param(
-        initial_std=default_std, learning_rate=mix_hidden_lr)
-
-    lstm_0 = paddle.layer.lstmemory(
-        input=hidden_0,
+    lstm = paddle.layer.lstmemory(
+        input=mix_hidden,
         act=paddle.activation.Relu(),
         gate_act=paddle.activation.Sigmoid(),
         state_act=paddle.activation.Sigmoid(),
+        reverse=((i % 2) == 1),
         bias_attr=std_0,
         param_attr=lstm_para_attr)
 
-    #stack L-LSTM and R-LSTM with direct edges
-    input_tmp = [hidden_0, lstm_0]
-
-    for i in range(1, depth):
-        mix_hidden = paddle.layer.mixed(
-            size=hidden_dim,
-            bias_attr=std_default,
-            input=[
-                paddle.layer.full_matrix_projection(
-                    input=input_tmp[0], param_attr=hidden_para_attr),
-                paddle.layer.full_matrix_projection(
-                    input=input_tmp[1], param_attr=lstm_para_attr)
-            ])
-
-        lstm = paddle.layer.lstmemory(
-            input=mix_hidden,
-            act=paddle.activation.Relu(),
-            gate_act=paddle.activation.Sigmoid(),
-            state_act=paddle.activation.Sigmoid(),
-            reverse=((i % 2) == 1),
-            bias_attr=std_0,
-            param_attr=lstm_para_attr)
-
-        input_tmp = [mix_hidden, lstm]
-	```
+    input_tmp = [mix_hidden, lstm]
+```
 
 4. 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，经过一个全连接层映射到标记字典的维度，得到最终的特征向量表示。
 
-	```python
-    feature_out = paddle.layer.mixed(
-    size=label_dict_len,
-    bias_attr=std_default,
-    input=[
-        paddle.layer.full_matrix_projection(
-            input=input_tmp[0], param_attr=hidden_para_attr),
-        paddle.layer.full_matrix_projection(
-            input=input_tmp[1], param_attr=lstm_para_attr)
-    ], )
-	```
+```python
+feature_out = paddle.layer.mixed(
+size=label_dict_len,
+bias_attr=std_default,
+input=[
+    paddle.layer.full_matrix_projection(
+        input=input_tmp[0], param_attr=hidden_para_attr),
+    paddle.layer.full_matrix_projection(
+        input=input_tmp[1], param_attr=lstm_para_attr)
+], )
+```
 
 5.  网络的末端定义CRF层计算损失(cost)，指定参数名字为 `crfw`，该层需要输入正确的数据标签(target)。
 
-	```python
-    crf_cost = paddle.layer.crf(
-        size=label_dict_len,
-        input=feature_out,
-        label=target,
-        param_attr=paddle.attr.Param(
-            name='crfw',
-            initial_std=default_std,
-            learning_rate=mix_hidden_lr))
-	```
+```python
+crf_cost = paddle.layer.crf(
+    size=label_dict_len,
+    input=feature_out,
+    label=target,
+    param_attr=paddle.attr.Param(
+        name='crfw',
+        initial_std=default_std,
+        learning_rate=mix_hidden_lr))
+```
 
 6.  CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。
 
-    ```python
-    crf_dec = paddle.layer.crf_decoding(
-       name='crf_dec_l',
-       size=label_dict_len,
-       input=feature_out,
-       label=target,
-       param_attr=paddle.attr.Param(name='crfw'))
-    ```
+```python
+crf_dec = paddle.layer.crf_decoding(
+   name='crf_dec_l',
+   size=label_dict_len,
+   input=feature_out,
+   label=target,
+   param_attr=paddle.attr.Param(name='crfw'))
+```
 
 ## 训练模型
 
@@ -376,8 +380,8 @@ print parameters.keys()
 # 这里加载PaddlePaddle上版保存的二进制模型
 def load_parameter(file_name, h, w):
     with open(file_name, 'rb') as f:
-	     f.read(16)
-	     return np.fromfile(f, dtype=np.float32).reshape(h, w)
+        f.read(16)
+        return np.fromfile(f, dtype=np.float32).reshape(h, w)
 parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 ```
 
