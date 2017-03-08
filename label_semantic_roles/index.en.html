@@ -98,7 +98,7 @@ The operation of a single LSTM cell contain 3 parts: (1) input-to-hidden: map in
 
 Fig.3 illustrate the final stacked recurrent neural networks.
 
-<p align="center">    
+<p align="center">
 <img src="./image/stacked_lstm_en.png" width = "40%"  align=center><br>
 Fig 3. Stacked Recurrent Neural Networks
 </p>
@@ -110,7 +110,7 @@ LSTMs can summarize the history of previous inputs seen up to now, but can not s
 To address the above drawbacks, we can design bidirectional recurrent neural networks by making a minor modification. Higher LSTM layers process the sequence in reversed direction with previous lower LSTM layers, i.e., Deep LSTMs operate from left-to-right, right-to-left, left-to-right,..., in depth. Therefore, LSTM layers at time-step $t$ can see both histories and the future since the second layer. Fig. 4 illustrates the bidirectional recurrent neural networks.
 
 
-<p align="center">    
+<p align="center">
 <img src="./image/bidirectional_stacked_lstm_en.png" width = "60%" align=center><br>
 Fig 4. Bidirectional LSTMs
 </p>
@@ -126,12 +126,12 @@ CRF is a probabilistic graph model (undirected) with nodes denoting random varia
 
 Sequence tagging tasks only consider input and output as linear sequences without extra dependent assumptions on graph model. Thus, the graph model of sequence tagging tasks is simple chain or line, which results in a Linear-Chain Conditional Random Field, shown in Fig.5.
 
-<p align="center">    
+<p align="center">
 <img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
 Fig 5. Linear Chain Conditional Random Field used in SRL tasks
 </p>
 
-By the fundamental theorem of random fields \[[5](#Reference)\], the joint distribution over the label sequence $Y$ given $X$ has the form: 
+By the fundamental theorem of random fields \[[5](#Reference)\], the joint distribution over the label sequence $Y$ given $X$ has the form:
 
 $$p(Y | X) = \frac{1}{Z(X)} \text{exp}\left(\sum_{i=1}^{n}\left(\sum_{j}\lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} \mu_k s_k (y_i, X, i)\right)\right)$$
 
@@ -175,7 +175,7 @@ After modification, the model is as follows:
 4. Take representation from step 3 as input of CRF, label sequence as supervision signal, do sequence tagging tasks
 
 
-<div  align="center">    
+<div  align="center">
 <img src="image/db_lstm_en.png" width = "60%"  align=center /><br>
 Fig 6. DB-LSTM for SRL tasks
 </div>
@@ -271,10 +271,10 @@ def d_type(value_range):
 # word sequence
 word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
 # predicate
-predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len)) 
+predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len))
 
 # 5 features for predicate context
-ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len)) 
+ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len))
 ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
 ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
 ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
@@ -286,12 +286,12 @@ mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
 # label sequence
 target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 ```
-    
+
 Speciala note: hidden_dim = 512 means LSTM hidden vector of 128 dimension (512/4). Please refer PaddlePaddle official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
 
 - 2. The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
 
-```python   
+```python
 
 # Since word vectorlookup table is pre-trained, we won't update it this time.
 # is_static being True prevents updating the lookup table during training.
@@ -320,7 +320,7 @@ emb_layers.append(mark_embedding)
 
 - 3. 8 LSTM units will be trained in "forward / backward" order.
 
-```python  
+```python
 hidden_0 = paddle.layer.mixed(
     size=hidden_dim,
     bias_attr=std_default,
@@ -417,7 +417,7 @@ parameters = paddle.parameters.create([crf_cost, crf_dec])
 ```
 
 We can print out parameter name. It will be generated if not specified.
-   
+
 ```python
 print parameters.keys()
 ```
@@ -532,6 +532,6 @@ marked.setOptions({
   }
 });
 document.getElementById("context").innerHTML = marked(
-		document.getElementById("markdown").innerHTML)
+        document.getElementById("markdown").innerHTML)
 </script>
 </body>

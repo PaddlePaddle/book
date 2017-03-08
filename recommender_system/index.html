@@ -124,8 +124,8 @@ $$P(\omega=i|u)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
 <p align="center">
 
 <img src="image/rec_regression_network.png" width="90%" ><br/>
-图3. 融合推荐模型 
-</p> 
+图3. 融合推荐模型
+</p>
 
 ## 数据准备
 
@@ -334,7 +334,6 @@ parameters = paddle.parameters.create(cost)
 
 `parameters`是模型的所有参数集合。他是一个python的dict。我们可以查看到这个网络中的所有参数名称。因为之前定义模型的时候，我们没有指定参数名称，这里参数名称是自动生成的。当然，我们也可以指定每一个参数名称，方便日后维护。
 
-
 ```python
 print parameters.keys()
 ```
@@ -348,7 +347,7 @@ print parameters.keys()
 
 
 ```python
-trainer = paddle.trainer.SGD(cost=cost, parameters=parameters, 
+trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
                             update_equation=paddle.optimizer.Adam(learning_rate=1e-4))
 ```
 
@@ -399,13 +398,13 @@ def event_handler(event):
         if step % 10 == 0:  # every 10 batches, record a train cost
             train_costs[0].append(step)
             train_costs[1].append(event.cost)
-            
+
         if step % 1000 == 0: # every 1000 batches, record a test cost
             result = trainer.test(reader=paddle.batch(
                   paddle.dataset.movielens.test(), batch_size=256))
             test_costs[0].append(step)
             test_costs[1].append(result.cost)
-        
+
         if step % 100 == 0: # every 100 batches, update cost plot
             plt.plot(*train_costs)
             plt.plot(*test_costs)
@@ -493,6 +492,6 @@ marked.setOptions({
   }
 });
 document.getElementById("context").innerHTML = marked(
-		document.getElementById("markdown").innerHTML)
+        document.getElementById("markdown").innerHTML)
 </script>
 </body>

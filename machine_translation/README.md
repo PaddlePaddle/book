@@ -93,7 +93,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 机器翻译任务的训练过程中，解码阶段的目标是最大化下一个正确的目标语言词的概率。思路是：
 
 1. 每一个时刻，根据源语言句子的编码信息（又叫上下文向量，context vector）$c$、真实目标语言序列的第$i$个词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$。计算公式如下：
-   
+
    $$z_{i+1}=\phi _{\theta '}\left ( c,u_i,z_i \right )$$
 
    其中$\phi _{\theta '}$是一个非线性激活函数；$c=q\mathbf{h}$是源语言句子的上下文向量，在不使用[注意力机制](#注意力机制)时，如果[编码器](#编码器)的输出是源语言句子编码后的最后一个元素，则可以定义$c=h_T$；$u_i$是目标语言序列的第$i$个单词，$u_0$是目标语言序列的开始标记`<s>`，表示解码开始；$z_i$是$i$时刻解码RNN的隐层状态，$z_0$是一个全零的向量。
@@ -275,7 +275,7 @@ wmt14_reader = paddle.batch(
         param_attr=paddle.attr.ParamAttr(name='_source_language_embedding'))
    ```
    2.3 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
-  
+
    ```python
     src_forward = paddle.networks.simple_gru(
         input=src_embedding, size=encoder_size)
@@ -287,7 +287,7 @@ wmt14_reader = paddle.batch(
 3. 接着，定义基于注意力机制的解码器框架。分为三步：
 
    3.1 对源语言序列编码后的结果（见2.3），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
-   
+
    ```python
     with paddle.layer.mixed(size=decoder_size) as encoded_proj:
         encoded_proj += paddle.layer.full_matrix_projection(
@@ -308,7 +308,7 @@ wmt14_reader = paddle.batch(
       - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
-      - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。 
+      - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。
 
 
    ```python
@@ -386,14 +386,14 @@ wmt14_reader = paddle.batch(
 ### 参数定义
 
 首先依据模型配置的`cost`定义模型参数。
-    
+
 ```python
 # create parameters
 parameters = paddle.parameters.create(cost)
 ```
-    
+
 可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
-    
+
 ```python
 for param in parameters.keys():
     print param
@@ -403,7 +403,7 @@ for param in parameters.keys():
 1. 构造trainer
 
     根据优化目标cost,网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法。
-    
+
     ```python
     optimizer = paddle.optimizer.Adam(learning_rate=1e-4)
     trainer = paddle.trainer.SGD(cost=cost,

@@ -82,8 +82,8 @@ $$P(\omega=i|u)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
 <p align="center">
 
 <img src="image/rec_regression_network.png" width="90%" ><br/>
-图3. 融合推荐模型 
-</p> 
+图3. 融合推荐模型
+</p>
 
 ## 数据准备
 
@@ -306,7 +306,7 @@ print parameters.keys()
 
 
 ```python
-trainer = paddle.trainer.SGD(cost=cost, parameters=parameters, 
+trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
                             update_equation=paddle.optimizer.Adam(learning_rate=1e-4))
 ```
 
@@ -357,13 +357,13 @@ def event_handler(event):
         if step % 10 == 0:  # every 10 batches, record a train cost
             train_costs[0].append(step)
             train_costs[1].append(event.cost)
-            
+
         if step % 1000 == 0: # every 1000 batches, record a test cost
             result = trainer.test(reader=paddle.batch(
                   paddle.dataset.movielens.test(), batch_size=256))
             test_costs[0].append(step)
             test_costs[1].append(result.cost)
-        
+
         if step % 100 == 0: # every 100 batches, update cost plot
             plt.plot(*train_costs)
             plt.plot(*test_costs)

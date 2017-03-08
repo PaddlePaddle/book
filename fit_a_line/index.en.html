@@ -176,6 +176,7 @@ y_predict = paddle.layer.fc(input=x,
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
 cost = paddle.layer.regression_cost(input=y_predict, label=y)
 ```
+
 ### Create Parameters
 
 ```python
@@ -264,6 +265,6 @@ marked.setOptions({
   }
 });
 document.getElementById("context").innerHTML = marked(
-		document.getElementById("markdown").innerHTML)
+        document.getElementById("markdown").innerHTML)
 </script>
 </body>

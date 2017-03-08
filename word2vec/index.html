@@ -49,7 +49,7 @@
 
 本章我们介绍词的向量表征，也称为word embedding。词向量是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
 
-在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。 
+在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。
 在这种方式里，每个词被表示成一个实数向量（one-hot vector），其长度为字典大小，每个维度对应一个字典里的每个词，除了这个词对应维度上的值是1，其他元素都是0。
 
 One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。虽然按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨；但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是余弦相似度(cosine similarity)，由于其向量正交，都认为这两个词毫无相关性。 得出这种与我们相悖的结论的根本原因是：每个词本身的信息量都太小。所以，仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识。
@@ -74,8 +74,8 @@ $$X = USV^T$$
 本章中，当词向量训练好后，我们可以用数据可视化算法t-SNE\[[4](#参考文献)\]画出词语特征在二维上的投影（如下图所示）。从图中可以看出，语义相关的词语（如a, the, these; big, huge）在投影上距离很近，语意无关的词（如say, business; decision, japan）在投影上的距离很远。
 
 <p align="center">
-	<img src = "image/2d_similarity.png" width=400><br/>
-	图1. 词向量的二维投影
+    <img src = "image/2d_similarity.png" width=400><br/>
+    图1. 词向量的二维投影
 </p>
 
 另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
@@ -111,7 +111,7 @@ $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
 
 
 
-### N-gram neural model 
+### N-gram neural model
 
 在计算语言学中，n-gram是一种重要的文本表示方法，表示一个文本中连续的n个项。基于具体的应用场景，每一项可以是一个字母、单词或者音节。 n-gram模型也是统计语言模型中的一种重要方法，用n-gram训练语言模型时，一般用每个n-gram的历史n-1个词语组成的内容来预测第n个词。
 
@@ -127,41 +127,41 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
 
-<p align="center">	
-   	<img src="image/nnlm.png" width=500><br/>
-   	图2. N-gram神经网络模型
+<p align="center">
+       <img src="image/nnlm.png" width=500><br/>
+       图2. N-gram神经网络模型
 </p>
 
 图2展示了N-gram神经网络模型，从下往上看，该模型分为以下几个部分：
  - 对于每个样本，模型输入$w_{t-n+1},...w_{t-1}$, 输出句子第t个词为字典中`|V|`个词的概率。
- 
+
    每个输入词$w_{t-n+1},...w_{t-1}$首先通过映射矩阵映射到词向量$C(w_{t-n+1}),...C(w_{t-1})$。
- 
+
  - 然后所有词语的词向量连接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
- 
-	$$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
-	
+
+    $$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
+
     其中，$x$为所有词语的词向量连接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
 
  - 根据softmax的定义，通过归一化$g_i$, 生成目标词$w_t$的概率为：
- 
+
   $$P(w_t | w_1, ..., w_{t-n+1}) = \frac{e^{g_{w_t}}}{\sum_i^{|V|} e^{g_i}}$$
 
  - 整个网络的损失值(cost)为多类分类交叉熵，用公式表示为
 
-   $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$ 
+   $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 
    其中$y_k^i$表示第$i$个样本第$k$类的真实标签(0或1)，$softmax(g_k^i)$表示第i个样本第k类softmax输出的概率。
-   
 
 
-### Continuous Bag-of-Words model(CBOW) 
+
+### Continuous Bag-of-Words model(CBOW)
 
 CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时，模型如下图所示：
 
-<p align="center">	
-	<img src="image/cbow.png" width=250><br/>
-	图3. CBOW模型
+<p align="center">
+    <img src="image/cbow.png" width=250><br/>
+    图3. CBOW模型
 </p>
 
 具体来说，不考虑上下文的词语输入顺序，CBOW是用上下文词语的词向量的均值来预测当前词。即：
@@ -170,13 +170,13 @@ $$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
 
 其中$x_t$为第$t$个词的词向量，分类分数（score）向量 $z=U*context$，最终的分类$y$采用softmax，损失函数采用多类分类交叉熵。
 
-### Skip-gram model 
+### Skip-gram model
 
 CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效。而Skip-gram的方法中，用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
 
-<p align="center">	
-	<img src="image/skipgram.png" width=250><br/>
-	图4. Skip-gram模型
+<p align="center">
+    <img src="image/skipgram.png" width=250><br/>
+    图4. Skip-gram模型
 </p>
 
 如上图所示，Skip-gram模型的具体做法是，将一个词的词向量映射到$2n$个词的词向量（$2n$表示当前输入词的前后各$n$个词），然后分别通过softmax得到这$2n$个词的分类损失值之和。
@@ -190,25 +190,25 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 
 <p align="center">
 <table>
-	<tr>
-		<td>训练数据</td>
-		<td>验证数据</td>
-		<td>测试数据</td>
-	</tr>
-	<tr>
-		<td>ptb.train.txt</td>
-		<td>ptb.valid.txt</td>
-		<td>ptb.test.txt</td>
-	</tr>
-	<tr>
-		<td>42068句</td>
-		<td>3370句</td>
-		<td>3761句</td>
-	</tr>
+    <tr>
+        <td>训练数据</td>
+        <td>验证数据</td>
+        <td>测试数据</td>
+    </tr>
+    <tr>
+        <td>ptb.train.txt</td>
+        <td>ptb.valid.txt</td>
+        <td>ptb.test.txt</td>
+    </tr>
+    <tr>
+        <td>42068句</td>
+        <td>3370句</td>
+        <td>3761句</td>
+    </tr>
 </table>
 </p>
 
-	
+
 ### 数据预处理
 
 本章训练的是5-gram模型，表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。PaddlePaddle提供了对应PTB数据集的python包`paddle.dataset.imikolov`，自动做数据的下载与预处理，方便大家使用。
@@ -229,9 +229,9 @@ dream that one day <e>
 
 本配置的模型结构如下图所示：
 
-<p align="center">	
-	<img src="image/ngram.png" width=400><br/>
-	图5. 模型配置中的N-gram神经网络模型
+<p align="center">
+    <img src="image/ngram.png" width=400><br/>
+    图5. 模型配置中的N-gram神经网络模型
 </p>
 
 首先，加载所需要的包：
@@ -251,7 +251,6 @@ N = 5 # 训练5-Gram
 接着，定义网络结构：
 
 - 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
-	
 ```python
 def wordemb(inlayer):
     wordemb = paddle.layer.table_projection(
@@ -308,7 +307,7 @@ hidden1 = paddle.layer.fc(input=contextemb,
                                 initial_std=1. / math.sqrt(embsize * 8),
                                 learning_rate=1))
 ```
-	
+
 - 将文本隐层特征，再经过一个全连接，映射成一个$|V|$维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
 
 ```python
@@ -344,13 +343,13 @@ trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
 
 ```python
 import gzip
-    
+
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
         if event.batch_id % 100 == 0:
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
-            
+
     if isinstance(event, paddle.event.EndPass):
         result = trainer.test(
                     paddle.batch(
@@ -379,7 +378,6 @@ trainer.train(
 ## 应用模型
 训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型查看参数用来做后续应用。
 
-	
 ### 查看词向量
 
 PaddlePaddle训练出来的参数可以直接使用`parameters.get()`获取出来。例如查看单词的word的词向量，即为
@@ -399,7 +397,7 @@ print embeddings[word_dict['word']]
       0.19072419 -0.24286366]
 
 
-	
+
 ### 修改词向量
 
 获得到的embedding为一个标准的numpy矩阵。我们可以对这个numpy矩阵进行修改，然后赋值回去。
@@ -429,9 +427,6 @@ emb_2 = embeddings[word_dict['would']]
 print spatial.distance.cosine(emb_1, emb_2)
 ```
 
-    0.99375076448
- 
- 
 ## 总结
 本章中，我们介绍了词向量、语言模型和词向量的关系、以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据向量间的余弦夹角，来判断query和文档关键词这二者间的相关性。在句法分析和语义分析中，训练好的词向量可以用来初始化模型，以得到更好的效果。在文档分类中，有了词向量之后，可以用聚类的方法将文档中同义词进行分组。希望大家在本章后能够自行运用词向量进行相关领域的研究。
 
@@ -464,6 +459,6 @@ marked.setOptions({
   }
 });
 document.getElementById("context").innerHTML = marked(
-		document.getElementById("markdown").innerHTML)
+        document.getElementById("markdown").innerHTML)
 </script>
 </body>

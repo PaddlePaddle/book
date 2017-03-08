@@ -31,7 +31,7 @@ else
             print $3;
             read_pos += (2 + res_num);
       }}' res_num=$beam_size $gen_file >$top1
-fi 
+fi
 
 # evalute bleu value
 bleu_script=multi-bleu.perl
