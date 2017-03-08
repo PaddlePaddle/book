@@ -6,7 +6,7 @@ if [ $? -ne 0 ]; then
 fi
 
 #convert to ipynb file
-GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
+#GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 
 for file in $@ ; do
 	/tmp/go/bin/markdown-to-ipynb < $file > ${file%.*}".ipynb"
