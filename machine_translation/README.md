@@ -340,6 +340,7 @@ wmt14_reader = paddle.batch(
             out += paddle.layer.full_matrix_projection(input=gru_step)
         return out
     ```
+
 4. 训练模式与生成模式下的解码器调用区别。
 
    4.1 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
@@ -400,6 +401,7 @@ for param in parameters.keys():
 ```
 
 ### 训练模型
+
 1. 构造trainer
 
     根据优化目标cost,网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法。
@@ -409,7 +411,7 @@ for param in parameters.keys():
     trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
                                  update_equation=optimizer)
-```
+    ```
 
 2. 构造event_handler
 
@@ -421,6 +423,7 @@ for param in parameters.keys():
                 print "Pass %d, Batch %d, Cost %f, %s" % (
                     event.pass_id, event.batch_id, event.cost, event.metrics)
     ```
+
 3. 启动训练：
 
     ```python
@@ -435,7 +438,7 @@ for param in parameters.keys():
     Pass 0, Batch 0, Cost 247.408008, {'classification_error_evaluator': 1.0}
     Pass 0, Batch 10, Cost 212.058789, {'classification_error_evaluator': 0.8737863898277283}
     ...
-```
+    ```
 
 
 ## 应用模型
