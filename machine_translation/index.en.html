@@ -250,6 +250,7 @@ This subset has 193319 instances of training data and 6003 instances of test dat
 ### Initialize PaddlePaddle
 
 ```python
+import sys
 import paddle.v2 as paddle
 
 # train with a single CPU
@@ -438,7 +439,9 @@ for param in parameters.keys():
     We need to tell trainer what to optimize, and how to optimize. Here trainer will optimize `cost` layer using stochastic gradient descent (SDG).
 
     ```python
-    optimizer = paddle.optimizer.Adam(learning_rate=1e-4)
+    optimizer = paddle.optimizer.Adam(
+        learning_rate=5e-5,
+        regularization=paddle.optimizer.L2Regularization(rate=1e-3))
     trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
                                  update_equation=optimizer)
@@ -452,7 +455,7 @@ for param in parameters.keys():
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):
             if event.batch_id % 10 == 0:
-                print "Pass %d, Batch %d, Cost %f, %s" % (
+                print "\nPass %d, Batch %d, Cost %f, %s" % (
                     event.pass_id, event.batch_id, event.cost, event.metrics)
     ```
 
