@@ -24,7 +24,7 @@ from optparse import OptionParser
 from paddle.utils.preprocess_util import *
 """
 Usage: run following command to show help message.
-  python preprocess.py -h 
+  python preprocess.py -h
 """
 
 

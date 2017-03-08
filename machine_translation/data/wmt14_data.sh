@@ -32,17 +32,17 @@ rm dev+test.tgz
 # separate the dev and test dataset
 mkdir test gen
 mv dev/ntst1213.* test
-mv dev/ntst14.* gen 
+mv dev/ntst14.* gen
 rm -rf dev
 
 set +x
 # rename the suffix, .fr->.src, .en->.trg
 for dir in train test gen
-do 
+do
   filelist=`ls $dir`
   cd $dir
   for file in $filelist
-  do 
+  do
     if [ ${file##*.} = "fr" ]; then
       mv $file ${file/%fr/src}
     elif [ ${file##*.} = 'en' ]; then

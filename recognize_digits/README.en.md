@@ -87,7 +87,7 @@ Fig. 5 Pooling layer<br/>
 
 A Pooling layer performs downsampling. The main functionality of this layer is to reduce computation by reducing the network parameters. It also prevents overfitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer can be of various types like max pooling, average pooling, etc. Max pooling uses rectangles to segment the input layer into several parts and computes the maximum value in each part as the output (Fig. 5.)
 
-#### LeNet-5 Network 
+#### LeNet-5 Network
 
 <p align="center">
 <img src="image/cnn_en.png"><br/>
@@ -227,7 +227,7 @@ trainer = paddle.trainer.SGD(cost=cost,
 
 Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`.  These two functions are *reader creators*, once called, returns a *reader*.  A reader is a Python function, which, once called, returns a Python generator, which yields instances of data.  
 
-Here `shuffle` is a reader decorator, which takes a reader A as its parameter, and returns a new reader B, where B calls A to read in `buffer_size` data instances everytime into a buffer, then shuffles and yield instances in the buffer.  If you want very shuffled data, try use a larger buffer size. 
+Here `shuffle` is a reader decorator, which takes a reader A as its parameter, and returns a new reader B, where B calls A to read in `buffer_size` data instances everytime into a buffer, then shuffles and yield instances in the buffer.  If you want very shuffled data, try use a larger buffer size.
 
 `batch` is a special decorator, whose input is a reader and output is a *batch reader*, which doesn't yield an instance at a time, but a minibatch.
 

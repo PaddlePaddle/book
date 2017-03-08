@@ -1,3 +1,4 @@
+
 <html>
 <head>
   <script type="text/x-mathjax-config">
@@ -5,8 +6,8 @@
     extensions: ["tex2jax.js", "TeX/AMSsymbols.js", "TeX/AMSmath.js"],
     jax: ["input/TeX", "output/HTML-CSS"],
     tex2jax: {
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-      displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+      inlineMath: [ ['$','$'] ],
+      displayMath: [ ['$$','$$'] ],
       processEscapes: true
     },
     "HTML-CSS": { availableFonts: ["TeX"] }
@@ -40,6 +41,7 @@
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
 TODO: Write about https://github.com/PaddlePaddle/Paddle/tree/develop/demo/gan
+
 </div>
 <!-- You can change the lines below now. -->
 
@@ -58,6 +60,6 @@ marked.setOptions({
   }
 });
 document.getElementById("context").innerHTML = marked(
-		document.getElementById("markdown").innerHTML)
+        document.getElementById("markdown").innerHTML)
 </script>
 </body>

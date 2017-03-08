@@ -20,4 +20,4 @@ wget http://paddlepaddle.bj.bcebos.com/model_zoo/wmt14_model.tar.gz
 
 # untar the model
 tar -zxvf wmt14_model.tar.gz
-rm wmt14_model.tar.gz 
+rm wmt14_model.tar.gz
