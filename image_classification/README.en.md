@@ -135,7 +135,7 @@ Figure 10. ResNet model for ImageNet
 </p>
 
 
-## Data Preparation
+## Dataset
 
 Commonly used public datasets for image classification are CIFAR(https://www.cs.toronto.edu/~kriz/cifar.html), ImageNet(http://image-net.org/), COCO(http://mscoco.org/), etc. Those used for fine-grained image classification are CUB-200-2011(http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), Stanford Dog(http://vision.stanford.edu/aditya86/ImageNetDogs/), Oxford-flowers(http://www.robots.ox.ac.uk/~vgg/data/flowers/), etc. Among them, ImageNet are the largest and most research results are reported on ImageNet as mentioned in Model Overview section. Since 2010, the data of Imagenet has gone through some changes. The commonly used ImageNet-2012 dataset contains 1000 categories. There are 1,281,167 training images, ranging from 732 to 1200 images per category, and 50,000 validation images with 50 images per category in average.
 
