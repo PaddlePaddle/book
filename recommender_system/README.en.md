@@ -279,7 +279,7 @@ parameters = paddle.parameters.create(cost)
 Before jumping into creating a training module, algorithm setting is also necessary. Here we specified Adam optimization algorithm via `paddle.optimizer`.
 
 ```python
-trainer = paddle.trainer.SGD(cost=cost, parameters=parameters, 
+trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
                              update_equation=paddle.optimizer.Adam(learning_rate=1e-4))
 ```
 
