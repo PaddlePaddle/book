@@ -71,39 +71,11 @@
                     <div id="collapseOne" class="rounded-0 collapse show" role="tabpanel" aria-labelledby="headingOne">
                       <div class="card-block pl-0 pr-0 pt-0 pb-0">
                         <div class="list-group ">
-                          
-                            <a href="./fit_a_line/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                新手入门
+                          {% for chapter in chapters %}
+                            <a href="{{ chapter.link }}" target="content_iframe" class="list-group-item list-group-item-action">
+                                {{ chapter.name }}
                             </a>
-                          
-                            <a href="./recognize_digits/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                识别数字
-                            </a>
-                          
-                            <a href="./image_classification/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                图像分类
-                            </a>
-                          
-                            <a href="./word2vec/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                词向量
-                            </a>
-                          
-                            <a href="./understand_sentiment/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                情感分析
-                            </a>
-                          
-                            <a href="./label_semantic_roles/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                语义角色标注
-                            </a>
-                          
-                            <a href="./machine_translation/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                机器翻译
-                            </a>
-                          
-                            <a href="./recommender_system/index.html" target="content_iframe" class="list-group-item list-group-item-action">
-                                个性化推荐
-                            </a>
-                          
+                          {% endfor %}
                         </div>
                       </div>
                     </div>

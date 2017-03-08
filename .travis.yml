@@ -15,7 +15,7 @@ addons:
       - python-pip
       - python2.7-dev
 before_install:
-  -  pip install virtualenv pre-commit
+  -  pip install -U virtualenv pre-commit pip
 script:
   - travis/precommit.sh
 notifications:
