@@ -118,9 +118,9 @@ Figure 4. Stacked Bidirectional LSTM for NLP modeling.
 
 We use [IMDB](http://ai.stanford.edu/%7Eamaas/data/sentiment/) dataset for sentiment analysis in this tutorial, which consists of 50,000 movie reviews split evenly into 25k train and 25k test sets. In the labeled train/test sets, a negative review has a score <= 4 out of 10, and a positive review has a score >= 7 out of 10.
 
-`paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually download and preprocess IMDB.
+`paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens`, and `wmt14`, etc. There's no need for us to manually download and preprocess IMDB.
 
-After issuing a command `python train.py`, training will starting immediately. The details will be unpacked by the following sessions to see how it works.
+After issuing a command `python train.py`, training will start immediately. The details will be unpacked by the following sessions to see how it works.
 
 
 ## Model Structure
@@ -172,7 +172,7 @@ def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
 
 1. Define Loss Function
 
-    In the context of supervised learning, labels of training set are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
+    In the context of supervised learning, labels of the training set are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
 
 #### Stacked bidirectional LSTM
 
@@ -257,7 +257,7 @@ def stacked_lstm_net(input_dim,
 
 1. Define Loss Function
 
-    In the context of supervised learning, labels of training set are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
+    In the context of supervised learning, labels of the training set are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
 
 
 To reiterate, we can either invoke `convolution_net` or `stacked_lstm_net`.
@@ -322,7 +322,7 @@ test_reader = paddle.batch(
 feeding = {'word': 0, 'label': 1}
 ```
 
-Callback function `event_handler` will be invoked to track training and testing process when a pre-defined event happens.
+Callback function `event_handler` will be invoked to track training progress when a pre-defined event happens.
 
 ```python
 def event_handler(event):
@@ -348,11 +348,10 @@ trainer.train(
     num_passes=10)
 ```
 
-After training is done, the model from each pass is saved in `output/pass-%05d`. For example, the model of Pass 300 is saved in `output/pass-00299`.
 
 ## Conclusion
 
-In this chapter, we use sentiment analysis as an example to introduce applying deep learning models on end-to-end short text classification, as well as how to use PaddlePaddle to implement the model. Meanwhile, we briefly introduce two models for text processing: CNN and RNN. In following chapters we will see how these models can be applied in other tasks.
+In this chapter, we use sentiment analysis as an example to introduce applying deep learning models on end-to-end short text classification, as well as how to use PaddlePaddle to implement the model. Meanwhile, we briefly introduce two models for text processing: CNN and RNN. In following chapters, we will see how these models can be applied in other tasks.
 
 ## Reference
 
