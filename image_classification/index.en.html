@@ -410,7 +410,7 @@ where $n$ is the number of processed samples, $lr_{0}$ is the learning_rate.
 `cifar.train10()` will yield records during each pass, after shuffling, a batch input is generated for training.
 
 ```python
-reader=paddle.reader.batch(
+reader=paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.cifar.train10(), buf_size=50000),
         batch_size=128)
@@ -439,10 +439,9 @@ def event_handler(event):
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
         result = trainer.test(
-            reader=paddle.reader.batch(
+            reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
-            reader_dict={'image': 0,
-                         'label': 1})
+            feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 

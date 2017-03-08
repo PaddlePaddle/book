@@ -417,7 +417,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 cifar.train10()每次产生一条样本，在完成shuffle和batch之后，作为训练的输入。
 
 ```python
-reader=paddle.reader.batch(
+reader=paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.cifar.train10(), buf_size=50000),
         batch_size=128)
@@ -444,10 +444,9 @@ def event_handler(event):
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
         result = trainer.test(
-            reader=paddle.reader.batch(
+            reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
-            reader_dict={'image': 0,
-                         'label': 1})
+            feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 
