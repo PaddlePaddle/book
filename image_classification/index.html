@@ -294,7 +294,7 @@ paddle.init(use_gpu=False, trainer_count=1)
 ResNet模型的第1、3、4步和VGG模型相同，这里不再介绍。主要介绍第2步即CIFAR10数据集上ResNet核心模块。
 
 ```python
-net = resnet_cifar10(data, depth=56)
+net = resnet_cifar10(image, depth=56)
 ```
 
 先介绍`resnet_cifar10`中的一些基本函数，再介绍网络连接过程。
@@ -417,7 +417,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 cifar.train10()每次产生一条样本，在完成shuffle和batch之后，作为训练的输入。
 
 ```python
-reader=paddle.reader.batch(
+reader=paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.cifar.train10(), buf_size=50000),
         batch_size=128)
