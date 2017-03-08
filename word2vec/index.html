@@ -1,3 +1,4 @@
+
 <html>
 <head>
   <script type="text/x-mathjax-config">
@@ -5,8 +6,8 @@
     extensions: ["tex2jax.js", "TeX/AMSsymbols.js", "TeX/AMSmath.js"],
     jax: ["input/TeX", "output/HTML-CSS"],
     tex2jax: {
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-      displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+      inlineMath: [ ['$','$'] ],
+      displayMath: [ ['$$','$$'] ],
       processEscapes: true
     },
     "HTML-CSS": { availableFonts: ["TeX"] }
@@ -39,6 +40,7 @@
 
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
+
 # 词向量
 
 本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/word2vec)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
@@ -250,7 +252,7 @@ N = 5 # 训练5-Gram
 
 - 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
 	
-```python	
+```python
 def wordemb(inlayer):
     wordemb = paddle.layer.table_projection(
         input=inlayer,
@@ -266,54 +268,54 @@ def wordemb(inlayer):
 - 定义输入层接受的数据类型以及名字。
 
 ```python
-def main():
-    paddle.init(use_gpu=False, trainer_count=1) # 初始化PaddlePaddle
-    word_dict = paddle.dataset.imikolov.build_dict()
-    dict_size = len(word_dict)
-	# 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)
-    firstword = paddle.layer.data(
-        name="firstw", type=paddle.data_type.integer_value(dict_size))
-    secondword = paddle.layer.data(
-        name="secondw", type=paddle.data_type.integer_value(dict_size))
-    thirdword = paddle.layer.data(
-        name="thirdw", type=paddle.data_type.integer_value(dict_size))
-    fourthword = paddle.layer.data(
-        name="fourthw", type=paddle.data_type.integer_value(dict_size))
-    nextword = paddle.layer.data(
-        name="fifthw", type=paddle.data_type.integer_value(dict_size))
+paddle.init(use_gpu=False, trainer_count=3) # 初始化PaddlePaddle
+word_dict = paddle.dataset.imikolov.build_dict()
+dict_size = len(word_dict)
+# 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)
+firstword = paddle.layer.data(
+    name="firstw", type=paddle.data_type.integer_value(dict_size))
+secondword = paddle.layer.data(
+    name="secondw", type=paddle.data_type.integer_value(dict_size))
+thirdword = paddle.layer.data(
+    name="thirdw", type=paddle.data_type.integer_value(dict_size))
+fourthword = paddle.layer.data(
+    name="fourthw", type=paddle.data_type.integer_value(dict_size))
+nextword = paddle.layer.data(
+    name="fifthw", type=paddle.data_type.integer_value(dict_size))
 
-    Efirst = wordemb(firstword)
-    Esecond = wordemb(secondword)
-    Ethird = wordemb(thirdword)
-    Efourth = wordemb(fourthword)
+Efirst = wordemb(firstword)
+Esecond = wordemb(secondword)
+Ethird = wordemb(thirdword)
+Efourth = wordemb(fourthword)
+
 ```
 
 - 将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
 
 ```python
-    contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
+contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
 ```
 
 - 将历史文本特征经过一个全连接得到文本隐层特征。
 
 ```python
-    hidden1 = paddle.layer.fc(input=contextemb,
-                              size=hiddensize,
-                              act=paddle.activation.Sigmoid(),
-                              layer_attr=paddle.attr.Extra(drop_rate=0.5),
-                              bias_attr=paddle.attr.Param(learning_rate=2),
-                              param_attr=paddle.attr.Param(
-                                  initial_std=1. / math.sqrt(embsize * 8),
-                                  learning_rate=1))
+hidden1 = paddle.layer.fc(input=contextemb,
+                          size=hiddensize,
+                          act=paddle.activation.Sigmoid(),
+                          layer_attr=paddle.attr.Extra(drop_rate=0.5),
+                          bias_attr=paddle.attr.Param(learning_rate=2),
+                          param_attr=paddle.attr.Param(
+                                initial_std=1. / math.sqrt(embsize * 8),
+                                learning_rate=1))
 ```
 	
 - 将文本隐层特征，再经过一个全连接，映射成一个$|V|$维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
 
 ```python
-    predictword = paddle.layer.fc(input=hidden1,
-                                  size=dict_size,
-                                  bias_attr=paddle.attr.Param(learning_rate=2),
-                                  act=paddle.activation.Softmax())
+predictword = paddle.layer.fc(input=hidden1,
+                              size=dict_size,
+                              bias_attr=paddle.attr.Param(learning_rate=2),
+                              act=paddle.activation.Softmax())
 ```
 
 - 网络的损失函数为多分类交叉熵，可直接调用`classification_cost`函数。
@@ -329,11 +331,11 @@ cost = paddle.layer.classification_cost(input=predictword, label=nextword)
 - 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
 
 ```python
-    parameters = paddle.parameters.create(cost)
-    adam_optimizer = paddle.optimizer.Adam(
-        learning_rate=3e-3,
-        regularization=paddle.optimizer.L2Regularization(8e-4))
-    trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
+parameters = paddle.parameters.create(cost)
+adam_optimizer = paddle.optimizer.Adam(
+    learning_rate=3e-3,
+    regularization=paddle.optimizer.L2Regularization(8e-4))
+trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
 ```
 
 下一步，我们开始训练过程。`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python generator。
@@ -341,111 +343,93 @@ cost = paddle.layer.classification_cost(input=predictword, label=nextword)
 `paddle.batch`的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
 
 ```python
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 100 == 0:
-                result = trainer.test(
+import gzip
+    
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+            
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
                     paddle.batch(
                         paddle.dataset.imikolov.test(word_dict, N), 32))
-                print "Pass %d, Batch %d, Cost %f, %s, Testing metrics %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics,
-                    result.metrics)
+        print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
+        with gzip.open("model_%d.tar.gz"%event.pass_id, 'w') as f:
+            parameters.to_tar(f)
 
-    trainer.train(
-        paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
-        num_passes=30,
-        event_handler=event_handler)
+trainer.train(
+    paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
+    num_passes=100,
+    event_handler=event_handler)
 ```
 
-训练过程是完全自动的，event_handler里打印的日志类似如下所示：
+    ...
+    Pass 0, Batch 25000, Cost 4.251861, {'classification_error_evaluator': 0.84375}
+    Pass 0, Batch 25100, Cost 4.847692, {'classification_error_evaluator': 0.8125}
+    Pass 0, Testing metrics {'classification_error_evaluator': 0.7417652606964111}
 
-```text
-.............................
-I1222 09:27:16.477841 12590 TrainerInternal.cpp:162]  Batch=3000 samples=300000 AvgCost=5.36135 CurrentCost=5.36135 Eval: classification_error_evaluator=0.818653  CurrentEval: class
-ification_error_evaluator=0.818653 
-.............................
-I1222 09:27:22.416700 12590 TrainerInternal.cpp:162]  Batch=6000 samples=600000 AvgCost=5.29301 CurrentCost=5.22467 Eval: classification_error_evaluator=0.814542  CurrentEval: class
-ification_error_evaluator=0.81043 
-.............................
-I1222 09:27:28.343756 12590 TrainerInternal.cpp:162]  Batch=9000 samples=900000 AvgCost=5.22494 CurrentCost=5.08876 Eval: classification_error_evaluator=0.810088  CurrentEval: class
-ification_error_evaluator=0.80118 
-..I1222 09:27:29.128582 12590 TrainerInternal.cpp:179]  Pass=0 Batch=9296 samples=929600 AvgCost=5.21786 Eval: classification_error_evaluator=0.809647 
-I1222 09:27:29.627616 12590 Tester.cpp:111]  Test samples=73760 cost=4.9594 Eval: classification_error_evaluator=0.79676 
-I1222 09:27:29.627713 12590 GradientMachine.cpp:112] Saving parameters to model/pass-00000
-```
+
+训练过程是完全自动的，event_handler里打印的日志类似如上所示：
+
 经过30个pass，我们将得到平均错误率为classification_error_evaluator=0.735611。
 
 
 ## 应用模型
-训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型参数从二进制格式转换成文本格式进行后续应用。
+训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型查看参数用来做后续应用。
 
-### 初始化其他模型
-
-训练好的模型参数可以用来初始化其他模型。具体方法如下：
-在PaddlePaddle 训练命令行中，用`--init_model_path` 来定义初始化模型的位置，用`--load_missing_parameter_strategy`指定除了词向量以外的新模型其他参数的初始化策略。注意，新模型需要和原模型共享被初始化参数的参数名。
 	
 ### 查看词向量
-PaddlePaddle训练出来的参数为二进制格式，存储在对应训练pass的文件夹下。这里我们提供了文件`format_convert.py`用来互转PaddlePaddle训练结果的二进制文件和文本格式特征文件。
 
-```bash
-python format_convert.py --b2t -i INPUT -o OUTPUT -d DIM
-```
-其中，INPUT是输入的（二进制）词向量模型名称，OUTPUT是输出的文本模型名称，DIM是词向量参数维度。
+PaddlePaddle训练出来的参数可以直接使用`parameters.get()`获取出来。例如查看单词的word的词向量，即为
 
-用法如：
 
-```bash
-python format_convert.py --b2t -i model/pass-00029/_proj -o model/pass-00029/_proj.txt -d 32
-```
-转换后得到的文本文件如下：
+```python
+embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
 
-```text
-0,4,62496
--0.7444070,-0.1846171,-1.5771370,0.7070392,2.1963732,-0.0091410, ......
--0.0721337,-0.2429973,-0.0606297,0.1882059,-0.2072131,-0.7661019, ......
-......
+print embeddings[word_dict['word']]
 ```
 
-其中，第一行是PaddlePaddle 输出文件的格式说明，包含3个属性：<br/>
-1) PaddlePaddle的版本号，本例中为0;<br/>
-2) 浮点数占用的字节数，本例中为4;<br/>
-3) 总计的参数个数, 本例中为62496（即1953*32）;<br/>
-第二行及之后的每一行都按顺序表示字典里一个词的特征，用逗号分隔。
+    [-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
+     -0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
+      0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
+     -0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
+      0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
+      0.19072419 -0.24286366]
+
+
 	
 ### 修改词向量
 
-我们可以对词向量进行修改，并转换成PaddlePaddle参数二进制格式，方法：	
+获得到的embedding为一个标准的numpy矩阵。我们可以对这个numpy矩阵进行修改，然后赋值回去。
 
-```bash
-python format_convert.py --t2b -i INPUT -o OUTPUT
+
+```python
+def modify_embedding(emb):
+    # Add your modification here.
+    pass
+
+modify_embedding(embeddings)
+parameters.set("_proj", embeddings)
 ```
-
-其中，INPUT是输入的输入的文本词向量模型名称，OUTPUT是输出的二进制词向量模型名称
-
-输入的文本格式如下（注意，不包含上面二进制转文本后第一行的格式说明）：
-
-```text
--0.7444070,-0.1846171,-1.5771370,0.7070392,2.1963732,-0.0091410, ......
--0.0721337,-0.2429973,-0.0606297,0.1882059,-0.2072131,-0.7661019, ......
-......
-```
-	
-	
 
 ### 计算词语之间的余弦距离
 
 两个向量之间的距离可以用余弦值来表示，余弦值在$[-1,1]$的区间内，向量间余弦值越大，其距离越近。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
 用法如下：
 
-```bash
-python calculate_dis.py VOCABULARY EMBEDDINGLAYER` 
+
+```python
+from scipy import spatial
+
+emb_1 = embeddings[word_dict['world']]
+emb_2 = embeddings[word_dict['would']]
+
+print spatial.distance.cosine(emb_1, emb_2)
 ```
 
-其中，`VOCABULARY`是字典，`EMBEDDINGLAYER`是词向量模型，示例如下：
-
-```bash
-python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt
-```
+    0.99375076448
  
  
 ## 总结
@@ -461,6 +445,7 @@ python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt
 
 <br/>
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
+
 </div>
 <!-- You can change the lines below now. -->
 
