@@ -14,8 +14,11 @@ addons:
       - python
       - python-pip
       - python2.7-dev
+      - go
 before_install:
   -  pip install virtualenv pre-commit
+install:
+  -  GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 script:
   - travis/precommit.sh
 notifications:
