@@ -33,7 +33,7 @@ echo "Unzipping..."
 tar -zxvf aclImdb_v1.tar.gz
 unzip master.zip
 
-#move train and test set to imdb_data directory 
+#move train and test set to imdb_data directory
 #in order to process when traing
 mkdir -p imdb/train
 mkdir -p imdb/test

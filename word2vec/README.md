@@ -1,3 +1,4 @@
+
 # 词向量
 
 本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/word2vec)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
@@ -6,7 +7,7 @@
 
 本章我们介绍词的向量表征，也称为word embedding。词向量是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
 
-在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。 
+在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。
 在这种方式里，每个词被表示成一个实数向量（one-hot vector），其长度为字典大小，每个维度对应一个字典里的每个词，除了这个词对应维度上的值是1，其他元素都是0。
 
 One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。虽然按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨；但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是余弦相似度(cosine similarity)，由于其向量正交，都认为这两个词毫无相关性。 得出这种与我们相悖的结论的根本原因是：每个词本身的信息量都太小。所以，仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识。
@@ -68,7 +69,7 @@ $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
 
 
 
-### N-gram neural model 
+### N-gram neural model
 
 在计算语言学中，n-gram是一种重要的文本表示方法，表示一个文本中连续的n个项。基于具体的应用场景，每一项可以是一个字母、单词或者音节。 n-gram模型也是统计语言模型中的一种重要方法，用n-gram训练语言模型时，一般用每个n-gram的历史n-1个词语组成的内容来预测第n个词。
 
@@ -84,39 +85,39 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
 
-<p align="center">	
+<p align="center">
    	<img src="image/nnlm.png" width=500><br/>
    	图2. N-gram神经网络模型
 </p>
 
 图2展示了N-gram神经网络模型，从下往上看，该模型分为以下几个部分：
  - 对于每个样本，模型输入$w_{t-n+1},...w_{t-1}$, 输出句子第t个词为字典中`|V|`个词的概率。
- 
+
    每个输入词$w_{t-n+1},...w_{t-1}$首先通过映射矩阵映射到词向量$C(w_{t-n+1}),...C(w_{t-1})$。
- 
+
  - 然后所有词语的词向量连接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
- 
+
 	$$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
-	
+
     其中，$x$为所有词语的词向量连接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
 
  - 根据softmax的定义，通过归一化$g_i$, 生成目标词$w_t$的概率为：
- 
+
   $$P(w_t | w_1, ..., w_{t-n+1}) = \frac{e^{g_{w_t}}}{\sum_i^{|V|} e^{g_i}}$$
 
  - 整个网络的损失值(cost)为多类分类交叉熵，用公式表示为
 
-   $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$ 
+   $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 
    其中$y_k^i$表示第$i$个样本第$k$类的真实标签(0或1)，$softmax(g_k^i)$表示第i个样本第k类softmax输出的概率。
-   
 
 
-### Continuous Bag-of-Words model(CBOW) 
+
+### Continuous Bag-of-Words model(CBOW)
 
 CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时，模型如下图所示：
 
-<p align="center">	
+<p align="center">
 	<img src="image/cbow.png" width=250><br/>
 	图3. CBOW模型
 </p>
@@ -127,11 +128,11 @@ $$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
 
 其中$x_t$为第$t$个词的词向量，分类分数（score）向量 $z=U*context$，最终的分类$y$采用softmax，损失函数采用多类分类交叉熵。
 
-### Skip-gram model 
+### Skip-gram model
 
 CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效。而Skip-gram的方法中，用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
 
-<p align="center">	
+<p align="center">
 	<img src="image/skipgram.png" width=250><br/>
 	图4. Skip-gram模型
 </p>
@@ -165,7 +166,7 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 </table>
 </p>
 
-	
+
 ### 数据预处理
 
 本章训练的是5-gram模型，表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。PaddlePaddle提供了对应PTB数据集的python包`paddle.dataset.imikolov`，自动做数据的下载与预处理，方便大家使用。
@@ -186,7 +187,7 @@ dream that one day <e>
 
 本配置的模型结构如下图所示：
 
-<p align="center">	
+<p align="center">
 	<img src="image/ngram.png" width=400><br/>
 	图5. 模型配置中的N-gram神经网络模型
 </p>
@@ -208,8 +209,8 @@ N = 5 # 训练5-Gram
 接着，定义网络结构：
 
 - 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
-	
-```python	
+
+```python
 def wordemb(inlayer):
     wordemb = paddle.layer.table_projection(
         input=inlayer,
@@ -225,54 +226,54 @@ def wordemb(inlayer):
 - 定义输入层接受的数据类型以及名字。
 
 ```python
-def main():
-    paddle.init(use_gpu=False, trainer_count=1) # 初始化PaddlePaddle
-    word_dict = paddle.dataset.imikolov.build_dict()
-    dict_size = len(word_dict)
-	# 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)
-    firstword = paddle.layer.data(
-        name="firstw", type=paddle.data_type.integer_value(dict_size))
-    secondword = paddle.layer.data(
-        name="secondw", type=paddle.data_type.integer_value(dict_size))
-    thirdword = paddle.layer.data(
-        name="thirdw", type=paddle.data_type.integer_value(dict_size))
-    fourthword = paddle.layer.data(
-        name="fourthw", type=paddle.data_type.integer_value(dict_size))
-    nextword = paddle.layer.data(
-        name="fifthw", type=paddle.data_type.integer_value(dict_size))
+paddle.init(use_gpu=False, trainer_count=3) # 初始化PaddlePaddle
+word_dict = paddle.dataset.imikolov.build_dict()
+dict_size = len(word_dict)
+# 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)
+firstword = paddle.layer.data(
+    name="firstw", type=paddle.data_type.integer_value(dict_size))
+secondword = paddle.layer.data(
+    name="secondw", type=paddle.data_type.integer_value(dict_size))
+thirdword = paddle.layer.data(
+    name="thirdw", type=paddle.data_type.integer_value(dict_size))
+fourthword = paddle.layer.data(
+    name="fourthw", type=paddle.data_type.integer_value(dict_size))
+nextword = paddle.layer.data(
+    name="fifthw", type=paddle.data_type.integer_value(dict_size))
 
-    Efirst = wordemb(firstword)
-    Esecond = wordemb(secondword)
-    Ethird = wordemb(thirdword)
-    Efourth = wordemb(fourthword)
+Efirst = wordemb(firstword)
+Esecond = wordemb(secondword)
+Ethird = wordemb(thirdword)
+Efourth = wordemb(fourthword)
+
 ```
 
 - 将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
 
 ```python
-    contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
+contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
 ```
 
 - 将历史文本特征经过一个全连接得到文本隐层特征。
 
 ```python
-    hidden1 = paddle.layer.fc(input=contextemb,
-                              size=hiddensize,
-                              act=paddle.activation.Sigmoid(),
-                              layer_attr=paddle.attr.Extra(drop_rate=0.5),
-                              bias_attr=paddle.attr.Param(learning_rate=2),
-                              param_attr=paddle.attr.Param(
-                                  initial_std=1. / math.sqrt(embsize * 8),
-                                  learning_rate=1))
+hidden1 = paddle.layer.fc(input=contextemb,
+                          size=hiddensize,
+                          act=paddle.activation.Sigmoid(),
+                          layer_attr=paddle.attr.Extra(drop_rate=0.5),
+                          bias_attr=paddle.attr.Param(learning_rate=2),
+                          param_attr=paddle.attr.Param(
+                                initial_std=1. / math.sqrt(embsize * 8),
+                                learning_rate=1))
 ```
-	
+
 - 将文本隐层特征，再经过一个全连接，映射成一个$|V|$维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
 
 ```python
-    predictword = paddle.layer.fc(input=hidden1,
-                                  size=dict_size,
-                                  bias_attr=paddle.attr.Param(learning_rate=2),
-                                  act=paddle.activation.Softmax())
+predictword = paddle.layer.fc(input=hidden1,
+                              size=dict_size,
+                              bias_attr=paddle.attr.Param(learning_rate=2),
+                              act=paddle.activation.Softmax())
 ```
 
 - 网络的损失函数为多分类交叉熵，可直接调用`classification_cost`函数。
@@ -288,11 +289,11 @@ cost = paddle.layer.classification_cost(input=predictword, label=nextword)
 - 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
 
 ```python
-    parameters = paddle.parameters.create(cost)
-    adam_optimizer = paddle.optimizer.Adam(
-        learning_rate=3e-3,
-        regularization=paddle.optimizer.L2Regularization(8e-4))
-    trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
+parameters = paddle.parameters.create(cost)
+adam_optimizer = paddle.optimizer.Adam(
+    learning_rate=3e-3,
+    regularization=paddle.optimizer.L2Regularization(8e-4))
+trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
 ```
 
 下一步，我们开始训练过程。`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python generator。
@@ -300,113 +301,95 @@ cost = paddle.layer.classification_cost(input=predictword, label=nextword)
 `paddle.batch`的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
 
 ```python
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 100 == 0:
-                result = trainer.test(
+import gzip
+
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
                     paddle.batch(
                         paddle.dataset.imikolov.test(word_dict, N), 32))
-                print "Pass %d, Batch %d, Cost %f, %s, Testing metrics %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics,
-                    result.metrics)
+        print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
+        with gzip.open("model_%d.tar.gz"%event.pass_id, 'w') as f:
+            parameters.to_tar(f)
 
-    trainer.train(
-        paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
-        num_passes=30,
-        event_handler=event_handler)
+trainer.train(
+    paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
+    num_passes=100,
+    event_handler=event_handler)
 ```
 
-训练过程是完全自动的，event_handler里打印的日志类似如下所示：
+    ...
+    Pass 0, Batch 25000, Cost 4.251861, {'classification_error_evaluator': 0.84375}
+    Pass 0, Batch 25100, Cost 4.847692, {'classification_error_evaluator': 0.8125}
+    Pass 0, Testing metrics {'classification_error_evaluator': 0.7417652606964111}
 
-```text
-.............................
-I1222 09:27:16.477841 12590 TrainerInternal.cpp:162]  Batch=3000 samples=300000 AvgCost=5.36135 CurrentCost=5.36135 Eval: classification_error_evaluator=0.818653  CurrentEval: class
-ification_error_evaluator=0.818653 
-.............................
-I1222 09:27:22.416700 12590 TrainerInternal.cpp:162]  Batch=6000 samples=600000 AvgCost=5.29301 CurrentCost=5.22467 Eval: classification_error_evaluator=0.814542  CurrentEval: class
-ification_error_evaluator=0.81043 
-.............................
-I1222 09:27:28.343756 12590 TrainerInternal.cpp:162]  Batch=9000 samples=900000 AvgCost=5.22494 CurrentCost=5.08876 Eval: classification_error_evaluator=0.810088  CurrentEval: class
-ification_error_evaluator=0.80118 
-..I1222 09:27:29.128582 12590 TrainerInternal.cpp:179]  Pass=0 Batch=9296 samples=929600 AvgCost=5.21786 Eval: classification_error_evaluator=0.809647 
-I1222 09:27:29.627616 12590 Tester.cpp:111]  Test samples=73760 cost=4.9594 Eval: classification_error_evaluator=0.79676 
-I1222 09:27:29.627713 12590 GradientMachine.cpp:112] Saving parameters to model/pass-00000
-```
+
+训练过程是完全自动的，event_handler里打印的日志类似如上所示：
+
 经过30个pass，我们将得到平均错误率为classification_error_evaluator=0.735611。
 
 
 ## 应用模型
-训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型参数从二进制格式转换成文本格式进行后续应用。
+训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型查看参数用来做后续应用。
 
-### 初始化其他模型
 
-训练好的模型参数可以用来初始化其他模型。具体方法如下：
-在PaddlePaddle 训练命令行中，用`--init_model_path` 来定义初始化模型的位置，用`--load_missing_parameter_strategy`指定除了词向量以外的新模型其他参数的初始化策略。注意，新模型需要和原模型共享被初始化参数的参数名。
-	
 ### 查看词向量
-PaddlePaddle训练出来的参数为二进制格式，存储在对应训练pass的文件夹下。这里我们提供了文件`format_convert.py`用来互转PaddlePaddle训练结果的二进制文件和文本格式特征文件。
 
-```bash
-python format_convert.py --b2t -i INPUT -o OUTPUT -d DIM
-```
-其中，INPUT是输入的（二进制）词向量模型名称，OUTPUT是输出的文本模型名称，DIM是词向量参数维度。
+PaddlePaddle训练出来的参数可以直接使用`parameters.get()`获取出来。例如查看单词的word的词向量，即为
 
-用法如：
 
-```bash
-python format_convert.py --b2t -i model/pass-00029/_proj -o model/pass-00029/_proj.txt -d 32
-```
-转换后得到的文本文件如下：
+```python
+embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
 
-```text
-0,4,62496
--0.7444070,-0.1846171,-1.5771370,0.7070392,2.1963732,-0.0091410, ......
--0.0721337,-0.2429973,-0.0606297,0.1882059,-0.2072131,-0.7661019, ......
-......
+print embeddings[word_dict['word']]
 ```
 
-其中，第一行是PaddlePaddle 输出文件的格式说明，包含3个属性：<br/>
-1) PaddlePaddle的版本号，本例中为0;<br/>
-2) 浮点数占用的字节数，本例中为4;<br/>
-3) 总计的参数个数, 本例中为62496（即1953*32）;<br/>
-第二行及之后的每一行都按顺序表示字典里一个词的特征，用逗号分隔。
-	
+    [-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
+     -0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
+      0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
+     -0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
+      0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
+      0.19072419 -0.24286366]
+
+
+
 ### 修改词向量
 
-我们可以对词向量进行修改，并转换成PaddlePaddle参数二进制格式，方法：	
+获得到的embedding为一个标准的numpy矩阵。我们可以对这个numpy矩阵进行修改，然后赋值回去。
 
-```bash
-python format_convert.py --t2b -i INPUT -o OUTPUT
+
+```python
+def modify_embedding(emb):
+    # Add your modification here.
+    pass
+
+modify_embedding(embeddings)
+parameters.set("_proj", embeddings)
 ```
-
-其中，INPUT是输入的输入的文本词向量模型名称，OUTPUT是输出的二进制词向量模型名称
-
-输入的文本格式如下（注意，不包含上面二进制转文本后第一行的格式说明）：
-
-```text
--0.7444070,-0.1846171,-1.5771370,0.7070392,2.1963732,-0.0091410, ......
--0.0721337,-0.2429973,-0.0606297,0.1882059,-0.2072131,-0.7661019, ......
-......
-```
-	
-	
 
 ### 计算词语之间的余弦距离
 
 两个向量之间的距离可以用余弦值来表示，余弦值在$[-1,1]$的区间内，向量间余弦值越大，其距离越近。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
 用法如下：
 
-```bash
-python calculate_dis.py VOCABULARY EMBEDDINGLAYER` 
+
+```python
+from scipy import spatial
+
+emb_1 = embeddings[word_dict['world']]
+emb_2 = embeddings[word_dict['would']]
+
+print spatial.distance.cosine(emb_1, emb_2)
 ```
 
-其中，`VOCABULARY`是字典，`EMBEDDINGLAYER`是词向量模型，示例如下：
+    0.99375076448
 
-```bash
-python calculate_dis.py data/vocabulary.txt model/pass-00029/_proj.txt
-```
- 
- 
+
 ## 总结
 本章中，我们介绍了词向量、语言模型和词向量的关系、以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据向量间的余弦夹角，来判断query和文档关键词这二者间的相关性。在句法分析和语义分析中，训练好的词向量可以用来初始化模型，以得到更好的效果。在文档分类中，有了词向量之后，可以用聚类的方法将文档中同义词进行分组。希望大家在本章后能够自行运用词向量进行相关领域的研究。
 

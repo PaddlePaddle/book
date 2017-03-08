@@ -17,9 +17,9 @@ set -e
 UNAME_STR=`uname`
 
 if [[ ${UNAME_STR} == 'Linux' ]]; then
-	SHUF_PROG='shuf'
+    SHUF_PROG='shuf'
 else
-	SHUF_PROG='gshuf'
+    SHUF_PROG='gshuf'
 fi
 
 
