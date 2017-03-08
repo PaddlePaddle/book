@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="{% if is_en %}en{%else%}zh-Hans{% endif %}">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% if not is_en %}深度学习入门{%else%}Deep Learning 101{% endif %}</title>
+    <title>Deep Learning 101</title>
     <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
     <script src="http://cdn.bootcss.com/tether/1.4.0/js/tether.js"></script>
     <script src="http://cdn.bootcss.com/jquery/3.1.0/jquery.slim.js"></script>
@@ -44,17 +44,17 @@
         <ul class="nav navbar-nav">
           <li class="nav-item">
             <a class="nav-link" href="http://paddlepaddle.org">
-                {% if is_en %}Home{% else %}首页{% endif %}
+                Home
             </a>
           </li>
-          <li class="nav-item {% if not is_en %}active{% endif %}">
-            <a class="nav-link" href="{% if is_en %}./index.html{% else %}#{%endif%}">
-                {% if is_en %}中文{% else %}深度学习入门{% endif %}
+          <li class="nav-item ">
+            <a class="nav-link" href="./index.html">
+                中文
             </a>
           </li>
-          <li class="nav-item {% if is_en %}active{% endif %}">
-            <a class="nav-link" href="{% if is_en %}#{% else %}./index.en.html{% endif %}">
-                {% if is_en %}Deep Learning 101{% else %}English{% endif %}
+          <li class="nav-item active">
+            <a class="nav-link" href="#">
+                Deep Learning 101
             </a>
           </li>
           <li class="nav-item">
@@ -70,18 +70,46 @@
                     <div class="card-header" role="tab" id="headingOne">
                       <h5 class="mb-0">
                         <a aria-expanded="true" aria-controls="collapseOne">
-                            {% if is_en %}Deep Learning 101<span class="sr-only">(current)</span>{% else %}深度学习入门{% endif %}
+                            Deep Learning 101<span class="sr-only">(current)</span>
                         </a>
                       </h5>
                     </div>
                     <div id="collapseOne" class="rounded-0 collapse show" role="tabpanel" aria-labelledby="headingOne">
                       <div class="card-block pl-0 pr-0 pt-0 pb-0">
                         <div class="list-group ">
-                          {% for chapter in chapters %}
-                            <a href="{{ chapter.link }}" target="content_iframe" class="list-group-item list-group-item-action">
-                                {{ chapter.name }}
+                          
+                            <a href="./fit_a_line/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Linear Regression
                             </a>
-                          {% endfor %}
+                          
+                            <a href="./recognize_digits/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Recognize Digits
+                            </a>
+                          
+                            <a href="./image_classification/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Image Classification
+                            </a>
+                          
+                            <a href="./word2vec/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Word2Vec
+                            </a>
+                          
+                            <a href="./understand_sentiment/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Sentiment Analysis
+                            </a>
+                          
+                            <a href="./label_semantic_roles/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Semantic Role Labeling
+                            </a>
+                          
+                            <a href="./machine_translation/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Machine Translation
+                            </a>
+                          
+                            <a href="./recommender_system/index.en.html" target="content_iframe" class="list-group-item list-group-item-action">
+                                Personalized Recommendation
+                            </a>
+                          
                         </div>
                       </div>
                     </div>
@@ -89,7 +117,7 @@
                 </div>
             </div>
             <div class="col">
-                <iframe src="./fit_a_line/index{% if is_en %}.en{% endif %}.html" style="border: none;" width="100%" height="100%" name="content_iframe" id="content_iframe">
+                <iframe src="./fit_a_line/index.en.html" style="border: none;" width="100%" height="100%" name="content_iframe" id="content_iframe">
 
                 </iframe>
             </div>
