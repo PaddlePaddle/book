@@ -13,7 +13,7 @@
         files: \.md$
     -   id: trailing-whitespace
         files: \.md$
--   repo: https://github.com/Lucas-C/pre-commit-hooks
+-   repo: git://github.com/Lucas-C/pre-commit-hooks
     sha: v1.0.1
     hooks:
     -   id: forbid-crlf
@@ -30,5 +30,13 @@
        name: convert-markdown-into-html
        description: "Convert README.md into index.html and README.en.md into index.en.html"
        entry: python pre-commit-hooks/convert_markdown_into_html.py
+       language: system
+       files: \.md$
+- repo: local
+  hooks:
+    -  id: convert-markdown-into-ipynb
+       name: convert-markdown-into-ipynb
+       description: "Convert README.md into README.ipynb and README.en.md into README.en.ipynb"
+       entry: ./pre-commit-hooks/convert_markdown_into_ipynb.sh
        language: system
        files: \.md$
