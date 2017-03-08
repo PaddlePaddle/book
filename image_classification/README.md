@@ -402,10 +402,9 @@ def event_handler(event):
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
         result = trainer.test(
-            reader=paddle.reader.batch(
+            reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
-            reader_dict={'image': 0,
-                         'label': 1})
+            feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 
