@@ -10,6 +10,7 @@ set -e
 cd `dirname $0`
 cd ..
 export PATH=/usr/bin:$PATH
+GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 pre-commit install
 
 if ! pre-commit run -a ; then
