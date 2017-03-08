@@ -32,15 +32,15 @@ Yann LeCun早先在手写字符识别上做了很多研究，并在研究过程�
 
 输入层的数据$X$传到输出层，在激活操作之前，会乘以相应的权重 $W$ ，并加上偏置变量 $b$ ，具体如下：
 
-$$ y_i = softmax(\sum_j W_{i,j}x_j + b_i) $$
+$$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
-其中 $ softmax(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
+其中 $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
 
 对于有 $N$ 个类别的多分类问题，指定 $N$ 个输出节点，$N$ 维输入特征经过softmax将归一化为 $N$ 个[0,1]范围内的实数值，分别表示该样本属于这 $N$ 个类别的概率。此处的 $y_i$ 即对应该图片为数字 $i$ 的预测概率。
 
 在分类问题中，我们一般采用交叉熵代价损失函数（cross entropy），公式如下：
 
-$$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
+$$  \text{crossentropy}(label, y) = -\sum_i label_ilog(y_i) $$
 
 图2为softmax回归的网络图，图中权重用蓝线表示、偏置用红线表示、+1代表偏置参数的系数为1。
 
@@ -55,7 +55,7 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 1.  经过第一个隐藏层，可以得到 $ H_1 = \phi(W_1X + b_1) $，其中$\phi$代表激活函数，常见的有sigmoid、tanh或ReLU等函数。
 2.  经过第二个隐藏层，可以得到 $ H_2 = \phi(W_2H_1 + b_2) $。
-3.  最后，再经过输出层，得到的$Y=softmax(W_3H_2 + b_3)$，即为最后的分类结果向量。
+3.  最后，再经过输出层，得到的$Y=\text{softmax}(W_3H_2 + b_3)$，即为最后的分类结果向量。
 
 
 图3为多层感知器的网络结构图，图中权重用蓝线表示、偏置用红线表示、+1代表偏置参数的系数为1。
