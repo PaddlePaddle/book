@@ -2,9 +2,8 @@ import paddle.v2 as paddle
 
 
 def softmax_regression(img):
-    predict = paddle.layer.fc(input=img,
-                              size=10,
-                              act=paddle.activation.Softmax())
+    predict = paddle.layer.fc(
+        input=img, size=10, act=paddle.activation.Softmax())
     return predict
 
 
@@ -12,14 +11,12 @@ def multilayer_perceptron(img):
     # The first fully-connected layer
     hidden1 = paddle.layer.fc(input=img, size=128, act=paddle.activation.Relu())
     # The second fully-connected layer and the according activation function
-    hidden2 = paddle.layer.fc(input=hidden1,
-                              size=64,
-                              act=paddle.activation.Relu())
+    hidden2 = paddle.layer.fc(
+        input=hidden1, size=64, act=paddle.activation.Relu())
     # The thrid fully-connected layer, note that the hidden size should be 10,
     # which is the number of unique digits
-    predict = paddle.layer.fc(input=hidden2,
-                              size=10,
-                              act=paddle.activation.Softmax())
+    predict = paddle.layer.fc(
+        input=hidden2, size=10, act=paddle.activation.Softmax())
     return predict
 
 
@@ -43,14 +40,12 @@ def convolutional_neural_network(img):
         pool_stride=2,
         act=paddle.activation.Tanh())
     # The first fully-connected layer
-    fc1 = paddle.layer.fc(input=conv_pool_2,
-                          size=128,
-                          act=paddle.activation.Tanh())
+    fc1 = paddle.layer.fc(
+        input=conv_pool_2, size=128, act=paddle.activation.Tanh())
     # The softmax layer, note that the hidden size should be 10,
     # which is the number of unique digits
-    predict = paddle.layer.fc(input=fc1,
-                              size=10,
-                              act=paddle.activation.Softmax())
+    predict = paddle.layer.fc(
+        input=fc1, size=10, act=paddle.activation.Softmax())
     return predict
 
 
@@ -76,9 +71,8 @@ optimizer = paddle.optimizer.Momentum(
     momentum=0.9,
     regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
 
-trainer = paddle.trainer.SGD(cost=cost,
-                             parameters=parameters,
-                             update_equation=optimizer)
+trainer = paddle.trainer.SGD(
+    cost=cost, parameters=parameters, update_equation=optimizer)
 
 lists = []
 
@@ -99,8 +93,7 @@ def event_handler(event):
 
 trainer.train(
     reader=paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.mnist.train(), buf_size=8192),
+        paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=8192),
         batch_size=128),
     event_handler=event_handler,
     num_passes=100)

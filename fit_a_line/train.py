@@ -18,9 +18,8 @@ def main():
     # create optimizer
     optimizer = paddle.optimizer.Momentum(momentum=0)
 
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+    trainer = paddle.trainer.SGD(
+        cost=cost, parameters=parameters, update_equation=optimizer)
 
     feeding = {'x': 0, 'y': 1}
 
@@ -33,16 +32,14 @@ def main():
 
         if isinstance(event, paddle.event.EndPass):
             result = trainer.test(
-                reader=paddle.batch(
-                    uci_housing.test(), batch_size=2),
+                reader=paddle.batch(uci_housing.test(), batch_size=2),
                 feeding=feeding)
             print "Test %d, Cost %f" % (event.pass_id, result.cost)
 
     # training
     trainer.train(
         reader=paddle.batch(
-            paddle.reader.shuffle(
-                uci_housing.train(), buf_size=500),
+            paddle.reader.shuffle(uci_housing.train(), buf_size=500),
             batch_size=2),
         feeding=feeding,
         event_handler=event_handler,
