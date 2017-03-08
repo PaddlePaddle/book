@@ -152,53 +152,7 @@ e_{ij}&=align(z_i,h_j)\\\\
 
 ## 数据介绍
 
-### 下载与解压缩
-
 本教程使用[WMT-14](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/)数据集中的[bitexts(after selection)](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/bitexts.tgz)作为训练集，[dev+test data](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/dev+test.tgz)作为测试集和生成集。
-
-在Linux下，只需简单地运行以下命令：
-
-```bash
-cd data
-./wmt14_data.sh
-```
-
-得到的数据集`data/wmt14`包含如下三个文件夹：
-<p align = "center">
-<table>
-<tr>
-<td>文件夹名</td>
-<td>法英平行语料文件</td>
-<td>文件数</td>
-<td>文件大小</td>
-</tr>
-
-<tr>
-<td>train</td>
-<td>ccb2_pc30.src, ccb2_pc30.trg, etc</td>
-<td>12</td>
-<td>3.55G</td>
-</tr>
-
-<tr>
-<td>test</td>
-<td>ntst1213.src, ntst1213.trg</td>
-<td>2</td>
-<td>1636k</td>
-</tr>
-
-</tr>
-<tr>
-<td>gen</td>
-<td>ntst14.src, ntst14.trg</td>
-<td>2</td>
-<td>864k</td>
-</tr>
-</table>
-</p>
-
-- `XXX.src`是源法语文件，`XXX.trg`是目标英语文件，文件中的每行存放一个句子
-- `XXX.src`和`XXX.trg`的行数一致，且两者任意第$i$行的句子之间都有着一一对应的关系。
 
 ### 数据预处理
 
@@ -256,17 +210,16 @@ wmt14_reader = paddle.batch(
    decoder_size = 512 # 解码器中的GRU隐层大小
   ```
 
-2. 其次，实现编码器框架。分为三步：
+1. 其次，实现编码器框架。分为三步：
 
-   2.1 将在dataset reader中生成的用每个单词在字典中的索引表示的源语言序列
-   转换成one-hot vector表示的源语言序列$\mathbf{w}$，其类型为integer_value_sequence。
+   1 输入是一个文字序列，被表示成整型的序列。序列中每个元素是文字在字典中的索引。所以，我们定义数据层的数据类型为`integer_value_sequence`（整型序列），序列中每个元素的范围是`[0, source_dict_dim)`。
 
    ```python
     src_word_id = paddle.layer.data(
         name='source_language_word',
         type=paddle.data_type.integer_value_sequence(source_dict_dim))
    ```
-   2.2 将上述编码映射到低维语言空间的词向量$\mathbf{s}$。
+   1. 将上述编码映射到低维语言空间的词向量$\mathbf{s}$。
 
    ```python
     src_embedding = paddle.layer.embedding(
@@ -274,7 +227,7 @@ wmt14_reader = paddle.batch(
         size=word_vector_dim,
         param_attr=paddle.attr.ParamAttr(name='_source_language_embedding'))
    ```
-   2.3 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
+   1. 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
 
    ```python
     src_forward = paddle.networks.simple_gru(
@@ -284,16 +237,17 @@ wmt14_reader = paddle.batch(
     encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
    ```
 
-3. 接着，定义基于注意力机制的解码器框架。分为三步：
+1. 接着，定义基于注意力机制的解码器框架。分为三步：
 
-   3.1 对源语言序列编码后的结果（见2.3），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
+   1. 对源语言序列编码后的结果（见2.3），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
 
    ```python
     with paddle.layer.mixed(size=decoder_size) as encoded_proj:
         encoded_proj += paddle.layer.full_matrix_projection(
             input=encoded_vector)
    ```
-   3.2 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
+
+   1. 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
 
    ```python
     backward_first = paddle.layer.first_seq(input=src_backward)
@@ -302,7 +256,8 @@ wmt14_reader = paddle.batch(
         decoder_boot += paddle.layer.full_matrix_projection(
             input=backward_first)
    ```
-   3.3 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
+
+   1. 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
       - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot。
       - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
@@ -339,24 +294,23 @@ wmt14_reader = paddle.batch(
         return out
     ```
 
-4. 训练模式与生成模式下的解码器调用区别。
+1. 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
 
-   4.1 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
-
-   ```python
+	```python
     decoder_group_name = "decoder_group"
     group_input1 = paddle.layer.StaticInputV2(input=encoded_vector, is_seq=True)
     group_input2 = paddle.layer.StaticInputV2(input=encoded_proj, is_seq=True)
     group_inputs = [group_input1, group_input2]
-   ```
-   4.2 训练模式下的解码器调用：
+	```
 
-      - 首先，将目标语言序列的词向量trg_embedding，直接作为训练模式下的current_word传给`gru_decoder_with_attention`函数。
-      - 其次，使用`recurrent_group`函数循环调用`gru_decoder_with_attention`函数。
-      - 接着，使用目标语言的下一个词序列作为标签层lbl，即预测目标词。
-      - 最后，用多类交叉熵损失函数`classification_cost`来计算损失值。
+1. 训练模式下的解码器调用：
 
-   ```python
+   - 首先，将目标语言序列的词向量trg_embedding，直接作为训练模式下的current_word传给`gru_decoder_with_attention`函数。
+   - 其次，使用`recurrent_group`函数循环调用`gru_decoder_with_attention`函数。
+   - 接着，使用目标语言的下一个词序列作为标签层lbl，即预测目标词。
+   - 最后，用多类交叉熵损失函数`classification_cost`来计算损失值。
+
+	```python
     trg_embedding = paddle.layer.embedding(
         input=paddle.layer.data(
             name='target_language_word',
@@ -379,7 +333,8 @@ wmt14_reader = paddle.batch(
         name='target_language_next_word',
         type=paddle.data_type.integer_value_sequence(target_dict_dim))
     cost = paddle.layer.classification_cost(input=decoder, label=lbl)
-   ```
+	```
+
 注意：我们提供的配置在Bahdanau的论文\[[4](#参考文献)\]上做了一些简化，可参考[issue #1133](https://github.com/PaddlePaddle/Paddle/issues/1133)。
 
 ### 参数定义
@@ -387,7 +342,6 @@ wmt14_reader = paddle.batch(
 首先依据模型配置的`cost`定义模型参数。
 
 ```python
-# create parameters
 parameters = paddle.parameters.create(cost)
 ```
 
@@ -411,7 +365,7 @@ for param in parameters.keys():
                                  update_equation=optimizer)
     ```
 
-2. 构造event_handler
+1. 构造event_handler
 
     可以通过自定义回调函数来评估训练过程中的各种状态，比如错误率等。下面的代码通过event.batch_id % 10 == 0 指定没10个batch打印一次日志，包含cost等信息。
     ```python
@@ -422,7 +376,7 @@ for param in parameters.keys():
                     event.pass_id, event.batch_id, event.cost, event.metrics)
     ```
 
-3. 启动训练：
+1. 启动训练：
 
     ```python
     trainer.train(
@@ -438,22 +392,18 @@ for param in parameters.keys():
     ...
     ```
 
+	当`classification_error_evaluator`的值低于0.35的时候，表示训练成功。
 
 ## 应用模型
 
 ### 下载预训练的模型
 
 由于NMT模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了16个pass，其中每个pass耗时7个小时。因此，我们提供了一个预先训练好的模型（pass-00012）供大家直接下载使用。该模型大小为205MB，在所有16个模型中有最高的[BLEU评估](#BLEU评估)值26.92。下载并解压模型的命令如下：
+
 ```bash
 cd pretrained
 ./wmt14_model.sh
 ```
-
-### 应用命令与结果
-
-新版api尚未支持机器翻译的翻译过程，尽请期待。
-
-翻译结果请见[效果展示](#效果展示)。
 
 ### BLEU评估
 
