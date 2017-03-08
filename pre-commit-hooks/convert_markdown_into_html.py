@@ -1,8 +1,8 @@
-markdown_file=$1
+import argparse
+import re
+import sys
 
-# Notice: the single-quotes around EOF below make outputs
-# verbatium. c.f. http://stackoverflow.com/a/9870274/724872
-cat <<'EOF'
+HEAD = """
 <html>
 <head>
   <script type="text/x-mathjax-config">
@@ -10,8 +10,8 @@ cat <<'EOF'
     extensions: ["tex2jax.js", "TeX/AMSsymbols.js", "TeX/AMSmath.js"],
     jax: ["input/TeX", "output/HTML-CSS"],
     tex2jax: {
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-      displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+      inlineMath: [ ['$','$'] ],
+      displayMath: [ ['$$','$$'] ],
       processEscapes: true
     },
     "HTML-CSS": { availableFonts: ["TeX"] }
@@ -44,11 +44,9 @@ cat <<'EOF'
 
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
-EOF
+"""
 
-cat $markdown_file
-
-cat <<'EOF'
+TAIL = """
 </div>
 <!-- You can change the lines below now. -->
 
@@ -70,4 +68,28 @@ document.getElementById("context").innerHTML = marked(
         document.getElementById("markdown").innerHTML)
 </script>
 </body>
-EOF
+"""
+
+
+def convert_markdown_into_html(argv=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('filenames', nargs='*', help='Filenames to fix')
+    args = parser.parse_args(argv)
+
+    retv = 0
+
+    for filename in args.filenames:
+        with open(
+                re.sub(r"README", "index", re.sub(r"\.md$", ".html", filename)),
+                "w") as output:
+            output.write(HEAD)
+            with open(filename) as input:
+                for line in input:
+                    output.write(line)
+            output.write(TAIL)
+
+    return retv
+
+
+if __name__ == '__main__':
+    sys.exit(convert_markdown_into_html())
