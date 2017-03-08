@@ -75,8 +75,7 @@ settings(
     learning_method=MomentumOptimizer(momentum=0),
     learning_rate=2e-2,
     regularization=L2Regularization(8e-4),
-    model_average=ModelAverage(
-        average_window=0.5, max_average_window=10000), )
+    model_average=ModelAverage(average_window=0.5, max_average_window=10000), )
 
 ####################################### network ##############################
 #8 features and 1 target
@@ -102,13 +101,12 @@ std_default = ParameterAttribute(initial_std=default_std)
 predicate_embedding = embedding_layer(
     size=word_dim,
     input=predicate,
-    param_attr=ParameterAttribute(
-        name='vemb', initial_std=default_std))
+    param_attr=ParameterAttribute(name='vemb', initial_std=default_std))
 
 word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
 emb_layers = [
-    embedding_layer(
-        size=word_dim, input=x, param_attr=emb_para) for x in word_input
+    embedding_layer(size=word_dim, input=x, param_attr=emb_para)
+    for x in word_input
 ]
 emb_layers.append(predicate_embedding)
 mark_embedding = embedding_layer(
@@ -120,8 +118,8 @@ hidden_0 = mixed_layer(
     size=hidden_dim,
     bias_attr=std_default,
     input=[
-        full_matrix_projection(
-            input=emb, param_attr=std_default) for emb in emb_layers
+        full_matrix_projection(input=emb, param_attr=std_default)
+        for emb in emb_layers
     ])
 
 mix_hidden_lr = 1e-3
@@ -171,10 +169,8 @@ feature_out = mixed_layer(
     size=label_dict_len,
     bias_attr=std_default,
     input=[
-        full_matrix_projection(
-            input=input_tmp[0], param_attr=hidden_para_attr),
-        full_matrix_projection(
-            input=input_tmp[1], param_attr=lstm_para_attr)
+        full_matrix_projection(input=input_tmp[0], param_attr=hidden_para_attr),
+        full_matrix_projection(input=input_tmp[1], param_attr=lstm_para_attr)
     ], )
 
 if not is_predict:
