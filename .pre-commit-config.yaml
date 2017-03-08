@@ -6,6 +6,7 @@
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     sha: v0.7.1
     hooks:
+    -   id: check-merge-conflict
     -   id: check-symlinks
     -   id: detect-private-key
     -   id: end-of-file-fixer
