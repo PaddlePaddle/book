@@ -305,7 +305,7 @@ Ethird = wordemb(thirdword)
 Efourth = wordemb(fourthword)
 ```
 
-- Concat n-1 word embedding vectors into a single feature vector.
+- Concatenate n-1 word embedding vectors into a single feature vector.
 
 ```python
 contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
