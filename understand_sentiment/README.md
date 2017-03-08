@@ -231,9 +231,9 @@ if __name__ == '__main__':
 ```
 这里，`dataset.imdb.train()`和`dataset.imdb.test()`分别是`dataset.imdb`中的训练数据和测试数据API。`train_reader`在训练时使用，意义是将读取的训练数据进行shuffle后，组成一个batch数据。同理，`test_reader`是在测试的时候使用，将读取的测试数据组成一个batch。
 ```
-    reader_dict={'word': 0, 'label': 1}
+    feeding={'word': 0, 'label': 1}
 ```
-`reader_dict`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
+`feeding`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
 ### 构造模型
 ```
     # Please choose the way to build the network
@@ -270,7 +270,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
                 sys.stdout.write('.')
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(reader=test_reader, reader_dict=reader_dict)
+            result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 可以通过给train函数传递一个`event_handler`来获取每个batch和每个pass结束的状态。比如构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；在每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
@@ -283,7 +283,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
     trainer.train(
         reader=train_reader,
         event_handler=event_handler,
-        reader_dict=reader_dict,
+        feeding=feeding,
         num_passes=2)
 ```
 程序运行之后的输出如下。

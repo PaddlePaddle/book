@@ -117,7 +117,7 @@ if __name__ == '__main__':
     test_reader = paddle.batch(
         lambda: paddle.dataset.imdb.test(word_dict), batch_size=100)
 
-    reader_dict = {'word': 0, 'label': 1}
+    feeding = {'word': 0, 'label': 1}
 
     # network config
     # Please choose the way to build the network
@@ -144,7 +144,7 @@ if __name__ == '__main__':
                 sys.stdout.write('.')
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(reader=test_reader, reader_dict=reader_dict)
+            result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 
     # create trainer
@@ -155,5 +155,5 @@ if __name__ == '__main__':
     trainer.train(
         reader=train_reader,
         event_handler=event_handler,
-        reader_dict=reader_dict,
+        feeding=feeding,
         num_passes=2)
