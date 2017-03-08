@@ -89,7 +89,7 @@ def event_handler(event):
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
     if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(reader=paddle.reader.batched(
+        result = trainer.test(reader=paddle.batch(
             paddle.dataset.mnist.test(), batch_size=128))
         print "Test with Pass %d, Cost %f, %s\n" % (event.pass_id, result.cost,
                                                     result.metrics)
@@ -98,7 +98,7 @@ def event_handler(event):
 
 
 trainer.train(
-    reader=paddle.reader.batched(
+    reader=paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.mnist.train(), buf_size=8192),
         batch_size=128),
