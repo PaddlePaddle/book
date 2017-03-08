@@ -176,7 +176,7 @@ After modification, the model is as follows:
 
 
 <div  align="center">  
-<img src="image/db_lstm_en.png" width = "60%"  align=center /><br>
+<img src="image/db_lstm_network_en.png" width = "60%"  align=center /><br>
 Fig 6. DB-LSTM for SRL tasks
 </div>
 
@@ -254,7 +254,7 @@ print pred_len
 
 ## Model configuration
 
-- 1. Define input data dimensions and model hyperparameters.
+- Define input data dimensions and model hyperparameters.
 
 ```python
 mark_dict_len = 2    # Value range of region mark. Region mark is either 0 or 1, so range is 2
@@ -289,7 +289,7 @@ target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 
 Speciala note: hidden_dim = 512 means LSTM hidden vector of 128 dimension (512/4). Please refer PaddlePaddle official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
 
-- 2. The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
+- The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
 
 ```python  
 
@@ -318,7 +318,7 @@ emb_layers.append(predicate_embedding)
 emb_layers.append(mark_embedding)
 ```
 
-- 3. 8 LSTM units will be trained in "forward / backward" order.
+- 8 LSTM units will be trained in "forward / backward" order.
 
 ```python  
 hidden_0 = paddle.layer.mixed(
@@ -368,7 +368,7 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-- 4. We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
+- We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
 
  ```python
  feature_out = paddle.layer.mixed(
@@ -382,7 +382,7 @@ for i in range(1, depth):
  ], )
  ```
 
-- 5.  We use CRF as cost function, the parameter of CRF cost will be named `crfw`.
+- We use CRF as cost function, the parameter of CRF cost will be named `crfw`.
 
 ```python
 crf_cost = paddle.layer.crf(
@@ -395,7 +395,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- 6.  CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer.  The sharing of parameters among multiple layers is specified by the same parameter name in these layers.
+- CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer.  The sharing of parameters among multiple layers is specified by the same parameter name in these layers.
 
 ```python
 crf_dec = paddle.layer.crf_decoding(

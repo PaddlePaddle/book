@@ -152,8 +152,6 @@ Paddle在`dataset/imdb.py`中提实现了imdb数据集的自动下载和读取�
 
 ```
 import sys
-import paddle.trainer_config_helpers.attrs as attrs
-from paddle.trainer_config_helpers.poolings import MaxPooling
 import paddle.v2 as paddle
 ```
 ## 配置模型
@@ -201,11 +199,11 @@ def stacked_lstm_net(input_dim,
     """
     assert stacked_num % 2 == 1
 
-    layer_attr = attrs.ExtraLayerAttribute(drop_rate=0.5)
-    fc_para_attr = attrs.ParameterAttribute(learning_rate=1e-3)
-    lstm_para_attr = attrs.ParameterAttribute(initial_std=0., learning_rate=1.)
+    layer_attr = paddle.attr.Extra(drop_rate=0.5)
+    fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
+    lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
     para_attr = [fc_para_attr, lstm_para_attr]
-    bias_attr = attrs.ParameterAttribute(initial_std=0., l2_rate=0.)
+    bias_attr = paddle.attr.Param(initial_std=0., l2_rate=0.)
     relu = paddle.activation.Relu()
     linear = paddle.activation.Linear()
 
@@ -235,8 +233,8 @@ def stacked_lstm_net(input_dim,
             layer_attr=layer_attr)
         inputs = [fc, lstm]
 
-    fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=MaxPooling())
-    lstm_last = paddle.layer.pooling(input=inputs[1], pooling_type=MaxPooling())
+    fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=paddle.pooling.Max())
+    lstm_last = paddle.layer.pooling(input=inputs[1], pooling_type=paddle.pooling.Max())
     output = paddle.layer.fc(input=[fc_last, lstm_last],
                              size=class_dim,
                              act=paddle.activation.Softmax(),
@@ -275,9 +273,9 @@ if __name__ == '__main__':
 ```
 这里，`dataset.imdb.train()`和`dataset.imdb.test()`分别是`dataset.imdb`中的训练数据和测试数据API。`train_reader`在训练时使用，意义是将读取的训练数据进行shuffle后，组成一个batch数据。同理，`test_reader`是在测试的时候使用，将读取的测试数据组成一个batch。
 ```
-    reader_dict={'word': 0, 'label': 1}
+    feeding={'word': 0, 'label': 1}
 ```
-`reader_dict`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
+`feeding`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
 ### 构造模型
 ```
     # Please choose the way to build the network
@@ -314,7 +312,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
                 sys.stdout.write('.')
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(reader=test_reader, reader_dict=reader_dict)
+            result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 可以通过给train函数传递一个`event_handler`来获取每个batch和每个pass结束的状态。比如构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；在每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
@@ -327,7 +325,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
     trainer.train(
         reader=train_reader,
         event_handler=event_handler,
-        reader_dict=reader_dict,
+        feeding=feeding,
         num_passes=2)
 ```
 程序运行之后的输出如下。

@@ -446,6 +446,7 @@ settings(
 This tutorial will use the default SGD and Adam learning algorithm, with a learning rate of 5e-4. Note that the `batch_size = 50` denotes generating 50 sequence each time.
 
 ### Model Structure
+
 1. Define some global variables
 
    ```python
@@ -493,6 +494,7 @@ This tutorial will use the default SGD and Adam learning algorithm, with a learn
    with mixed_layer(size=decoder_size) as encoded_proj:
        encoded_proj += full_matrix_projection(input=encoded_vector)
    ```
+
    3.2 Use a non-linear transformation of the last hidden state of the backward GRU on the source language sentence as the initial state of the decoder RNN $c_0=h_T$
 
    ```python
@@ -502,6 +504,7 @@ This tutorial will use the default SGD and Adam learning algorithm, with a learn
            act=TanhActivation(), ) as decoder_boot:
        decoder_boot += full_matrix_projection(input=backward_first)
    ```
+
    3.3 Define the computation in each time step for the decoder RNN, i.e., according to the current context vector $c_i$, hidden state for the decoder $z_i$ and the $i$-th word $u_i$ in the target language to predict the probability $p_{i+1}$ for the $i+1$-th word.
 
       - decoder_mem records the hidden state $z_i$ from the previous time step, with an initial state as decoder_boot.
@@ -536,6 +539,7 @@ This tutorial will use the default SGD and Adam learning algorithm, with a learn
            out += full_matrix_projection(input=gru_step)
        return out
     ```
+
 4. Decoder differences between the training and generation
 
    4.1 Define the name for the decoder and the first two input for `gru_decoder_with_attention`. Note that `StaticInput` is used for the two inputs. Please refer to [StaticInput Document](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入) for more details.
@@ -546,6 +550,7 @@ This tutorial will use the default SGD and Adam learning algorithm, with a learn
    group_input2 =  StaticInput(input=encoded_proj, is_seq=True)
    group_inputs = [group_input1, group_input2]
    ```
+
    4.2 In training mode:
 
       - word embedding from the target langauge trg_embedding is passed to `gru_decoder_with_attention` as current_word.
@@ -571,6 +576,7 @@ This tutorial will use the default SGD and Adam learning algorithm, with a learn
        cost = classification_cost(input=decoder, label=lbl)
        outputs(cost)
    ```
+
    4.3 In generation mode:
 
       - during generation, as the decoder RNN will take the word vector generated from the previous time step as input, `GeneratedInput` is used to implement this automatically. Please refer to [GeneratedInput Document](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入) for details.

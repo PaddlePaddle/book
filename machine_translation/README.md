@@ -303,13 +303,11 @@ wmt14_reader = paddle.batch(
             input=backward_first)
    ```
    3.3 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
-
       - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot。
       - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。
-
 
    ```python
     def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
@@ -340,6 +338,7 @@ wmt14_reader = paddle.batch(
             out += paddle.layer.full_matrix_projection(input=gru_step)
         return out
     ```
+
 4. 训练模式与生成模式下的解码器调用区别。
 
    4.1 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
@@ -400,6 +399,7 @@ for param in parameters.keys():
 ```
 
 ### 训练模型
+
 1. 构造trainer
 
     根据优化目标cost,网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法。
@@ -409,7 +409,7 @@ for param in parameters.keys():
     trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
                                  update_equation=optimizer)
-```
+    ```
 
 2. 构造event_handler
 
@@ -421,6 +421,7 @@ for param in parameters.keys():
                 print "Pass %d, Batch %d, Cost %f, %s" % (
                     event.pass_id, event.batch_id, event.cost, event.metrics)
     ```
+
 3. 启动训练：
 
     ```python
@@ -435,7 +436,7 @@ for param in parameters.keys():
     Pass 0, Batch 0, Cost 247.408008, {'classification_error_evaluator': 1.0}
     Pass 0, Batch 10, Cost 212.058789, {'classification_error_evaluator': 0.8737863898277283}
     ...
-```
+    ```
 
 
 ## 应用模型
