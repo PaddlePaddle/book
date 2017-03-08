@@ -70,7 +70,7 @@ Fig. 3. Multilayer Perceptron network architecture<br/>
 #### Convolutional Layer
 
 <p align="center">
-<img src="image/conv_layer_en.png" width=500><br/>
+<img src="image/conv_layer.png" width=500><br/>
 Fig. 4. Convolutional layer<br/>
 </p>
 
