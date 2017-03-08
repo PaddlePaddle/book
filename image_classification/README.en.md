@@ -137,8 +137,6 @@ Figure 10. ResNet model for ImageNet
 
 ## Data Preparation
 
-### Data description and downloading
-
 Commonly used public datasets for image classification are CIFAR(https://www.cs.toronto.edu/~kriz/cifar.html), ImageNet(http://image-net.org/), COCO(http://mscoco.org/), etc. Those used for fine-grained image classification are CUB-200-2011(http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), Stanford Dog(http://vision.stanford.edu/aditya86/ImageNetDogs/), Oxford-flowers(http://www.robots.ox.ac.uk/~vgg/data/flowers/), etc. Among them, ImageNet are the largest and most research results are reported on ImageNet as mentioned in Model Overview section. Since 2010, the data of Imagenet has gone through some changes. The commonly used ImageNet-2012 dataset contains 1000 categories. There are 1,281,167 training images, ranging from 732 to 1200 images per category, and 50,000 validation images with 50 images per category in average.
 
 Since ImageNet is too large to be downloaded and trained efficiently, we use CIFAR-10 (https://www.cs.toronto.edu/~kriz/cifar.html) in this tutorial. The CIFAR-10 dataset consists of 60000 32x32 color images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images. Figure 11 shows all the classes in CIFAR-10 as well as 10 images randomly sampled from each category.
@@ -176,21 +174,21 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 
         The input to the network is defined as `paddle.layer.data`, or image pixels in the context of image classification. The images in CIFAR10 are 32x32 color images of three channels. Therefore, the size of the input data is 3072 (3x32x32), and the number of categories is 10.
 
-	```python
-	datadim = 3 * 32 * 32
-	classdim = 10
-	image = paddle.layer.data(
+    ```python
+    datadim = 3 * 32 * 32
+    classdim = 10
+    image = paddle.layer.data(
         name="image", type=paddle.data_type.dense_vector(datadim))
-	```
+    ```
 
 2. Define VGG main module
 
-	```python
-	net = vgg_bn_drop(image)
-	```
+    ```python
+    net = vgg_bn_drop(image)
+    ```
         The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
 
-	```python
+    ```python
     def vgg_bn_drop(input):
         def conv_block(ipt, num_filter, groups, dropouts, num_channels=None):
             return paddle.networks.img_conv_group(
@@ -219,7 +217,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
             layer_attr=paddle.attr.Extra(drop_rate=0.5))
         fc2 = paddle.layer.fc(input=bn, size=512, act=paddle.activation.Linear())
         return fc2
-	```
+    ```
 
         2.1. First defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
 
@@ -233,19 +231,19 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 
         The above VGG network extracts high-level features and maps them to a vector of the same size as the categories. Softmax function or classifier is then used for calculating the probability of the image belonging to each category.
 
-	```python
-	out = fc_layer(input=net, size=class_num, act=SoftmaxActivation())
-	```
+    ```python
+    out = fc_layer(input=net, size=class_num, act=SoftmaxActivation())
+    ```
 
 4. Define Loss Function and Outputs
 
         In the context of supervised learning, labels of training images are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
 
-	```python
+    ```python
     lbl = paddle.layer.data(
         name="label", type=paddle.data_type.integer_value(classdim))
     cost = paddle.layer.classification_cost(input=out, label=lbl)
-	```
+    ```
 
 ### ResNet
 
