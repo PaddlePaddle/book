@@ -74,15 +74,15 @@ In a simple softmax regression model, the input is fed to fully connected layers
 
 Input $X$ is multiplied with weights $W$, and bias $b$ is added to generate activations.
 
-$$ y_i = softmax(\sum_j W_{i,j}x_j + b_i) $$
+$$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
-where $ softmax(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
+where $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
 
 For an $N$ class classification problem with $N$ output nodes, an $N$ dimensional vector is normalized to $N$ real values in the range [0, 1], each representing the probability of the sample to belong to the class. Here $y_i$ is the prediction probability that an image is digit $i$.
 
 In such a classification problem, we usually use the cross entropy loss function:
 
-$$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
+$$  \text{crossentropy}(label, y) = -\sum_i label_ilog(y_i) $$
 
 Fig. 2 shows a softmax regression network, with weights in blue, and bias in red. +1 indicates bias is 1.
 
@@ -97,7 +97,7 @@ The Softmax regression model described above uses the simplest two-layer neural 
 
 1.  After the first hidden layer, we get $ H_1 = \phi(W_1X + b_1) $, where $\phi$ is the activation function. Some common ones are sigmoid, tanh and ReLU.
 2.  After the second hidden layer, we get $ H_2 = \phi(W_2H_1 + b_2) $.
-3.  Finally, after output layer, we get $Y=softmax(W_3H_2 + b_3)$, the final classification result vector.
+3.  Finally, after output layer, we get $Y=\text{softmax}(W_3H_2 + b_3)$, the final classification result vector.
 
 Fig. 3. is Multilayer Perceptron network, with weights in blue, and bias in red. +1 indicates bias is 1.
 
