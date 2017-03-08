@@ -174,6 +174,7 @@ e_{ij}&=align(z_i,h_j)\\\\
 
 ```python
 # 加载 paddle的python包
+import sys
 import paddle.v2 as paddle
 
 # 配置只使用cpu，并且使用一个cpu进行训练
@@ -359,7 +360,9 @@ for param in parameters.keys():
     根据优化目标cost,网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法。
 
     ```python
-    optimizer = paddle.optimizer.Adam(learning_rate=1e-4)
+    optimizer = paddle.optimizer.Adam(
+        learning_rate=5e-5,
+        regularization=paddle.optimizer.L2Regularization(rate=1e-3))
     trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
                                  update_equation=optimizer)
@@ -368,12 +371,16 @@ for param in parameters.keys():
 1. 构造event_handler
 
     可以通过自定义回调函数来评估训练过程中的各种状态，比如错误率等。下面的代码通过event.batch_id % 10 == 0 指定没10个batch打印一次日志，包含cost等信息。
+
     ```python
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):
             if event.batch_id % 10 == 0:
-                print "Pass %d, Batch %d, Cost %f, %s" % (
+                print "\nPass %d, Batch %d, Cost %f, %s" % (
                     event.pass_id, event.batch_id, event.cost, event.metrics)
+            else:
+                sys.stdout.write('.')
+                sys.stdout.flush()
     ```
 
 1. 启动训练：
@@ -385,12 +392,15 @@ for param in parameters.keys():
         num_passes=10000,
         feeding=feeding)
     ```
-    训练开始后，可以观察到event_handler输出的日志如下：
-    ```text
-    Pass 0, Batch 0, Cost 247.408008, {'classification_error_evaluator': 1.0}
-    Pass 0, Batch 10, Cost 212.058789, {'classification_error_evaluator': 0.8737863898277283}
-    ...
-    ```
+
+训练开始后，可以观察到event_handler输出的日志如下：
+
+```text
+Pass 0, Batch 0, Cost 148.444983, {'classification_error_evaluator': 1.0}
+.........
+Pass 0, Batch 10, Cost 335.896802, {'classification_error_evaluator': 0.9325153231620789}
+.........
+```
 
 	当`classification_error_evaluator`的值低于0.35的时候，表示训练成功。
 
