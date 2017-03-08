@@ -57,7 +57,7 @@ $$\hat c=max(c)$$
 $$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{h-1}+b_h)$$
 
 其中$W_{xh}$是输入到隐层的矩阵参数，$W_{hh}$是隐层到隐层的矩阵参数，$b_h$为隐层的偏置向量（bias）参数，$\sigma$为$sigmoid$函数。  
-  
+
 在处理自然语言时，一般会先将词（one-hot表示）映射为其词向量（word embedding）表示，然后再作为循环神经网络每一时刻的输入$x_t$。此外，可以根据实际需要的不同在循环神经网络的隐层上连接其它层。如，可以把一个循环神经网络的隐层输出连接至下一个循环神经网络的输入构建深层（deep or stacked）循环神经网络，或者提取最后一个时刻的隐层状态作为句子表示进而使用分类模型等等。  
 
 ### 长短期记忆网络（LSTM）
@@ -110,8 +110,6 @@ Paddle在`dataset/imdb.py`中提实现了imdb数据集的自动下载和读取�
 
 ```
 import sys
-import paddle.trainer_config_helpers.attrs as attrs
-from paddle.trainer_config_helpers.poolings import MaxPooling
 import paddle.v2 as paddle
 ```
 ## 配置模型
@@ -159,11 +157,11 @@ def stacked_lstm_net(input_dim,
     """
     assert stacked_num % 2 == 1
 
-    layer_attr = attrs.ExtraLayerAttribute(drop_rate=0.5)
-    fc_para_attr = attrs.ParameterAttribute(learning_rate=1e-3)
-    lstm_para_attr = attrs.ParameterAttribute(initial_std=0., learning_rate=1.)
+    layer_attr = paddle.attr.Extra(drop_rate=0.5)
+    fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
+    lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
     para_attr = [fc_para_attr, lstm_para_attr]
-    bias_attr = attrs.ParameterAttribute(initial_std=0., l2_rate=0.)
+    bias_attr = paddle.attr.Param(initial_std=0., l2_rate=0.)
     relu = paddle.activation.Relu()
     linear = paddle.activation.Linear()
 
@@ -193,8 +191,8 @@ def stacked_lstm_net(input_dim,
             layer_attr=layer_attr)
         inputs = [fc, lstm]
 
-    fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=MaxPooling())
-    lstm_last = paddle.layer.pooling(input=inputs[1], pooling_type=MaxPooling())
+    fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=paddle.pooling.Max())
+    lstm_last = paddle.layer.pooling(input=inputs[1], pooling_type=paddle.pooling.Max())
     output = paddle.layer.fc(input=[fc_last, lstm_last],
                              size=class_dim,
                              act=paddle.activation.Softmax(),

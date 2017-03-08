@@ -22,7 +22,7 @@ For a piece of text, BOW model ignores its word order, grammar and syntax, and r
 In this chapter, we introduce our deep learning model which handles these issues in BOW. Our model embeds texts into a low-dimensional space and takes word order into consideration. It is an end-to-end framework, and has large performance improvement over traditional methods \[[1](#Reference)\].
 
 ## Model Overview
-The model we used in this chapter is the CNN (Convolutional Neural Networks) and RNN (Recurrent Neural Networks) with some specific extension. 
+The model we used in this chapter is the CNN (Convolutional Neural Networks) and RNN (Recurrent Neural Networks) with some specific extension.
 
 
 ### Convolutional Neural Networks for Texts (CNN)
@@ -33,10 +33,10 @@ CNN mainly contains convolution and pooling operation, with various extensions. 
 
 <p align="center">
 <img src="image/text_cnn_en.png" width = "80%" align="center"/><br/>
-Figure 1. CNN for text modeling. 
+Figure 1. CNN for text modeling.
 </p>
 
-Assuming the length of the sentence is $n$, where the $i$-th word has embedding as $x_i\in\mathbb{R}^k$，where $k$ is the embedding dimensionality. 
+Assuming the length of the sentence is $n$, where the $i$-th word has embedding as $x_i\in\mathbb{R}^k$，where $k$ is the embedding dimensionality.
 
 First, we concatenate the words together: we piece every $h$ words as a window of length $h$: $x_{i:i+h-1}$. It refers to $x_{i},x_{i+1},\ldots,x_{i+h-1}$, where $i$ is the first word in the window, ranging from $1$ to $n-h+1$: $x_{i:i+h-1}\in\mathbb{R}^{hk}$.
 
@@ -60,7 +60,7 @@ RNN is an effective model for sequential data. Theoretical, the  computational a
 
 <p align="center">
 <img src="image/rnn.png" width = "60%" align="center"/><br/>
-Figure 2. An illustration of an unrolled RNN across “time”. 
+Figure 2. An illustration of an unrolled RNN across “time”.
 </p>
 As shown in Figure 2, we unroll an RNN: at $t$-th time step, the network takes the $t$-th input vector and the latent state from last time-step $h_{t-1}$ as inputs and compute the latent state of current step. The whole process is repeated until all inputs are consumed. If we regard the RNN as a function $f$, it can be formulated as:
 
@@ -140,7 +140,7 @@ If it runs successfully, `./data/pre-imdb` will contain:
 dict.txt  labels.list  test.list  test_part_000  train.list  train_part_000
 ```
 
-* test\_part\_000 和 train\_part\_000: all labeled training and testing set, and the training set is shuffled. 
+* test\_part\_000 和 train\_part\_000: all labeled training and testing set, and the training set is shuffled.
 * train.list and test.list: training and testing file-list (containing list of file names).
 * dict.txt: dictionary generated from training set.
 * labels.list: class label, 0 stands for negative while 1 for positive.
@@ -239,7 +239,7 @@ gradient_clipping_threshold=25)
 
 ### Model Structure
 We use PaddlePaddle to implement two classification algorithms, based on above mentioned model [Text-CNN](#Text-CNN（CNN）)和[Stacked-bidirectional LSTM](#Stacked-bidirectional LSTM（Stacked Bidirectional LSTM）)。
-#### Implementation of Text CNN 
+#### Implementation of Text CNN
 ```python
 def convolution_net(input_dim,
 class_dim=2,
@@ -477,7 +477,7 @@ predicting label is pos
 
 `10007_10.txt` in folder`./data/aclImdb/test/pos`, the predicted label is also pos，so the prediction is correct.
 ## Summary
-In this chapter, we use sentiment analysis as an example to introduce applying deep learning models on end-to-end short text classification, as well as how to use PaddlePaddle to implement the model. Meanwhile, we briefly introduce two models for text processing: CNN and RNN. In following chapters we will see how these models can be applied in other tasks. 
+In this chapter, we use sentiment analysis as an example to introduce applying deep learning models on end-to-end short text classification, as well as how to use PaddlePaddle to implement the model. Meanwhile, we briefly introduce two models for text processing: CNN and RNN. In following chapters we will see how these models can be applied in other tasks.
 ## Reference
 1. Kim Y. [Convolutional neural networks for sentence classification](http://arxiv.org/pdf/1408.5882)[J]. arXiv preprint arXiv:1408.5882, 2014.
 2. Kalchbrenner N, Grefenstette E, Blunsom P. [A convolutional neural network for modelling sentences](http://arxiv.org/pdf/1404.2188.pdf?utm_medium=App.net&utm_source=PourOver)[J]. arXiv preprint arXiv:1404.2188, 2014.

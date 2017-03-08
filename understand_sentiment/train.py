@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import sys
-import paddle.trainer_config_helpers.attrs as attrs
-from paddle.trainer_config_helpers.poolings import MaxPooling
 import paddle.v2 as paddle
 
 
@@ -54,11 +52,11 @@ def stacked_lstm_net(input_dim,
     """
     assert stacked_num % 2 == 1
 
-    layer_attr = attrs.ExtraLayerAttribute(drop_rate=0.5)
-    fc_para_attr = attrs.ParameterAttribute(learning_rate=1e-3)
-    lstm_para_attr = attrs.ParameterAttribute(initial_std=0., learning_rate=1.)
+    layer_attr = paddle.attr.Extra(drop_rate=0.5)
+    fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
+    lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
     para_attr = [fc_para_attr, lstm_para_attr]
-    bias_attr = attrs.ParameterAttribute(initial_std=0., l2_rate=0.)
+    bias_attr = paddle.attr.Param(initial_std=0., l2_rate=0.)
     relu = paddle.activation.Relu()
     linear = paddle.activation.Linear()
 
@@ -88,8 +86,10 @@ def stacked_lstm_net(input_dim,
             layer_attr=layer_attr)
         inputs = [fc, lstm]
 
-    fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=MaxPooling())
-    lstm_last = paddle.layer.pooling(input=inputs[1], pooling_type=MaxPooling())
+    fc_last = paddle.layer.pooling(
+        input=inputs[0], pooling_type=paddle.pooling.Max())
+    lstm_last = paddle.layer.pooling(
+        input=inputs[1], pooling_type=paddle.pooling.Max())
     output = paddle.layer.fc(input=[fc_last, lstm_last],
                              size=class_dim,
                              act=paddle.activation.Softmax(),
