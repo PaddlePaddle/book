@@ -144,7 +144,7 @@ Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
 
 For more details on Convolutional Neural Networks, please refer to [this Stanford open course]( http://cs231n.github.io/convolutional-networks/ ) and [this Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) tutorial.
 
-### List of Common Activation Functions
+### List of Common Activation Functions  
 - Sigmoid activation function: $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
 
 - Tanh activation function: $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
@@ -267,7 +267,7 @@ trainer = paddle.trainer.SGD(cost=cost,
                              update_equation=optimizer)
 ```
 
-Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`.  These two functions are *reader creators*, once called, returns a *reader*.  A reader is a Python function, which, once called, returns a Python generator, which yields instances of data.
+Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`.  These two functions are *reader creators*, once called, returns a *reader*.  A reader is a Python function, which, once called, returns a Python generator, which yields instances of data.  
 
 Here `shuffle` is a reader decorator, which takes a reader A as its parameter, and returns a new reader B, where B calls A to read in `buffer_size` data instances everytime into a buffer, then shuffles and yield instances in the buffer.  If you want very shuffled data, try use a larger buffer size.
 

@@ -113,7 +113,7 @@ where $W_{xh}$ is the weight matrix from input to latent; $W_{hh}$ is the latent
 In NLP, words are first represented as a one-hot vector and then mapped to an embedding. The embedded feature goes through an RNN as input $x_t$ at every time step. Moreover, we can add other layers on top of RNN. e.g., a deep or stacked RNN. Also, the last latent state can be used as a feature for sentence classification.
 
 ### Long-Short Term Memory
-For data of long sequence, training RNN sometimes has gradient vanishing and explosion problem \[[6](#)\]. To solve this problem Hochreiter S, Schmidhuber J. (1997) proposed the LSTM(long short term memory\[[5](#Refernce)\]).
+For data of long sequence, training RNN sometimes has gradient vanishing and explosion problem \[[6](#)\]. To solve this problem Hochreiter S, Schmidhuber J. (1997) proposed the LSTM(long short term memory\[[5](#Refernce)\]).  
 
 Compared with simple RNN, the structrue of LSTM has included memory cell $c$, input gate $i$, forget gate $f$ and output gate $o$. These gates and memory cells largely improves the ability of handling long sequences. We can formulate LSTM-RNN as a function $F$ as：
 
