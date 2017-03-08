@@ -127,6 +127,10 @@
     $('#content_iframe').on('load', function(){
         $("#content_iframe").height(200)  // trick code to shrink iframe size
         $("#content_iframe").height($('#content_iframe').contents().find("body").height()+20)
+        var alllinks = $('#content_iframe').contents().find("a")
+        for (var i =0; i<alllinks.length; ++i) {
+            alllinks[i].setAttribute("target", "_blank")
+        }
     });
     </script>
 </body>
