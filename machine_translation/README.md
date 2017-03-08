@@ -303,13 +303,11 @@ wmt14_reader = paddle.batch(
             input=backward_first)
    ```
    3.3 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
-
       - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot。
       - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
       - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。
-
 
    ```python
     def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
