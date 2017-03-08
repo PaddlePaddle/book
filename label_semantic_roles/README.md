@@ -52,7 +52,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 
 图3是最终得到的栈式循环神经网络结构示意图。
 
-<p align="center">    
+<p align="center">  
 <img src="./image/stacked_lstm.png" width = "40%"  align=center><br>
 图3. 基于LSTM的栈式循环神经网络结构示意图
 </p>
@@ -63,7 +63,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 
 为了克服这一缺陷，我们可以设计一种双向循环网络单元，它的思想简单且直接：对上一节的栈式循环神经网络进行一个小小的修改，堆叠多个LSTM单元，让每一层LSTM单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第2层开始，$t$时刻我们的LSTM单元便总是可以看到历史和未来的信息。图4是基于LSTM的双向循环神经网络结构示意图。
 
-<p align="center">    
+<p align="center">  
 <img src="./image/bidirectional_stacked_lstm.png" width = "60%" align=center><br>
 图4. 基于LSTM的双向循环神经网络结构示意图
 </p>
@@ -78,7 +78,7 @@ CRF是一种概率化结构模型，可以看作是一个概率无向图模型�
 
 序列标注任务只需要考虑输入和输出都是一个线性序列，并且由于我们只是将输入序列作为条件，不做任何条件独立假设，因此输入序列的元素之间并不存在图结构。综上，在序列标注任务中使用的是如图5所示的定义在链式图上的CRF，称之为线性链条件随机场（Linear Chain Conditional Random Field）。
 
-<p align="center">    
+<p align="center">  
 <img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
 图5. 序列标注任务中使用的线性链条件随机场
 </p>
@@ -122,15 +122,15 @@ $$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \fra
 3. 第2步的4个词向量序列作为双向LSTM模型的输入；LSTM模型学习输入序列的特征表示，得到新的特性表示序列；
 4. CRF以第3步中LSTM学习到的特征为输入，以标记序列为监督信号，完成序列标注；
 
-<div  align="center">    
+<div  align="center">  
 <img src="image/db_lstm_network.png" width = "60%"  align=center /><br>
 图6. SRL任务上的深层双向LSTM模型
 </div>
 
-## 数据准备
-### 数据介绍与下载
 
-在此教程中，我们选用[CoNLL 2005](http://www.cs.upc.edu/~srlconll/)SRL任务开放出的数据集作为示例。运行 `sh ./get_data.sh` 会自动从官方网站上下载原始数据。需要特别说明的是，CoNLL 2005 SRL任务的训练数集和开发集在比赛之后并非免费进行公开，目前，能够获取到的只有测试集，包括Wall Street Journal的23节和Brown语料集中的3节。在本教程中，我们以测试集中的WSJ数据为训练集来讲解模型。但是，由于测试集中样本的数量远远不够，如果希望训练一个可用的神经网络SRL系统，请考虑付费获取全量数据。
+## 数据介绍
+
+在此教程中，我们选用[CoNLL 2005](http://www.cs.upc.edu/~srlconll/)SRL任务开放出的数据集作为示例。需要特别说明的是，CoNLL 2005 SRL任务的训练数集和开发集在比赛之后并非免费进行公开，目前，能够获取到的只有测试集，包括Wall Street Journal的23节和Brown语料集中的3节。在本教程中，我们以测试集中的WSJ数据为训练集来讲解模型。但是，由于测试集中样本的数量远远不够，如果希望训练一个可用的神经网络SRL系统，请考虑付费获取全量数据。
 
 原始数据中同时包括了词性标注、命名实体识别、语法解析树等多种信息。本教程中，我们使用test.wsj文件夹中的数据进行训练和测试，并只会用到words文件夹（文本序列）和props文件夹（标注结果）下的数据。本教程使用的数据目录如下：
 
@@ -143,28 +143,25 @@ conll05st-release/
 
 标注信息源自Penn TreeBank\[[7](#参考文献)\]和PropBank\[[8](#参考文献)\]的标注结果。PropBank标注结果的标签和我们在文章一开始示例中使用的标注结果标签不同，但原理是相同的，关于标注结果标签含义的说明，请参考论文\[[9](#参考文献)\]。
 
-除数据之外，`get_data.sh`同时下载了以下资源：
-
-| 文件名称 | 说明 |
-|---|---|
-| word_dict | 输入句子的词典，共计44068个词 |
-| label_dict | 标记的词典，共计106个标记 |
-| predicate_dict | 谓词的词典，共计3162个词 |
-| emb | 一个训练好的词表，32维 |
-
-我们在英文维基百科上训练语言模型得到了一份词向量用来初始化SRL模型。在SRL模型训练过程中，词向量不再被更新。关于语言模型和词向量可以参考[词向量](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md) 这篇教程。我们训练语言模型的语料共有995,000,000个token，词典大小控制为4900,000词。CoNLL 2005训练语料中有5%的词不在这4900,000个词中，我们将它们全部看作未登录词，用`<unk>`表示。
-
-### 数据预处理
-脚本在下载数据之后，又调用了`extract_pair.py`和`extract_dict_feature.py`两个子脚本进行数据预处理，前者完成了下面的第1步，后者完成了下面的2~4步：
+原始数据需要进行数据预处理才能被PaddlePaddle处理，预处理包括下面几个步骤:
 
 1. 将文本序列和标记序列其合并到一条记录中；
 2. 一个句子如果含有$n$个谓词，这个句子会被处理$n$次，变成$n$条独立的训练样本，每个样本一个不同的谓词；
 3. 抽取谓词上下文和构造谓词上下文区域标记；
 4. 构造以BIO法表示的标记；
+5. 依据词典获取词对应的整数索引。
 
-`data/feature`文件是处理好的模型输入，一行是一条训练样本，以"\t"分隔，共9列，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。下表是一条训练样本的示例。
 
-| 句子序列 | 谓词 | 谓词上下文（窗口 = 5） | 谓词上下文区域标记 | 标注序列 | 
+```python
+# import paddle.v2.dataset.conll05 as conll05
+# conll05.corpus_reader函数完成上面第1步和第2步.
+# conll05.reader_creator函数完成上面第3步到第5步.
+# conll05.test函数可以获取处理之后的每条样本来供PaddlePaddle训练.
+```
+
+预处理完成之后一条训练样本包含9个特征，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。下表是一条训练样本的示例。
+
+| 句子序列 | 谓词 | 谓词上下文（窗口 = 5） | 谓词上下文区域标记 | 标注序列 |
 |---|---|---|---|---|
 | A | set | n't been set . × | 0 | B-A1 |
 | record | set | n't been set . × | 0 | I-A1 |
@@ -175,288 +172,282 @@ conll05st-release/
 | set | set | n't been set . × | 1 | B-V |
 | . | set | n't been set . × | 1 | O |
 
-### 提供数据给 PaddlePaddle
-1. 使用hook函数进行PaddlePaddle输入字段的格式定义。
 
-	```python
-	def hook(settings, word_dict, label_dict, predicate_dict, **kwargs):
-	    settings.word_dict = word_dict   # 获取句子序列的字典
-	    settings.label_dict = label_dict  # 获取标记序列的字典
-	    settings.predicate_dict = predicate_dict  # 获取谓词的字典
-	
-	    #  所有输入特征都是使用one-hot表示序列，在PaddlePaddle中是interger_value_sequence类型
-	    #  input_types是一个字典，字典中每个元素对应着配置中的一个data_layer，key恰好就是data_layer的名字
-	    
-	    settings.input_types = {
-		        'word_data': integer_value_sequence(len(word_dict)),    # 句子序列
-		        'ctx_n2_data': integer_value_sequence(len(word_dict)),  # 谓词上下文中的第1个词
-		        'ctx_n1_data': integer_value_sequence(len(word_dict)),  # 谓词上下文中的第2个词
-		        'ctx_0_data': integer_value_sequence(len(word_dict)),   # 谓词上下文中的第3个词
-		        'ctx_p1_data': integer_value_sequence(len(word_dict)),  # 谓词上下文中的第4个词
-		        'ctx_p2_data': integer_value_sequence(len(word_dict)),  # 谓词上下文中的第5个词
-		        'verb_data': integer_value_sequence(len(predicate_dict)),  # 谓词
-		        'mark_data': integer_value_sequence(2),  # 谓词上下文区域标记
-		        'target': integer_value_sequence(len(label_dict))  # 标记序列
-        }
-	```
+除数据之外，我们同时提供了以下资源：
 
-2. 使用process将数据逐一提供给PaddlePaddle，只需要考虑如何从原始数据文件中返回一条训练样本。
+| 文件名称 | 说明 |
+|---|---|
+| word_dict | 输入句子的词典，共计44068个词 |
+| label_dict | 标记的词典，共计106个标记 |
+| predicate_dict | 谓词的词典，共计3162个词 |
+| emb | 一个训练好的词表，32维 |
 
-	```python
-	def process(settings, file_name):
-	    with open(file_name, 'r') as fdata:
-	        for line in fdata:
-	            sentence, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2,  mark, label = \
-	                line.strip().split('\t')
-	
-	            # 句子文本
-	            words = sentence.split()
-	            sen_len = len(words)
-	            word_slot = [settings.word_dict.get(w, UNK_IDX) for w in words]
-	
-	            # 一个谓词，这里将谓词扩展成一个和句子一样长的序列
-	            predicate_slot = [settings.predicate_dict.get(predicate)] * sen_len
-	            
-	            # 在教程中，我们使用一个窗口为 5 的谓词上下文窗口：谓词和这个谓词前后隔两个词
-	            # 这里会将窗口中的每一个词，扩展成和输入句子一样长的序列
-	            ctx_n2_slot = [settings.word_dict.get(ctx_n2, UNK_IDX)] * sen_len
-	            ctx_n1_slot = [settings.word_dict.get(ctx_n1, UNK_IDX)] * sen_len
-	            ctx_0_slot = [settings.word_dict.get(ctx_0, UNK_IDX)] * sen_len
-	            ctx_p1_slot = [settings.word_dict.get(ctx_p1, UNK_IDX)] * sen_len
-	            ctx_p2_slot = [settings.word_dict.get(ctx_p2, UNK_IDX)] * sen_len
-	
-	            # 谓词上下文区域标记，是一个二值特征
-	            marks = mark.split()
-	            mark_slot = [int(w) for w in marks]
-	
-	            label_list = label.split()
-	            label_slot = [settings.label_dict.get(w) for w in label_list]
-	            yield {
-	                'word_data': word_slot,
-	                'ctx_n2_data': ctx_n2_slot,
-	                'ctx_n1_data': ctx_n1_slot,
-	                'ctx_0_data': ctx_0_slot,
-	                'ctx_p1_data': ctx_p1_slot,
-	                'ctx_p2_data': ctx_p2_slot,
-	                'verb_data': predicate_slot,
-	                'mark_data': mark_slot,
-	                'target': label_slot
-	            }	
-	```
+我们在英文维基百科上训练语言模型得到了一份词向量用来初始化SRL模型。在SRL模型训练过程中，词向量不再被更新。关于语言模型和词向量可以参考[词向量](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md) 这篇教程。我们训练语言模型的语料共有995,000,000个token，词典大小控制为4900,000词。CoNLL 2005训练语料中有5%的词不在这4900,000个词中，我们将它们全部看作未登录词，用`<unk>`表示。
+
+获取词典，打印词典大小：
+
+```python
+import math
+import numpy as np
+import paddle.v2 as paddle
+import paddle.v2.dataset.conll05 as conll05
+
+paddle.init(use_gpu=False, trainer_count=1)
+
+word_dict, verb_dict, label_dict = conll05.get_dict()
+word_dict_len = len(word_dict)
+label_dict_len = len(label_dict)
+pred_len = len(verb_dict)
+
+print word_dict_len
+print label_dict_len
+print pred_len
+```
 
 ## 模型配置说明
 
-### 数据定义
-
-首先通过 define_py_data_sources2 从dataprovider中读入数据。配置文件中会读取三个字典：输入文本序列的字典、标记的字典、谓词的字典，并传给data provider，data provider会利用这三个字典，将相应的文本输入转换成one-hot序列。
+- 1. 定义输入数据维度及模型超参数。
 
 ```python
-define_py_data_sources2(
-        train_list=train_list_file,
-        test_list=test_list_file,
-        module='dataprovider',
-        obj='process',
-        args={
-            'word_dict': word_dict,   # 输入文本序列的字典
-            'label_dict': label_dict, # 标记的字典
-            'predicate_dict': predicate_dict  # 谓词的词典
-        }
-)
+mark_dict_len = 2    # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
+word_dim = 32        # 词向量维度
+mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
+hidden_dim = 512     # LSTM隐层向量的维度 ： 512 / 4
+depth = 8            # 栈式LSTM的深度
+
+# 一条样本总共9个特征，下面定义了9个data层，每个层类型为integer_value_sequence，表示整数ID的序列类型.
+def d_type(size):
+    return paddle.data_type.integer_value_sequence(size)
+
+# 句子序列
+word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
+# 谓词
+predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len))
+
+# 谓词上下文5个特征
+ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len))
+ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
+ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
+ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
+ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
+
+# 谓词上下区域标志
+mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
+
+# 标注序列
+target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 ```
-### 算法配置
 
-在这里，我们指定了模型的训练参数，选择了$L_2$正则、学习率和batch size，并使用带Momentum的随机梯度下降法作为优化算法。
-
-```python
-settings(
-    batch_size=150,
-    learning_method=MomentumOptimizer(momentum=0),
-    learning_rate=2e-2,
-    regularization=L2Regularization(8e-4),
-    model_average=ModelAverage(average_window=0.5, max_average_window=10000)
-)
-```
-
-### 模型结构
-
-1. 定义输入数据维度及模型超参数。
-
-	```python
-	mark_dict_len = 2    # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
-	word_dim = 32        # 词向量维度
-	mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
-	hidden_dim = 512     # LSTM隐层向量的维度 ： 512 / 4
-	depth = 8            # 栈式LSTM的深度
-	
-	word = data_layer(name='word_data', size=word_dict_len)
-   predicate = data_layer(name='verb_data', size=pred_len)
-
-	ctx_n2 = data_layer(name='ctx_n2_data', size=word_dict_len)
-	ctx_n1 = data_layer(name='ctx_n1_data', size=word_dict_len)
-	ctx_0 = data_layer(name='ctx_0_data', size=word_dict_len)
-	ctx_p1 = data_layer(name='ctx_p1_data', size=word_dict_len)
-	ctx_p2 = data_layer(name='ctx_p2_data', size=word_dict_len)
-	mark = data_layer(name='mark_data', size=mark_dict_len)
-	
-	if not is_predict:
-	    target = data_layer(name='target', size=label_dict_len)    # 标记序列只在训练和测试流程中定义
-	```
 这里需要特别说明的是hidden_dim = 512指定了LSTM隐层向量的维度为128维，关于这一点请参考PaddlePaddle官方文档中[lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)的说明。
 
-2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
+- 2. 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
 
-	```python
-	
-	# 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
-	# is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
-	emb_para = ParameterAttribute(name='emb', initial_std=0., is_static=True)
-		
-	word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
-	emb_layers = [
-		    embedding_layer(
-		        size=word_dim, input=x, param_attr=emb_para) for x in word_input
-	]
-	emb_layers.append(predicate_embedding)
-	mark_embedding = embedding_layer(
-		    name='word_ctx-in_embedding', size=mark_dim, input=mark, param_attr=std_0)
-   emb_layers.append(mark_embedding)
-	```
+```python  
 
-3. 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
+# 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
+# is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
+emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
+# 设置超参数
+default_std = 1 / math.sqrt(hidden_dim) / 3.0
+std_default = paddle.attr.Param(initial_std=default_std)
+std_0 = paddle.attr.Param(initial_std=0.)
 
-	```python
-	#  std_0 指定的参数以均值为0的高斯分布初始化，用在LSTM的bias初始化中  
-	std_0 = ParameterAttribute(initial_std=0.)
-	
-	hidden_0 = mixed_layer(
-	    name='hidden0',
-	    size=hidden_dim,
-	    bias_attr=std_default,
-	    input=[
-	        full_matrix_projection(
-	            input=emb, param_attr=std_default) for emb in emb_layers
-	    ])
-	lstm_0 = lstmemory(
-	    name='lstm0',
-	    input=hidden_0,
-	    act=ReluActivation(),
-	    gate_act=SigmoidActivation(),
-	    state_act=SigmoidActivation(),
-	    bias_attr=std_0,
-	    param_attr=lstm_para_attr)
-		input_tmp = [hidden_0, lstm_0]
+predicate_embedding = paddle.layer.embedding(
+    size=word_dim,
+    input=predicate,
+    param_attr=paddle.attr.Param(
+        name='vemb', initial_std=default_std))
+mark_embedding = paddle.layer.embedding(
+    size=mark_dim, input=mark, param_attr=std_0)
 
-	for i in range(1, depth):
-	    mix_hidden = mixed_layer(
-	        name='hidden' + str(i),
-	        size=hidden_dim,
-	        bias_attr=std_default,
-	        input=[
-	            full_matrix_projection(
-	                input=input_tmp[0], param_attr=hidden_para_attr),
-	            full_matrix_projection(
-	                input=input_tmp[1], param_attr=lstm_para_attr)
-	        ])
-	    lstm = lstmemory(
-	        name='lstm' + str(i),
-	        input=mix_hidden,
-	        act=ReluActivation(),
-	        gate_act=SigmoidActivation(),
-	        state_act=SigmoidActivation(),
-	        reverse=((i % 2) == 1),
-	        bias_attr=std_0,
-	        param_attr=lstm_para_attr)
-	
-	    input_tmp = [mix_hidden, lstm]
-	```
-
-4. 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，经过一个全连接层映射到标记字典的维度，得到最终的特征向量表示。
-
-	```python
-	feature_out = mixed_layer(
-	    name='output',
-	    size=label_dict_len,
-	    bias_attr=std_default,
-	    input=[
-	        full_matrix_projection(
-	            input=input_tmp[0], param_attr=hidden_para_attr),
-	        full_matrix_projection(
-	            input=input_tmp[1], param_attr=lstm_para_attr)
-	    ], ) 
-	```
-
-5.  CRF层在网络的末端，完成序列标注。
-
-	```python
-	crf_l = crf_layer(
-	        name='crf',
-	        size=label_dict_len,
-	        input=feature_out,
-	        label=target,
-	        param_attr=ParameterAttribute(
-	            name='crfw', initial_std=default_std, learning_rate=mix_hidden_lr))
-	```
-
-## 训练模型
-执行`sh train.sh`进行模型的训练，其中指定了总共需要训练150个pass。
-
-```bash
-paddle train \
-  --config=./db_lstm.py \
-  --save_dir=./output \
-  --trainer_count=1 \
-  --dot_period=500 \
-  --log_period=10 \
-  --num_passes=200 \
-  --use_gpu=false \
-  --show_parameter_stats_period=10 \
-  --test_all_data_in_one_period=1 \
-2>&1 | tee 'train.log'
+word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
+emb_layers = [
+    paddle.layer.embedding(
+        size=word_dim, input=x, param_attr=emb_para) for x in word_input
+]
+emb_layers.append(predicate_embedding)
+emb_layers.append(mark_embedding)
 ```
 
-训练日志示例如下。
+- 3. 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
 
-```text
-I1224 18:11:53.661479  1433 TrainerInternal.cpp:165]  Batch=880 samples=145305 AvgCost=2.11541 CurrentCost=1.8645 Eval: __sum_evaluator_0__=0.607942  CurrentEval: __sum_evaluator_0__=0.59322
-I1224 18:11:55.254021  1433 TrainerInternal.cpp:165]  Batch=885 samples=146134 AvgCost=2.11408 CurrentCost=1.88156 Eval: __sum_evaluator_0__=0.607299  CurrentEval: __sum_evaluator_0__=0.494572
-I1224 18:11:56.867604  1433 TrainerInternal.cpp:165]  Batch=890 samples=146987 AvgCost=2.11277 CurrentCost=1.88839 Eval: __sum_evaluator_0__=0.607203  CurrentEval: __sum_evaluator_0__=0.590856
-I1224 18:11:58.424069  1433 TrainerInternal.cpp:165]  Batch=895 samples=147793 AvgCost=2.11129 CurrentCost=1.84247 Eval: __sum_evaluator_0__=0.607099  CurrentEval: __sum_evaluator_0__=0.588089
-I1224 18:12:00.006893  1433 TrainerInternal.cpp:165]  Batch=900 samples=148611 AvgCost=2.11148 CurrentCost=2.14526 Eval: __sum_evaluator_0__=0.607882  CurrentEval: __sum_evaluator_0__=0.749389
-I1224 18:12:00.164089  1433 TrainerInternal.cpp:181]  Pass=0 Batch=901 samples=148647 AvgCost=2.11195 Eval: __sum_evaluator_0__=0.60793
+```python  
+hidden_0 = paddle.layer.mixed(
+size=hidden_dim,
+bias_attr=std_default,
+input=[
+    paddle.layer.full_matrix_projection(
+        input=emb, param_attr=std_default) for emb in emb_layers
+])
+
+mix_hidden_lr = 1e-3
+lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
+hidden_para_attr = paddle.attr.Param(
+    initial_std=default_std, learning_rate=mix_hidden_lr)
+
+lstm_0 = paddle.layer.lstmemory(
+    input=hidden_0,
+    act=paddle.activation.Relu(),
+    gate_act=paddle.activation.Sigmoid(),
+    state_act=paddle.activation.Sigmoid(),
+    bias_attr=std_0,
+    param_attr=lstm_para_attr)
+
+#stack L-LSTM and R-LSTM with direct edges
+input_tmp = [hidden_0, lstm_0]
+
+for i in range(1, depth):
+    mix_hidden = paddle.layer.mixed(
+        size=hidden_dim,
+        bias_attr=std_default,
+        input=[
+            paddle.layer.full_matrix_projection(
+                input=input_tmp[0], param_attr=hidden_para_attr),
+            paddle.layer.full_matrix_projection(
+                input=input_tmp[1], param_attr=lstm_para_attr)
+        ])
+
+    lstm = paddle.layer.lstmemory(
+        input=mix_hidden,
+        act=paddle.activation.Relu(),
+        gate_act=paddle.activation.Sigmoid(),
+        state_act=paddle.activation.Sigmoid(),
+        reverse=((i % 2) == 1),
+        bias_attr=std_0,
+        param_attr=lstm_para_attr)
+
+    input_tmp = [mix_hidden, lstm]
 ```
-经过150个 pass 后，得到平均 error 约为 0.0516055。
 
-## 应用模型
-
-训练好的$N$个pass，会得到$N$个模型，我们需要从中选择一个最优模型进行预测。通常做法是在开发集上进行调参，并基于我们关心的某个性能指标选择最优模型。本教程的`predict.sh`脚本简单地选择了测试集上标记错误最少的那个pass（这里是pass-00100）用于预测。
-
-预测时，我们需要将配置中的 `crf_layer` 删掉，替换为 `crf_decoding_layer`，如下所示：
+- 4. 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，经过一个全连接层映射到标记字典的维度，得到最终的特征向量表示。
 
 ```python
-crf_dec_l = crf_decoding_layer(
-        name='crf_dec_l',
-        size=label_dict_len,
-        input=feature_out,
-        param_attr=ParameterAttribute(name='crfw'))
+feature_out = paddle.layer.mixed(
+size=label_dict_len,
+bias_attr=std_default,
+input=[
+    paddle.layer.full_matrix_projection(
+        input=input_tmp[0], param_attr=hidden_para_attr),
+    paddle.layer.full_matrix_projection(
+        input=input_tmp[1], param_attr=lstm_para_attr)
+], )
 ```
 
-运行`python predict.py`脚本，便可使用指定的模型进行预测。
+- 5. 网络的末端定义CRF层计算损失(cost)，指定参数名字为 `crfw`，该层需要输入正确的数据标签(target)。
 
-```bash
-python predict.py
-     -c db_lstm.py  # 指定配置文件
-     -w output/pass-00100  # 指定预测使用的模型所在的路径
-     -l data/targetDict.txt  # 指定标记的字典
-     -p data/verbDict.txt  # 指定谓词的词典
-     -d data/wordDict.txt # 指定输入文本序列的字典
-     -i data/feature  # 指定输入数据的路径
-     -o predict.res  # 指定标记结果输出到文件的路径
+```python
+crf_cost = paddle.layer.crf(
+    size=label_dict_len,
+    input=feature_out,
+    label=target,
+    param_attr=paddle.attr.Param(
+        name='crfw',
+        initial_std=default_std,
+        learning_rate=mix_hidden_lr))
 ```
 
-预测结束后，在 - o 参数所指定的标记结果文件中，我们会得到如下格式的输出：每行是一条样本，以 “\t” 分隔的 2 列，第一列是输入文本，第二列是标记的结果。通过BIO标记可以直接得到论元的语义角色标签。
+- 6. CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。
 
-```text
-The interest-only securities were priced at 35 1\/2 to yield 10.72 % .  B-A0 I-A0 I-A0 O O O O O O B-V B-A1 I-A1 O
+```python
+crf_dec = paddle.layer.crf_decoding(
+   name='crf_dec_l',
+   size=label_dict_len,
+   input=feature_out,
+   label=target,
+   param_attr=paddle.attr.Param(name='crfw'))
+```
+
+## 训练模型
+
+### 定义参数
+
+首先依据模型配置的`crf_cost`定义模型参数。
+
+```python
+# create parameters
+parameters = paddle.parameters.create([crf_cost, crf_dec])
+```
+
+可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
+
+```python
+print parameters.keys()
+```
+
+如上文提到，我们用基于英文维基百科训练好的词向量来初始化序列输入、谓词上下文总共6个特征的embedding层参数，在训练中不更新。
+
+```python
+# 这里加载PaddlePaddle上版保存的二进制模型
+def load_parameter(file_name, h, w):
+    with open(file_name, 'rb') as f:
+        f.read(16)
+        return np.fromfile(f, dtype=np.float32).reshape(h, w)
+parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
+```
+
+### 构造训练(Trainer)
+
+然后根据网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法(momentum设置为0)，同时设定了学习率、正则等。
+
+```python
+# create optimizer
+optimizer = paddle.optimizer.Momentum(
+    momentum=0,
+    learning_rate=2e-2,
+    regularization=paddle.optimizer.L2Regularization(rate=8e-4),
+    model_average=paddle.optimizer.ModelAverage(
+        average_window=0.5, max_average_window=10000), )
+
+trainer = paddle.trainer.SGD(cost=crf_cost,
+                             parameters=parameters,
+                             update_equation=optimizer)
+```
+
+### 训练
+
+数据介绍部分提到CoNLL 2005训练集付费，这里我们使用测试集训练供大家学习。`conll05.test()`每次产生一条样本，包含9个特征，shuffle和组完batch后作为训练的输入。
+
+```python
+reader = paddle.batch(
+    paddle.reader.shuffle(
+        conll05.test(), buf_size=8192), batch_size=20)
+```
+
+通过`feeding`来指定每一个数据和data_layer的对应关系。 例如 下面`feeding`表示: `conll05.test()`产生数据的第0列对应`word_data`层的特征。
+
+
+```python
+feeding = {
+    'word_data': 0,
+    'ctx_n2_data': 1,
+    'ctx_n1_data': 2,
+    'ctx_0_data': 3,
+    'ctx_p1_data': 4,
+    'ctx_p2_data': 5,
+    'verb_data': 6,
+    'mark_data': 7,
+    'target': 8
+}
+```
+
+可以使用`event_handler`回调函数来观察训练过程，或进行测试等。这里我们打印了训练过程的cost，该回调函数是`trainer.train`函数里设定。
+
+```python
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f" % (
+                event.pass_id, event.batch_id, event.cost)
+```
+
+通过`trainer.train`函数训练：
+
+```python
+trainer.train(
+    reader=reader,
+    event_handler=event_handler,
+    num_passes=10000,
+    feeding=feeding)
 ```
 
 ## 总结

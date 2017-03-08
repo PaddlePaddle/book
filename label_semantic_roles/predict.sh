@@ -19,7 +19,7 @@ function get_best_pass() {
   cat $1  | grep -Pzo 'Test .*\n.*pass-.*' | \
   sed  -r 'N;s/Test.* cost=([0-9]+\.[0-9]+).*\n.*pass-([0-9]+)/\1 \2/g' | \
   sort -n | head -n 1
-}   
+}
 
 log=train.log
 LOG=`get_best_pass $log`
@@ -28,11 +28,11 @@ best_model_path="output/pass-${LOG[1]}"
 
 config_file=db_lstm.py
 dict_file=./data/wordDict.txt
-label_file=./data/targetDict.txt 
+label_file=./data/targetDict.txt
 predicate_dict_file=./data/verbDict.txt
 input_file=./data/feature
 output_file=predict.res
- 
+
 python predict.py \
      -c $config_file \
      -w $best_model_path \
