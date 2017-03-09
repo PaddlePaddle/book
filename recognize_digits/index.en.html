@@ -42,7 +42,7 @@
 <div id="markdown" style='display:none'>
 # Recognize Digits
 
-The source code for this tutorial is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits). First-time readers, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
+The source code for this tutorial is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits). First-time readers, please refer to PaddlePaddle [installation instructions](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Introduction
 When we learn a new programming language, the first task is usually to write a program that prints "Hello World." In Machine Learning or Deep Learning, the equivalent task is to train a model to perform handwritten digit recognition with [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a typical image classification problem. The problem is relatively easy, and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1). The input image is a 28x28 matrix, and the label is one of the digits from 0 to 9. Each image is normalized in size and centered.
@@ -74,15 +74,15 @@ In a simple softmax regression model, the input is fed to fully connected layers
 
 Input $X$ is multiplied with weights $W$, and bias $b$ is added to generate activations.
 
-$$ y_i = softmax(\sum_j W_{i,j}x_j + b_i) $$
+$$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
-where $ softmax(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
+where $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
 
 For an $N$ class classification problem with $N$ output nodes, an $N$ dimensional vector is normalized to $N$ real values in the range [0, 1], each representing the probability of the sample to belong to the class. Here $y_i$ is the prediction probability that an image is digit $i$.
 
 In such a classification problem, we usually use the cross entropy loss function:
 
-$$  crossentropy(label, y) = -\sum_i label_ilog(y_i) $$
+$$  \text{crossentropy}(label, y) = -\sum_i label_ilog(y_i) $$
 
 Fig. 2 shows a softmax regression network, with weights in blue, and bias in red. +1 indicates bias is 1.
 
@@ -97,7 +97,7 @@ The Softmax regression model described above uses the simplest two-layer neural 
 
 1.  After the first hidden layer, we get $ H_1 = \phi(W_1X + b_1) $, where $\phi$ is the activation function. Some common ones are sigmoid, tanh and ReLU.
 2.  After the second hidden layer, we get $ H_2 = \phi(W_2H_1 + b_2) $.
-3.  Finally, after output layer, we get $Y=softmax(W_3H_2 + b_3)$, the final classification result vector.
+3.  Finally, after output layer, we get $Y=\text{softmax}(W_3H_2 + b_3)$, the final classification result vector.
 
 Fig. 3. is Multilayer Perceptron network, with weights in blue, and bias in red. +1 indicates bias is 1.
 
@@ -112,7 +112,7 @@ Fig. 3. Multilayer Perceptron network architecture<br/>
 #### Convolutional Layer
 
 <p align="center">
-<img src="image/conv_layer_en.png" width=500><br/>
+<img src="image/conv_layer.png" width='750'><br/>
 Fig. 4. Convolutional layer<br/>
 </p>
 
@@ -282,7 +282,7 @@ def event_handler(event):
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
     if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(reader=paddle.reader.batched(
+        result = trainer.test(reader=paddle.batch(
             paddle.dataset.mnist.test(), batch_size=128))
         print "Test with Pass %d, Cost %f, %s\n" % (
             event.pass_id, result.cost, result.metrics)
@@ -290,7 +290,7 @@ def event_handler(event):
                       result.metrics['classification_error_evaluator']))
 
 trainer.train(
-    reader=paddle.reader.batched(
+    reader=paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.mnist.train(), buf_size=8192),
         batch_size=128),
@@ -335,10 +335,10 @@ This tutorial describes a few basic Deep Learning models viz. Softmax regression
 7. Deng, Li, Michael L. Seltzer, Dong Yu, Alex Acero, Abdel-rahman Mohamed, and Geoffrey E. Hinton. ["Binary coding of speech spectrograms using a deep auto-encoder."](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.185.1908&rep=rep1&type=pdf) In Interspeech, pp. 1692-1695. 2010.
 8. Kégl, Balázs, and Róbert Busa-Fekete. ["Boosting products of base classifiers."](http://dl.acm.org/citation.cfm?id=1553439) In Proceedings of the 26th Annual International Conference on Machine Learning, pp. 497-504. ACM, 2009.
 9. Rosenblatt, Frank. ["The perceptron: A probabilistic model for information storage and organization in the brain."](http://psycnet.apa.org/journals/rev/65/6/386/) Psychological review 65, no. 6 (1958): 386.
-10. Bishop, Christopher M. ["Pattern recognition."](http://s3.amazonaws.com/academia.edu.documents/30428242/bg0137.pdf?AWSAccessKeyId=AKIAJ56TQJRTWSMTNPEA&Expires=1484816640&Signature=85Ad6%2Fca8T82pmHzxaSXermovIA%3D&response-content-disposition=inline%3B%20filename%3DPattern_recognition_and_machine_learning.pdf) Machine Learning 128 (2006): 1-58.
+10. Bishop, Christopher M. ["Pattern recognition."](http://users.isr.ist.utl.pt/~wurmd/Livros/school/Bishop%20-%20Pattern%20Recognition%20And%20Machine%20Learning%20-%20Springer%20%202006.pdf) Machine Learning 128 (2006): 1-58.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This book</span> is created by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and uses <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Shared knowledge signature - non commercial use-Sharing 4.0 International Licensing Protocal</a>.
+This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
 
 </div>
 <!-- You can change the lines below now. -->

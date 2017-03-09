@@ -40,15 +40,14 @@ def db_lstm():
     predicate_embedding = paddle.layer.embedding(
         size=word_dim,
         input=predicate,
-        param_attr=paddle.attr.Param(
-            name='vemb', initial_std=default_std))
+        param_attr=paddle.attr.Param(name='vemb', initial_std=default_std))
     mark_embedding = paddle.layer.embedding(
         size=mark_dim, input=mark, param_attr=std_0)
 
     word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
     emb_layers = [
-        paddle.layer.embedding(
-            size=word_dim, input=x, param_attr=emb_para) for x in word_input
+        paddle.layer.embedding(size=word_dim, input=x, param_attr=emb_para)
+        for x in word_input
     ]
     emb_layers.append(predicate_embedding)
     emb_layers.append(mark_embedding)
@@ -109,13 +108,12 @@ def db_lstm():
                 input=input_tmp[1], param_attr=lstm_para_attr)
         ], )
 
-    crf_cost = paddle.layer.crf(size=label_dict_len,
-                                input=feature_out,
-                                label=target,
-                                param_attr=paddle.attr.Param(
-                                    name='crfw',
-                                    initial_std=default_std,
-                                    learning_rate=mix_hidden_lr))
+    crf_cost = paddle.layer.crf(
+        size=label_dict_len,
+        input=feature_out,
+        label=target,
+        param_attr=paddle.attr.Param(
+            name='crfw', initial_std=default_std, learning_rate=mix_hidden_lr))
 
     crf_dec = paddle.layer.crf_decoding(
         name='crf_dec_l',
@@ -151,13 +149,11 @@ def main():
         model_average=paddle.optimizer.ModelAverage(
             average_window=0.5, max_average_window=10000), )
 
-    trainer = paddle.trainer.SGD(cost=crf_cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+    trainer = paddle.trainer.SGD(
+        cost=crf_cost, parameters=parameters, update_equation=optimizer)
 
     reader = paddle.batch(
-        paddle.reader.shuffle(
-            conll05.test(), buf_size=8192), batch_size=10)
+        paddle.reader.shuffle(conll05.test(), buf_size=8192), batch_size=10)
 
     feeding = {
         'word_data': 0,

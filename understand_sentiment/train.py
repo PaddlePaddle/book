@@ -24,9 +24,8 @@ def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
         input=emb, context_len=3, hidden_size=hid_dim)
     conv_4 = paddle.networks.sequence_conv_pool(
         input=emb, context_len=4, hidden_size=hid_dim)
-    output = paddle.layer.fc(input=[conv_3, conv_4],
-                             size=class_dim,
-                             act=paddle.activation.Softmax())
+    output = paddle.layer.fc(
+        input=[conv_3, conv_4], size=class_dim, act=paddle.activation.Softmax())
     lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
     cost = paddle.layer.classification_cost(input=output, label=lbl)
     return cost
@@ -64,20 +63,19 @@ def stacked_lstm_net(input_dim,
                              paddle.data_type.integer_value_sequence(input_dim))
     emb = paddle.layer.embedding(input=data, size=emb_dim)
 
-    fc1 = paddle.layer.fc(input=emb,
-                          size=hid_dim,
-                          act=linear,
-                          bias_attr=bias_attr)
+    fc1 = paddle.layer.fc(
+        input=emb, size=hid_dim, act=linear, bias_attr=bias_attr)
     lstm1 = paddle.layer.lstmemory(
         input=fc1, act=relu, bias_attr=bias_attr, layer_attr=layer_attr)
 
     inputs = [fc1, lstm1]
     for i in range(2, stacked_num + 1):
-        fc = paddle.layer.fc(input=inputs,
-                             size=hid_dim,
-                             act=linear,
-                             param_attr=para_attr,
-                             bias_attr=bias_attr)
+        fc = paddle.layer.fc(
+            input=inputs,
+            size=hid_dim,
+            act=linear,
+            param_attr=para_attr,
+            bias_attr=bias_attr)
         lstm = paddle.layer.lstmemory(
             input=fc,
             reverse=(i % 2) == 0,
@@ -90,11 +88,12 @@ def stacked_lstm_net(input_dim,
         input=inputs[0], pooling_type=paddle.pooling.Max())
     lstm_last = paddle.layer.pooling(
         input=inputs[1], pooling_type=paddle.pooling.Max())
-    output = paddle.layer.fc(input=[fc_last, lstm_last],
-                             size=class_dim,
-                             act=paddle.activation.Softmax(),
-                             bias_attr=bias_attr,
-                             param_attr=para_attr)
+    output = paddle.layer.fc(
+        input=[fc_last, lstm_last],
+        size=class_dim,
+        act=paddle.activation.Softmax(),
+        bias_attr=bias_attr,
+        param_attr=para_attr)
 
     lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
     cost = paddle.layer.classification_cost(input=output, label=lbl)
@@ -117,7 +116,7 @@ if __name__ == '__main__':
     test_reader = paddle.batch(
         lambda: paddle.dataset.imdb.test(word_dict), batch_size=100)
 
-    reader_dict = {'word': 0, 'label': 1}
+    feeding = {'word': 0, 'label': 1}
 
     # network config
     # Please choose the way to build the network
@@ -144,16 +143,15 @@ if __name__ == '__main__':
                 sys.stdout.write('.')
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(reader=test_reader, reader_dict=reader_dict)
+            result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 
     # create trainer
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=adam_optimizer)
+    trainer = paddle.trainer.SGD(
+        cost=cost, parameters=parameters, update_equation=adam_optimizer)
 
     trainer.train(
         reader=train_reader,
         event_handler=event_handler,
-        reader_dict=reader_dict,
+        feeding=feeding,
         num_passes=2)

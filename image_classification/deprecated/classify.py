@@ -44,8 +44,9 @@ def vis_square(data, fname):
          (0, 1))  # add some space between filters
         + ((0, 0), ) *
         (data.ndim - 3))  # don't pad the last dimension (if there is one)
-    data = np.pad(data, padding, mode='constant',
-                  constant_values=1)  # pad with ones (white)
+    data = np.pad(
+        data, padding, mode='constant',
+        constant_values=1)  # pad with ones (white)
     # tile the filters into an image
     data = data.reshape((n, n) + data.shape[1:]).transpose((0, 2, 1, 3) + tuple(
         range(4, data.ndim + 1)))

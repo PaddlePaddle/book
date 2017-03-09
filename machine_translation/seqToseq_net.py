@@ -110,8 +110,7 @@ group_inputs = [group_input1, group_input2]
 
 if not is_generating:
     trg_embedding = embedding_layer(
-        input=data_layer(
-            name='target_language_word', size=target_dict_dim),
+        input=data_layer(name='target_language_word', size=target_dict_dim),
         size=word_vector_dim,
         param_attr=ParamAttr(name='_target_language_embedding'))
     group_inputs.append(trg_embedding)
@@ -156,8 +155,7 @@ else:
 
     seqtext_printer_evaluator(
         input=beam_gen,
-        id_input=data_layer(
-            name="sent_id", size=1),
+        id_input=data_layer(name="sent_id", size=1),
         dict_file=trg_lang_dict,
         result_file=gen_trans_file)
     outputs(beam_gen)
