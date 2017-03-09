@@ -39,7 +39,7 @@ HEAD = """
 
 <body>
 
-<div id="context" class="container markdown-body">
+<div id="context" class="container-fluid markdown-body">
 </div>
 
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->

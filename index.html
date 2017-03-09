@@ -1,77 +1,172 @@
-
-<html>
+<!DOCTYPE html>
+<html lang="zh-Hans">
 <head>
-  <script type="text/x-mathjax-config">
-  MathJax.Hub.Config({
-    extensions: ["tex2jax.js", "TeX/AMSsymbols.js", "TeX/AMSmath.js"],
-    jax: ["input/TeX", "output/HTML-CSS"],
-    tex2jax: {
-      inlineMath: [ ['$','$'] ],
-      displayMath: [ ['$$','$$'] ],
-      processEscapes: true
-    },
-    "HTML-CSS": { availableFonts: ["TeX"] }
-  });
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js" async></script>
-  <script type="text/javascript" src="../.tmpl/marked.js">
-  </script>
-  <link href="http://cdn.bootcss.com/highlight.js/9.9.0/styles/darcula.min.css" rel="stylesheet">
-  <script src="http://cdn.bootcss.com/highlight.js/9.9.0/highlight.min.js"></script>
-  <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/perfect-scrollbar/0.6.14/css/perfect-scrollbar.min.css" rel="stylesheet">
-  <link href="../.tmpl/github-markdown.css" rel='stylesheet'>
-</head>
-<style type="text/css" >
-.markdown-body {
-    box-sizing: border-box;
-    min-width: 200px;
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 45px;
+    <meta charset="UTF-8">
+    <title>深度学习入门</title>
+    <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://cdn.bootcss.com/tether/1.4.0/js/tether.js"></script>
+    <script src="http://cdn.bootcss.com/jquery/3.1.0/jquery.slim.js"></script>
+    <script src="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"></script>
+    <style>
+* {
+    font-family:"Roboto","Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
 }
-</style>
+.left-panel {
+    background: #E5E6EA;
+}
+
+.left-panel .card-block a.click_active {
+    background-color: #597cf1;
+    color: #fff;
+}
+ 
+.left-panel .card-header {
+    background: #ecedee;
+}
 
 
+.left-panel .card-header a {
+    font-size: 14px;
+}
+
+
+.left-panel .card-block a:not(.click_active) {
+    background: #e4e6e9;
+}
+
+.left-panel .card-block a {
+    border-radius: 0px;
+    font-size: 13px;
+    color: #2F323A;
+    padding-left: 40px;
+    border: 1px solid rgba(0,0,0,.125);
+}
+
+.left-panel .card-block a.active_color {
+    color:  rgb(70, 74, 76);
+    font-weight: bolder;
+}
+
+.left-panel .list-group-item {
+    -moz-box-align: center;
+    align-items: center;
+    display: flex;
+    flex-flow: row wrap;
+    margin-bottom: -1px;
+    padding: 0.75rem 1.25rem;
+    position: relative;
+    color: #2f323a;
+}
+
+.navbar img {
+    height: 90%;
+    width: 90%;
+}
+
+   </style>
+</head>
 <body>
-
-<div id="context" class="container markdown-body">
-</div>
-
-<!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
-<div id="markdown" style='display:none'>
-# 深度学习入门
-
-1. [新手入门](http://book.paddlepaddle.org/fit_a_line)
-1. [识别数字](http://book.paddlepaddle.org/recognize_digits)
-1. [图像分类](http://book.paddlepaddle.org/image_classification)
-1. [词向量](http://book.paddlepaddle.org/word2vec)
-1. [情感分析](http://book.paddlepaddle.org/understand_sentiment)
-1. [语义角色标注](http://book.paddlepaddle.org/label_semantic_roles)
-1. [机器翻译](http://book.paddlepaddle.org/machine_translation)
-1. [个性化推荐](http://book.paddlepaddle.org/recommender_system)
-
-
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
-
-</div>
-<!-- You can change the lines below now. -->
-
-<script type="text/javascript">
-marked.setOptions({
-  renderer: new marked.Renderer(),
-  gfm: true,
-  breaks: false,
-  smartypants: true,
-  highlight: function(code, lang) {
-    code = code.replace(/&amp;/g, "&")
-    code = code.replace(/&gt;/g, ">")
-    code = code.replace(/&lt;/g, "<")
-    code = code.replace(/&nbsp;/g, " ")
-    return hljs.highlightAuto(code, [lang]).value;
-  }
-});
-document.getElementById("context").innerHTML = marked(
-        document.getElementById("markdown").innerHTML)
-</script>
+    <nav class="navbar navbar-toggleable-md navbar-inverse bg-inverse">
+        <a class="navbar-brand mr-auto" href="#">
+            <img alt="PaddlePaddle" src="./.theme/PP_w.png">
+        </a>
+        <ul class="nav navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="http://paddlepaddle.org">
+                首页
+            </a>
+          </li>
+          <li class="nav-item active">
+            <a class="nav-link" href="#">
+                深度学习入门
+            </a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" href="./index.en.html">
+                English
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://github.com/PaddlePaddle/book/">Fork on Github</a>
+          </li>
+        </ul>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-3 pl-1 pr-1 left-panel">
+                <div id="accordion" role="tablist" aria-multiselectable="true">
+                  <div class="card">
+                    <div class="card-header" role="tab" id="headingOne">
+                      <h5 class="mb-0">
+                        <a aria-expanded="true" aria-controls="collapseOne">
+                            深度学习入门
+                        </a>
+                      </h5>
+                    </div>
+                    <div id="collapseOne" class="rounded-0 collapse show" role="tabpanel" aria-labelledby="headingOne">
+                      <div class="card-block pl-0 pr-0 pt-0 pb-0">
+                        <div class="list-group ">
+                          
+                            <a href="./fit_a_line/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                新手入门
+                            </a>
+                          
+                            <a href="./recognize_digits/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                识别数字
+                            </a>
+                          
+                            <a href="./image_classification/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                图像分类
+                            </a>
+                          
+                            <a href="./word2vec/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                词向量
+                            </a>
+                          
+                            <a href="./understand_sentiment/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                情感分析
+                            </a>
+                          
+                            <a href="./label_semantic_roles/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                语义角色标注
+                            </a>
+                          
+                            <a href="./machine_translation/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                机器翻译
+                            </a>
+                          
+                            <a href="./recommender_system/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                个性化推荐
+                            </a>
+                          
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            <div class="col">
+                <iframe src="./fit_a_line/index.html" style="border: none; overflow-y : hidden" width="100%" height="100%" name="content_iframe" id="content_iframe">
+                </iframe>
+            </div>
+        </div>
+    </div>
+    <script>
+    $('#content_iframe').on('load', function(){
+        $("#content_iframe").height(200)  // trick code to shrink iframe size
+        var body = $('#content_iframe').contents().find("body")
+        body.css("overflow-y", "hidden")
+        $("#content_iframe").height(body.height()+20)
+        var alllinks = $('#content_iframe').contents().find("a")
+        for (var i =0; i<alllinks.length; ++i) {
+            alllinks[i].setAttribute("target", "_blank")
+        }
+    });
+    $(".list-group a").click(function(){ 
+       $(".list-group a.click_active").removeClass("click_active"); 
+       $(this).addClass("click_active"); 
+    })
+    $($(".list-group a")[0]).addClass("click_active") 
+    </script>
 </body>
+</html>
