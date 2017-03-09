@@ -184,11 +184,6 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 2. Define VGG main module
 
     ```python
-    net = vgg_bn_drop(image)
-    ```
-        The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
-
-    ```python
     def vgg_bn_drop(input):
         def conv_block(ipt, num_filter, groups, dropouts, num_channels=None):
             return paddle.networks.img_conv_group(
@@ -217,7 +212,12 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
             layer_attr=paddle.attr.Extra(drop_rate=0.5))
         fc2 = paddle.layer.fc(input=bn, size=512, act=paddle.activation.Linear())
         return fc2
+   
+    net = vgg_bn_drop(image)
+   
     ```
+
+        The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
 
         2.1. First defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
 
@@ -232,7 +232,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
         The above VGG network extracts high-level features and maps them to a vector of the same size as the categories. Softmax function or classifier is then used for calculating the probability of the image belonging to each category.
 
     ```python
-    out = fc_layer(input=net, size=class_num, act=SoftmaxActivation())
+    out = fc_layer(input=net, size=classdim, act=paddle.activation.Softmax())
     ```
 
 4. Define Loss Function and Outputs
@@ -248,10 +248,6 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 ### ResNet
 
 The first, third and forth steps of a ResNet are the same as a VGG. The second one is the main module.
-
-```python
-net = resnet_cifar10(data, depth=32)
-```
 
 Here are some basic functions used in `resnet_cifar10`:
 
@@ -324,6 +320,10 @@ def resnet_cifar10(ipt, depth=32):
     pool = paddle.layer.img_pool(
         input=res3, pool_size=8, stride=1, pool_type=paddle.pooling.Avg())
     return pool
+```
+
+```python
+# net = resnet_cifar10(data, depth=32)
 ```
 
 ## Model Training
@@ -408,7 +408,7 @@ Finally, we can invoke `trainer.train` to start training:
 ```python
 trainer.train(
     reader=reader,
-    num_passes=200,
+    num_passes=2,
     event_handler=event_handler,
     feeding=feeding)
 ```
