@@ -102,7 +102,7 @@ paddle.init(use_gpu=False)
 
 ```python
 # Run this block to show dataset's documentation
-# help(paddle.dataset.movielens)
+help(paddle.dataset.movielens)
 ```
 
 在原始数据中包含电影的特征数据，用户的特征数据，和用户对电影的评分。
