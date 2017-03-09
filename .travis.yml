@@ -19,7 +19,7 @@ before_install:
   -  pip install -U virtualenv pre-commit pip
   -  GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 script:
-  - travis/precommit.sh
+  -  PATH=/tmp/go/bin:$PATH travis/precommit.sh
 notifications:
   email:
     on_success: change
