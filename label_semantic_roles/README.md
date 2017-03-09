@@ -1,6 +1,6 @@
 # 语义角色标注
 
-本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
 ## 背景介绍
 

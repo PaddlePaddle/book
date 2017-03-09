@@ -1,6 +1,6 @@
 # 机器翻译
 
-本教程源代码目录在[book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+本教程源代码目录在[book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/machine_translation)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
 ## 背景介绍
 
@@ -297,12 +297,12 @@ wmt14_reader = paddle.batch(
 
 1. 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
 
-	```python
+    ```python
     decoder_group_name = "decoder_group"
     group_input1 = paddle.layer.StaticInputV2(input=encoded_vector, is_seq=True)
     group_input2 = paddle.layer.StaticInputV2(input=encoded_proj, is_seq=True)
     group_inputs = [group_input1, group_input2]
-	```
+    ```
 
 1. 训练模式下的解码器调用：
 
@@ -311,7 +311,7 @@ wmt14_reader = paddle.batch(
    - 接着，使用目标语言的下一个词序列作为标签层lbl，即预测目标词。
    - 最后，用多类交叉熵损失函数`classification_cost`来计算损失值。
 
-	```python
+    ```python
     trg_embedding = paddle.layer.embedding(
         input=paddle.layer.data(
             name='target_language_word',
@@ -334,7 +334,7 @@ wmt14_reader = paddle.batch(
         name='target_language_next_word',
         type=paddle.data_type.integer_value_sequence(target_dict_dim))
     cost = paddle.layer.classification_cost(input=decoder, label=lbl)
-	```
+    ```
 
 注意：我们提供的配置在Bahdanau的论文\[[4](#参考文献)\]上做了一些简化，可参考[issue #1133](https://github.com/PaddlePaddle/Paddle/issues/1133)。
 
@@ -402,7 +402,7 @@ Pass 0, Batch 10, Cost 335.896802, {'classification_error_evaluator': 0.93251532
 .........
 ```
 
-	当`classification_error_evaluator`的值低于0.35的时候，表示训练成功。
+    当`classification_error_evaluator`的值低于0.35的时候，表示训练成功。
 
 ## 应用模型
 

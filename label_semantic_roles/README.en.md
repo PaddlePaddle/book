@@ -2,6 +2,8 @@
 
 Source code of this chapter is in [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
 
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
+
 ## Background
 
 Natural Language Analysis contains three components: Lexical Analysis, Syntactic Analysis, and Semantic Analysis. Semantic Role Labelling (SRL) is one way for Shallow Semantic Analysis. A predicate of a sentence is a property that a subject possesses or is characterized, such as what it does, what it is or how it is, which mostly corresponds to the core of an event. The noun associated with a predicate is called Argument. Semantic roles express the abstract roles that arguments of a predicate can take in the event, such as Agent, Patient, Theme, Experiencer, Beneficiary, Instrument, Location, Goal and Source, etc.

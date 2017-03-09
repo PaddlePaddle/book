@@ -1,6 +1,6 @@
 # Sentiment Analysis
 
-The source codes of this section can be located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
+The source codes of this section can be located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Background
 

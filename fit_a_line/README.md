@@ -1,7 +1,7 @@
 # 线性回归
 让我们从经典的线性回归（Linear Regression \[[1](#参考文献)\]）模型开始这份教程。在这一章里，你将使用真实的数据集建立起一个房价预测模型，并且了解到机器学习中的若干重要概念。
 
-本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/fit_a_line)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/fit_a_line)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
 ## 背景介绍
 给定一个大小为$n$的数据集  ${\{y_{i}, x_{i1}, ..., x_{id}\}}_{i=1}^{n}$，其中$x_{i1}, \ldots, x_{id}$是第$i$个样本$d$个属性上的取值，$y_i$是该样本待预测的目标。线性回归模型假设目标$y_i$可以被属性间的线性组合描述，即
@@ -15,8 +15,8 @@ $$y_i = \omega_1x_{i1} + \omega_2x_{i2} + \ldots + \omega_dx_{id} + b,  i=1,\ldo
 ## 效果展示
 我们使用从[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)获得的波士顿房价数据集进行模型的训练和预测。下面的散点图展示了使用模型对部分房屋价格进行的预测。其中，每个点的横坐标表示同一类房屋真实价格的中位数，纵坐标表示线性回归模型根据特征预测的结果，当二者值完全相等的时候就会落在虚线上。所以模型预测得越准确，则点离虚线越近。
 <p align="center">
-	<img src = "image/predictions.png" width=400><br/>
-	图1. 预测值 V.S. 真实值
+    <img src = "image/predictions.png" width=400><br/>
+    图1. 预测值 V.S. 真实值
 </p>
 
 ## 模型概览
@@ -96,8 +96,8 @@ import paddle.v2.dataset.uci_housing as uci_housing
 - 很多的机器学习技巧/模型（例如L1，L2正则项，向量空间模型-Vector Space Model）都基于这样的假设：所有的属性取值都差不多是以0为均值且取值范围相近的。
 
 <p align="center">
-	<img src = "image/ranges.png" width=550><br/>
-	图2. 各维属性的取值范围
+    <img src = "image/ranges.png" width=550><br/>
+    图2. 各维属性的取值范围
 </p>
 
 #### 整理训练集与测试集
