@@ -1,10 +1,10 @@
--   repo: https://github.com/reyoung/mirrors-yapf.git
-    sha: v0.13.2
+-   repo: https://github.com/pre-commit/mirrors-yapf.git
+    sha: v0.16.0
     hooks:
-    - id: yapf
-      files: (.*\.(py|bzl)|BUILD|.*\.BUILD|WORKSPACE)$  # Bazel BUILD files follow Python syntax.
+    -   id: yapf
+        files: \.py$
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    sha: v0.7.1
+    sha: a11d9314b22d8f8c7556443875b731ef05965464
     hooks:
     -   id: check-merge-conflict
     -   id: check-symlinks
@@ -13,7 +13,7 @@
         files: \.md$
     -   id: trailing-whitespace
         files: \.md$
--   repo: git://github.com/Lucas-C/pre-commit-hooks
+-   repo: https://github.com/Lucas-C/pre-commit-hooks
     sha: v1.0.1
     hooks:
     -   id: forbid-crlf
@@ -24,11 +24,11 @@
         files: \.md$
     -   id: remove-tabs
         files: \.md$
-- repo: local
-  hooks:
-    -  id: convert-markdown-into-html
-       name: convert-markdown-into-html
-       description: "Convert README.md into index.html and README.en.md into index.en.html"
-       entry: python pre-commit-hooks/convert_markdown_into_html.py
-       language: system
-       files: \.md$
+-   repo: local
+    hooks:
+    -   id: convert-markdown-into-html
+        name: convert-markdown-into-html
+        description: Convert README.md into index.html and README.en.md into index.en.html
+        entry: python pre-commit-hooks/convert_markdown_into_html.py
+        language: system
+        files: \.md$

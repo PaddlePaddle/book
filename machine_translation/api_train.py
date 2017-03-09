@@ -105,9 +105,8 @@ def main():
 
     # define optimize method and trainer
     optimizer = paddle.optimizer.Adam(learning_rate=1e-4)
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+    trainer = paddle.trainer.SGD(
+        cost=cost, parameters=parameters, update_equation=optimizer)
 
     # define data reader
     feeding = {

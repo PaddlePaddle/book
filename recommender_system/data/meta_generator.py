@@ -208,8 +208,8 @@ class EmbeddingFieldParser(object):
         elif config['dict']['type'] == 'split':
             self.dict = SplitEmbeddingDict(config['dict'].get('delimiter', ','))
         elif config['dict']['type'] == 'whole_content':
-            self.dict = EmbeddingFieldParser.WholeContentDict(config['dict'][
-                'sort'])
+            self.dict = EmbeddingFieldParser.WholeContentDict(
+                config['dict']['sort'])
         else:
             print config
             assert False
