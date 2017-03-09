@@ -1,5 +1,4 @@
-图像分类
-=======
+# 图像分类
 
 本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
