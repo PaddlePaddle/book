@@ -35,14 +35,14 @@
 
 <body>
 
-<div id="context" class="container markdown-body">
+<div id="context" class="container-fluid markdown-body">
 </div>
 
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
 # 情感分析
 
-本教程源代码目录在[book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+本教程源代码目录在[book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
 ## 背景介绍
 在自然语言处理中，情感分析一般是指判断一段文本所表达的情绪状态。其中，一段文本可以是一个句子，一个段落或一个文档。情绪状态可以是两类，如（正面，负面），（高兴，悲伤）；也可以是三类，如（积极，消极，中性）等等。情感分析的应用场景十分广泛，如把用户在购物网站（亚马逊、天猫、淘宝等）、旅游网站、电影评论网站上发表的评论分成正面评论和负面评论；或为了分析用户对于某一产品的整体使用感受，抓取产品的用户评论并进行情感分析等等。表格1展示了对电影评论进行情感分析的例子：
@@ -150,14 +150,14 @@ aclImdb
 ```
 Paddle在`dataset/imdb.py`中提实现了imdb数据集的自动下载和读取，并提供了读取字典、训练数据、测试数据等API。
 
-```
+```python
 import sys
 import paddle.v2 as paddle
 ```
 ## 配置模型
 在该示例中，我们实现了两种文本分类算法，分别基于上文所述的[文本卷积神经网络](#文本卷积神经网络（CNN）)和[栈式双向LSTM](#栈式双向LSTM（Stacked Bidirectional LSTM）)。
 ### 文本卷积神经网络
-```
+```python
 def convolution_net(input_dim,
                     class_dim=2,
                     emb_dim=128,
@@ -178,7 +178,7 @@ def convolution_net(input_dim,
 ```
 网络的输入`input_dim`表示的是词典的大小，`class_dim`表示类别数。这里，我们使用[`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API实现了卷积和池化操作。
 ### 栈式双向LSTM
-```
+```python
 def stacked_lstm_net(input_dim,
                      class_dim=2,
                      emb_dim=128,
@@ -247,7 +247,7 @@ def stacked_lstm_net(input_dim,
 ```
 网络的输入`stacked_num`表示的是LSTM的层数，需要是奇数，确保最高层LSTM正向。Paddle里面是通过一个fc和一个lstmemory来实现基于LSTM的循环神经网络。
 ## 训练模型
-```
+```python
 if __name__ == '__main__':
     # init
     paddle.init(use_gpu=False)
@@ -255,14 +255,14 @@ if __name__ == '__main__':
 启动paddle程序，use_gpu=False表示用CPU训练，如果系统支持GPU也可以修改成True使用GPU训练。
 ### 训练数据
 使用Paddle提供的数据集`dataset.imdb`中的API来读取训练数据。
-```
+```python
     print 'load dictionary...'
     word_dict = paddle.dataset.imdb.word_dict()
     dict_dim = len(word_dict)
     class_dim = 2
 ```
 加载数据字典，这里通过`word_dict()`API可以直接构造字典。`class_dim`是指样本类别数，该示例中样本只有正负两类。
-```
+```python
     train_reader = paddle.batch(
         paddle.reader.shuffle(
             lambda: paddle.dataset.imdb.train(word_dict), buf_size=1000),
@@ -272,12 +272,12 @@ if __name__ == '__main__':
         batch_size=100)
 ```
 这里，`dataset.imdb.train()`和`dataset.imdb.test()`分别是`dataset.imdb`中的训练数据和测试数据API。`train_reader`在训练时使用，意义是将读取的训练数据进行shuffle后，组成一个batch数据。同理，`test_reader`是在测试的时候使用，将读取的测试数据组成一个batch。
+```python
+    feeding={'word': 0, 'label': 1}
 ```
-    reader_dict={'word': 0, 'label': 1}
-```
-`reader_dict`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
+`feeding`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
 ### 构造模型
-```
+```python
     # Please choose the way to build the network
     # by uncommenting the corresponding line.
     cost = convolution_net(dict_dim, class_dim=class_dim)
@@ -285,13 +285,13 @@ if __name__ == '__main__':
 ```
 该示例中默认使用`convolution_net`网络，如果使用`stacked_lstm_net`网络，注释相应的行即可。其中cost是网络的优化目标，同时cost包含了整个网络的拓扑信息。
 ### 网络参数
-```
+```python
     # create parameters
     parameters = paddle.parameters.create(cost)
 ```
 根据网络的拓扑构造网络参数。这里parameters是整个网络的参数集。
 ### 优化算法
-```
+```python
     # create optimizer
     adam_optimizer = paddle.optimizer.Adam(
         learning_rate=2e-3,
@@ -301,7 +301,7 @@ if __name__ == '__main__':
 Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
 ### 训练
 可以通过`paddle.trainer.SGD`构造一个sgd trainer，并调用`trainer.train`来训练模型。
-```
+```python
     # End batch and end pass event handler
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):
@@ -312,11 +312,11 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
                 sys.stdout.write('.')
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
-            result = trainer.test(reader=test_reader, reader_dict=reader_dict)
+            result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 可以通过给train函数传递一个`event_handler`来获取每个batch和每个pass结束的状态。比如构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；在每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
-```
+```python
     # create trainer
     trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
@@ -325,11 +325,11 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
     trainer.train(
         reader=train_reader,
         event_handler=event_handler,
-        reader_dict=reader_dict,
+        feeding=feeding,
         num_passes=2)
 ```
 程序运行之后的输出如下。
-```
+```text
 Pass 0, Batch 0, Cost 0.693721, {'classification_error_evaluator': 0.5546875}
 ...................................................................................................
 Pass 0, Batch 100, Cost 0.294321, {'classification_error_evaluator': 0.1015625}

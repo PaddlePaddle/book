@@ -1,7 +1,6 @@
-图像分类
-=======
+# 图像分类
 
-本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
 ## 背景介绍
 
@@ -173,24 +172,24 @@ paddle.init(use_gpu=False, trainer_count=1)
 
 1. 定义数据输入及其维度
 
-	网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)，类别大小为10，即10分类。
+    网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)，类别大小为10，即10分类。
 
-	```python
+    ```python
     datadim = 3 * 32 * 32
     classdim = 10
 
     image = paddle.layer.data(
         name="image", type=paddle.data_type.dense_vector(datadim))
-	```
+    ```
 
 2. 定义VGG网络核心模块
 
-	```python
-	net = vgg_bn_drop(image)
-	```
-	VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
+    ```python
+    net = vgg_bn_drop(image)
+    ```
+    VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
 
-	```python
+    ```python
     def vgg_bn_drop(input):
         def conv_block(ipt, num_filter, groups, dropouts, num_channels=None):
             return paddle.networks.img_conv_group(
@@ -219,40 +218,40 @@ paddle.init(use_gpu=False, trainer_count=1)
             layer_attr=paddle.attr.Extra(drop_rate=0.5))
         fc2 = paddle.layer.fc(input=bn, size=512, act=paddle.activation.Linear())
         return fc2
-	```
+    ```
 
-	2.1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 `Conv->BN->ReLu->Dropout` 和 一组 `Pooling` 组成，
+    2.1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 `Conv->BN->ReLu->Dropout` 和 一组 `Pooling` 组成，
 
-	2.2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
+    2.2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
 
-	2.3. 最后接两层512维的全连接。
+    2.3. 最后接两层512维的全连接。
 
 3. 定义分类器
 
-	通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
+    通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
 
-	```python
+    ```python
     out = paddle.layer.fc(input=net,
                           size=classdim,
                           act=paddle.activation.Softmax())
-	```
+    ```
 
 4. 定义损失函数和网络输出
 
-	在有监督训练中需要输入图像对应的类别信息，同样通过`paddle.layer.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
+    在有监督训练中需要输入图像对应的类别信息，同样通过`paddle.layer.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
 
-	```python
+    ```python
     lbl = paddle.layer.data(
         name="label", type=paddle.data_type.integer_value(classdim))
     cost = paddle.layer.classification_cost(input=out, label=lbl)
-	```
+    ```
 
 ### ResNet
 
 ResNet模型的第1、3、4步和VGG模型相同，这里不再介绍。主要介绍第2步即CIFAR10数据集上ResNet核心模块。
 
 ```python
-net = resnet_cifar10(data, depth=56)
+net = resnet_cifar10(image, depth=56)
 ```
 
 先介绍`resnet_cifar10`中的一些基本函数，再介绍网络连接过程。
@@ -375,7 +374,7 @@ $$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
 cifar.train10()每次产生一条样本，在完成shuffle和batch之后，作为训练的输入。
 
 ```python
-reader=paddle.reader.batch(
+reader=paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.cifar.train10(), buf_size=50000),
         batch_size=128)
@@ -402,10 +401,9 @@ def event_handler(event):
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
         result = trainer.test(
-            reader=paddle.reader.batch(
+            reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
-            reader_dict={'image': 0,
-                         'label': 1})
+            feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 

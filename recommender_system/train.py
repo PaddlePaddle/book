@@ -1,62 +1,123 @@
-import paddle.layer
-import paddle.model
-import paddle.optimizer
-import paddle.datasets.movielens
+import paddle.v2 as paddle
+import cPickle
+import copy
 
 
 def main():
+    paddle.init(use_gpu=False)
+    movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
+    uid = paddle.layer.data(
+        name='user_id',
+        type=paddle.data_type.integer_value(
+            paddle.dataset.movielens.max_user_id() + 1))
+    usr_emb = paddle.layer.embedding(input=uid, size=32)
 
-    paddle.init(use_gpu = True)
+    usr_gender_id = paddle.layer.data(
+        name='gender_id', type=paddle.data_type.integer_value(2))
+    usr_gender_emb = paddle.layer.embedding(input=usr_gender_id, size=16)
 
-    # Keras
-    (X_train, y_train), (X_test, y_test) = paddle.datasets.movielens.load_data('xxx')
+    usr_age_id = paddle.layer.data(
+        name='age_id',
+        type=paddle.data_type.integer_value(
+            len(paddle.dataset.movielens.age_table)))
+    usr_age_emb = paddle.layer.embedding(input=usr_age_id, size=16)
 
-    embsize = 256
+    usr_job_id = paddle.layer.data(
+        name='job_id',
+        type=paddle.data_type.integer_value(
+            paddle.dataset.movielens.max_job_id() + 1))
 
-    # It's better if we can refactor network, but I did not figure out now.
+    usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
 
-    # construct movie feature
-    mv_id = paddle.layer.data('mv_id', size = xxx)
-    title = paddle.layer.data('title', size = xxx)
-    geres = paddle.layer.data('geres', size = xxx)
+    usr_combined_features = paddle.layer.fc(
+        input=[usr_emb, usr_gender_emb, usr_age_emb, usr_job_emb],
+        size=200,
+        act=paddle.activation.Tanh())
 
-    movie_id_emb = paddle.layer.embedding(input=mv_id, size=embsize)
-    movie_id_hid = paddle.layer.fc(input=movie_id_emb, size=embsize)
-    genres_embed = paddle.layer.fc(input=geres, size=embsize)
-    titles_embed = paddle.layer.embedding(input=title, size=embsize)
-    title_hidden = paddle.layer.text_conv_pool(input=titles_embed, context_len=5, hidden_size=embsize))
-    movie_feture = paddle.layer.fc_layer(input=[movie_id_hid, title_hidden, genres_embed], size=embsize))
-    
-    # construct user feature
-    user_id = paddle.layer.data(size = xxx))
-    gender = paddle.layer.data(size = xxx))
-    age  = paddle.layer.data(size = xxx))
-    occupation = paddle.layer.data(size = xxx))
+    mov_id = paddle.layer.data(
+        name='movie_id',
+        type=paddle.data_type.integer_value(
+            paddle.dataset.movielens.max_movie_id() + 1))
+    mov_emb = paddle.layer.embedding(input=mov_id, size=32)
 
-    user_id_emb = paddle.layer.embedding(input=user_id, size=embsize)
-    user_id_hid = paddle.layer.fc(input=user_id_emb, size=embsize)
+    mov_categories = paddle.layer.data(
+        name='category_id',
+        type=paddle.data_type.sparse_binary_vector(
+            len(paddle.dataset.movielens.movie_categories())))
 
-    gender_embd = paddle.layer.embedding(input=gender, size=embsize)
-    gender_hidd = paddle.layer.fc(input=gender_embd, size=embsize)
+    mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
 
-    age_embding = paddle.layer.embedding(input=age, size=embsize)
-    age_hiddens = paddle.layer.fc(input=age_embding, size=embsize)
+    mov_title_id = paddle.layer.data(
+        name='movie_title',
+        type=paddle.data_type.integer_value_sequence(len(movie_title_dict)))
+    mov_title_emb = paddle.layer.embedding(input=mov_title_id, size=32)
+    mov_title_conv = paddle.networks.sequence_conv_pool(
+        input=mov_title_emb, hidden_size=32, context_len=3)
 
-    occup_embed = paddle.layer.embedding(input=occupation, size=embsize)
-    occup_hiden = paddle.layer.fc(input=occup_embed, size=embsize)
+    mov_combined_features = paddle.layer.fc(
+        input=[mov_emb, mov_categories_hidden, mov_title_conv],
+        size=200,
+        act=paddle.activation.Tanh())
 
-    user_feture = paddle.layer.fc(
-        input=[user_id_hid, gender_hidd, age_hidden, occup_hiden], size=embsize)
-    
-    sim = paddle.layer.cos_sim(a=movie_feature, b=user_feature, scale=2)
+    inference = paddle.layer.cos_sim(
+        a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
+    cost = paddle.layer.regression_cost(
+        input=inference,
+        label=paddle.layer.data(
+            name='score', type=paddle.data_type.dense_vector(1)))
 
-    model = paddle.model.create(sim)
+    parameters = paddle.parameters.create(cost)
 
-    lbl = paddle.layer.data('rating', size=1)
-    RMSprop.train(model, paddle.cost.regression(sim, lbl), 
-                  batch_size = 1600, learning_rate = 1e-3, ...)
+    trainer = paddle.trainer.SGD(
+        cost=cost,
+        parameters=parameters,
+        update_equation=paddle.optimizer.Adam(learning_rate=1e-4))
+    feeding = {
+        'user_id': 0,
+        'gender_id': 1,
+        'age_id': 2,
+        'job_id': 3,
+        'movie_id': 4,
+        'category_id': 5,
+        'movie_title': 6,
+        'score': 7
+    }
 
+    def event_handler(event):
+        if isinstance(event, paddle.event.EndIteration):
+            if event.batch_id % 100 == 0:
+                print "Pass %d Batch %d Cost %.2f" % (
+                    event.pass_id, event.batch_id, event.cost)
 
+    trainer.train(
+        reader=paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.movielens.train(), buf_size=8192),
+            batch_size=256),
+        event_handler=event_handler,
+        feeding=feeding,
+        num_passes=1)
+
+    user_id = 234
+    movie_id = 345
+
+    user = paddle.dataset.movielens.user_info()[user_id]
+    movie = paddle.dataset.movielens.movie_info()[movie_id]
+
+    feature = user.value() + movie.value()
+
+    def reader():
+        yield feature
+
+    infer_dict = copy.copy(feeding)
+    del infer_dict['score']
+
+    prediction = paddle.infer(
+        output_layer=inference,
+        parameters=parameters,
+        input=[feature],
+        feeding=infer_dict)
+    print(prediction + 5) / 2
 
 
 if __name__ == '__main__':

@@ -2,6 +2,8 @@
 
 Source code of this chapter is in [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
 
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
+
 ## Background
 
 Natural Language Analysis contains three components: Lexical Analysis, Syntactic Analysis, and Semantic Analysis. Semantic Role Labelling (SRL) is one way for Shallow Semantic Analysis. A predicate of a sentence is a property that a subject possesses or is characterized, such as what it does, what it is or how it is, which mostly corresponds to the core of an event. The noun associated with a predicate is called Argument. Semantic roles express the abstract roles that arguments of a predicate can take in the event, such as Agent, Patient, Theme, Experiencer, Beneficiary, Instrument, Location, Goal and Source, etc.
@@ -134,7 +136,7 @@ After modification, the model is as follows:
 
 
 <div  align="center">  
-<img src="image/db_lstm_en.png" width = "60%"  align=center /><br>
+<img src="image/db_lstm_network_en.png" width = "60%"  align=center /><br>
 Fig 6. DB-LSTM for SRL tasks
 </div>
 
@@ -200,6 +202,8 @@ import numpy as np
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 
+paddle.init(use_gpu=False, trainer_count=1)
+
 word_dict, verb_dict, label_dict = conll05.get_dict()
 word_dict_len = len(word_dict)
 label_dict_len = len(label_dict)
@@ -212,7 +216,7 @@ print pred_len
 
 ## Model configuration
 
-- 1. Define input data dimensions and model hyperparameters.
+- Define input data dimensions and model hyperparameters.
 
 ```python
 mark_dict_len = 2    # Value range of region mark. Region mark is either 0 or 1, so range is 2
@@ -247,7 +251,7 @@ target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 
 Speciala note: hidden_dim = 512 means LSTM hidden vector of 128 dimension (512/4). Please refer PaddlePaddle official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
 
-- 2. The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
+- The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
 
 ```python  
 
@@ -276,7 +280,7 @@ emb_layers.append(predicate_embedding)
 emb_layers.append(mark_embedding)
 ```
 
-- 3. 8 LSTM units will be trained in "forward / backward" order.
+- 8 LSTM units will be trained in "forward / backward" order.
 
 ```python  
 hidden_0 = paddle.layer.mixed(
@@ -326,7 +330,7 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-- 4. We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
+- We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
 
  ```python
  feature_out = paddle.layer.mixed(
@@ -340,7 +344,7 @@ for i in range(1, depth):
  ], )
  ```
 
-- 5.  We use CRF as cost function, the parameter of CRF cost will be named `crfw`.
+- We use CRF as cost function, the parameter of CRF cost will be named `crfw`.
 
 ```python
 crf_cost = paddle.layer.crf(
@@ -353,7 +357,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- 6.  CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer.  The sharing of parameters among multiple layers is specified by the same parameter name in these layers.
+- CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer.  The sharing of parameters among multiple layers is specified by the same parameter name in these layers.
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
@@ -470,4 +474,4 @@ Semantic Role Labeling is an important intermediate step in a wide range of natu
 10. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
+This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.

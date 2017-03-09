@@ -1,0 +1,37 @@
+{
+  "is_en": true,
+  "chapters": [
+    {
+      "name": "Linear Regression",
+      "link": "./fit_a_line/index.en.html"
+    },
+    {
+      "name": "Recognize Digits",
+      "link": "./recognize_digits/index.en.html"
+    },
+    {
+      "name": "Image Classification",
+      "link": "./image_classification/index.en.html"
+    },
+    {
+      "name": "Word2Vec",
+      "link": "./word2vec/index.en.html"
+    },
+    {
+      "name": "Sentiment Analysis",
+      "link": "./understand_sentiment/index.en.html"
+    },
+    {
+      "name": "Semantic Role Labeling",
+      "link": "./label_semantic_roles/index.en.html"
+    },
+    {
+      "name": "Machine Translation",
+      "link": "./machine_translation/index.en.html"
+    },
+    {
+      "name": "Personalized Recommendation",
+      "link": "./recommender_system/index.en.html"
+    }
+  ]
+}
