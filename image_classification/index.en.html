@@ -43,23 +43,26 @@
 Image Classification
 =======================
 
-The source code of this chapter is in [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification). For the first-time users, please refer to PaddlePaddle [Installation Tutorial](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst) for installation instructions.
+The source code for this chapter is at [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification). First-time users, please refer to PaddlePaddle [Installation Tutorial](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst) for installation instructions.
 
 ## Background
 
-Comparing to words, images provide more vivid and easier to understand information with more artistic sense. They are important source for people to convey and exchange ideas. In this chapter, we focus on one of the essential problems in image recognition -- image classification.
+Compared to words, images provide much more vivid and easier to understand information with an artistic sense. They are an important source for people to express and exchange ideas. In this chapter, we focus on one of the essential problems in image recognition -- image classification.
 
-Image classification distinguishes images of different categories based on their semantic meaning. It is a core problem in computer vision, and is also the foundation of other higher level computer vision tasks such as object detection, image segmentation, object tracking, action recognition, etc. Image classification has applications in many areas such as face recognition and intelligent video analysis in security systems, traffic scene recognition in transportation systems, content-based image retrieval and automatic photo indexing in web services, image classification in medicine, etc.
+Image classification is the task of distinguishing images in different categories based on their semantic meaning. It is a core problem in computer vision and is also the foundation of other higher level computer vision tasks such as object detection, image segmentation, object tracking, action recognition, etc. Image classification has applications in many areas such as face recognition, intelligent video analysis in security systems, traffic scene recognition in transportation systems, content-based image retrieval and automatic photo indexing in web services, image classification in medicine, etc.
 
-In image classification, we first encode the whole image using handcrafted or learned features, and then determine the object category by a classifier. Therefore, feature extraction plays an important role in image classification. Prior to deep learning, BoW(Bag of Words) model is the most popular method for object classification. BoW was introduced in NLP where a sentence is represented as a bag of words (words, phrases, or characters) extracted from training sentences. In the context of image classification, BoW model requires constructing a dictionary. The simplest BoW framework can be designed with three steps: **feature extraction**, **feature encoding**, and **classifier design**.
+To classify an image we first encode the entire image using handcrafted or learned features and then determine the category using a classifier. Thus, feature extraction plays an important role in image classification. Prior to deep learning the BoW(Bag of Words) model was the most widely used method for classifying an image as well as an object. The BoW technique was introduced in Natural Language Processing where a training sentence is represented as a bag of words. In the context of image classification, the BoW model requires constructing a dictionary. The simplest BoW framework can be designed with three steps: **feature extraction**, **feature encoding** and **classifier design**.
 
-Deep learning approach to image classification works by supervised or unsupervised learning of hierarchical features automatically instead of crafting or selecting image features manually. Convolutional Neural Networks (CNNs) have made significant progress in image classification. They keep all image information by employing raw image pixels as input, extract low-level and high-level abstract features through convolution operations, and directly output the classification results from the model. This end-to-end learning fashion leads to good performance and wide applications.
+Using Deep learning, image classification can be framed as a supervised or unsupervised learning problem that uses hierarchical features automatically without any need for manually crafted features from the image. In recent years, Convolutional Neural Networks (CNNs) have made significant progress in image classification. CNNs use raw image pixels as input, extract low-level and high-level abstract features through convolution operations, and directly output the classification results from the model. This style of end-to-end learning has lead to not only increased performance but also wider adoption various applications.
 
-In this chapter, we focus on introducing deep learning-based image classification methods, and on explaining how to train a CNN model using PaddlePaddle.
+In this chapter, we introduce deep-learning-based image classification methods and explain how to train a CNN model using PaddlePaddle.
 
 ## Demonstration
 
-Image classification includes general and fine-grained ones. Figure 1 demonstrates the results of general image classification -- the trained model can correctly recognize the main objects in the images.
+An image can be classified by a general as well as fine-grained image classifier.
+
+
+Figure 1 shows the results of a general image classifier -- the trained model can correctly recognize the main objects in the images.
 
 <p align="center">
 <img src="image/dog_cat.png "  width="350" ><br/>
@@ -67,7 +70,7 @@ Figure 1. General image classification
 </p>
 
 
-Figure 2 demonstrates the results of fine-grained image classification -- flower recognition, which requires correct recognition of flower categories.
+Figure 2 shows the results of a fine-grained image classifier. This task of flower recognition requires correctly recognizing of the flower's categories.
 
 <p align="center">
 <img src="image/flowers.png" width="400" ><br/>
@@ -75,7 +78,8 @@ Figure 2. Fine-grained image classification
 </p>
 
 
-A good model should be able to recognize objects of different categories correctly, and meanwhile can correctly classify images taken from different points of view, under different illuminations, with object distortion or partial occlusion (we call these image disturbance). Figure 3 show some images with various disturbance. A good model should be able to classify these images correctly like humans.
+A good model should recognize objects of different categories correctly. The results of such a model should not vary due to viewpoint variation, illumination conditions, object distortion or occlusion.
+Figure 3 shows some images with various disturbances. A good model should classify these images correctly like humans.
 
 <p align="center">
 <img src="image/variations_en.png" width="550" ><br/>
@@ -84,18 +88,21 @@ Figure 3. Disturbed images [22]
 
 ## Model Overview
 
-A large amount of research work in image classification is built upon public datasets such as [PASCAL VOC](http://host.robots.ox.ac.uk/pascal/VOC/), [ImageNet](http://image-net.org/). Many image classification algorithms are usually evaluated and compared on these datasets. PASCAL VOC is a computer vision competition started in 2005, and ImageNet is a dataset started in Large Scale Visual Recognition Challenge (ILSVRC) 2010. In this chapter, we introduce some image classification models from the submissions to these competitions.
+A large amount of research in image classification is built upon public datasets such as [PASCAL VOC](http://host.robots.ox.ac.uk/pascal/VOC/), [ImageNet](http://image-net.org/) etc. Many image classification algorithms are usually evaluated and compared on these datasets. PASCAL VOC is a computer vision competition started in 2005, and ImageNet is a dataset for Large Scale Visual Recognition Challenge (ILSVRC) started in 2010. In this chapter, we introduce some image classification models from the submissions to these competitions.
 
-Before 2012, traditional image classification methods can be achieved with the three steps described in the Background section. A complete model construction usually involves the following stages: low-level feature extraction, feature encoding, spatial constraint or feature clustering, classifier design, model ensemble.
+Before 2012, traditional image classification was accomplished with the three steps described in the background section. A complete model construction usually involves the following stages: low-level feature extraction, feature encoding, spatial constraint or feature clustering, classifier design, model ensemble.
 
-  1). **Low-level feature extraction**: This is a step for extracting large amounts of local features according to fixed strides and scales. Popular local features include Scale-Invariant Feature Transform(SIFT)[1], Histogram of Oriented Gradient(HOG)[2], Local Binary Pattern(LBP)[3], etc. A common practice is to employ multiple feature descriptors in order to avoid missing too much information.
-  2). **Feature encoding**: Low-level features contain large amount of redundancy and noise. In order to improve robustness of features, it is necessary to employ a feature transformation to encode low-level features, which is called feature encoding. Common feature encoding methods include vector quantization [4], sparse coding [5], locality-constrained linear coding [6], Fisher vector encoding [7], etc.
-  3). **Spatial constraint**: Spatial constraint or feature clustering is usually adopted after feature encoding for extracting the maximum or average of each dimension in the spatial domain. Pyramid feature matching--a popular feature clustering method--divides an image uniformly into patches, and performs feature clustering in each patch.
-  4). **Classification**: Upon the above steps, an image can be described by a vector of fixed dimension. Then a classifier can be used to classify the image into categories. Common classifiers include Support Vector Machine(SVM), random forest, etc. Kernel SVM is the most popular classifier, and has achieved very good performance in traditional image classification tasks.
+  1). **Low-level feature extraction**: This step extracts large amounts of local features according to fixed strides and scales. Popular local features include Scale-Invariant Feature Transform (SIFT)[1], Histogram of Oriented Gradient(HOG)[2], Local Binary Pattern(LBP)[3], etc. A common practice is to employ multiple feature descriptors in order to avoid missing a lot of information.
+
+  2). **Feature encoding**: Low-level features contain a large amount of redundancy and noise. In order to improve the robustness of features, it is necessary to employ a feature transformation to encode low-level features. This is called feature encoding. Common feature encoding methods include vector quantization [4], sparse coding [5], locality-constrained linear coding [6], Fisher vector encoding [7], etc.
+
+  3). **Spatial constraint**: Spatial constraint or feature clustering is usually adopted after feature encoding for extracting the maximum or average of each dimension in the spatial domain. Pyramid feature matching--a popular feature clustering method--divides an image uniformly into patches and performs feature clustering in each patch.
+
+  4). **Classification**: In the above steps an image can be described by a vector of fixed dimension. Then a classifier can be used to classify the image into categories. Common classifiers include Support Vector Machine(SVM), random forest etc. Kernel SVM is the most popular classifier and has achieved very good performance in traditional image classification tasks.
 
 This method has been used widely as image classification algorithm in PASCAL VOC [18]. NEC Labs(http://www.nec-labs.com/) won the championship by employing SIFT and LBP features, two non-linear encoders and SVM in ILSVRC 2010 [8].
 
-The CNN model--AlexNet proposed by Alex Krizhevsky et al.[9], made a breakthrough in ILSVRC 2012. It outperformed traditional methods dramatically, and won the championship in ILSVRC 2012. This is also the first time that a deep learning method was used for large scale image classification. Since AlexNet, a series of  CNN models have been proposed and has advanced the state of the art steadily on Imagenet as shown in Figure 4. With deeper and more sophisticated architectures, Top-5 error rate is getting lower and lower, until to around 3.5%. The error rate of human raters on the same Imagenet dataset is 5.1%, which means that the image classification capability of a deep learning model surpasses human raters.
+The CNN model--AlexNet proposed by Alex Krizhevsky et al.[9], made a breakthrough in ILSVRC 2012. It dramatically outperformed traditional methods and won the ILSVRC championship in 2012. This was also the first time that a deep learning method was used for large-scale image classification. Since AlexNet, a series of CNN models have been proposed that have advanced the state of the art steadily on Imagenet as shown in Figure 4. With deeper and more sophisticated architectures, Top-5 error rate is getting lower and lower (to around 3.5%). The error rate of human raters on the same Imagenet dataset is 5.1%, which means that the image classification capability of a deep learning model has surpassed human raters.
 
 <p align="center">
 <img src="image/ilsvrc.png" width="500" ><br/>
@@ -104,65 +111,69 @@ Figure 4. Top-5 error rates on ILSVRC image classification
 
 ### CNN
 
-Traditional CNNs consist of convolutional and fully-connected layers, and employ softmax multi-category classifier and cross-entropy as loss function. Figure 5 shows a typical CNN. We first introduce the common parts of a CNN.
+Traditional CNNs consist of convolutional and fully-connected layers and use the softmax multi-category classifier with the cross-entropy loss function. Figure 5 shows a typical CNN. We first introduce the common components of a CNN.
 
 <p align="center">
 <img src="image/lenet_en.png"><br/>
 Figure 5. A CNN example [20]
 </p>
 
-- convolutional layer: It uses convolution operation to extract low-level and high-level features, and to discover local correlation and spatial invariance.
+- convolutional layer: this layer uses the convolution operation to extract (low-level and high-level) features and to discover local correlation and spatial invariance.
 
-- pooling layer: It down-sample feature maps via extracting local max (max-pooling) or average (avg-pooling) of each patch in the feature map. Down-sampling, a common operator in image processing, can be used to filter out high frequency information.
+- pooling layer: this layer down samples feature maps by extracting local max (max-pooling) or average (avg-pooling) value of each patch in the feature map. Down-sampling is a common operation in image processing and is used to filter out high-frequency information.
 
-- fully-connected layer: It fully connects neurons between two adjacent layers.
+- fully-connected layer: this layer fully connects neurons between two adjacent layers.
 
-- non-linear activation: Convolutional and fully-connected layers are usually followed by some non-linear activation layers, such as Sigmoid, Tanh, Relu to enhance the expression capability. Relu is the most commonly used activation function in CNN.
+- non-linear activation: Convolutional and fully-connected layers are usually followed by some non-linear activation layers. Non-linearities enhance the expression capability of the network. Some examples of non-linear activation functions are Sigmoid, Tanh and ReLU. ReLU is the most commonly used activation function in CNN.
 
-- Dropout [10]: At each training stage, individual nodes are dropped out of the net with a certain probability in order to improve generalization and to avoid overfitting.
+- Dropout [10]: At each training stage, individual nodes are dropped out of the network with a certain probability. This improves the network's ability to generalize and avoids overfitting.
 
-Due to parameter updating in each layer during training, it causes the change in the distributions of layer inputs, and requires careful tuning of hyper-parameters. In 2015, Sergey Ioffe and Christian Szegedy proposed a Batch Normalization (BN) algorithm [14], which normalizes the features of each batch in a layer, and enables relatively stable distribution in each layer. Not only does BN algorithm act as a regularizer, but also reduces the need for careful hyper-parameter design. Experiments demonstrate that BN algorithm accelerates the training convergence and has been widely used in later deeper models.
+Parameter updates at each layer during training causes input layer distributions to change and in turn requires hyper-parameters to be careful tuned. In 2015, Sergey Ioffe and Christian Szegedy proposed a Batch Normalization (BN) algorithm [14], which normalizes the features of each batch in a layer, and enables relatively stable distribution in each layer. Not only does BN algorithm act as a regularizer, but also reduces the need for careful hyper-parameter design. Experiments demonstrate that BN algorithm accelerates the training convergence and has been widely used in later deeper models.
 
-We will introduce the network architectures of VGG, GoogleNet and ResNets in the following sections.
+In the following sections, we will introduce the following network architectures - VGG, GoogleNet and ResNets.
 
 ### VGG
 
-Oxford Visual Geometry Group (VGG) proposed VGG network in ILSVRC 2014 [11]. The model is deeper and wider than previous neural architectures. It comprises five main groups of convolution operations, with max-pooling layers between adjacent convolution groups. Each group contains a series of 3x3 convolutional layers, whose number of convolution kernels stays the same within the group and increases from 64 in the first group to 512 in the last one. The total number of learnable layers could be 11, 13, 16, or 19 depending on the number of convolutional layers in each group. Figure 6 illustrates a 16-layer VGG. The neural architecture of VGG is relatively simple, and has been adopted by many papers such as the first one that surpassed human-level performance on ImageNet [19].
+The Oxford Visual Geometry Group (VGG) proposed the VGG network in ILSVRC 2014 [11]. This model is deeper and wider than previous neural architectures. It consists of five main groups of convolution operations. Adjacent convolution groups are connected via max-pooling layers. Each group contains a series of 3x3 convolutional layers (i.e. kernels). The number of convolution kernels stays the same within the group and increases from 64 in the first group to 512 in the last one. The total number of learnable layers could be 11, 13, 16, or 19 depending on the number of convolutional layers in each group. Figure 6 illustrates a 16-layer VGG. The neural architecture of VGG is relatively simple and has been adopted by many papers such as the first one that surpassed human-level performance on ImageNet [19].
 
 <p align="center">
 <img src="image/vgg16.png" width="750" ><br/>
-Figure 6. Vgg16 model for ImageNet
+Figure 6. VGG16 model for ImageNet
 </p>
 
 ### GoogleNet
 
-GoogleNet [12] won the championship in ILSVRC 2014. Before introducing this model, lets get familiar with Network in Network(NIN) model [13] from which GoogleNet borrowed some ideas, and Inception blocks upon which GoogleNet is built.
+GoogleNet [12] won the ILSVRC championship in 2014. GoogleNet borrowed some ideas from the Network in Network(NIN) model [13] and is built on the Inception blocks. Let us first familiarize ourselves with these first.
 
-NIN model has two main characteristics: 1) it replaces the single-layer convolutional network by Multi-Layer Perceptron Convolution or MLPconv. MLPconv, a tiny multi-layer convolutional network, enhances non-linearity by adding several 1x1 convolutional layers after linear ones. 2) In traditional CNNs, the last fewer layers are usually fully-connected with a large number of parameters. In contrast, NIN replaces all fully-connected layers with convolutional layers whose feature maps are of the same size as the category dimension, and followed by a global average pooling. This replacement of fully-connected layers significantly reduces the number of parameters.
+The two main characteristics of the NIN model are:
 
-Figure 7 depicts two Inception blocks. Figure 7(a) is the simplest design, the output of which is a concat of features from three convolutional layers and one pooling layer. The disadvantage of this design is that the pooling layer does not change the number of filters and leads to an increase of outputs. After going through several of such blocks, the number of outputs and parameters will become larger and larger, leading to higher computation complexity. To overcome this drawback, the Inception block in Figure 7(b) employs three 1x1 convolutional layers to reduce dimension or the number of channels, meanwhile improves non-linearity of the network.
+1) A single-layer convolutional network is replaced with a Multi-Layer Perceptron Convolution (MLPconv). MLPconv is a tiny multi-layer convolutional network. It enhances non-linearity by adding several 1x1 convolutional layers after linear ones.
+
+2) In traditional CNNs, the last fewer layers are usually fully-connected with a large number of parameters. In contrast, NIN replaces all fully-connected layers with convolutional layers with feature maps of the same size as the category dimension and a global average pooling. This replacement of fully-connected layers significantly reduces the number of parameters.
+
+Figure 7 depicts two Inception blocks. Figure 7(a) is the simplest design. The output is a concatenation of features from three convolutional layers and one pooling layer. The disadvantage of this design is that the pooling layer does not change the number of filters and leads to an increase in the number of outputs. After several of such blocks, the number of outputs and parameters become larger and larger and lead to higher computation complexity. To overcome this drawback, the Inception block in Figure 7(b) employs three 1x1 convolutional layers. These reduce dimensions or the number of channels but improve the non-linearity of the network.
 
 <p align="center">
 <img src="image/inception_en.png" width="800" ><br/>
 Figure 7. Inception block
 </p>
 
-GoogleNet consists of multiple stacking Inception blocks followed by an avg-pooling layer as in NIN in place of by traditional fully connected layers. The difference between GoogleNet and NIN is that GoogleNet adds a fully connected layer after avg-pooling layer to output a vector of category size. Besides these two characteristics, the features from middle layers of a GoogleNet are also very discriminative. Therefore, GoogeleNet inserts two auxiliary classifiers in the model for enhancing gradient and regularization when doing backpropagating. The loss function of the whole network is the weighted sum of these three classifiers.
+GoogleNet consists of multiple stacked Inception blocks followed by an avg-pooling layer as in NIN instead of traditional fully connected layers. The difference between GoogleNet and NIN is that GoogleNet adds a fully connected layer after avg-pooling layer to output a vector of category size. Besides these two characteristics, the features from middle layers of a GoogleNet are also very discriminative. Therefore, GoogeleNet inserts two auxiliary classifiers in the model for enhancing gradient and regularization when doing backpropagation. The loss function of the whole network is the weighted sum of these three classifiers.
 
-Figure 8 illustrates the neural architecture of a GoogleNet which consists of 22 layers: it starts with three regular convolutional layers followed by three groups of sub-networks-- the first group contains two Inception blocks, the second one five, and the third one two. It ends up with an average pooling and a fully-connected layer.
+Figure 8 illustrates the neural architecture of a GoogleNet which consists of 22 layers: it starts with three regular convolutional layers followed by three groups of sub-networks -- the first group contains two Inception blocks, the second one five, and the third one two. It ends up with an average pooling and a fully-connected layer.
 
 <p align="center">
 <img src="image/googlenet.jpeg" ><br/>
 Figure 8. GoogleNet[12]
 </p>
 
-The above model is the first version of GoogleNet or GoogelNet-v1. GoogleNet-v2 [14] introduces BN layer; GoogleNet-v3 [16] further splits some convolutional layers, which increases non-linearity and network depth; GoogelNet-v4 [17] leads to the design idea of ResNet which will be introduced in the next section. The evolution from v1 to v4 leverages the accuracy rate consistently. We will not go into details of the neural architectures of v2 to v4.
+The above model is the first version of GoogleNet or GoogelNet-v1. GoogleNet-v2 [14] introduced BN layer; GoogleNet-v3 [16] further split some convolutional layers, which increases non-linearity and network depth; GoogelNet-v4 [17] leads to the design idea of ResNet which will be introduced in the next section. The evolution from v1 to v4 improved the accuracy rate consistently. We will not go into details of the neural architectures of v2 to v4.
 
 ### ResNet
 
-Residual Network(ResNet)[15] won the 2015 championships on three ImageNet competitions -- image classification, object localization and object detection. The authors of ResNet proposed a residual learning approach to easing the difficulty of training deeper networks -- with the network depth increasing, accuracy degrades. Based upon the design ideas of BN, small convolutional kernels, full convolutional network, ResNets reformulate the layers as residual blocks, with each block containing two branches, one directly connecting input to the output, the other performing two to three convolutions and calculating the residual function with reference to the layer inputs. And then the outputs of these two branches are added up.
+Residual Network(ResNet)[15] won the 2015 championship on three ImageNet competitions -- image classification, object localization, and object detection. The main challenge in training deeper networks is that accuracy degrades with network depth. The authors of ResNet proposed a residual learning approach to ease the difficulty of training deeper networks. Based on the design ideas of BN, small convolutional kernels, full convolutional network, ResNets reformulate the layers as residual blocks, with each block containing two branches, one directly connecting input to the output, the other performing two to three convolutions and calculating the residual function with reference to the layer inputs. The outputs of these two branches are then added up.
 
-Figure 9 illustrates the architecture of ResNet. The left is the basic building block consisting of two 3x3 convolutional layers of the same channels. The right one is a Bottleneck block. The bottleneck is a 1x1 convolutional layer used to reduce dimension from 256 to 64. The other 1x1 conolutional layer is used to increase dimension from 64 to 256. Therefore, the number of input and output channels of the middle 3x3 convolutional layer, which is 64, is relatively small.
+Figure 9 illustrates the ResNet architecture. To the left is the basic building block, it consists of two 3x3 convolutional layers of the same channels. To the right is a Bottleneck block. The bottleneck is a 1x1 convolutional layer used to reduce dimension from 256 to 64. The other 1x1 convolutional layer is used to increase dimension from 64 to 256. Thus, the number of input and output channels of the middle 3x3 convolutional layer is 64, which is relatively small.
 
 <p align="center">
 <img src="image/resnet_block.jpg" width="400"><br/>
@@ -179,7 +190,7 @@ Figure 10. ResNet model for ImageNet
 
 ## Dataset
 
-Commonly used public datasets for image classification are CIFAR(https://www.cs.toronto.edu/~kriz/cifar.html), ImageNet(http://image-net.org/), COCO(http://mscoco.org/), etc. Those used for fine-grained image classification are CUB-200-2011(http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), Stanford Dog(http://vision.stanford.edu/aditya86/ImageNetDogs/), Oxford-flowers(http://www.robots.ox.ac.uk/~vgg/data/flowers/), etc. Among them, ImageNet are the largest and most research results are reported on ImageNet as mentioned in Model Overview section. Since 2010, the data of Imagenet has gone through some changes. The commonly used ImageNet-2012 dataset contains 1000 categories. There are 1,281,167 training images, ranging from 732 to 1200 images per category, and 50,000 validation images with 50 images per category in average.
+Commonly used public datasets for image classification are CIFAR(https://www.cs.toronto.edu/~kriz/cifar.html), ImageNet(http://image-net.org/), COCO(http://mscoco.org/), etc. Those used for fine-grained image classification are CUB-200-2011(http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), Stanford Dog(http://vision.stanford.edu/aditya86/ImageNetDogs/), Oxford-flowers(http://www.robots.ox.ac.uk/~vgg/data/flowers/), etc. Among these, the ImageNet dataset is the largest. Most research results are reported on ImageNet as mentioned in the Model Overview section. Since 2010, the ImageNet dataset has gone through some changes. The commonly used ImageNet-2012 dataset contains 1000 categories. There are 1,281,167 training images, ranging from 732 to 1200 images per category, and 50,000 validation images with 50 images per category in average.
 
 Since ImageNet is too large to be downloaded and trained efficiently, we use CIFAR-10 (https://www.cs.toronto.edu/~kriz/cifar.html) in this tutorial. The CIFAR-10 dataset consists of 60000 32x32 color images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images. Figure 11 shows all the classes in CIFAR-10 as well as 10 images randomly sampled from each category.
 
@@ -188,9 +199,9 @@ Since ImageNet is too large to be downloaded and trained efficiently, we use CIF
 Figure 11. CIFAR10 dataset[21]
 </p>
 
- `paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually download and preprocess CIFAR-10.
+ `paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need to manually download and preprocess CIFAR-10.
 
-After issuing a command `python train.py`, training will starting immediately. The details will be unpacked by the following sessions to see how it works.
+After issuing a command `python train.py`, training will start immediately. The following sections describe the details:
 
 ## Model Structure
 
@@ -206,11 +217,11 @@ import paddle.v2 as paddle
 paddle.init(use_gpu=False, trainer_count=1)
 ```
 
-As alluded to in section [Model Overview](#model-overview), here we provide the implementations of both VGG and ResNet models.
+As mentioned in section [Model Overview](#model-overview), here we provide the implementations of the VGG and ResNet models.
 
 ### VGG
 
-First, we use a VGG network. Since the image size and amount of CIFAR10 are relatively small comparing to ImageNet, we uses a small version of VGG network for CIFAR10. Convolution groups incorporate BN and dropout operations.
+First, we use a VGG network. Since the image size and amount of CIFAR10 are relatively small comparing to ImageNet, we use a small version of VGG network for CIFAR10. Convolution groups incorporate BN and dropout operations.
 
 1. Define input data and its dimension
 
@@ -261,13 +272,13 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
         return fc2
     ```
 
-        2.1. First defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
+        2.1. First, define a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
 
 
         2.2. Five groups of convolutions. The first two groups perform two convolutions, while the last three groups perform three convolutions. The dropout rate of the last convolution in each group is set to 0, which means there is no dropout for this layer.
 
 
-        2.3. The last two layers are fully-connected layer of dimension 512.
+        2.3. The last two layers are fully-connected layers of dimension 512.
 
 3. Define Classifier
 
@@ -279,7 +290,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 
 4. Define Loss Function and Outputs
 
-        In the context of supervised learning, labels of training images are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
+        In the context of supervised learning, labels of training images are defined in `paddle.layer.data` as well. During training, the cross-entropy loss function is used and the loss is the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
 
     ```python
     lbl = paddle.layer.data(
@@ -289,7 +300,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 
 ### ResNet
 
-The first, third and forth steps of a ResNet are the same as a VGG. The second one is the main module.
+The first, third and fourth steps of a ResNet are the same as a VGG. The second one is the main module.
 
 ```python
 net = resnet_cifar10(data, depth=32)
@@ -300,8 +311,8 @@ Here are some basic functions used in `resnet_cifar10`:
   - `conv_bn_layer` : convolutional layer followed by BN.
   - `shortcut` : the shortcut branch in a residual block. There are two kinds of shortcuts: 1x1 convolution used when the number of channels between input and output is different; direct connection used otherwise.
 
-  - `basicblock` : a basic residual module as shown in the left of Figure 9, consisting of two sequential 3x3 convolutions and one "shortcut" branch.
-  - `bottleneck` : a bottleneck module as shown in the right of Figure 9, consisting of a two 1x1 convolutions with one 3x3 convolution in between branch and a "shortcut" branch.
+  - `basicblock` : a basic residual module as shown in the left of Figure 9, it consists of two sequential 3x3 convolutions and one "shortcut" branch.
+  - `bottleneck` : a bottleneck module as shown in the right of Figure 9, it consists of two 1x1 convolutions with one 3x3 convolution in between branch and a "shortcut" branch.
   - `layer_warp` : a group of residual modules consisting of several stacking blocks. In each group, the sliding window size of the first residual block could be different from the rest of blocks, in order to reduce the size of feature maps along horizontal and vertical directions.
 
 ```python
@@ -381,8 +392,8 @@ parameters = paddle.parameters.create(cost)
 
 ### Create Trainer
 
-Before jumping into creating a training module, algorithm setting is also necessary.
-Here we specified `Momentum` optimization algorithm via `paddle.optimizer`.
+Before creating a training module, it is necessary to set the algorithm.
+Here we specify `Momentum` optimization algorithm via `paddle.optimizer`.
 
 ```python
 # Create optimizer
@@ -480,7 +491,7 @@ After training is done, the model from each pass is saved in `output/pass-%05d`.
 
 ## Conclusion
 
-Traditional image classification methods involve multiple stages of processing and the framework is very complicated. In contrast, CNN models can be trained end-to-end with significant increase of classification accuracy. In this chapter, we introduce three models -- VGG, GoogleNet, ResNet, provide PaddlePaddle config files for training VGG and ResNet on CIFAR10, and explain how to perform prediction and feature extraction using PaddlePaddle API. For other datasets such as ImageNet, the procedure for config and training are the same and you are welcome to give it a try.
+Traditional image classification methods have complicated frameworks that involve multiple stages of processing. In contrast, CNN models can be trained end-to-end with a significant increase in classification accuracy. In this chapter, we introduced three models -- VGG, GoogleNet, ResNet and provided PaddlePaddle config files for training VGG and ResNet on CIFAR10. We also explained how to perform prediction and feature extraction using the PaddlePaddle API. For other datasets such as ImageNet, the procedure for config and training are the same and you are welcome to give it a try.
 
 
 ## Reference
