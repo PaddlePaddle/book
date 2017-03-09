@@ -1,6 +1,6 @@
 # Recognize Digits
 
-The source code for this tutorial is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits). First-time readers, please refer to PaddlePaddle [installation instructions](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
+The source code for this tutorial is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/recognize_digits). First-time readers, please refer to PaddlePaddle [installation instructions](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Introduction
 When we learn a new programming language, the first task is usually to write a program that prints "Hello World." In Machine Learning or Deep Learning, the equivalent task is to train a model to perform handwritten digit recognition with [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a typical image classification problem. The problem is relatively easy, and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1). The input image is a 28x28 matrix, and the label is one of the digits from 0 to 9. Each image is normalized in size and centered.
