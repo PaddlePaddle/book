@@ -126,8 +126,9 @@ We use the [MovieLens ml-1m](http://files.grouplens.org/datasets/movielens/ml-1m
 `paddle.v2.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually download and preprocess `MovieLens` dataset.
 
 ```python
+import paddle.v2 as paddle
 # Run this block to show dataset's documentation
-help(paddle.v2.dataset.movielens)
+help(paddle.dataset.movielens)
 ```
 
 The raw `MoiveLens` contains movie ratings, relevant features from both movies and users.
