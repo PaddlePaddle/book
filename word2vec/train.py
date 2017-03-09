@@ -40,18 +40,19 @@ def main():
     Efourth = wordemb(fourthword)
 
     contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
-    hidden1 = paddle.layer.fc(input=contextemb,
-                              size=hiddensize,
-                              act=paddle.activation.Sigmoid(),
-                              layer_attr=paddle.attr.Extra(drop_rate=0.5),
-                              bias_attr=paddle.attr.Param(learning_rate=2),
-                              param_attr=paddle.attr.Param(
-                                  initial_std=1. / math.sqrt(embsize * 8),
-                                  learning_rate=1))
-    predictword = paddle.layer.fc(input=hidden1,
-                                  size=dict_size,
-                                  bias_attr=paddle.attr.Param(learning_rate=2),
-                                  act=paddle.activation.Softmax())
+    hidden1 = paddle.layer.fc(
+        input=contextemb,
+        size=hiddensize,
+        act=paddle.activation.Sigmoid(),
+        layer_attr=paddle.attr.Extra(drop_rate=0.5),
+        bias_attr=paddle.attr.Param(learning_rate=2),
+        param_attr=paddle.attr.Param(
+            initial_std=1. / math.sqrt(embsize * 8), learning_rate=1))
+    predictword = paddle.layer.fc(
+        input=hidden1,
+        size=dict_size,
+        bias_attr=paddle.attr.Param(learning_rate=2),
+        act=paddle.activation.Softmax())
 
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):

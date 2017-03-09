@@ -1,10 +1,10 @@
--   repo: https://github.com/reyoung/mirrors-yapf.git
-    sha: v0.13.2
+-   repo: https://github.com/pre-commit/mirrors-yapf.git
+    sha: v0.16.0
     hooks:
-    - id: yapf
-      files: (.*\.(py|bzl)|BUILD|.*\.BUILD|WORKSPACE)$  # Bazel BUILD files follow Python syntax.
+    -   id: yapf
+        files: \.py$
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    sha: v0.7.1
+    sha: a11d9314b22d8f8c7556443875b731ef05965464
     hooks:
     -   id: check-merge-conflict
     -   id: check-symlinks
@@ -24,16 +24,17 @@
         files: \.md$
     -   id: remove-tabs
         files: \.md$
-- repo: git://github.com/reyoung/pre-commit-hooks-jinja-compile.git
-  sha: 85ad800cbc9c60a64230d60971aa9576fd57e508
-  hooks:
-  -   id: convert-jinja2-into-html
-- repo: local
-  hooks:
-    -  id: convert-markdown-into-html
-       name: convert-markdown-into-html
-       description: "Convert README.md into index.html and README.en.md into index.en.html"
-       entry: python pre-commit-hooks/convert_markdown_into_html.py
-       language: system
-       files: .+README(\.en)?\.md$
-
+-   repo: local
+    hooks:
+    -   id: convert-markdown-into-html
+        name: convert-markdown-into-html
+        description: Convert README.md into index.html and README.en.md into index.en.html
+        entry: python pre-commit-hooks/convert_markdown_into_html.py
+        language: system
+        files: .+README(\.en)?\.md$
+    -   id: convert-markdown-into-ipynb
+        name: convert-markdown-into-ipynb
+        description: Convert README.md into README.ipynb and README.en.md into README.en.ipynb
+        entry: ./pre-commit-hooks/convert_markdown_into_ipynb.sh
+        language: system
+        files: .+README(\.en)?\.md$

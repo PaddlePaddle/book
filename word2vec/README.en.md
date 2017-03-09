@@ -2,7 +2,7 @@
 
 This is intended as a reference tutorial. The source code of this tutorial lives on [book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/word2vec).
 
-For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Background Introduction
 
@@ -149,18 +149,256 @@ The advantages of CBOW is that it smooths over the word embeddings of the contex
 
 As illustrated in the figure above, skip-gram model maps the word embedding of the given word onto $2n$ word embeddings (including $n$ words before and $n$ words after the given word), and then combine the classification loss of all those $2n$ words by softmax.
 
-## Data Preparation
+## Dataset
 
-## Model Configuration
+We will use Peen Treebank (PTB) (Tomas Mikolov's pre-processed version) dataset. PTB is a small dataset, used in Recurrent Neural Network Language Modeling Toolkit\[[2](#reference)\]. Its statistics are as follows:
+
+<p align="center">
+<table>
+    <tr>
+        <td>training set</td>
+        <td>validation set</td>
+        <td>test set</td>
+    </tr>
+    <tr>
+        <td>ptb.train.txt</td>
+        <td>ptb.valid.txt</td>
+        <td>ptb.test.txt</td>
+    </tr>
+    <tr>
+        <td>42068 lines</td>
+        <td>3370 lines</td>
+        <td>3761 lines</td>
+    </tr>
+</table>
+</p>
+
+### Python Dataset Module
+
+We encapsulated the PTB Data Set in our Python module `paddle.dataset.imikolov`. This module can
+
+1. download the dataset to `~/.cache/paddle/dataset/imikolov`, if not yet, and
+2. [preprocesses](#preprocessing) the dataset.
+
+### Preprocessing
+
+We will be training a 5-gram model. Given five words in a window, we will predict the fifth word given the first four words.
+
+Beginning and end of a sentence have a special meaning, so we will add begin token `<s>` in the front of the sentence. And end token `<e>` in the end of the sentence. By moving the five word window in the sentence, data instances are generated.
+
+For example, the sentence "I have a dream that one day" generates five data instances:
+
+```text
+<s> I have a dream
+I have a dream that
+have a dream that one
+a dream that one day
+dream that one day <e>
+```
+
+At last, each data instance will be converted into an integer sequence according it's words' index inside the dictionary.
+
+## Training
+
+The neural network that we will be using is illustrated in the graph below:
+
 <p align="center">
     <img src="image/ngram.en.png" width=400><br/>
     Figure 5. N-gram neural network model in model configuration
 </p>
 
+`word2vec/train.py` demonstrates training word2vec using PaddlePaddle:
 
-## Model Training
+- Import packages.
+
+```python
+import math
+import paddle.v2 as paddle
+```
+
+- Configure parameter.
+
+```python
+embsize = 32 # word vector dimension
+hiddensize = 256 # hidden layer dimension
+N = 5 # train 5-gram
+```
+
+- Map the $n-1$ words $w_{t-n+1},...w_{t-1}$ before $w_t$ to a D-dimensional vector though matrix of dimention $|V|\times D$ (D=32 in this example).
+
+```python
+def wordemb(inlayer):
+    wordemb = paddle.layer.table_projection(
+        input=inlayer,
+        size=embsize,
+        param_attr=paddle.attr.Param(
+            name="_proj",
+            initial_std=0.001,
+            learning_rate=1,
+            l2_rate=0, ))
+    return wordemb
+```
+
+- Define name and type for input to data layer.
+
+```python
+paddle.init(use_gpu=False, trainer_count=3)
+word_dict = paddle.dataset.imikolov.build_dict()
+dict_size = len(word_dict)
+# Every layer takes integer value of range [0, dict_size)
+firstword = paddle.layer.data(
+    name="firstw", type=paddle.data_type.integer_value(dict_size))
+secondword = paddle.layer.data(
+    name="secondw", type=paddle.data_type.integer_value(dict_size))
+thirdword = paddle.layer.data(
+    name="thirdw", type=paddle.data_type.integer_value(dict_size))
+fourthword = paddle.layer.data(
+    name="fourthw", type=paddle.data_type.integer_value(dict_size))
+nextword = paddle.layer.data(
+    name="fifthw", type=paddle.data_type.integer_value(dict_size))
+
+Efirst = wordemb(firstword)
+Esecond = wordemb(secondword)
+Ethird = wordemb(thirdword)
+Efourth = wordemb(fourthword)
+```
+
+- Concatenate n-1 word embedding vectors into a single feature vector.
+
+```python
+contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
+```
+
+- Feature vector will go through a fully connected layer which outputs a hidden feature vector.
+
+```python
+hidden1 = paddle.layer.fc(input=contextemb,
+                          size=hiddensize,
+                          act=paddle.activation.Sigmoid(),
+                          layer_attr=paddle.attr.Extra(drop_rate=0.5),
+                          bias_attr=paddle.attr.Param(learning_rate=2),
+                          param_attr=paddle.attr.Param(
+                                initial_std=1. / math.sqrt(embsize * 8),
+                                learning_rate=1))
+```
+
+- Hidden feature vector will go through another fully conected layer, turn into a $|V|$ dimensional vector. At the same time softmax will be applied to get the probability of each word being generated.
+
+```python
+predictword = paddle.layer.fc(input=hidden1,
+                              size=dict_size,
+                              bias_attr=paddle.attr.Param(learning_rate=2),
+                              act=paddle.activation.Softmax())
+```
+
+- We will use cross-entropy cost function.
+
+```python
+cost = paddle.layer.classification_cost(input=predictword, label=nextword)
+```
+
+- Create parameter, optimizer and trainer.
+
+```python
+parameters = paddle.parameters.create(cost)
+adam_optimizer = paddle.optimizer.Adam(
+    learning_rate=3e-3,
+    regularization=paddle.optimizer.L2Regularization(8e-4))
+trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
+```
+
+Next, we will begin the training process. `paddle.dataset.imikolov.train()` and `paddle.dataset.imikolov.test()` is our training set and test set. Both of the function will return a **reader**: In PaddlePaddle, reader is a python function which returns a Python iterator which output a single data instance at a time.
+
+`paddle.batch` takes reader as input, outputs a **batched reader**: In PaddlePaddle, a reader outputs a single data instance at a time but batched reader outputs a minibatch of data instances.
+
+```python
+import gzip
+
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
+                    paddle.batch(
+                        paddle.dataset.imikolov.test(word_dict, N), 32))
+        print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
+        with gzip.open("model_%d.tar.gz"%event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
+trainer.train(
+    paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
+    num_passes=100,
+    event_handler=event_handler)
+```
+
+`trainer.train` will start training, the output of `event_handler` will be similar to following:
+```text
+Pass 0, Batch 0, Cost 7.870579, {'classification_error_evaluator': 1.0}, Testing metrics {'classification_error_evaluator': 0.999591588973999}
+Pass 0, Batch 100, Cost 6.136420, {'classification_error_evaluator': 0.84375}, Testing metrics {'classification_error_evaluator': 0.8328699469566345}
+Pass 0, Batch 200, Cost 5.786797, {'classification_error_evaluator': 0.8125}, Testing metrics {'classification_error_evaluator': 0.8328542709350586}
+...
+```
+
+After 30 passes, we can get average error rate around 0.735611.
+
 
 ## Model Application
+
+After the model is trained, we can load saved model parameters and uses it for other models. We can also use the parameters in applications.
+
+### Viewing Word Vector
+
+Parameters trained by PaddlePaddle can be viewed by `parameters.get()`. For example, we can check the word vector for word `apple`.
+
+```python
+embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
+
+print embeddings[word_dict['apple']]
+```
+
+```text
+[-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
+-0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
+0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
+-0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
+0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
+0.19072419 -0.24286366]
+```
+
+### Modifying Word Vector
+
+Word vectors (`embeddings`) that we get is a numpy array. We can modify this array and set it back to `parameters`.
+
+
+```python
+def modify_embedding(emb):
+    # Add your modification here.
+    pass
+
+modify_embedding(embeddings)
+parameters.set("_proj", embeddings)
+```
+
+### Calculating Cosine Similarity
+
+Cosine similarity is one way of quantifying the similarity between two vectors. The range of result is $[-1, 1]$. The bigger the value, the similar two vectors are:
+
+
+```python
+from scipy import spatial
+
+emb_1 = embeddings[word_dict['world']]
+emb_2 = embeddings[word_dict['would']]
+
+print spatial.distance.cosine(emb_1, emb_2)
+```
+
+```text
+0.99375076448
+```
 
 ## Conclusion
 
@@ -177,4 +415,4 @@ In information retrieval, the relevance between the query and document keyword c
 5. https://en.wikipedia.org/wiki/Singular_value_decomposition
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
+This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.

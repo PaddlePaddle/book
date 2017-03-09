@@ -43,7 +43,7 @@
 
 # 词向量
 
-本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/word2vec)， 初次使用请参考PaddlePaddle[安装教程](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html)。
+本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/word2vec)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
 ## 背景介绍
 
@@ -74,8 +74,8 @@ $$X = USV^T$$
 本章中，当词向量训练好后，我们可以用数据可视化算法t-SNE\[[4](#参考文献)\]画出词语特征在二维上的投影（如下图所示）。从图中可以看出，语义相关的词语（如a, the, these; big, huge）在投影上距离很近，语意无关的词（如say, business; decision, japan）在投影上的距离很远。
 
 <p align="center">
-	<img src = "image/2d_similarity.png" width=400><br/>
-	图1. 词向量的二维投影
+    <img src = "image/2d_similarity.png" width=400><br/>
+    图1. 词向量的二维投影
 </p>
 
 另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
@@ -128,8 +128,8 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
 
 <p align="center">
-   	<img src="image/nnlm.png" width=500><br/>
-   	图2. N-gram神经网络模型
+       <img src="image/nnlm.png" width=500><br/>
+       图2. N-gram神经网络模型
 </p>
 
 图2展示了N-gram神经网络模型，从下往上看，该模型分为以下几个部分：
@@ -139,7 +139,7 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
  - 然后所有词语的词向量连接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
 
-	$$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
+    $$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
 
     其中，$x$为所有词语的词向量连接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
 
@@ -160,8 +160,8 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时，模型如下图所示：
 
 <p align="center">
-	<img src="image/cbow.png" width=250><br/>
-	图3. CBOW模型
+    <img src="image/cbow.png" width=250><br/>
+    图3. CBOW模型
 </p>
 
 具体来说，不考虑上下文的词语输入顺序，CBOW是用上下文词语的词向量的均值来预测当前词。即：
@@ -175,8 +175,8 @@ $$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
 CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效。而Skip-gram的方法中，用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
 
 <p align="center">
-	<img src="image/skipgram.png" width=250><br/>
-	图4. Skip-gram模型
+    <img src="image/skipgram.png" width=250><br/>
+    图4. Skip-gram模型
 </p>
 
 如上图所示，Skip-gram模型的具体做法是，将一个词的词向量映射到$2n$个词的词向量（$2n$表示当前输入词的前后各$n$个词），然后分别通过softmax得到这$2n$个词的分类损失值之和。
@@ -186,25 +186,25 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
 
 ### 数据介绍
 
-本教程使用Penn Tree Bank (PTB)数据集。PTB数据集较小，训练速度快，应用于Mikolov的公开语言模型训练工具\[[2](#参考文献)\]中。其统计情况如下：
+本教程使用Penn Treebank （PTB）（经Tomas Mikolov预处理过的版本）数据集。PTB数据集较小，训练速度快，应用于Mikolov的公开语言模型训练工具\[[2](#参考文献)\]中。其统计情况如下：
 
 <p align="center">
 <table>
-	<tr>
-		<td>训练数据</td>
-		<td>验证数据</td>
-		<td>测试数据</td>
-	</tr>
-	<tr>
-		<td>ptb.train.txt</td>
-		<td>ptb.valid.txt</td>
-		<td>ptb.test.txt</td>
-	</tr>
-	<tr>
-		<td>42068句</td>
-		<td>3370句</td>
-		<td>3761句</td>
-	</tr>
+    <tr>
+        <td>训练数据</td>
+        <td>验证数据</td>
+        <td>测试数据</td>
+    </tr>
+    <tr>
+        <td>ptb.train.txt</td>
+        <td>ptb.valid.txt</td>
+        <td>ptb.test.txt</td>
+    </tr>
+    <tr>
+        <td>42068句</td>
+        <td>3370句</td>
+        <td>3761句</td>
+    </tr>
 </table>
 </p>
 
@@ -225,13 +225,14 @@ a dream that one day
 dream that one day <e>
 ```
 
+最后，每个输入会按其单词次在字典里的位置，转化成整数的索引序列，作为PaddlePaddle的输入。
 ## 编程实现
 
 本配置的模型结构如下图所示：
 
 <p align="center">
-	<img src="image/ngram.png" width=400><br/>
-	图5. 模型配置中的N-gram神经网络模型
+    <img src="image/ngram.png" width=400><br/>
+    图5. 模型配置中的N-gram神经网络模型
 </p>
 
 首先，加载所需要的包：
@@ -287,7 +288,6 @@ Efirst = wordemb(firstword)
 Esecond = wordemb(secondword)
 Ethird = wordemb(thirdword)
 Efourth = wordemb(fourthword)
-
 ```
 
 - 将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
@@ -365,11 +365,12 @@ trainer.train(
     event_handler=event_handler)
 ```
 
-    ...
-    Pass 0, Batch 25000, Cost 4.251861, {'classification_error_evaluator': 0.84375}
-    Pass 0, Batch 25100, Cost 4.847692, {'classification_error_evaluator': 0.8125}
-    Pass 0, Testing metrics {'classification_error_evaluator': 0.7417652606964111}
-
+```text
+Pass 0, Batch 0, Cost 7.870579, {'classification_error_evaluator': 1.0}, Testing metrics {'classification_error_evaluator': 0.999591588973999}
+Pass 0, Batch 100, Cost 6.136420, {'classification_error_evaluator': 0.84375}, Testing metrics {'classification_error_evaluator': 0.8328699469566345}
+Pass 0, Batch 200, Cost 5.786797, {'classification_error_evaluator': 0.8125}, Testing metrics {'classification_error_evaluator': 0.8328542709350586}
+...
+```
 
 训练过程是完全自动的，event_handler里打印的日志类似如上所示：
 
@@ -382,22 +383,23 @@ trainer.train(
 
 ### 查看词向量
 
-PaddlePaddle训练出来的参数可以直接使用`parameters.get()`获取出来。例如查看单词的word的词向量，即为
+PaddlePaddle训练出来的参数可以直接使用`parameters.get()`获取出来。例如查看单词`apple`的词向量，即为
 
 
 ```python
 embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
 
-print embeddings[word_dict['word']]
+print embeddings[word_dict['apple']]
 ```
 
-    [-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
-     -0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
-      0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
-     -0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
-      0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
-      0.19072419 -0.24286366]
-
+```text
+[-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
+-0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
+0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
+-0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
+0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
+0.19072419 -0.24286366]
+```
 
 
 ### 修改词向量
@@ -429,8 +431,9 @@ emb_2 = embeddings[word_dict['would']]
 print spatial.distance.cosine(emb_1, emb_2)
 ```
 
-    0.99375076448
-
+```text
+0.99375076448
+```
 
 ## 总结
 本章中，我们介绍了词向量、语言模型和词向量的关系、以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据向量间的余弦夹角，来判断query和文档关键词这二者间的相关性。在句法分析和语义分析中，训练好的词向量可以用来初始化模型，以得到更好的效果。在文档分类中，有了词向量之后，可以用聚类的方法将文档中同义词进行分组。希望大家在本章后能够自行运用词向量进行相关领域的研究。
