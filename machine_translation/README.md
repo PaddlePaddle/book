@@ -68,7 +68,6 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 <p align="center">
 <img src="image/encoder_decoder.png" width=700><br/>
 图4. 编码器-解码器框架
-**Note: "源语言词序列" 和 "源语编码状态" 位置标反了,需要互换**
 </p>
 
 #### 编码器
