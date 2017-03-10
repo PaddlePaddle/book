@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 command -v go >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo >&2 "Please install go https://golang.org/doc/install#install"
