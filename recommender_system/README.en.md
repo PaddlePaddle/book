@@ -260,7 +260,7 @@ Finally, we can use cosine similarity to calculate the similarity between user c
 
 ```python
 inference = paddle.layer.cos_sim(a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
-cost = paddle.layer.regression_cost(
+cost = paddle.layer.mse_cost(
         input=inference,
         label=paddle.layer.data(
         name='score', type=paddle.data_type.dense_vector(1)))
@@ -288,7 +288,7 @@ trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
 
 ```text
 [INFO 2017-03-06 17:12:13,378 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
-[INFO 2017-03-06 17:12:13,379 networks.py:1478] The output order is [__regression_cost_0__]
+[INFO 2017-03-06 17:12:13,379 networks.py:1478] The output order is [__mse_cost_0__]
 ```
 
 ### Training

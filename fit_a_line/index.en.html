@@ -174,7 +174,7 @@ y_predict = paddle.layer.fc(input=x,
                                 size=1,
                                 act=paddle.activation.Linear())
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
-cost = paddle.layer.regression_cost(input=y_predict, label=y)
+cost = paddle.layer.mse_cost(input=y_predict, label=y)
 ```
 ### Create Parameters
 
