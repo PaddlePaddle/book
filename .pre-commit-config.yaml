@@ -9,6 +9,7 @@
     -   id: check-merge-conflict
     -   id: check-symlinks
     -   id: detect-private-key
+        files: (?!.*paddle)^.*$
     -   id: end-of-file-fixer
         files: \.md$
     -   id: trailing-whitespace
