@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 for file in $@ ; do
     markdown-to-ipynb < $file > ${file%.*}".ipynb"
     if [ $? -ne 0 ]; then
