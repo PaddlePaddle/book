@@ -7,7 +7,7 @@ cd $cur_path/../
 
 #get submodule
 git submodule update --init --recursive
-cd paddle && paddle_version=`git describe --abbrev=0 --tags` && cd ..
+cd paddle && git checkout develop && paddle_version=`git describe --abbrev=0 --tags` && cd ..
 if [ $? -ne 0 ]; then
 	echo 1>&2 "get paddle version error"
 	exit 1
@@ -22,7 +22,7 @@ fi
 
 mkdir -p build
 cat > build/Dockerfile <<EOF
-FROM paddlepaddle/paddle:${paddle_version}
+FROM paddledev/paddle:${paddle_version}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
 RUN apt-get install locales 
@@ -38,9 +38,9 @@ COPY . /book
 RUN rm -rf /book/build
 
 EXPOSE 8888
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "/book/"]
+CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 /book/"]
 EOF
 
 #build docker image
 echo "paddle_version:"$paddle_version
-docker build -t paddlepaddle/book:${paddle_version}  -t paddlepaddle/book:latest  -f ./build/Dockerfile .
+docker build -t paddledev/book:${paddle_version}  -t paddledev/book:latest  -f ./build/Dockerfile .
