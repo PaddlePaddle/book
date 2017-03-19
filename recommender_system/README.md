@@ -255,7 +255,7 @@ mov_combined_features = paddle.layer.fc(
     act=paddle.activation.Tanh())
 ```
 
-电影ID和电影类型分别映射到其对应的特征隐层。对于电影标题名称(title)，一个ID序列表示的词语序列，在输入卷积层后，将得到每个时间窗口的特征（序列特征），然后通过在时间维度降采样得到固定维度的特征，整个过程在text_conv_pool实现。
+电影ID和电影类型分别映射到其对应的特征隐层。对于电影标题名称(title)，一个ID序列表示的词语序列，在输入卷积层后，将得到每个时间窗口的特征（序列特征），然后通过在时间维度降采样得到固定维度的特征，整个过程在sequence_conv_pool实现。
 
 最后再将电影的特征融合进`mov_combined_features`中。
 
