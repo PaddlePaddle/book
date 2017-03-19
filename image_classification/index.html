@@ -199,8 +199,6 @@ Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
 ```python
 import sys
 import paddle.v2 as paddle
-from vgg import vgg_bn_drop
-from resnet import resnet_cifar10
 
 # PaddlePaddle init
 paddle.init(use_gpu=False, trainer_count=1)
@@ -225,11 +223,6 @@ paddle.init(use_gpu=False, trainer_count=1)
     ```
 
 2. 定义VGG网络核心模块
-
-    ```python
-    net = vgg_bn_drop(image)
-    ```
-    VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
 
     ```python
     def vgg_bn_drop(input):
@@ -260,7 +253,10 @@ paddle.init(use_gpu=False, trainer_count=1)
             layer_attr=paddle.attr.Extra(drop_rate=0.5))
         fc2 = paddle.layer.fc(input=bn, size=512, act=paddle.activation.Linear())
         return fc2
+
+    net = vgg_bn_drop(image)
     ```
+    VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
 
     2.1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 `Conv->BN->ReLu->Dropout` 和 一组 `Pooling` 组成，
 
@@ -291,10 +287,6 @@ paddle.init(use_gpu=False, trainer_count=1)
 ### ResNet
 
 ResNet模型的第1、3、4步和VGG模型相同，这里不再介绍。主要介绍第2步即CIFAR10数据集上ResNet核心模块。
-
-```python
-net = resnet_cifar10(image, depth=56)
-```
 
 先介绍`resnet_cifar10`中的一些基本函数，再介绍网络连接过程。
 
@@ -366,6 +358,8 @@ def resnet_cifar10(ipt, depth=32):
     pool = paddle.layer.img_pool(
         input=res3, pool_size=8, stride=1, pool_type=paddle.pooling.Avg())
     return pool
+
+# net = resnet_cifar10(image, depth=56)
 ```
 
 ## 训练模型
@@ -454,7 +448,7 @@ def event_handler(event):
 ```python
 trainer.train(
     reader=reader,
-    num_passes=200,
+    num_passes=2,
     event_handler=event_handler,
     feeding=feeding)
 ```
