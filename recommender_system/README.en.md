@@ -83,11 +83,6 @@ We use the [MovieLens ml-1m](http://files.grouplens.org/datasets/movielens/ml-1m
 
 `paddle.v2.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually download and preprocess `MovieLens` dataset.
 
-```python
-# Run this block to show dataset's documentation
-help(paddle.v2.dataset.movielens)
-```
-
 The raw `MoiveLens` contains movie ratings, relevant features from both movies and users.
 For instance, one movie's feature could be:
 
@@ -182,7 +177,6 @@ from IPython import display
 import cPickle
 
 import paddle.v2 as paddle
-
 paddle.init(use_gpu=False)
 ```
 
@@ -296,9 +290,9 @@ trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
 `paddle.dataset.movielens.train` will yield records during each pass, after shuffling, a batch input is generated for training.
 
 ```python
-reader=paddle.reader.batch(
+reader=paddle.batch(
     paddle.reader.shuffle(
-        paddle.dataset.movielens.trai(), buf_size=8192),
+        paddle.dataset.movielens.train(), buf_size=8192),
         batch_size=256)
 ```
 

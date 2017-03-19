@@ -212,6 +212,8 @@ We must import and initialize PaddlePaddle (enable/disable GPU, set the number o
 ```python
 import sys
 import paddle.v2 as paddle
+from vgg import vgg_bn_drop
+from resnet import resnet_cifar10
 
 # PaddlePaddle init
 paddle.init(use_gpu=False, trainer_count=1)
@@ -285,7 +287,9 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
         The above VGG network extracts high-level features and maps them to a vector of the same size as the categories. Softmax function or classifier is then used for calculating the probability of the image belonging to each category.
 
     ```python
-    out = fc_layer(input=net, size=class_num, act=SoftmaxActivation())
+    out = paddle.layer.fc(input=net,
+                          size=classdim,
+                          act=paddle.activation.Softmax())
     ```
 
 4. Define Loss Function and Outputs
@@ -303,7 +307,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 The first, third and fourth steps of a ResNet are the same as a VGG. The second one is the main module.
 
 ```python
-net = resnet_cifar10(data, depth=32)
+net = resnet_cifar10(image, depth=56)
 ```
 
 Here are some basic functions used in `resnet_cifar10`:
