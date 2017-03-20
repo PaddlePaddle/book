@@ -14,8 +14,6 @@
 您现在在看的这本书是一本“交互式”电子书 —— 每一章都可以运行在一个
 Jupyter Notebook 里。
 
-### 安装 Docker
-
 我们把 Jupyter、PaddlePaddle、以及各种被依赖的软件都打包进一个 Docker
 image 了。所以您不需要自己来安装各种软件，只需要安装 Docker 即可。如果
 您使用 Windows，可以参
@@ -24,8 +22,6 @@ image 了。所以您不需要自己来安装各种软件，只需要安装 Dock
 请参考https://www.docker.com 。如果您使用 Windows 或者 Mac，可以通过如
 下方法给 Docker 更多内存和CPU资源
 (http://stackoverflow.com/a/39720010/724872)。
-
-### 运行本书
 
 只需要在命令行窗口里运行：
 
@@ -43,7 +39,7 @@ docker.paddlepaddle.org：
 docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 ```
 
-### 贡献内容
+## 贡献内容
 
 您要是能贡献新的章节那就太好了！请发 Pull Requests 把您写的章节加入到
 `/pending` 下面的一个子目录里。当这一章稳定下来，我们一起把您的目录挪
