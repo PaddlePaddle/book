@@ -107,7 +107,7 @@ def main():
     # define optimize method and trainer
     optimizer = paddle.optimizer.Adam(
         learning_rate=5e-5,
-        regularization=paddle.optimizer.L2Regularization(rate=1e-3))
+        regularization=paddle.optimizer.L2Regularization(rate=8e-4))
     trainer = paddle.trainer.SGD(
         cost=cost, parameters=parameters, update_equation=optimizer)
 
@@ -137,7 +137,7 @@ def main():
     trainer.train(
         reader=wmt14_reader,
         event_handler=event_handler,
-        num_passes=10000,
+        num_passes=2,
         feeding=feeding)
 
 
