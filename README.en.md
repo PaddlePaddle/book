@@ -20,10 +20,10 @@ Or if you are in china mainland, you can use
 docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 ```
 
-Then open the url http://ip:8888/, such as:   
+Then open the url http://ip:8888/, such as:  
 ```
 http://localhost:8888/
-``` 
+```
 
 # How to build book's docker image
 1.prepare your docker environment, make sure you can run docker command  
@@ -34,7 +34,7 @@ docker
 
 2.get go [here](https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz)
 
-3.get book source code  and build it  
+3.get book source code and build it  
 
 ```bash
 git clone https://github.com/PaddlePaddle/book.git
