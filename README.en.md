@@ -12,7 +12,7 @@
 # Reading Using Docker
 You can read this book and test the notebookfile using Docker.  If you can access dockerhub, run it as  
 ```bash
-docker run -d -p 8888:8888 paddledev/book
+docker run -d -p 8888:8888 paddlepaddle/book
 ```
 
 Or if you are in china mainland, you can use  
