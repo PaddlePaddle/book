@@ -1,35 +1,39 @@
 # Semantic Role Labeling
 
-Source code of this chapter is in [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
+The source code of this chapter is live on [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
+
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
 
 For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Background
 
-Natural Language Analysis contains three components: Lexical Analysis, Syntactic Analysis, and Semantic Analysis. Semantic Role Labelling (SRL) is one way for Shallow Semantic Analysis. A predicate of a sentence is a property that a subject possesses or is characterized, such as what it does, what it is or how it is, which mostly corresponds to the core of an event. The noun associated with a predicate is called Argument. Semantic roles express the abstract roles that arguments of a predicate can take in the event, such as Agent, Patient, Theme, Experiencer, Beneficiary, Instrument, Location, Goal and Source, etc.
+*Natural Language Analysis* techniques consist of lexical, syntactic, and semantic analysis. **Semantic Role Labelling (SRL)** is an instance of *Shallow Semantic Analysis*.
 
-In the following example, “遇到” (encounters) is a Predicate (“Pred”)，“小明” (Ming) is an Agent，“小红” (Hong) is a Patient，“昨天” (yesterday) indicates the Time, and “公园” (park) is the Location.
+In a sentence, a *predicate* states a property or a characterization of a *subject*, such as what it does and what it is like. The predicate represents the core of an event, whereas the words accompanying the predicate are **arguments**. A **semantic role** refers to the abstract role an argument of a predicate take on in the event, including *Agent*, *Patient*, *Theme*, *Experiencer*, *Beneficiary*, *Instrument*, *Location*, *Goal*, and *Source*.
 
-$$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mbox{Time}\mbox{在[公园]}_{\mbox{Location}}\mbox{[遇到]}_{\mbox{Predicate}}\mbox{了[小红]}_{\mbox{Patient}}\mbox{。}$$
+In the following example of a Chinese sentence, "to encounter" is the predicate (*Pred*); "Ming" is the *agent*; "Hong" is the *patient*; "yesterday" and "evening" are the *time*; finally, "the park" is the *location*.
 
-Instead of in-depth analysis on semantic information, the goal of Semantic Role Labeling is to identify the relation of predicate and other constituents, e.g., predicate-argument structure, as specific semantic roles, which is an important intermediate step in a wide range of natural language understanding tasks (Information Extraction, Discourse Analysis, DeepQA etc). Predicates are always assumed to be given; the only thing is to identify arguments and their semantic roles.
+$$\mbox{[小明 (Ming)]}_{\mbox{Agent}}\mbox{[昨天 (yesterday)]}_{\mbox{Time}}\mbox{[晚上 (evening)]}_\mbox{Time}\mbox{在[公园 (a park)]}_{\mbox{Location}}\mbox{[遇到 (to encounter)]}_{\mbox{Predicate}}\mbox{了[小红 (Hong)]}_{\mbox{Patient}}\mbox{。}$$
 
-Standard SRL system mostly builds on top of Syntactic Analysis and contains five steps:
+Instead of analyzing the semantic information, *Semantic Role Labeling* identifies the relation between the predicate and the other constituents surrounding it. The predicate-argument structures are labelled as specific semantic roles. A wide range of natural language understanding tasks, including *Information Extraction*, *Discourse Analysis*, and *DeepQA*. Research usually assumes a predicate of a sentence to be specified; the only task is to identify its arguments and their semantic roles.
 
-1. Construct a syntactic parse tree, as shown in Fig. 1
-2. Identity candidate arguments of given predicate from constructed syntactic parse tree.
-3. Prune most unlikely candidate arguments.
-4. Identify arguments, often by a binary classifier.
-5. Multi-class semantic role labeling. Steps 2-3 usually introduce hand-designed features based on Syntactic Analysis (step 1).
+Conventional SRL systems mostly build on top of syntactic analysis, usually consisting of five steps:
+
+1. Construct a syntax tree, as shown in Fig. 1
+2. Identity the candidate arguments of the given predicate on the tree.
+3. Prune the most unlikely candidate arguments.
+4. Identify the real arguments, often by a binary classifier.
+5. Multi-classify on results from step 4 to label the semantic roles. Steps 2 and 3 usually introduce hand-designed features based on syntactic analysis (step 1).
 
 
 <div  align="center">
 <img src="image/dependency_parsing_en.png" width = "80%" align=center /><br>
-Fig 1. Syntactic parse tree
+Fig 1. Syntax tree
 </div>
 
 
-However, complete syntactic analysis requires identifying the relation among all constitutes and the performance of SRL is sensitive to the precision of syntactic analysis, which makes SRL a very challenging task. To reduce the complexity and obtain some syntactic structure information, we often use shallow syntactic analysis. Shallow Syntactic Analysis is also called partial parsing or chunking. Unlike complete syntactic analysis which requires the construction of the complete parsing tree, Shallow Syntactic Analysis only need to identify some independent components with relatively simple structure, such as verb phrases (chunk). To avoid difficulties in constructing a syntactic tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking based SRL methods, which convert SRL as a sequence tagging problem. Sequence tagging tasks classify syntactic chunks using BIO representation. For syntactic chunks forming a chunk of type A, the first chunk receives the B-A tag (Begin), the remaining ones receive the tag I-A (Inside), and all chunks outside receive the tag O-A.
+However, a complete syntactic analysis requires identifying the relation among all constituents. Thus, the accuracy of SRL is sensitive to the preciseness of the syntactic analysis, making SRL challenging. To reduce its complexity and obtain some information on the syntactic structures, we often use *shallow syntactic analysis* a.k.a. partial parsing or chunking. Unlike complete syntactic analysis, which requires the construction of the complete parsing tree, *Shallow Syntactic Analysis* only requires identifying some independent constituents with relatively simple structures, such as verb phrases (chunk). To avoid difficulties in constructing a syntax tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking-based SRL methods, which reduces SRL into a sequence tagging problem. Sequence tagging tasks classify syntactic chunks using **BIO representation**. For syntactic chunks forming role A, its first chunk receives the B-A tag (Begin) and the remaining ones receive the tag I-A (Inside); in the end, the chunks left out receive the tag O.
 
 The BIO representation of above example is shown in Fig.1.
 
@@ -38,7 +42,11 @@ The BIO representation of above example is shown in Fig.1.
 Fig 2. BIO represention
 </div>
 
-This example illustrates the simplicity of sequence tagging because (1) shallow syntactic analysis reduces the precision requirement of syntactic analysis; (2) pruning candidate arguments is removed; 3) argument identification and tagging are finished at the same time. Such unified methods simplify the procedure, reduce the risk of accumulating errors and boost the performance further.
+This example illustrates the simplicity of sequence tagging because
+
+(1) it only relies on shallow syntactic analysis, reduces the precision requirement of syntactic analysis;
+(2) pruning the candidate arguments is no longer necessary;
+(3) arguments are identified and tagged at the same time. Simplifying the workflow reduces the risk of accumulating errors; oftentimes, methods that unify multiple steps boost performance.
 
 In this tutorial, our SRL system is built as an end-to-end system via a neural network. We take only text sequences, without using any syntactic parsing results or complex hand-designed features. We give public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) as an example to illustrate: given a sentence with predicates marked, identify the corresponding arguments and their semantic roles by sequence tagging method.
 
@@ -48,10 +56,10 @@ Recurrent Neural Networks are important tools for sequence modeling and have bee
 
 ### Stacked Recurrent Neural Network
 
-Deep Neural Networks allows extracting hierarchical representations. Higher layers can form more abstract/complex representations on top of lower layers. LSTMs, when unfolded in time, is a deep feed-forward neural network, because a computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. However, the computation carried out at each time-step is only linear transformation, which makes LSTMs a shallow model. Deep LSTMs are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be much efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
+*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural networl. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to paramter sharing over time, LSTMs are also *shallow*; the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
 
 
-However, deep LSTMs increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. For example, four layer LSTMs can be trained properly, but the performance becomes worse as the number of layers up to 4-8. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
+However, a deep LSTM network increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. As a result, while LSTMs of 4 layers can be trained properly, those with 4-8 have much worse performance. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
 
 
 The operation of a single LSTM cell contain 3 parts: (1) input-to-hidden: map input $x$ to the input of the forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping); (2) hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs; (3)hidden-to-output: this part typically involves an activation operation on hidden states. Based on the stacked LSTMs, we add a shortcut connection: take the input-to-hidden from the previous layer as a new input and learn another linear transformation.
