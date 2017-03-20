@@ -1,0 +1,10 @@
+output/
+uniform_params/
+cifar_params/
+mnist_params/
+*_samples/
+*.png
+*.log
+*.pyc
+data/mnist_data/
+data/cifar-10-batches-py/
