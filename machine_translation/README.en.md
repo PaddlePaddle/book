@@ -399,7 +399,7 @@ for param in parameters.keys():
     ```python
     optimizer = paddle.optimizer.Adam(
         learning_rate=5e-5,
-        regularization=paddle.optimizer.L2Regularization(rate=1e-3))
+        regularization=paddle.optimizer.L2Regularization(rate=8e-4))
     trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
                                  update_equation=optimizer)
@@ -423,7 +423,7 @@ for param in parameters.keys():
     trainer.train(
         reader=wmt14_reader,
         event_handler=event_handler,
-        num_passes=10000,
+        num_passes=2,
         feeding=feeding)
     ```
 
