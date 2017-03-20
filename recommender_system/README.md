@@ -268,7 +268,7 @@ inference = paddle.layer.cos_sim(a=usr_combined_features, b=mov_combined_feature
 
 
 ```python
-cost = paddle.layer.regression_cost(
+cost = paddle.layer.mse_cost(
         input=inference,
         label=paddle.layer.data(
             name='score', type=paddle.data_type.dense_vector(1)))
@@ -287,7 +287,7 @@ parameters = paddle.parameters.create(cost)
 ```
 
     [INFO 2017-03-06 17:12:13,284 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
-    [INFO 2017-03-06 17:12:13,287 networks.py:1478] The output order is [__regression_cost_0__]
+    [INFO 2017-03-06 17:12:13,287 networks.py:1478] The output order is [__mse_cost_0__]
 
 
 `parameters`是模型的所有参数集合。他是一个python的dict。我们可以查看到这个网络中的所有参数名称。因为之前定义模型的时候，我们没有指定参数名称，这里参数名称是自动生成的。当然，我们也可以指定每一个参数名称，方便日后维护。
@@ -311,7 +311,7 @@ trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
 ```
 
     [INFO 2017-03-06 17:12:13,378 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
-    [INFO 2017-03-06 17:12:13,379 networks.py:1478] The output order is [__regression_cost_0__]
+    [INFO 2017-03-06 17:12:13,379 networks.py:1478] The output order is [__mse_cost_0__]
 
 
 ### 训练
