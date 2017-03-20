@@ -9,41 +9,33 @@
 1. [Machine Translation](http://book.paddlepaddle.org/machine_translation/index.en.html)
 1. [Recommender System](http://book.paddlepaddle.org/recommender_system/index.en.html)
 
-# Reading Using Docker
-You can read this book and test the notebookfile using Docker.  If you can access dockerhub, run it as  
+## Running the Book
+
+This book you are reading is interactive -- each chapter can run as a Jupyter Notebook. 
+
+### Install Docker 
+
+We packed Jupyter, PaddlePaddle, and all dependencies into a Docker image. So you don't need to install anything except Docker. If you are using Windows, please following [this instruction](https://www.docker.com/docker-windows).  If you are running Mac, please follow [this](https://www.docker.com/docker-mac). For various Linux distros, please refer to https://www.docker.com.  If you are using Windows or Mac, you might want to give Docker [more memory and CPUs/cores](http://stackoverflow.com/a/39720010/724872).
+
+### Run the Book
+
+Just type
+
 ```bash
 docker run -d -p 8888:8888 paddlepaddle/book
 ```
 
-Or if you are in china mainland, you can use  
+This command will download the pre-built Docker image from DockerHub.com and run it in a container.  Please direct your Web browser to http://localhost:8888 to read the book.
+
+If you are living in somewhere slow to access DockerHub.com, you might try our mirror server docker.paddlepaddle.org:
+
 ```bash
 docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 ```
 
-Then open the url http://ip:8888/, such as:  
-```
-http://localhost:8888/
-```
+### Contribute
 
-# How to build book's docker image
-1.prepare your docker environment, make sure you can run docker command  
+Your contribution is welcome!  Please feel free to file Pull Requests to add your chapter as a directory under `/pending`. Once it is going stable, the community would like to move it to `/`.
 
-```bash
-docker
-```
-
-2.get go [here](https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz)
-
-3.get book source code and build it  
-
-```bash
-git clone https://github.com/PaddlePaddle/book.git
-cd book/
-.tools/build_docker.sh
-```
-
-# How to get paddlepaddle docker image
-This book's docker image depends on paddlepaddle docker image. Paddlepaddle's document is [here](https://github.com/PaddlePaddle/Paddle/tree/develop/paddle/scripts/docker)
-
-
+To write, run, and debug your chapters, you will need Python 2.x, Go >1.5. You can build the Docker image using [this script](https://github.com/PaddlePaddle/book/blob/develop/.tools/convert-markdown-into-ipynb-and-test.sh).
 This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
