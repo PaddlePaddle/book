@@ -11,9 +11,9 @@
 
 ## Running the Book
 
-This book you are reading is interactive -- each chapter can run as a Jupyter Notebook. 
+This book you are reading is interactive -- each chapter can run as a Jupyter Notebook.
 
-### Install Docker 
+### Install Docker
 
 We packed Jupyter, PaddlePaddle, and all dependencies into a Docker image. So you don't need to install anything except Docker. If you are using Windows, please following [this instruction](https://www.docker.com/docker-windows).  If you are running Mac, please follow [this](https://www.docker.com/docker-mac). For various Linux distros, please refer to https://www.docker.com.  If you are using Windows or Mac, you might want to give Docker [more memory and CPUs/cores](http://stackoverflow.com/a/39720010/724872).
 
