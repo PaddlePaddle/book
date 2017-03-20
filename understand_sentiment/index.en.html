@@ -376,7 +376,7 @@ def event_handler(event):
             sys.stdout.write('.')
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(reader=test_reader, reader_dict=reader_dict)
+        result = trainer.test(reader=test_reader, feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 
