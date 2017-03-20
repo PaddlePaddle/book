@@ -6,15 +6,15 @@ For instructions on getting started with PaddlePaddle, see [PaddlePaddle install
 
 ## Background
 
-Natural language analysis techniques consist of lexical, syntactic, and semantic analysis. **Semantic Role Labelling (SRL)** is an instance of **Shallow Semantic Analysis**.
+Natural language analysis techniques consist of lexical, syntactic, and semantic analysis. **Semantic Role Labeling (SRL)** is an instance of **Shallow Semantic Analysis**.
 
 In a sentence, a **predicate** states a property or a characterization of a *subject*, such as what it does and what it is like. The predicate represents the core of an event, whereas the words accompanying the predicate are **arguments**. A **semantic role** refers to the abstract role an argument of a predicate take on in the event, including *agent*, *patient*, *theme*, *experiencer*, *beneficiary*, *instrument*, *location*, *goal*, and *source*.
 
-In the following example of a Chinese sentence, "to encounter" is the predicate (or *Pred*); "Ming" is the *agent*; "Hong" is the *patient*; "yesterday" and "evening" are the *time*; finally, "the park" is the *location*.
+In the following example of a Chinese sentence, "to encounter" is the predicate (*pred*); "Ming" is the *agent*; "Hong" is the *patient*; "yesterday" and "evening" are the *time*; finally, "the park" is the *location*.
 
 $$\mbox{[小明 Ming]}_{\mbox{Agent}}\mbox{[昨天 yesterday]}_{\mbox{Time}}\mbox{[晚上 evening]}_\mbox{Time}\mbox{在[公园 a park]}_{\mbox{Location}}\mbox{[遇到 to encounter]}_{\mbox{Predicate}}\mbox{了[小红 Hong]}_{\mbox{Patient}}\mbox{。}$$
 
-Instead of analyzing the semantic information, **Semantic Role Labeling** (**SRL**) identifies the relation between the predicate and the other constituents surrounding it. The predicate-argument structures are labelled as specific semantic roles. A wide range of natural language understanding tasks, including *information extraction*, *discourse analysis*, and *deepQA*. Research usually assumes a predicate of a sentence to be specified; the only task is to identify its arguments and their semantic roles.
+Instead of analyzing the semantic information, **Semantic Role Labeling** (**SRL**) identifies the relation between the predicate and the other constituents surrounding it. The predicate-argument structures are labeled as specific semantic roles. A wide range of natural language understanding tasks, including *information extraction*, *discourse analysis*, and *deepQA*. Research usually assumes a predicate of a sentence to be specified; the only task is to identify its arguments and their semantic roles.
 
 Conventional SRL systems mostly build on top of syntactic analysis, usually consisting of five steps:
 
@@ -37,7 +37,7 @@ The BIO representation of above example is shown in Fig.1.
 
 <div  align="center">
 <img src="image/bio_example_en.png" width = "90%"  align=center /><br>
-Fig 2. BIO represention
+Fig 2. BIO representation
 </div>
 
 This example illustrates the simplicity of sequence tagging, since
@@ -54,7 +54,7 @@ Recurrent Neural Networks are important tools for sequence modeling and have bee
 
 ### Stacked Recurrent Neural Network
 
-*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural networl. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to paramter sharing over time, LSTMs are also *shallow*; the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
+*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural network. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to parameter sharing over time, LSTMs are also *shallow*; the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
 
 
 However, a deep LSTM network increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. As a result, while LSTMs of 4 layers can be trained properly, those with 4-8 have much worse performance. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
