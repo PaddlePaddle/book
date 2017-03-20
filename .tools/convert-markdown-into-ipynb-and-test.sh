@@ -5,9 +5,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
+GOPATH=~/.go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 
-cur_path=$(dirname $(readlink -f $0))
+cur_path="$(cd "$(dirname "$0")" && pwd -P)"
 cd $cur_path/../
 
 #convert md to ipynb
