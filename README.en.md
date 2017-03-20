@@ -9,4 +9,29 @@
 1. [Machine Translation](http://book.paddlepaddle.org/machine_translation/index.en.html)
 1. [Recommender System](http://book.paddlepaddle.org/recommender_system/index.en.html)
 
+## Running the Book
+
+This book you are reading is interactive -- each chapter can run as a Jupyter Notebook.
+
+We packed Jupyter, PaddlePaddle, and all dependencies into a Docker image. So you don't need to install anything except Docker. If you are using Windows, please following [this instruction](https://www.docker.com/docker-windows).  If you are running Mac, please follow [this](https://www.docker.com/docker-mac). For various Linux distros, please refer to https://www.docker.com.  If you are using Windows or Mac, you might want to give Docker [more memory and CPUs/cores](http://stackoverflow.com/a/39720010/724872).
+
+Just type
+
+```bash
+docker run -d -p 8888:8888 paddlepaddle/book
+```
+
+This command will download the pre-built Docker image from DockerHub.com and run it in a container.  Please direct your Web browser to http://localhost:8888 to read the book.
+
+If you are living in somewhere slow to access DockerHub.com, you might try our mirror server docker.paddlepaddle.org:
+
+```bash
+docker run -d -p 8888:8888 docker.paddlepaddle.org/book
+```
+
+## Contribute
+
+Your contribution is welcome!  Please feel free to file Pull Requests to add your chapter as a directory under `/pending`. Once it is going stable, the community would like to move it to `/`.
+
+To write, run, and debug your chapters, you will need Python 2.x, Go >1.5. You can build the Docker image using [this script](https://github.com/PaddlePaddle/book/blob/develop/.tools/convert-markdown-into-ipynb-and-test.sh).
 This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
