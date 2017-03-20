@@ -22,8 +22,7 @@ fi
 
 mkdir -p build
 cat > build/Dockerfile <<EOF
-#FROM paddledev/paddle:${paddle_version}
-FROM docker.paddlepaddle.org/paddle:${paddle_version}
+FROM paddledev/paddle:${paddle_version}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
 RUN ${UPDATE_MIRROR_CMD}
