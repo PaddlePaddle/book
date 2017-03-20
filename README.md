@@ -1,13 +1,13 @@
 # 深度学习入门
 
-1. [新手入门](http://book.paddlepaddle.org/fit_a_line)
-1. [识别数字](http://book.paddlepaddle.org/recognize_digits)
-1. [图像分类](http://book.paddlepaddle.org/image_classification)
-1. [词向量](http://book.paddlepaddle.org/word2vec)
-1. [情感分析](http://book.paddlepaddle.org/understand_sentiment)
-1. [语义角色标注](http://book.paddlepaddle.org/label_semantic_roles)
-1. [机器翻译](http://book.paddlepaddle.org/machine_translation)
-1. [个性化推荐](http://book.paddlepaddle.org/recommender_system)
+1. [新手入门](http://book.paddlepaddle.org/01.fit_a_line)
+1. [识别数字](http://book.paddlepaddle.org/02.recognize_digits)
+1. [图像分类](http://book.paddlepaddle.org/03.image_classification)
+1. [词向量](http://book.paddlepaddle.org/04.word2vec)
+1. [情感分析](http://book.paddlepaddle.org/05.understand_sentiment)
+1. [语义角色标注](http://book.paddlepaddle.org/06.label_semantic_roles)
+1. [机器翻译](http://book.paddlepaddle.org/07.machine_translation)
+1. [个性化推荐](http://book.paddlepaddle.org/08.recommender_system)
 
 ## 运行这本书
 
