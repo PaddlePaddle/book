@@ -404,7 +404,7 @@ feature = user.value() + movie.value()
 infer_dict = copy.copy(feeding)
 del infer_dict['score']
 
-prediction = paddle.infer(output=inference, parameters=parameters, input=[feature], feeding=infer_dict)
+prediction = paddle.infer(inference, parameters=parameters, input=[feature], feeding=infer_dict)
 score = (prediction[0][0] + 5.0) / 2
 print "[Predict] User %d Rating Movie %d With Score %.2f"%(user_id, movie_id, score)
 ```

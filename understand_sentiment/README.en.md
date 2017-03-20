@@ -344,7 +344,7 @@ Finally, we can invoke `trainer.train` to start training:
 trainer.train(
     reader=train_reader,
     event_handler=event_handler,
-    feeding=feedig,
+    feeding=feeding,
     num_passes=10)
 ```
 
