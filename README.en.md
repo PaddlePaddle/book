@@ -13,11 +13,7 @@
 
 This book you are reading is interactive -- each chapter can run as a Jupyter Notebook.
 
-### Install Docker
-
 We packed Jupyter, PaddlePaddle, and all dependencies into a Docker image. So you don't need to install anything except Docker. If you are using Windows, please following [this instruction](https://www.docker.com/docker-windows).  If you are running Mac, please follow [this](https://www.docker.com/docker-mac). For various Linux distros, please refer to https://www.docker.com.  If you are using Windows or Mac, you might want to give Docker [more memory and CPUs/cores](http://stackoverflow.com/a/39720010/724872).
-
-### Run the Book
 
 Just type
 
@@ -33,7 +29,7 @@ If you are living in somewhere slow to access DockerHub.com, you might try our m
 docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 ```
 
-### Contribute
+## Contribute
 
 Your contribution is welcome!  Please feel free to file Pull Requests to add your chapter as a directory under `/pending`. Once it is going stable, the community would like to move it to `/`.
 
