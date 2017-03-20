@@ -2,21 +2,19 @@
 
 The source code of this chapter is live on [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/label_semantic_roles).
 
-For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](http://www.paddlepaddle.org/doc_cn/build_and_install/index.html).
-
 For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Background
 
-*Natural Language Analysis* techniques consist of lexical, syntactic, and semantic analysis. **Semantic Role Labelling (SRL)** is an instance of *Shallow Semantic Analysis*.
+Natural language analysis techniques consist of lexical, syntactic, and semantic analysis. **Semantic Role Labelling (SRL)** is an instance of **Shallow Semantic Analysis**.
 
-In a sentence, a *predicate* states a property or a characterization of a *subject*, such as what it does and what it is like. The predicate represents the core of an event, whereas the words accompanying the predicate are **arguments**. A **semantic role** refers to the abstract role an argument of a predicate take on in the event, including *Agent*, *Patient*, *Theme*, *Experiencer*, *Beneficiary*, *Instrument*, *Location*, *Goal*, and *Source*.
+In a sentence, a **predicate** states a property or a characterization of a *subject*, such as what it does and what it is like. The predicate represents the core of an event, whereas the words accompanying the predicate are **arguments**. A **semantic role** refers to the abstract role an argument of a predicate take on in the event, including *agent*, *patient*, *theme*, *experiencer*, *beneficiary*, *instrument*, *location*, *goal*, and *source*.
 
-In the following example of a Chinese sentence, "to encounter" is the predicate (*Pred*); "Ming" is the *agent*; "Hong" is the *patient*; "yesterday" and "evening" are the *time*; finally, "the park" is the *location*.
+In the following example of a Chinese sentence, "to encounter" is the predicate (or *Pred*); "Ming" is the *agent*; "Hong" is the *patient*; "yesterday" and "evening" are the *time*; finally, "the park" is the *location*.
 
-$$\mbox{[小明 (Ming)]}_{\mbox{Agent}}\mbox{[昨天 (yesterday)]}_{\mbox{Time}}\mbox{[晚上 (evening)]}_\mbox{Time}\mbox{在[公园 (a park)]}_{\mbox{Location}}\mbox{[遇到 (to encounter)]}_{\mbox{Predicate}}\mbox{了[小红 (Hong)]}_{\mbox{Patient}}\mbox{。}$$
+$$\mbox{[小明 Ming]}_{\mbox{Agent}}\mbox{[昨天 yesterday]}_{\mbox{Time}}\mbox{[晚上 evening]}_\mbox{Time}\mbox{在[公园 a park]}_{\mbox{Location}}\mbox{[遇到 to encounter]}_{\mbox{Predicate}}\mbox{了[小红 Hong]}_{\mbox{Patient}}\mbox{。}$$
 
-Instead of analyzing the semantic information, *Semantic Role Labeling* identifies the relation between the predicate and the other constituents surrounding it. The predicate-argument structures are labelled as specific semantic roles. A wide range of natural language understanding tasks, including *Information Extraction*, *Discourse Analysis*, and *DeepQA*. Research usually assumes a predicate of a sentence to be specified; the only task is to identify its arguments and their semantic roles.
+Instead of analyzing the semantic information, **Semantic Role Labeling** (**SRL**) identifies the relation between the predicate and the other constituents surrounding it. The predicate-argument structures are labelled as specific semantic roles. A wide range of natural language understanding tasks, including *information extraction*, *discourse analysis*, and *deepQA*. Research usually assumes a predicate of a sentence to be specified; the only task is to identify its arguments and their semantic roles.
 
 Conventional SRL systems mostly build on top of syntactic analysis, usually consisting of five steps:
 
@@ -42,11 +40,11 @@ The BIO representation of above example is shown in Fig.1.
 Fig 2. BIO represention
 </div>
 
-This example illustrates the simplicity of sequence tagging because
+This example illustrates the simplicity of sequence tagging, since
 
-(1) it only relies on shallow syntactic analysis, reduces the precision requirement of syntactic analysis;
-(2) pruning the candidate arguments is no longer necessary;
-(3) arguments are identified and tagged at the same time. Simplifying the workflow reduces the risk of accumulating errors; oftentimes, methods that unify multiple steps boost performance.
+1. It only relies on shallow syntactic analysis, reduces the precision requirement of syntactic analysis;
+2. Pruning the candidate arguments is no longer necessary;
+3. Arguments are identified and tagged at the same time. Simplifying the workflow reduces the risk of accumulating errors; oftentimes, methods that unify multiple steps boost performance.
 
 In this tutorial, our SRL system is built as an end-to-end system via a neural network. We take only text sequences, without using any syntactic parsing results or complex hand-designed features. We give public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) as an example to illustrate: given a sentence with predicates marked, identify the corresponding arguments and their semantic roles by sequence tagging method.
 
@@ -62,9 +60,13 @@ Recurrent Neural Networks are important tools for sequence modeling and have bee
 However, a deep LSTM network increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. As a result, while LSTMs of 4 layers can be trained properly, those with 4-8 have much worse performance. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
 
 
-The operation of a single LSTM cell contain 3 parts: (1) input-to-hidden: map input $x$ to the input of the forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping); (2) hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs; (3)hidden-to-output: this part typically involves an activation operation on hidden states. Based on the stacked LSTMs, we add a shortcut connection: take the input-to-hidden from the previous layer as a new input and learn another linear transformation.
+A single LSTM cell has three operations:
 
-Fig.3 illustrate the final stacked recurrent neural networks.
+1. input-to-hidden: map input $x$ to the input of the forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping);
+2. hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs;
+3. hidden-to-output: this part typically involves an activation operation on hidden states. Based on the stacked LSTMs, we add a shortcut connection: take the input-to-hidden from the previous layer as a new input and learn another linear transformation.
+
+Fig.3 illustrates the final stacked recurrent neural networks.
 
 <p align="center">  
 <img src="./image/stacked_lstm_en.png" width = "40%"  align=center><br>
