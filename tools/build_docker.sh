@@ -5,13 +5,7 @@ cd $cur_path/../
 #convert md to ipynb
 ./tools/convert-markdown-into-ipynb-and-test.sh
 
-#get submodule
-git submodule update --init --recursive
-cd paddle && git checkout develop && paddle_version=`git describe --abbrev=0 --tags` && cd ..
-if [ $? -ne 0 ]; then
-	echo 1>&2 "get paddle version error"
-	exit 1
-fi
+paddle_version=0.10.0rc2
 
 #generate docker file
 if [ ${USE_UBUNTU_REPO_MIRROR} ]; then
