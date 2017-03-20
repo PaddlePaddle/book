@@ -14,25 +14,26 @@ if [ $? -ne 0 ]; then
 fi
 
 #generate docker file
-if [ ${USE_MIRROR} ]; then
-  MIRROR_UPDATE="sed 's@http:\/\/archive.ubuntu.com\/ubuntu\/@mirror:\/\/mirrors.ubuntu.com\/mirrors.txt@' -i /etc/apt/sources.list && \\"
+if [ ${USE_UBUNTU_REPO_MIRROR} ]; then
+  UPDATE_MIRROR_CMD="sed 's@http:\/\/archive.ubuntu.com\/ubuntu\/@mirror:\/\/mirrors.ubuntu.com\/mirrors.txt@' -i /etc/apt/sources.list && \\"
 else
-  MIRROR_UPDATE="\\"
+  UPDATE_MIRROR_CMD="\\"
 fi
 
 mkdir -p build
 cat > build/Dockerfile <<EOF
-FROM paddledev/paddle:${paddle_version}
+#FROM paddledev/paddle:${paddle_version}
+FROM docker.paddlepaddle.org/paddle:${paddle_version}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
-RUN apt-get install locales 
+RUN ${UPDATE_MIRROR_CMD}
+	apt-get install locales 
 RUN localedef -f UTF-8 -i en_US en_US.UTF-8
 
-RUN ${MIRROR_UPDATE}
-	apt-get -y install gcc && \
+RUN  apt-get -y install gcc && \
 	apt-get -y clean
 
-RUN pip install -U matplotlib jupyter numpy requests
+RUN pip install -U matplotlib jupyter numpy requests scipy
 
 COPY . /book
 RUN rm -rf /book/build
