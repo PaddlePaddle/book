@@ -93,7 +93,7 @@ $$p(Y|X, W) = \frac{1}{Z(X)}\text{exp}\sum_{k}\omega_{k}f_{k}(Y, X)$$
 
 $\omega$是特征函数对应的权值，是CRF模型要学习的参数。训练时，对于给定的输入序列和对应的标记序列集合$D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$ ，通过正则化的极大似然估计，求解如下优化目标：
 
-$$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
+$$\DeclareMathOperator*{\argmax}{arg\,max} L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
 
 这个优化目标可以通过反向传播算法和整个神经网络一起求解。解码时，对于给定的输入序列$X$，通过解码算法（通常有：维特比算法、Beam Search）求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
 
