@@ -49,11 +49,11 @@ EOF2
 
 fi
 
-cat >> build/Dockerfile << EOF
+cat >> build/Dockerfile << EOF3
 
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
-EOF
+EOF3
 
 #build docker image
 echo "paddle_version:"$paddle_version
