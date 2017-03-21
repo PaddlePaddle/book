@@ -46,25 +46,27 @@ This example illustrates the simplicity of sequence tagging, since
 2. Pruning the candidate arguments is no longer necessary;
 3. Arguments are identified and tagged at the same time. Simplifying the workflow reduces the risk of accumulating errors; oftentimes, methods that unify multiple steps boost performance.
 
-In this tutorial, our SRL system is built as an end-to-end system via a neural network. We take only text sequences, without using any syntactic parsing results or complex hand-designed features. We give public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) as an example to illustrate: given a sentence with predicates marked, identify the corresponding arguments and their semantic roles by sequence tagging method.
+In this tutorial, our SRL system is built as an end-to-end system via a neural network. The system takes only text sequences as input, without using any syntactic parsing results or complex hand-designed features. The public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) is used for the following task: given a sentence with predicates marked, identify the corresponding arguments and their semantic roles through sequence tagging.
 
 ## Model
 
-Recurrent Neural Networks are important tools for sequence modeling and have been successfully used in some natural language processing tasks. Unlike Feed-forward neural networks, RNNs can model the dependency between elements of sequences. LSTMs as variants of RNNs aim to model long-term dependency in long sequences. We have introduced this in [understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). In this chapter, we continue to use LSTMs to solve SRL problems.
+**Recurrent Neural Networks** (*RNN*) are important tools for sequence modeling and have been successfully used in some natural language processing tasks. Unlike feed-forward neural networks, RNNs can model the dependencies between elements of sequences. As a variant of RNNs', LSTMs aim model long-term dependency in long sequences. We have introduced this in [understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). In this chapter, we continue to use LSTMs to solve SRL problems.
 
 ### Stacked Recurrent Neural Network
 
-*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural network. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to parameter sharing over time, LSTMs are also *shallow*; the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
+*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural network. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to parameter sharing over time, LSTMs are also *shallow*; that is, the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
 
 
-However, a deep LSTM network increases the number of nonlinear steps the gradient has to traverse when propagated back in depth. As a result, while LSTMs of 4 layers can be trained properly, those with 4-8 have much worse performance. Conventional LSTMs prevent backpropagated errors from vanishing and exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
+However, in a deep LSTM network, any gradient propagated back in depth needs to traverse a large number of nonlinear steps. As a result, while LSTMs of 4 layers can be trained properly, those with 4-8 have much worse performance. Conventional LSTMs prevent back-propagated errors from vanishing or exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
 
 
 A single LSTM cell has three operations:
 
 1. input-to-hidden: map input $x$ to the input of the forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping);
 2. hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs;
-3. hidden-to-output: this part typically involves an activation operation on hidden states. Based on the stacked LSTMs, we add a shortcut connection: take the input-to-hidden from the previous layer as a new input and learn another linear transformation.
+3. hidden-to-output: this part typically involves an activation operation on hidden states.
+
+Based on the stacked LSTMs, we add shortcut connections: take the input-to-hidden from the previous layer as a new input and learn another linear transformation.
 
 Fig.3 illustrates the final stacked recurrent neural networks.
 
@@ -75,9 +77,9 @@ Fig 3. Stacked Recurrent Neural Networks
 
 ### Bidirectional Recurrent Neural Network
 
-LSTMs can summarize the history of previous inputs seen up to now, but can not see the future. In most of NLP (natural language processing) tasks, the entire sentences are ready to use. Therefore, sequential learning might be much efficient if the future can be encoded as well like histories.
+While LSTMs can summarize the history -- all the previous input seen up until now -- they can not see the future. Because most NLP (natural language processing) tasks provide the entirety of sentences, sequential learning can benefit from having the future encoded as well as the history.
 
-To address the above drawbacks, we can design bidirectional recurrent neural networks by making a minor modification. Higher LSTM layers process the sequence in reversed direction with previous lower LSTM layers, i.e., Deep LSTMs operate from left-to-right, right-to-left, left-to-right,..., in depth. Therefore, LSTM layers at time-step $t$ can see both histories and the future since the second layer. Fig. 4 illustrates the bidirectional recurrent neural networks.
+To address, we can design a bidirectional recurrent neural network by making a minor modification. A higher LSTM layer can process the sequence in reversed direction with regards to its immediate lower LSTM layer, i.e., deep LSTM layers take turns to train on input sequences from left-to-right and right-to-left. Therefore, LSTM layers at time-step $t$ can see both histories and the future, starting from the second layer. Fig. 4 illustrates the bidirectional recurrent neural networks.
 
 
 <p align="center">  
@@ -85,16 +87,16 @@ To address the above drawbacks, we can design bidirectional recurrent neural net
 Fig 4. Bidirectional LSTMs
 </p>
 
-Note that, this bidirectional RNNs is different with the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks[machine translation](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.md)
+Note that, this bidirectional RNNs is different with the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks [machine translation](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.en.md)
 
-### Conditional Random Field
+### Conditional Random Field (CRF)
 
-The basic pipeline of Neural Networks solving problems is 1) all lower layers aim to learn representations; 2) the top layer is designed for learning the final task. In SRL tasks, CRF is built on top of the network for the final tag sequence prediction. It takes the representations provided by the last LSTM layer as input.
+Typically, a neural network's lower layers learn representations while its very top layer learns the final task. These principles can guide our problem-solving approaches. In SRL tasks, a **Conditional Random Field** (*CRF*) is built on top of the network in order to perform the final prediction to tag sequences. It takes as input the representations provided by the last LSTM layer.
 
 
-CRF is a probabilistic graph model (undirected) with nodes denoting random variables and edges denoting dependencies between nodes. To be simplicity, CRFs learn conditional probability $P(Y|X)$, where $X = (x_1, x_2, ... , x_n)$ are sequences of input, $Y = (y_1, y_2, ... , y_n)$ are label sequences; Decoding is to search sequence $Y$ to maximize conditional probability $P(Y|X)$, i.e., $Y^* = \mbox{arg max}_{Y} P(Y | X)$。
+The CRF is an undirected probabilistic graph with nodes denoting random variables and edges denoting dependencies between these variables. In essence, CRFs learn the conditional probability $P(Y|X)$, where $X = (x_1, x_2, ... , x_n)$ are sequences of input and $Y = (y_1, y_2, ... , y_n)$ are label sequences; to decode, simply search through $Y$ for a sequence that maximizes the conditional probability $P(Y|X)$, i.e., $Y^* = \mbox{arg max}_{Y} P(Y | X)$。
 
-Sequence tagging tasks only consider input and output as linear sequences without extra dependent assumptions on graph model. Thus, the graph model of sequence tagging tasks is simple chain or line, which results in a Linear-Chain Conditional Random Field, shown in Fig.5.
+Sequence tagging tasks do not assume a lot of conditional independence, because they are only concerned with the input and the output being linear sequences. Thus, the graph model of sequence tagging tasks is usually a simple chain or line, which results in a **Linear-Chain Conditional Random Field**, shown in Fig.5.
 
 <p align="center">  
 <img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
@@ -106,43 +108,43 @@ By the fundamental theorem of random fields \[[5](#Reference)\], the joint distr
 $$p(Y | X) = \frac{1}{Z(X)} \text{exp}\left(\sum_{i=1}^{n}\left(\sum_{j}\lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} \mu_k s_k (y_i, X, i)\right)\right)$$
 
 
-where, $Z(X)$ is normalization constant, $t_j$ is feature function defined on edges, called transition feature, depending on $y_i$ and $y_{i-1}$ which represents transition probabilities from $y_{i-1}$ to $y_i$ given input sequence $X$. $s_k$ is feature function defined on nodes, called state feature, depending on $y_i$ and represents the probality of $y_i$ given input sequence $X$. $\lambda_j$ 和 $\mu_k$ are weights corresponding to $t_j$ and $s_k$. Actually, $t$ and $s$ can be wrtten in the same form, then take summation over all nodes $i$: $f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$, $f$ is defined as feature function. Thus, $P(Y|X)$ can be wrtten as:
+where, $Z(X)$ is normalization constant, ${t_j}$ represents the feature functions defined on edges called the *transition feature*, which denotes the transition probabilities from $y_{i-1}$ to $y_i$ given input sequence $X$. ${s_k}$ represents the feature function defined on nodes, called the state feature, denoting the probability of $y_i$ given input sequence $X$. In addition, $\lambda_j$ and $\mu_k$ are weights corresponding to $t_j$ and $s_k$. Alternatively, $t$ and $s$ can be written in the same form that depends on $y_{i - 1}$, $y_i$, $X$, and $i$. Taking its summation over all nodes $i$, we have: $f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$, which defines the *feature function* $f$. Thus, $P(Y|X)$ can be written as:
 
 $$p(Y|X, W) = \frac{1}{Z(X)}\text{exp}\sum_{k}\omega_{k}f_{k}(Y, X)$$
 
-$\omega$ are weights of feature function which should be learned in CRF models. At training stage, given input sequences and label sequences $D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$, solve following objective function using MLE:
+where $\omega$ are the weights to the feature function that the CRF learns. While training, given input sequences and label sequences $D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$, by maximum likelihood estimation (**MLE**), we construct the following objective function:
 
 
-$$L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
+$$\DeclareMathOperator*{\argmax}{arg\,max} L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
 
 
-This objective function can be solved via back-propagation in an end-to-end manner. At decoding stage, given input sequences $X$, search sequence $\bar{Y}$ to maximize conditional probability $\bar{P}(Y|X)$ via decoding methods (such as Viterbi, Beam Search).
+This objective function can be solved via back-propagation in an end-to-end manner. While decoding, given input sequences $X$, search for sequence $\bar{Y}$ to maximize the conditional probability $\bar{P}(Y|X)$ via decoding methods (such as *Viterbi*, or [Beam Search Algorithm](https://github.com/PaddlePaddle/book/blob/develop/07.machine_translation/README.en.md#Beam%20Search%20Algorithm)).
 
-### DB-LSTM SRL model
+### Deep Bidirectional LSTM (DB-LSTM) SRL model
 
-Given predicates and a sentence, SRL tasks aim to identify arguments of the given predicate and their semantic roles. If a sequence has n predicates, we will process this sequence n times. One model is as follows:
+Given predicates and a sentence, SRL tasks aim to identify arguments of the given predicate and their semantic roles. If a sequence has $n$ predicates, we will process this sequence $n$ times. Here is the breakdown of a straight-forward model:
 
 1. Construct inputs;
  - input 1: predicate, input 2: sentence
- - expand input 1 as a sequence with the same length with input 2 using one-hot representation;
-2. Convert one-hot sequences from step 1 to vector sequences via lookup table;
+ - expand input 1 into a sequence of the same length with input 2's sentence, using one-hot representation;
+2. Convert the one-hot sequences from step 1 to vector sequences via a word embedding's lookup table;
 3. Learn the representation of input sequences by taking vector sequences from step 2 as inputs;
-4. Take representations from step 3 as inputs, label sequence as supervision signal, do sequence tagging tasks
+4. Take the representation from step 3 as input, label sequence as supervisory signal, and realize sequence tagging tasks.
 
-We can try above method. Here, we propose some modifications by introducing two simple but effective features:
+Here, we propose some improvements by introducing two simple but effective features:
 
-- predicate context (ctx-p): A single predicate word can not exactly describe the predicate information, especially when the same words appear more than one times in a sentence. With the expanded context, the ambiguity can be largely eliminated. Thus, we extract $n$ words before and after predicate to construct a window chunk.
+- predicate context (**ctx-p**): A single predicate word may not describe all the predicate information, especially when the same words appear multiple times in a sentence. With the expanded context, the ambiguity can be largely eliminated. Thus, we extract $n$ words before and after predicate to construct a window chunk.
 
-- region mark ($m_r$): $m_r = 1$ to denote word in that position locates in the predicate context region, or $m_r = 0$ if not.
+- region mark ($m_r$): The binary marker on a word, $m_r$, takes the value of $1$ when the word is in the predicate context region, and $0$ if not.
 
-After modification, the model is as follows:
+After these modifications, the model is as follows, as illustrated in Figure 6:
 
 1. Construct inputs
- - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, element value will be 1 if word locates in the predicate context region, 0 otherwise.
- - expand input 2~3 as sequences with the same length with input 1
-2. Convert input 1~4 to vector sequences via lookup table; input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables
-3. Take four vector sequences from step 2 as inputs of bidirectional LSTMs; Train LSTMs to update representations
-4. Take representation from step 3 as input of CRF, label sequence as supervision signal, do sequence tagging tasks
+ - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, where an entry is 1 if word is located in the predicate context region, 0 otherwise.
+ - expand input 2~3 into sequences with the same length with input 1
+2. Convert input 1~4 to vector sequences via word embedding lookup tables; While input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables.
+3. Take the four vector sequences from step 2 as inputs to bidirectional LSTMs; Train the LSTMs to update representations.
+4. Take the representation from step 3 as input to CRF, label sequence as supervisory signal, and complete sequence tagging tasks.
 
 
 <div  align="center">  
@@ -152,9 +154,9 @@ Fig 6. DB-LSTM for SRL tasks
 
 ## Data Preparation
 
-In the tutorial, we use [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL task open dataset as an example. It is important to note that the training set and development set of the CoNLL 2005 SRL task are not free to download after the competition. Currently, only the test set can be obtained, including 23 sections of the Wall Street Journal and three sections of the Brown corpus. In this tutorial, we use the WSJ corpus as the training dataset to explain the model. However, since the training set is small, if you want to train a usable neural network SRL system, consider paying for the full corpus.
+In the tutorial, we use [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL task open dataset as an example. Note that the training set and development set of the CoNLL 2005 SRL task are not free to download after the competition. Currently, only the test set can be obtained, including 23 sections of the Wall Street Journal and three sections of the Brown corpus. In this tutorial, we use the WSJ corpus as the training dataset to explain the model. However, since the training set is small, for a usable neural network SRL system, please consider paying for the full corpus.
 
-The original data includes a variety of information such as POS tagging, naming entity recognition, parsing tree, and so on. In this tutorial, we only use the data under the words folder (text sequence) and the props folder (label results) inside test.wsj parent folder. The data directory used in this tutorial is as follows:
+The original data includes a variety of information such as POS tagging, naming entity recognition, syntax tree, etc. In this tutorial, we only use the data under `test.wsj/words/` (text sequence) and `test.wsj/props/` (label results). The data directory used in this tutorial is as follows:
 
 ```text
 conll05st-release/
@@ -163,9 +165,9 @@ conll05st-release/
     └── words  # 输入文本序列
 ```
 
-The annotation information is derived from the results of Penn TreeBank\[[7](#references)\] and PropBank \[[8](# references)\]. The label of the PropBank is different from the label that we used in the example at the beginning of the article, but the principle is the same. For the description of the label, please refer to the paper \[[9](#references)\].
+The annotation information is derived from the results of Penn TreeBank\[[7](#references)\] and PropBank \[[8](# references)\]. The labeling of the PropBank is different from the labeling methods mentioned before, but shares with it the same underlying principle. For descriptions of the labeling, please refer to the paper \[[9](#references)\].
 
-The raw data needs to be preprocessed before used by PaddlePaddle. The preprocessing consists of the following steps:
+The raw data needs to be preprocessed into formats that PaddlePaddle can handle. The preprocessing consists of the following steps:
 
 1. Merge the text sequence and the tag sequence into the same record;
 2. If a sentence contains $n$ predicates, the sentence will be processed $n$ times into $n$ separate training samples, each sample with a different predicate;
@@ -180,7 +182,7 @@ The raw data needs to be preprocessed before used by PaddlePaddle. The preproces
 # conll05.test gets preprocessed training instances.
 ```
 
-After preprocessing completes, a training sample contains nine features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, label sequence. Following table is an example of a training sample.
+After preprocessing, a training sample contains nine features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, label sequence. The following table is an example of a training sample.
 
 | word sequence | predicate | predicate context（5 columns） | region mark sequence | label sequence|
 |---|---|---|---|---|
@@ -202,9 +204,9 @@ In addition to the data, we provide following resources:
 | predicate_dict | predicate dictionary, total 3162 predicates |
 | emb | a pre-trained word vector lookup table, 32-dimentional |
 
-We trained in the English Wikipedia language model to get a word vector lookup table used to initialize the SRL model. During the SRL model training process, the word vector lookup table is no longer updated. About the language model and the word vector lookup table can refer to [word vector](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md) tutorial. There are 995,000,000 token in training corpus, and the dictionary size is 4900,000 words. In the CoNLL 2005 training corpus, 5% of the words are not in the 4900,000 words, and we see them all as unknown words, represented by `<unk>`.
+We trained a language model on the English Wikipedia to get a word vector lookup table used to initialize the SRL model. While training the SRL model, the word vector lookup table is no longer updated. To learn more about the language model and the word vector lookup table, please refer to the tutorial [word vector](https://github.com/PaddlePaddle/book/blob/develop/word2vec/README.md). There are 995,000,000 tokens in the training corpus, and the dictionary size is 4900,000 words. In the CoNLL 2005 training corpus, 5% of the words are not in the 4900,000 words, and we see them all as unknown words, represented by `<unk>`.
 
-Get dictionary, print dictionary size:
+Here we fetch the dictionary, and print its size:
 
 ```python
 import math
@@ -224,12 +226,12 @@ print label_dict_len
 print pred_len
 ```
 
-## Model configuration
+## Model Configuration
 
 - Define input data dimensions and model hyperparameters.
 
 ```python
-mark_dict_len = 2    # Value range of region mark. Region mark is either 0 or 1, so range is 2
+mark_dict_len = 2    # value range of region mark. Region mark is either 0 or 1, so range is 2
 word_dim = 32        # word vector dimension
 mark_dim = 5         # adjacent dimension
 hidden_dim = 512     # the dimension of LSTM hidden layer vector is 128 (512/4)
@@ -259,9 +261,9 @@ mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
 target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 ```
 
-Speciala note: hidden_dim = 512 means LSTM hidden vector of 128 dimension (512/4). Please refer PaddlePaddle official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
+Note that `hidden_dim = 512` means a LSTM hidden vector of 128 dimension (512/4). Please refer to PaddlePaddle's official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
 
-- The word sequence, predicate, predicate context, and region mark sequence are transformed into embedding vector sequences.
+- Transform the word sequence itself, the predicate, the predicate context, and the region mark sequence into embedded vector sequences.
 
 ```python  
 
@@ -290,7 +292,7 @@ emb_layers.append(predicate_embedding)
 emb_layers.append(mark_embedding)
 ```
 
-- 8 LSTM units will be trained in "forward / backward" order.
+- 8 LSTM units are trained through alternating left-to-right / right-to-left order denoted by the variable `reverse`.
 
 ```python  
 hidden_0 = paddle.layer.mixed(
@@ -340,7 +342,7 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-- We will concatenate the output of top LSTM unit with it's input, and project into a hidden layer. Then put a fully connected layer on top of it to get the final vector representation.
+- We will concatenate the output of the top LSTM unit with its input, and project the result into a hidden layer. Then, we put a fully connected layer on top to get the final feature vector representation.
 
  ```python
  feature_out = paddle.layer.mixed(
@@ -354,7 +356,7 @@ for i in range(1, depth):
  ], )
  ```
 
-- We use CRF as cost function, the parameter of CRF cost will be named `crfw`.
+- At the end of the network, we use CRF as the cost function; the parameter of CRF cost will be named `crfw`.
 
 ```python
 crf_cost = paddle.layer.crf(
@@ -367,7 +369,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- CRF decoding layer is used for evaluation and inference. It shares parameter with CRF layer.  The sharing of parameters among multiple layers is specified by the same parameter name in these layers.
+- The CRF decoding layer is used for evaluation and inference. It shares weights with CRF layer.  The sharing of parameters among multiple layers is specified by using the same parameter name in these layers.
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
@@ -394,7 +396,7 @@ We can print out parameter name. It will be generated if not specified.
 print parameters.keys()
 ```
 
-Now we load pre-trained word lookup table.
+Now we load the pre-trained word lookup tables from word embeddings trained on the English language Wikipedia.
 
 ```python
 def load_parameter(file_name, h, w):
@@ -406,7 +408,7 @@ parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 
 ### Create Trainer
 
-We will create trainer given model topology, parameters and optimization method. We will use most basic SGD method (momentum optimizer with 0 momentum). In the meantime, we will set learning rate and regularization.
+We will create trainer given model topology, parameters, and optimization method. We will use the most basic **SGD** method, which is a momentum optimizer with 0 momentum. Meanwhile, we will set learning rate and regularization.
 
 ```python
 optimizer = paddle.optimizer.Momentum(
@@ -423,7 +425,7 @@ trainer = paddle.trainer.SGD(cost=crf_cost,
 
 ### Trainer
 
-As mentioned in data preparation section, we will use CoNLL 2005 test corpus as training data set. `conll05.test()` outputs one training instance at a time. It will be shuffled, and batched into mini batches as input.
+As mentioned in data preparation section, we will use CoNLL 2005 test corpus as the training data set. `conll05.test()` outputs one training instance at a time. It is shuffled and batched into mini batches, and used as input.
 
 ```python
 reader = paddle.batch(
@@ -431,7 +433,7 @@ reader = paddle.batch(
         conll05.test(), buf_size=8192), batch_size=20)
 ```
 
-`feeding` is used to specify relationship between data instance and layer layer. For example, according to following `feeding`, the 0th column of data instance produced by`conll05.test()` correspond to data layer named `word_data`.
+`feeding` is used to specify the correspondence between data instance and data layer. For example, according to following `feeding`, the 0th column of data instance produced by`conll05.test()` is matched to the data layer named `word_data`.
 
 ```python
 feeding = {
@@ -447,7 +449,7 @@ feeding = {
 }
 ```
 
-`event_handle` can be used as callback for training events, it will be used as an argument for `train`. Following `event_handle` prints cost during training.
+`event_handler` can be used as callback for training events, it will be used as an argument for the `train` method. Following `event_handler` prints cost during training.
 
 ```python
 def event_handler(event):
@@ -469,7 +471,7 @@ trainer.train(
 
 ## Conclusion
 
-Semantic Role Labeling is an important intermediate step in a wide range of natural language processing tasks. In this tutorial, we give SRL as an example to introduce how to use PaddlePaddle to do sequence tagging tasks. Proposed models are from our published paper\[[10](#Reference)\]. We only use test data as an illustration since train data on CoNLL 2005 dataset is not completely public. We hope to propose an end-to-end neural network model with fewer dependencies on natural language processing tools but is comparable, or even better than traditional models. Please check out our paper for more information and discussions.
+Semantic Role Labeling is an important intermediate step in a wide range of natural language processing tasks. In this tutorial, we use SRL as an example to illustrate using PaddlePaddle to do sequence tagging tasks. The models proposed are from our published paper\[[10](#Reference)\]. We only use test data for illustration since the training data on the CoNLL 2005 dataset is not completely public. This aims to propose an end-to-end neural network model with fewer dependencies on natural language processing tools but is comparable, or even better than traditional models in terms of performance. Please check out our paper for more information and discussions.
 
 ## Reference
 1. Sun W, Sui Z, Wang M, et al. [Chinese semantic role labeling with shallow parsing](http://www.aclweb.org/anthology/D09-1#page=1513)[C]//Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 3-Volume 3. Association for Computational Linguistics, 2009: 1475-1483.
