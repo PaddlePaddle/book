@@ -29,6 +29,7 @@
     sha: 4a369cc72a4a2b8d3813ab8cc17abb5f5b21ef6c
     hooks:
     -   id: convert-jinja2-into-html
+        # The argument means repleace filename from pattern `.*/([^/]*)\.tmpl` to `\1`
         args: ['--filename_pattern=.*/([^/]*)\.tmpl', '--filename_repl=\1']
 -   repo: local
     hooks:
