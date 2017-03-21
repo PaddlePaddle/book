@@ -26,9 +26,10 @@
     -   id: remove-tabs
         files: \.md$
 -   repo: https://github.com/reyoung/pre-commit-hooks-jinja-compile.git
-    sha: 85ad800cbc9c60a64230d60971aa9576fd57e508
+    sha: 4a369cc72a4a2b8d3813ab8cc17abb5f5b21ef6c
     hooks:
     -   id: convert-jinja2-into-html
+        args: ['--filename_pattern=.*/([^/]*)\.tmpl', '--filename_repl=\1']
 -   repo: local
     hooks:
     -   id: convert-markdown-into-html
