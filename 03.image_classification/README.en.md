@@ -1,45 +1,3 @@
-
-<html>
-<head>
-  <script type="text/x-mathjax-config">
-  MathJax.Hub.Config({
-    extensions: ["tex2jax.js", "TeX/AMSsymbols.js", "TeX/AMSmath.js"],
-    jax: ["input/TeX", "output/HTML-CSS"],
-    tex2jax: {
-      inlineMath: [ ['$','$'] ],
-      displayMath: [ ['$$','$$'] ],
-      processEscapes: true
-    },
-    "HTML-CSS": { availableFonts: ["TeX"] }
-  });
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js" async></script>
-  <script type="text/javascript" src="../.tmpl/marked.js">
-  </script>
-  <link href="http://cdn.bootcss.com/highlight.js/9.9.0/styles/darcula.min.css" rel="stylesheet">
-  <script src="http://cdn.bootcss.com/highlight.js/9.9.0/highlight.min.js"></script>
-  <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/perfect-scrollbar/0.6.14/css/perfect-scrollbar.min.css" rel="stylesheet">
-  <link href="../.tmpl/github-markdown.css" rel='stylesheet'>
-</head>
-<style type="text/css" >
-.markdown-body {
-    box-sizing: border-box;
-    min-width: 200px;
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 45px;
-}
-</style>
-
-
-<body>
-
-<div id="context" class="container-fluid markdown-body">
-</div>
-
-<!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
-<div id="markdown" style='display:none'>
 Image Classification
 =======================
 
@@ -190,9 +148,9 @@ Figure 10. ResNet model for ImageNet
 
 ## Dataset
 
-Commonly used public datasets for image classification are CIFAR(https://www.cs.toronto.edu/~kriz/cifar.html), ImageNet(http://image-net.org/), COCO(http://mscoco.org/), etc. Those used for fine-grained image classification are CUB-200-2011(http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), Stanford Dog(http://vision.stanford.edu/aditya86/ImageNetDogs/), Oxford-flowers(http://www.robots.ox.ac.uk/~vgg/data/flowers/), etc. Among these, the ImageNet dataset is the largest. Most research results are reported on ImageNet as mentioned in the Model Overview section. Since 2010, the ImageNet dataset has gone through some changes. The commonly used ImageNet-2012 dataset contains 1000 categories. There are 1,281,167 training images, ranging from 732 to 1200 images per category, and 50,000 validation images with 50 images per category in average.
+Commonly used public datasets for image classification are [CIFAR](https://www.cs.toronto.edu/~kriz/cifar.html), [ImageNet](http://image-net.org/), [COCO](http://mscoco.org/), etc. Those used for fine-grained image classification are [CUB-200-2011](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), [Stanford Dog](http://vision.stanford.edu/aditya86/ImageNetDogs/), [Oxford-flowers](http://www.robots.ox.ac.uk/~vgg/data/flowers/), etc. Among these, the ImageNet dataset is the largest. Most research results are reported on ImageNet as mentioned in the Model Overview section. Since 2010, the ImageNet dataset has gone through some changes. The commonly used ImageNet-2012 dataset contains 1000 categories. There are 1,281,167 training images, ranging from 732 to 1200 images per category, and 50,000 validation images with 50 images per category in average.
 
-Since ImageNet is too large to be downloaded and trained efficiently, we use CIFAR-10 (https://www.cs.toronto.edu/~kriz/cifar.html) in this tutorial. The CIFAR-10 dataset consists of 60000 32x32 color images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images. Figure 11 shows all the classes in CIFAR-10 as well as 10 images randomly sampled from each category.
+Since ImageNet is too large to be downloaded and trained efficiently, we use [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) in this tutorial. The CIFAR-10 dataset consists of 60000 32x32 color images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images. Figure 11 shows all the classes in CIFAR-10 as well as 10 images randomly sampled from each category.
 
 <p align="center">
 <img src="image/cifar.png" width="350"><br/>
@@ -546,25 +504,3 @@ Traditional image classification methods have complicated frameworks that involv
 
 <br/>
 This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
-
-</div>
-<!-- You can change the lines below now. -->
-
-<script type="text/javascript">
-marked.setOptions({
-  renderer: new marked.Renderer(),
-  gfm: true,
-  breaks: false,
-  smartypants: true,
-  highlight: function(code, lang) {
-    code = code.replace(/&amp;/g, "&")
-    code = code.replace(/&gt;/g, ">")
-    code = code.replace(/&lt;/g, "<")
-    code = code.replace(/&nbsp;/g, " ")
-    return hljs.highlightAuto(code, [lang]).value;
-  }
-});
-document.getElementById("context").innerHTML = marked(
-        document.getElementById("markdown").innerHTML)
-</script>
-</body>
