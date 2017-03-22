@@ -227,7 +227,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 
 1. Define input data and its dimension
 
-        The input to the network is defined as `paddle.layer.data`, or image pixels in the context of image classification. The images in CIFAR10 are 32x32 color images of three channels. Therefore, the size of the input data is 3072 (3x32x32), and the number of categories is 10.
+    The input to the network is defined as `paddle.layer.data`, or image pixels in the context of image classification. The images in CIFAR10 are 32x32 color images of three channels. Therefore, the size of the input data is 3072 (3x32x32), and the number of categories is 10.
 
     ```python
     datadim = 3 * 32 * 32
@@ -241,7 +241,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
     ```python
     net = vgg_bn_drop(image)
     ```
-        The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
+    The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
 
     ```python
     def vgg_bn_drop(input):
@@ -274,17 +274,15 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
         return fc2
     ```
 
-        2.1. First, define a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
+    2.1. First, define a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
 
+    2.2. Five groups of convolutions. The first two groups perform two convolutions, while the last three groups perform three convolutions. The dropout rate of the last convolution in each group is set to 0, which means there is no dropout for this layer.
 
-        2.2. Five groups of convolutions. The first two groups perform two convolutions, while the last three groups perform three convolutions. The dropout rate of the last convolution in each group is set to 0, which means there is no dropout for this layer.
-
-
-        2.3. The last two layers are fully-connected layers of dimension 512.
+    2.3. The last two layers are fully-connected layers of dimension 512.
 
 3. Define Classifier
 
-        The above VGG network extracts high-level features and maps them to a vector of the same size as the categories. Softmax function or classifier is then used for calculating the probability of the image belonging to each category.
+    The above VGG network extracts high-level features and maps them to a vector of the same size as the categories. Softmax function or classifier is then used for calculating the probability of the image belonging to each category.
 
     ```python
     out = paddle.layer.fc(input=net,
@@ -294,7 +292,7 @@ First, we use a VGG network. Since the image size and amount of CIFAR10 are rela
 
 4. Define Loss Function and Outputs
 
-        In the context of supervised learning, labels of training images are defined in `paddle.layer.data` as well. During training, the cross-entropy loss function is used and the loss is the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
+    In the context of supervised learning, labels of training images are defined in `paddle.layer.data` as well. During training, the cross-entropy loss function is used and the loss is the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
 
     ```python
     lbl = paddle.layer.data(
