@@ -2,13 +2,6 @@
 cur_path="$(cd "$(dirname "$0")" && pwd -P)"
 cd $cur_path/../
 
-#check cache data
-cache_data_path=.cache/paddle/dataset
-if [ ${COPY_CACHE_DATA} ] && [ ! -d $cache_data_path ];  then
-  echo 2>&1 "Check the cache_data_path:${cache_data_path}"
-  exit 1
-fi
-
 #convert md to ipynb
 .tools/convert-markdown-into-ipynb-and-test.sh
 
@@ -28,6 +21,9 @@ cat > ./build/Dockerfile << EOF
 FROM paddlepaddle/paddle:${paddle_tag}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
+COPY . /book
+RUN python /book/.tools/cache_dataset.py
+
 RUN ${update_mirror_cmd}
     apt-get update && \
     apt-get install -y locales && \
@@ -36,8 +32,6 @@ RUN ${update_mirror_cmd}
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
     pip install -U matplotlib jupyter numpy requests scipy
 
-COPY . /book
-RUN python /book/.tools/cache_dataset.py
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
 EOF
