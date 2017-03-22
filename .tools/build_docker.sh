@@ -37,7 +37,7 @@ RUN ${update_mirror_cmd}
     pip install -U matplotlib jupyter numpy requests scipy
 
 COPY . /book
-RUN /book/.tools/cache_dataset.py
+RUN python /book/.tools/cache_dataset.py
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
 EOF
