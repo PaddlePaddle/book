@@ -5,10 +5,6 @@ import nltk
 #cifar
 dataset.common.download(dataset.cifar.CIFAR100_URL, 'cifar',
                         dataset.cifar.CIFAR100_MD5)
-dataset.common.download(dataset.cifar.CIFAR100_URL, 'cifar',
-                        dataset.cifar.CIFAR100_MD5)
-dataset.common.download(dataset.cifar.CIFAR10_URL, 'cifar',
-                        dataset.cifar.CIFAR10_MD5)
 dataset.common.download(dataset.cifar.CIFAR10_URL, 'cifar',
                         dataset.cifar.CIFAR10_MD5)
 
@@ -19,6 +15,10 @@ dataset.common.download(dataset.conll05.VERBDICT_URL, 'conll05st', \
                         dataset.conll05.VERBDICT_MD5)
 dataset.common.download(dataset.conll05.TRGDICT_URL, 'conll05st', \
                         dataset.conll05.TRGDICT_MD5)
+dataset.common.download(dataset.conll05.EMB_URL, 'conll05st',
+                        dataset.conll05.EMB_MD5)
+dataset.common.download(dataset.conll05.DATA_URL, 'conll05st',
+                        dataset.conll05.DATA_MD5)
 
 # Cache imdb
 dataset.common.download(dataset.imdb.URL, "imdb", dataset.imdb.MD5)
@@ -40,3 +40,13 @@ dataset.common.download(dataset.uci_housing.URL, "uci_housing", \
 # Cache vmt14
 dataset.common.download(dataset.wmt14.URL_TRAIN, "wmt14",\
                         dataset.wmt14.MD5_TRAIN)
+
+#mnist
+dataset.common.download(dataset.mnist.TRAIN_IMAGE_URL, 'mnist',
+                        dataset.mnist.TRAIN_IMAGE_MD5)
+dataset.common.download(dataset.mnist.TRAIN_LABEL_URL, 'mnist',
+                        dataset.mnist.TRAIN_LABEL_MD5)
+dataset.common.download(dataset.mnist.TEST_IMAGE_URL, 'mnist',
+                        dataset.mnist.TEST_IMAGE_MD5)
+dataset.common.download(dataset.mnist.TEST_LABEL_URL, 'mnist',
+                        dataset.mnist.TEST_LABEL_MD5)
