@@ -1,5 +1,9 @@
 # 深度学习入门
 
+[![Build Status](https://travis-ci.org/PaddlePaddle/book.svg?branch=develop)](https://travis-ci.org/PaddlePaddle/book)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/)
+[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.en.html)
+
 1. [新手入门](http://book.paddlepaddle.org/01.fit_a_line)
 1. [识别数字](http://book.paddlepaddle.org/02.recognize_digits)
 1. [图像分类](http://book.paddlepaddle.org/03.image_classification)
@@ -48,6 +52,9 @@ docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 为了写作、运行、调试，您需要安装 Python 2.x, Go >1.5. 你可以用这
 个[脚本程序](https://github.com/PaddlePaddle/book/blob/develop/.tools/convert-markdown-into-ipynb-and-test.sh)来
 生成 Docker image。
+
+
+**Note:** We also provide [English Readme](https://github.com/PaddlePaddle/book/blob/develop/README.en.md) for PaddlePaddle book.
 
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
