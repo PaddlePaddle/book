@@ -24,7 +24,9 @@ dataset.common.download('http://files.grouplens.org/datasets/movielens/ml-1m.zip
 nltk.download('movie_reviews', download_dir=dataset.common.DATA_HOME)
 
 # Cache uci housing
-dataset.common.download(dataset.uci_housing.URL, "uci_housing", dataset.uci_housing.MD5)
+dataset.common.download(dataset.uci_housing.URL, "uci_housing", \
+                        dataset.uci_housing.MD5)
 
 # Cache vmt14
-dataset.common.download(dataset.vmt14.URL_TRAIN, "wmt14",dataset.vmt14.MD5_TRAIN)
+dataset.common.download(dataset.vmt14.URL_TRAIN, "wmt14",\
+                        dataset.vmt14.MD5_TRAIN)
