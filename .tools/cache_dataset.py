@@ -1,6 +1,16 @@
 #!/bin/env python
 import paddle.v2.dataset as dataset
-import ntlk
+import nltk
+
+#cifar
+dataset.common.download(dataset.cifar.CIFAR100_URL, 'cifar',
+                        dataset.cifar.CIFAR100_MD5)
+dataset.common.download(dataset.cifar.CIFAR100_URL, 'cifar',
+                        dataset.cifar.CIFAR100_MD5)
+dataset.common.download(dataset.cifar.CIFAR10_URL, 'cifar',
+                        dataset.cifar.CIFAR10_MD5)
+dataset.common.download(dataset.cifar.CIFAR10_URL, 'cifar',
+                        dataset.cifar.CIFAR10_MD5)
 
 # Cache conll05
 dataset.common.download(dataset.conll05.WORDDICT_URL, 'conll05st', \
@@ -28,5 +38,5 @@ dataset.common.download(dataset.uci_housing.URL, "uci_housing", \
                         dataset.uci_housing.MD5)
 
 # Cache vmt14
-dataset.common.download(dataset.vmt14.URL_TRAIN, "wmt14",\
-                        dataset.vmt14.MD5_TRAIN)
+dataset.common.download(dataset.wmt14.URL_TRAIN, "wmt14",\
+                        dataset.wmt14.MD5_TRAIN)

@@ -6,7 +6,7 @@ cd $cur_path/../
 .tools/convert-markdown-into-ipynb-and-test.sh
 
 paddle_tag=0.10.0rc2
-latest_tag=latest
+book_tag=latest
 
 #generate docker file
 if [ ${USE_UBUNTU_REPO_MIRROR} ]; then
@@ -15,14 +15,18 @@ else
   update_mirror_cmd="\\"
 fi
 
-mkdir -p build
+#build docker image
+echo "paddle_tag:"$paddle_tag
+echo "book_tag:"$book_tag
 
-cat > ./build/Dockerfile << EOF
+cat > Dockerfile <<EOF
 FROM paddlepaddle/paddle:${paddle_tag}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
 COPY . /book
-RUN python /book/.tools/cache_dataset.py
+
+RUN pip install -U nltk \
+    && python /book/.tools/cache_dataset.py
 
 RUN ${update_mirror_cmd}
     apt-get update && \
@@ -36,6 +40,4 @@ EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
 EOF
 
-#build docker image
-echo "paddle_tag:"$paddle_tag
-echo $dockerfile | docker build --no-cache -t paddlepaddle/book:${paddle_tag}  -t paddlepaddle/book:${latest_tag}  -f ./build/Dockerfile .
+docker build --no-cache  -t paddlepaddle/book:${paddle_tag}  -t paddlepaddle/book:${book_tag} .
