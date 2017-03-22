@@ -5,14 +5,14 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-GOPATH=~/.go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
+export GOPATH=~/go; go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 
 cur_path="$(cd "$(dirname "$0")" && pwd -P)"
 cd $cur_path/../
 
 #convert md to ipynb
 for file in */{README,README\.en}.md ; do
-    /tmp/go/bin/markdown-to-ipynb < $file > ${file%.*}".ipynb"
+    ~/go/bin/markdown-to-ipynb < $file > ${file%.*}".ipynb"
     if [ $? -ne 0 ]; then
         echo >&2 "markdown-to-ipynb $file error"
         exit 1

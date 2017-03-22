@@ -5,36 +5,39 @@ cd $cur_path/../
 #convert md to ipynb
 .tools/convert-markdown-into-ipynb-and-test.sh
 
-paddle_version=0.10.0rc2
+paddle_tag=0.10.0rc2
+book_tag=latest
 
 #generate docker file
 if [ ${USE_UBUNTU_REPO_MIRROR} ]; then
-  UPDATE_MIRROR_CMD="sed 's@http:\/\/archive.ubuntu.com\/ubuntu\/@mirror:\/\/mirrors.ubuntu.com\/mirrors.txt@' -i /etc/apt/sources.list && \\"
+  update_mirror_cmd="sed 's@http:\/\/archive.ubuntu.com\/ubuntu\/@mirror:\/\/mirrors.ubuntu.com\/mirrors.txt@' -i /etc/apt/sources.list && \\"
 else
-  UPDATE_MIRROR_CMD="\\"
+  update_mirror_cmd="\\"
 fi
 
-mkdir -p build
-cat > build/Dockerfile <<EOF
-FROM paddlepaddle/paddle:${paddle_version}
+#build docker image
+echo "paddle_tag:"$paddle_tag
+echo "book_tag:"$book_tag
+
+cat > Dockerfile <<EOF
+FROM paddlepaddle/paddle:${paddle_tag}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
-RUN ${UPDATE_MIRROR_CMD}
-        apt-get install locales
-RUN localedef -f UTF-8 -i en_US en_US.UTF-8
-
-RUN  apt-get -y install gcc && \
-        apt-get -y clean
-
-RUN pip install -U matplotlib jupyter numpy requests scipy
-
 COPY . /book
-RUN rm -rf /book/build
+
+RUN pip install -U nltk \
+    && python /book/.tools/cache_dataset.py
+
+RUN ${update_mirror_cmd}
+    apt-get update && \
+    apt-get install -y locales && \
+    apt-get -y install gcc && \
+    apt-get -y clean && \
+    localedef -f UTF-8 -i en_US en_US.UTF-8 && \
+    pip install -U matplotlib jupyter numpy requests scipy
 
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
 EOF
 
-#build docker image
-echo "paddle_version:"$paddle_version
-docker build --no-cache -t paddlepaddle/book:${paddle_version}  -t paddlepaddle/book:latest  -f ./build/Dockerfile .
+docker build --no-cache  -t paddlepaddle/book:${paddle_tag}  -t paddlepaddle/book:${book_tag} .
