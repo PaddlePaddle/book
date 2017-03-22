@@ -42,7 +42,11 @@ dataset.common.download(dataset.wmt14.URL_TRAIN, "wmt14",\
                         dataset.wmt14.MD5_TRAIN)
 
 #mnist
-dataset.common.download(dataset.mnist.TRAIN_IMAGE_URL, 'mnist', TRAIN_IMAGE_MD5)
-dataset.common.download(dataset.mnist.TRAIN_LABEL_URL, 'mnist', TRAIN_LABEL_MD5)
-dataset.common.download(dataset.mnist.TEST_IMAGE_URL, 'mnist', TEST_IMAGE_MD5)
-dataset.common.download(dataset.mnist.TEST_LABEL_URL, 'mnist', TEST_LABEL_MD5)
+dataset.common.download(dataset.mnist.TRAIN_IMAGE_URL, 'mnist',
+                        dataset.mnist.TRAIN_IMAGE_MD5)
+dataset.common.download(dataset.mnist.TRAIN_LABEL_URL, 'mnist',
+                        dataset.mnist.TRAIN_LABEL_MD5)
+dataset.common.download(dataset.mnist.TEST_IMAGE_URL, 'mnist',
+                        dataset.mnist.TEST_IMAGE_MD5)
+dataset.common.download(dataset.mnist.TEST_LABEL_URL, 'mnist',
+                        dataset.mnist.TEST_LABEL_MD5)
