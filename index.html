@@ -7,6 +7,9 @@
     <script src="http://cdn.bootcss.com/tether/1.4.0/js/tether.js"></script>
     <script src="http://cdn.bootcss.com/jquery/3.1.0/jquery.slim.js"></script>
     <script src="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href=".static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/perfect-scrollbar/0.6.14/css/perfect-scrollbar.min.css" type="text/css" />
+    <link rel="stylesheet" href=".static/css/override.css" type="text/css" />
     <style>
 * {
     font-family:"Roboto","Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
@@ -66,31 +69,37 @@
    </style>
 </head>
 <body>
-    <nav class="navbar navbar-toggleable-md navbar-inverse bg-inverse">
-        <a class="navbar-brand mr-auto" href="#">
-            <img alt="PaddlePaddle" src="./.theme/PP_w.png">
-        </a>
-        <ul class="nav navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link" href="http://paddlepaddle.org">
-                首页
-            </a>
-          </li>
-          <li class="nav-item active">
-            <a class="nav-link" href="#">
-                深度学习入门
-            </a>
-          </li>
-          <li class="nav-item ">
-            <a class="nav-link" href="./index.en.html">
-                English
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://github.com/PaddlePaddle/book/">Fork on Github</a>
-          </li>
+    <header class="site-header">
+    <div class="site-logo">
+      <a href="/"><img src=".theme/PP_w.png"></a>
+    </div>
+    <div class="site-nav-links">
+      <div class="site-menu">
+        <a class="fork-on-github" href="https://github.com/PaddlePaddle/Paddle" target="_blank">Fork me on Github</a>
+        <div class="language-switcher dropdown">
+            <li><a href="./index.en.html">中文</a></li>
+        </div>
+        <ul class="site-page-links">
+          <li><a>Home</a></li>
+          <li><a>Get Started</a></li>
+          <li class="active"><a>Documentation</a></li>
+          <li><a>About Us</a></li>
         </ul>
-    </nav>
+      </div>
+      <div class="doc-module">
+        
+        <ul class="current">
+            <li class="toctree-l1"><a class="reference internal" href="#">新手入门</a></li>
+            <li class="toctree-l1"><a class="reference internal" href="#">完整教程</a></li>
+            <li class="toctree-l1"><a class="reference internal" href="#">进阶指南</a></li>
+            <li class="toctree-l1"><a class="reference internal" href="#">API</a></li>
+            <li class="toctree-l1"><a class="reference internal" href="#">FAQ</a></li>
+        </ul>
+
+        
+      </div>
+    </div>
+  </header>
     <div class="container-fluid">
         <div class="row">
             <div class="col-3 pl-1 pr-1 left-panel">
