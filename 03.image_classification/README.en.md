@@ -1,7 +1,7 @@
 Image Classification
 =======================
 
-The source code for this chapter is at [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/image_classification). First-time users, please refer to PaddlePaddle [Installation Tutorial](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst) for installation instructions.
+The source code for this chapter is at [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification). First-time users, please refer to PaddlePaddle [Installation Tutorial](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst) for installation instructions.
 
 ## Background
 
