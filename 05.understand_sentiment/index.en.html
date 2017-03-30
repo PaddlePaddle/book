@@ -108,6 +108,7 @@ RNN is an effective model for sequential data. Theoretical, the  computational a
 <img src="image/rnn.png" width = "60%" align="center"/><br/>
 Figure 2. An illustration of an unrolled RNN across “time”.
 </p>
+
 As shown in Figure 2, we unroll an RNN: at $t$-th time step, the network takes the $t$-th input vector and the latent state from last time-step $h_{t-1}$ as inputs and compute the latent state of current step. The whole process is repeated until all inputs are consumed. If we regard the RNN as a function $f$, it can be formulated as:
 
 $$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{h-1}+b_h)$$
