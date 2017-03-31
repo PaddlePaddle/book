@@ -1,8 +1,9 @@
 # 情感分析
 
-本教程源代码目录在[book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
+本教程源代码目录在[book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/05.understand_sentiment)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
 
 ## 背景介绍
+
 在自然语言处理中，情感分析一般是指判断一段文本所表达的情绪状态。其中，一段文本可以是一个句子，一个段落或一个文档。情绪状态可以是两类，如（正面，负面），（高兴，悲伤）；也可以是三类，如（积极，消极，中性）等等。情感分析的应用场景十分广泛，如把用户在购物网站（亚马逊、天猫、淘宝等）、旅游网站、电影评论网站上发表的评论分成正面评论和负面评论；或为了分析用户对于某一产品的整体使用感受，抓取产品的用户评论并进行情感分析等等。表格1展示了对电影评论进行情感分析的例子：
 
 | 电影评论       | 类别  |
@@ -19,16 +20,22 @@
 对于一段文本，BOW表示会忽略其词顺序、语法和句法，将这段文本仅仅看做是一个词集合，因此BOW方法并不能充分表示文本的语义信息。例如，句子“这部电影糟糕透了”和“一个乏味，空洞，没有内涵的作品”在情感分析中具有很高的语义相似度，但是它们的BOW表示的相似度为0。又如，句子“一个空洞，没有内涵的作品”和“一个不空洞而且有内涵的作品”的BOW相似度很高，但实际上它们的意思很不一样。  
 
 本章我们所要介绍的深度学习模型克服了BOW表示的上述缺陷，它在考虑词顺序的基础上把文本映射到低维度的语义空间，并且以端对端（end to end）的方式进行文本表示及分类，其性能相对于传统方法有显著的提升\[[1](#参考文献)\]。
+
 ## 模型概览
+
 本章所使用的文本表示模型为卷积神经网络（Convolutional Neural Networks）和循环神经网络(Recurrent Neural Networks)及其扩展。下面依次介绍这几个模型。
+
 ### 文本卷积神经网络（CNN）
+
 卷积神经网络经常用来处理具有类似网格拓扑结构（grid-like topology）的数据。例如，图像可以视为二维网格的像素点，自然语言可以视为一维的词序列。卷积神经网络可以提取多种局部特征，并对其进行组合抽象得到更高级的特征表示。实验表明，卷积神经网络能高效地对图像及文本问题进行建模处理。  
 
 卷积神经网络主要由卷积（convolution）和池化（pooling）操作构成，其应用及组合方式灵活多变，种类繁多。本小结我们以一种简单的文本分类卷积神经网络为例进行讲解\[[1](#参考文献)\]，如图1所示：
+
 <p align="center">
 <img src="image/text_cnn.png" width = "80%" align="center"/><br/>
 图1. 卷积神经网络文本分类模型
 </p>
+
 假设待处理句子的长度为$n$，其中第$i$个词的词向量（word embedding）为$x_i\in\mathbb{R}^k$，$k$为维度大小。  
 
 首先，进行词向量的拼接操作：将每$h$个词拼接起来形成一个大小为$h$的词窗口，记为$x_{i:i+h-1}$，它表示词序列$x_{i},x_{i+1},\ldots,x_{i+h-1}$的拼接，其中，$i$表示词窗口中第一个词在整个句子中的位置，取值范围从$1$到$n-h+1$，$x_{i:i+h-1}\in\mathbb{R}^{hk}$。  
@@ -46,12 +53,16 @@ $$\hat c=max(c)$$
 最后，将所有卷积核得到的特征拼接起来即为文本的定长向量表示，对于文本分类问题，将其连接至softmax即构建出完整的模型。
 
 对于一般的短文本分类问题，上文所述的简单的文本卷积网络即可达到很高的正确率\[[1](#参考文献)\]。若想得到更抽象更高级的文本特征表示，可以构建深层文本卷积神经网络\[[2](#参考文献),[3](#参考文献)\]。
+
 ### 循环神经网络（RNN）
+
 循环神经网络是一种能对序列数据进行精确建模的有力工具。实际上，循环神经网络的理论计算能力是图灵完备的\[[4](#参考文献)\]。自然语言是一种典型的序列数据（词序列），近年来，循环神经网络及其变体（如long short term memory\[[5](#参考文献)\]等）在自然语言处理的多个领域，如语言模型、句法解析、语义角色标注（或一般的序列标注）、语义表示、图文生成、对话、机器翻译等任务上均表现优异甚至成为目前效果最好的方法。
+
 <p align="center">
 <img src="image/rnn.png" width = "60%" align="center"/><br/>
 图2. 循环神经网络按时间展开的示意图
 </p>
+
 循环神经网络按时间展开后如图2所示：在第$t$时刻，网络读入第$t$个输入$x_t$（向量表示）及前一时刻隐层的状态值$h_{t-1}$（向量表示，$h_0$一般初始化为$0$向量），计算得出本时刻隐层的状态值$h_t$，重复这一步骤直至读完所有输入。如果将循环神经网络所表示的函数记为$f$，则其公式可表示为：
 
 $$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{h-1}+b_h)$$
@@ -61,6 +72,7 @@ $$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{h-1}+b_h)$$
 在处理自然语言时，一般会先将词（one-hot表示）映射为其词向量（word embedding）表示，然后再作为循环神经网络每一时刻的输入$x_t$。此外，可以根据实际需要的不同在循环神经网络的隐层上连接其它层。如，可以把一个循环神经网络的隐层输出连接至下一个循环神经网络的输入构建深层（deep or stacked）循环神经网络，或者提取最后一个时刻的隐层状态作为句子表示进而使用分类模型等等。  
 
 ### 长短期记忆网络（LSTM）
+
 对于较长的序列数据，循环神经网络的训练过程中容易出现梯度消失或爆炸现象\[[6](#参考文献)\]。为了解决这一问题，Hochreiter S, Schmidhuber J. (1997)提出了LSTM(long short term memory\[[5](#参考文献)\])。  
 
 相比于简单的循环神经网络，LSTM增加了记忆单元$c$、输入门$i$、遗忘门$f$及输出门$o$。这些门及记忆单元组合起来大大提升了循环神经网络处理长序列数据的能力。若将基于LSTM的循环神经网络表示的函数记为$F$，则其公式为：
@@ -76,26 +88,33 @@ o_t & = \sigma(W_{xo}x_t+W_{ho}h_{h-1}+W_{co}c_{t}+b_o)\\\\
 h_t & = o_t\odot tanh(c_t)\\\\
 \end{align}
 其中，$i_t, f_t, c_t, o_t$分别表示输入门，遗忘门，记忆单元及输出门的向量值，带角标的$W$及$b$为模型参数，$tanh$为双曲正切函数，$\odot$表示逐元素（elementwise）的乘法操作。输入门控制着新输入进入记忆单元$c$的强度，遗忘门控制着记忆单元维持上一时刻值的强度，输出门控制着输出记忆单元的强度。三种门的计算方式类似，但有着完全不同的参数，它们各自以不同的方式控制着记忆单元$c$，如图3所示：
+
 <p align="center">
 <img src="image/lstm.png" width = "65%" align="center"/><br/>
 图3. 时刻$t$的LSTM [7]
 </p>
+
 LSTM通过给简单的循环神经网络增加记忆及控制门的方式，增强了其处理远距离依赖问题的能力。类似原理的改进还有Gated Recurrent Unit (GRU)\[[8](#参考文献)\]，其设计更为简洁一些。**这些改进虽然各有不同，但是它们的宏观描述却与简单的循环神经网络一样（如图2所示），即隐状态依据当前输入及前一时刻的隐状态来改变，不断地循环这一过程直至输入处理完毕：**
 
 $$ h_t=Recrurent(x_t,h_{t-1})$$
 
 其中，$Recrurent$可以表示简单的循环神经网络、GRU或LSTM。
+
 ### 栈式双向LSTM（Stacked Bidirectional LSTM）
+
 对于正常顺序的循环神经网络，$h_t$包含了$t$时刻之前的输入信息，也就是上文信息。同样，为了得到下文信息，我们可以使用反方向（将输入逆序处理）的循环神经网络。结合构建深层循环神经网络的方法（深层神经网络往往能得到更抽象和高级的特征表示），我们可以通过构建更加强有力的基于LSTM的栈式双向循环神经网络\[[9](#参考文献)\]，来对时序数据进行建模。  
 
 如图4所示（以三层为例），奇数层LSTM正向，偶数层LSTM反向，高一层的LSTM使用低一层LSTM及之前所有层的信息作为输入，对最高层LSTM序列使用时间维度上的最大池化即可得到文本的定长向量表示（这一表示充分融合了文本的上下文信息，并且对文本进行了深层次抽象），最后我们将文本表示连接至softmax构建分类模型。
+
 <p align="center">
 <img src="image/stacked_lstm.jpg" width=450><br/>
 图4. 栈式双向LSTM用于文本分类
 </p>
 
 ## 示例程序
+
 ### 数据集介绍
+
 我们以[IMDB情感分析数据集](http://ai.stanford.edu/%7Eamaas/data/sentiment/)为例进行介绍。IMDB数据集的训练集和测试集分别包含25000个已标注过的电影评论。其中，负面评论的得分小于等于4，正面评论的得分大于等于7，满分10分。
 ```text
 aclImdb
@@ -113,8 +132,11 @@ import sys
 import paddle.v2 as paddle
 ```
 ## 配置模型
+
 在该示例中，我们实现了两种文本分类算法，分别基于上文所述的[文本卷积神经网络](#文本卷积神经网络（CNN）)和[栈式双向LSTM](#栈式双向LSTM（Stacked Bidirectional LSTM）)。
+
 ### 文本卷积神经网络
+
 ```python
 def convolution_net(input_dim,
                     class_dim=2,
@@ -135,7 +157,9 @@ def convolution_net(input_dim,
     return cost
 ```
 网络的输入`input_dim`表示的是词典的大小，`class_dim`表示类别数。这里，我们使用[`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API实现了卷积和池化操作。
+
 ### 栈式双向LSTM
+
 ```python
 def stacked_lstm_net(input_dim,
                      class_dim=2,
@@ -204,14 +228,18 @@ def stacked_lstm_net(input_dim,
     return cost
 ```
 网络的输入`stacked_num`表示的是LSTM的层数，需要是奇数，确保最高层LSTM正向。Paddle里面是通过一个fc和一个lstmemory来实现基于LSTM的循环神经网络。
+
 ## 训练模型
+
 ```python
 if __name__ == '__main__':
     # init
     paddle.init(use_gpu=False)
 ```
 启动paddle程序，use_gpu=False表示用CPU训练，如果系统支持GPU也可以修改成True使用GPU训练。
+
 ### 训练数据
+
 使用Paddle提供的数据集`dataset.imdb`中的API来读取训练数据。
 ```python
     print 'load dictionary...'
@@ -234,7 +262,9 @@ if __name__ == '__main__':
     feeding={'word': 0, 'label': 1}
 ```
 `feeding`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
+
 ### 构造模型
+
 ```python
     # Please choose the way to build the network
     # by uncommenting the corresponding line.
@@ -242,13 +272,17 @@ if __name__ == '__main__':
     # cost = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
 ```
 该示例中默认使用`convolution_net`网络，如果使用`stacked_lstm_net`网络，注释相应的行即可。其中cost是网络的优化目标，同时cost包含了整个网络的拓扑信息。
+
 ### 网络参数
+
 ```python
     # create parameters
     parameters = paddle.parameters.create(cost)
 ```
 根据网络的拓扑构造网络参数。这里parameters是整个网络的参数集。
+
 ### 优化算法
+
 ```python
     # create optimizer
     adam_optimizer = paddle.optimizer.Adam(
@@ -257,7 +291,9 @@ if __name__ == '__main__':
         model_average=paddle.optimizer.ModelAverage(average_window=0.5))
 ```
 Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
+
 ### 训练
+
 可以通过`paddle.trainer.SGD`构造一个sgd trainer，并调用`trainer.train`来训练模型。
 ```python
     # End batch and end pass event handler
@@ -296,8 +332,11 @@ Test with Pass 0, {'classification_error_evaluator': 0.11432000249624252}
 ```
 
 ## 总结
+
 本章我们以情感分析为例，介绍了使用深度学习的方法进行端对端的短文本分类，并且使用PaddlePaddle完成了全部相关实验。同时，我们简要介绍了两种文本处理模型：卷积神经网络和循环神经网络。在后续的章节中我们会看到这两种基本的深度学习模型在其它任务上的应用。
+
 ## 参考文献
+
 1. Kim Y. [Convolutional neural networks for sentence classification](http://arxiv.org/pdf/1408.5882)[J]. arXiv preprint arXiv:1408.5882, 2014.
 2. Kalchbrenner N, Grefenstette E, Blunsom P. [A convolutional neural network for modelling sentences](http://arxiv.org/pdf/1404.2188.pdf?utm_medium=App.net&utm_source=PourOver)[J]. arXiv preprint arXiv:1404.2188, 2014.
 3. Yann N. Dauphin, et al. [Language Modeling with Gated Convolutional Networks](https://arxiv.org/pdf/1612.08083v1.pdf)[J] arXiv preprint arXiv:1612.08083, 2016.

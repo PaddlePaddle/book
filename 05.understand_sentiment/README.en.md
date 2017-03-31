@@ -89,17 +89,17 @@ o_t & = \sigma(W_{xo}x_t+W_{ho}h_{h-1}+W_{co}c_{t}+b_o)\\\\
 h_t & = o_t\odot \tanh(c_t)\\\\
 \end{align}
 
-In the equation，$i_t, f_t, c_t, o_t$ stand for input gate, forget gate, memory cell and output gate, respectively. $W$ and $b$ are model parameters, $\tanh$ is a hyperbolic tangent, and $\odot$ denotes an element-wise product operation. The input gate controls the magnitude of the new input into the memory cell $c$; the forget gate controls the memory propagated from the last time step; the output gate controls the magnitutde of the output. The three gates are computed similarly with different parameters, and they influence memory cell $c$ separately, as shown in Figure 3:
+In the equation，$i_t, f_t, c_t, o_t$ stand for input gate, forget gate, memory cell and output gate, respectively. $W$ and $b$ are model parameters, $\tanh$ is a hyperbolic tangent, and $\odot$ denotes an element-wise product operation. The input gate controls the magnitude of the new input into the memory cell $c$; the forget gate controls the memory propagated from the last time step; the output gate controls the magnitude of the output. The three gates are computed similarly with different parameters, and they influence memory cell $c$ separately, as shown in Figure 3:
 
 <p align="center">
 <img src="image/lstm_en.png" width = "65%" align="center"/><br/>
 Figure 3. LSTM at time step $t$ [7].
 </p>
 
-LSTM enhances the ability of considering long-term reliance, with the help of memory cell and gate. Similar structures are also proposed in Gated Recurrent Unit (GRU)\[[8](Reference)\] with simpler design. **The structures are still similar to RNN, though with some modifications (As shown in Figure 2), i.e., latent status depends on input as well as the latent status of last time-step, and the process goes on recurrently until all input are consumed:**
+Similar to LSTM, other structures with memory cell and gates also enhance the network's long-term reliance. One such example is the **Gated Recurrent Unit**(GRU)\[[8](Reference)\. The structures are still similar to RNNs (as shown in Figure 2) in the following way: its latent status depends on both the current input as well as the latent status from the last time-step, and the process goes on recurrently until all the inputs are consumed:
 
-$$ h_t=Recrurent(x_t,h_{t-1})$$
-where $Recrurent$ is a simple RNN, GRU or LSTM.
+$$ h_t=Recurrent(x_t,h_{t-1})$$
+where $Recurrent$ is a simple RNN, GRU or LSTM.
 
 ### Stacked Bidirectional LSTM
 

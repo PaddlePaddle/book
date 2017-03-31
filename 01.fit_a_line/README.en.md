@@ -1,7 +1,7 @@
 # Linear Regression
 Let us begin the tutorial with a classical problem called Linear Regression \[[1](#References)\]. In this chapter, we will train a model from a realistic dataset to predict home prices. Some important concepts in Machine Learning will be covered through this example.
 
-The source code for this tutorial lives on [book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/fit_a_line). For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
+The source code for this tutorial lives on [book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line). For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.en.md).
 
 ## Problem Setup
 Suppose we have a dataset of $n$ real estate properties. These real estate properties will be referred to as *homes* in this chapter for clarity.
@@ -163,19 +163,41 @@ feeding={'x': 0, 'y': 1}
 Moreover, an event handler is provided to print the training progress:
 
 ```python
-# event_handler to print training and testing info
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f" % (
-                event.pass_id, event.batch_id, event.cost)
+import matplotlib.pyplot as plt
+from IPython import display
+import cPickle
 
-    if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(
-            reader=paddle.batch(
-                uci_housing.test(), batch_size=2),
-            feeding=feeding)
-        print "Test %d, Cost %f" % (event.pass_id, result.cost)
+step=0
+
+train_costs=[],[]
+test_costs=[],[]
+
+def event_handler(event):
+    global step
+    global train_costs
+    global test_costs
+    if isinstance(event, paddle.event.EndIteration):
+        need_plot = False
+        if step % 10 == 0:  # every 10 batches, record a train cost
+            train_costs[0].append(step)
+            train_costs[1].append(event.cost)
+
+        if step % 1000 == 0: # every 1000 batches, record a test cost
+            result = trainer.test(
+                reader=paddle.batch(
+                    uci_housing.test(), batch_size=2),
+                feeding=feeding)
+            test_costs[0].append(step)
+            test_costs[1].append(result.cost)
+
+        if step % 100 == 0: # every 100 batches, update cost plot
+            plt.plot(*train_costs)
+            plt.plot(*test_costs)
+            plt.legend(['Train Cost', 'Test Cost'], loc='upper left')
+            display.clear_output(wait=True)
+            display.display(plt.gcf())
+            plt.gcf().clear()
+        step += 1
 ```
 
 ### Start Training
@@ -190,6 +212,8 @@ trainer.train(
     event_handler=event_handler,
     num_passes=30)
 ```
+
+![png](./image/train-and-test.png)
 
 ## Summary
 This chapter introduces *Linear Regression* and how to train and test this model with PaddlePaddle, using the UCI Housing Data Set. Because a large number of more complex models and techniques are derived from linear regression, it is important to understand its underlying theory and limitation.
