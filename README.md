@@ -16,17 +16,9 @@
 
 ## 运行这本书
 
-您现在在看的这本书是一本“交互式”电子书 —— 每一章都可以运行在一个
-Jupyter Notebook 里。
+您现在在看的这本书是一本“交互式”电子书 —— 每一章都可以运行在一个Jupyter Notebook里。
 
-我们把 Jupyter、PaddlePaddle、以及各种被依赖的软件都打包进一个 Docker
-image 了。所以您不需要自己来安装各种软件，只需要安装 Docker 即可。如果
-您使用 Windows，可以参
-考[这里](https://www.docker.com/docker-windows)。如果您使用 Mac，可以
-参考[这里](https://www.docker.com/docker-mac)。 对于各种 Linux 发行版，
-请参考https://www.docker.com 。如果您使用 Windows 或者 Mac，可以通过如
-下方法给 Docker 更多内存和CPU资源
-(http://stackoverflow.com/a/39720010/724872)。
+我们把Jupyter、PaddlePaddle、以及各种被依赖的软件都打包进一个Docker image了。所以您不需要自己来安装各种软件，只需要安装Docker即可。对于各种Linux发行版，请参考 https://www.docker.com 。如果您使用[Windows](https://www.docker.com/docker-windows)或者[Mac](https://www.docker.com/docker-mac)，可以考虑[给Docker更多内存和CPU资源](http://stackoverflow.com/a/39720010/724872)。
 
 只需要在命令行窗口里运行：
 
@@ -34,11 +26,9 @@ image 了。所以您不需要自己来安装各种软件，只需要安装 Dock
 docker run -d -p 8888:8888 paddlepaddle/book
 ```
 
-这个命令会从 DockerHub.com 下载本书的 Docker image 并且运行之。请在浏
-览器里访问 http://localhost:8888 即可阅读和在线编辑本书。
+会从DockerHub.com下载和运行本书的Docker image。阅读和在线编辑本书请在浏览器里访问 http://localhost:8888 。
 
-如果您访问 DockerHub.com 很慢，可以试试我们的另一个镜像
-docker.paddlepaddle.org：
+如果您访问DockerHub.com很慢，可以试试我们的另一个镜像docker.paddlepaddle.org：
 
 ```bash
 docker run -d -p 8888:8888 docker.paddlepaddle.org/book
@@ -46,14 +36,9 @@ docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 
 ## 贡献内容
 
-您要是能贡献新的章节那就太好了！请发 Pull Requests 把您写的章节加入到
-`/pending` 下面的一个子目录里。当这一章稳定下来，我们一起把您的目录挪
-到根目录。
+您要是能贡献新的章节那就太好了！请发Pull Requests把您写的章节加入到`/pending`下面的一个子目录里。当这一章稳定下来，我们一起把您的目录挪到根目录。
 
-为了写作、运行、调试，您需要安装 Python 2.x, Go >1.5. 你可以用这
-个[脚本程序](https://github.com/PaddlePaddle/book/blob/develop/.tools/convert-markdown-into-ipynb-and-test.sh)来
-生成 Docker image。
-
+为了写作、运行、调试，您需要安装Python 2.x和Go >1.5, 并可以用[脚本程序](https://github.com/PaddlePaddle/book/blob/develop/.tools/convert-markdown-into-ipynb-and-test.sh)来生成新的Docker image。
 
 **Note:** We also provide [English Readme](https://github.com/PaddlePaddle/book/blob/develop/README.en.md) for PaddlePaddle book.
 

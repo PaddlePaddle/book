@@ -1,6 +1,6 @@
 # Sentiment Analysis
 
-The source codes of this section can be located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
+The source codes of this section can be located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/05.understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Background
 
@@ -64,6 +64,7 @@ RNN is an effective model for sequential data. In terms of computability, the RN
 <img src="image/rnn.png" width = "60%" align="center"/><br/>
 Figure 2. An illustration of an unfolded RNN in time.
 </p>
+
 As shown in Figure 2, we unfold an RNN: at the $t$-th time step, the network takes two inputs: the $t$-th input vector $\vec{x_t}$ and the latent state from the last time-step $\vec{h_{t-1}}$. From those, it computes the latent state of the current step $\vec{h_t}$. This process is repeated until all inputs are consumed. Denoting the RNN as function $f$, it can be formulated as follows:
 
 $$\vec{h_t}=f(\vec{x_t},\vec{h_{t-1}})=\sigma(W_{xh}\vec{x_t}+W_{hh}\vec{h_{h-1}}+\vec{b_h})$$

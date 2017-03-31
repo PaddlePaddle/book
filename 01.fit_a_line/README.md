@@ -1,7 +1,7 @@
 # 线性回归
 让我们从经典的线性回归（Linear Regression \[[1](#参考文献)\]）模型开始这份教程。在这一章里，你将使用真实的数据集建立起一个房价预测模型，并且了解到机器学习中的若干重要概念。
 
-本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/fit_a_line)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_cn.rst)。
+本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.md)。
 
 ## 背景介绍
 给定一个大小为$n$的数据集  ${\{y_{i}, x_{i1}, ..., x_{id}\}}_{i=1}^{n}$，其中$x_{i1}, \ldots, x_{id}$是第$i$个样本$d$个属性上的取值，$y_i$是该样本待预测的目标。线性回归模型假设目标$y_i$可以被属性间的线性组合描述，即
@@ -29,7 +29,7 @@ $$\hat{Y} = \omega_1X_{1} + \omega_2X_{2} + \ldots + \omega_{13}X_{13} + b$$
 
 $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要学习的参数即：$\omega_1, \ldots, \omega_{13}, b$。
 
-建立模型后，我们需要给模型一个优化目标，使得学到的参数能够让预测值$\hat{Y}$尽可能地接近真实值$Y$。这里我们引入损失函数（[Loss Function](https://en.wikipedia.org/wiki/Loss_function)，或Cost Function）这个概念。 输入任意一个数据样本的目标值$y_{i}$和模型给出的预测值$\hat{y_{i}}$，损失函数输出一个非负的实值。这个实质通常用来反映模型误差的大小。
+建立模型后，我们需要给模型一个优化目标，使得学到的参数能够让预测值$\hat{Y}$尽可能地接近真实值$Y$。这里我们引入损失函数（[Loss Function](https://en.wikipedia.org/wiki/Loss_function)，或Cost Function）这个概念。 输入任意一个数据样本的目标值$y_{i}$和模型给出的预测值$\hat{y_{i}}$，损失函数输出一个非负的实值。这个实值通常用来反映模型误差的大小。
 
 对于线性回归模型来讲，最常见的损失函数就是均方误差（Mean Squared Error， [MSE](https://en.wikipedia.org/wiki/Mean_squared_error)）了，它的形式是：
 
@@ -159,18 +159,41 @@ feeding={'x': 0, 'y': 1}
 
 ```python
 # event_handler to print training and testing info
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f" % (
-                event.pass_id, event.batch_id, event.cost)
+import matplotlib.pyplot as plt
+from IPython import display
+import cPickle
 
-    if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(
-            reader=paddle.batch(
-                uci_housing.test(), batch_size=2),
-            feeding=feeding)
-        print "Test %d, Cost %f" % (event.pass_id, result.cost)
+step=0
+
+train_costs=[],[]
+test_costs=[],[]
+
+def event_handler(event):
+    global step
+    global train_costs
+    global test_costs
+    if isinstance(event, paddle.event.EndIteration):
+        need_plot = False
+        if step % 10 == 0:  # every 10 batches, record a train cost
+            train_costs[0].append(step)
+            train_costs[1].append(event.cost)
+
+        if step % 1000 == 0: # every 1000 batches, record a test cost
+            result = trainer.test(
+                reader=paddle.batch(
+                    uci_housing.test(), batch_size=2),
+                feeding=feeding)
+            test_costs[0].append(step)
+            test_costs[1].append(result.cost)
+
+        if step % 100 == 0: # every 100 batches, update cost plot
+            plt.plot(*train_costs)
+            plt.plot(*test_costs)
+            plt.legend(['Train Cost', 'Test Cost'], loc='upper left')
+            display.clear_output(wait=True)
+            display.display(plt.gcf())
+            plt.gcf().clear()
+        step += 1
 ```
 
 ### 开始训练
@@ -185,6 +208,8 @@ trainer.train(
     event_handler=event_handler,
     num_passes=30)
 ```
+
+![png](./image/train-and-test.png)
 
 ## 总结
 在这章里，我们借助波士顿房价这一数据集，介绍了线性回归模型的基本概念，以及如何使用PaddlePaddle实现训练和测试的过程。很多的模型和技巧都是从简单的线性回归模型演化而来，因此弄清楚线性模型的原理和局限非常重要。
