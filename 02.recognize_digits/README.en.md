@@ -231,6 +231,34 @@ Here `shuffle` is a reader decorator, which takes a reader A as its parameter, a
 
 `batch` is a special decorator, whose input is a reader and output is a *batch reader*, which doesn't yield an instance at a time, but a minibatch.
 
+`event_handler_plot` is used to plot a figure like below：
+
+![png](./image/train_and_test.png)
+
+```python
+from paddle.v2.plot import Ploter
+
+train_title = "Train cost"
+test_title = "Test cost"
+cost_ploter = Ploter(train_title, test_title)
+
+step = 0
+
+# event_handler to plot a figure
+def event_handler_plot(event):
+    global step
+    if isinstance(event, paddle.event.EndIteration):
+        if step % 100 == 0:
+            cost_ploter.append(train_title, step, event.cost)
+            cost_ploter.plot()
+        step += 1
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(reader=paddle.batch(
+            paddle.dataset.mnist.test(), batch_size=128))
+        cost_ploter.append(test_title, step, result.cost)
+```
+
+`event_handler` is used to plot some text data when training.
 ```python
 lists = []
 
@@ -246,13 +274,15 @@ def event_handler(event):
             event.pass_id, result.cost, result.metrics)
         lists.append((event.pass_id, result.cost,
                       result.metrics['classification_error_evaluator']))
+```
 
+```python
 trainer.train(
     reader=paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.mnist.train(), buf_size=8192),
         batch_size=128),
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     num_passes=100)
 ```
 
