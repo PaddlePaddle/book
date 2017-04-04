@@ -278,6 +278,34 @@ trainer = paddle.trainer.SGD(cost=cost,
 
 `batch`是一个特殊的decorator，它的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
 
+`event_handler_plot`可以用来在训练过程中画图如下：
+
+![png](./image/train_and_test.png)
+
+```python
+from paddle.v2.plot import Ploter
+
+train_title = "Train cost"
+test_title = "Test cost"
+cost_ploter = Ploter(train_title, test_title)
+
+step = 0
+
+# event_handler to plot a figure
+def event_handler_plot(event):
+    global step
+    if isinstance(event, paddle.event.EndIteration):
+        if step % 100 == 0:
+            cost_ploter.append(train_title, step, event.cost)
+            cost_ploter.plot()
+        step += 1
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(reader=paddle.batch(
+            paddle.dataset.mnist.test(), batch_size=128))
+        cost_ploter.append(test_title, step, result.cost)
+```
+
+`event_handler` 用来在训练过程中输出训练结果
 ```python
 lists = []
 
@@ -293,13 +321,15 @@ def event_handler(event):
             event.pass_id, result.cost, result.metrics)
         lists.append((event.pass_id, result.cost,
                       result.metrics['classification_error_evaluator']))
+```
 
+```python
 trainer.train(
     reader=paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.mnist.train(), buf_size=8192),
         batch_size=128),
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     num_passes=100)
 ```
 

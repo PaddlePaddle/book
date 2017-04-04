@@ -163,40 +163,31 @@ feeding={'x': 0, 'y': 1}
 Moreover, an event handler is provided to print the training progress:
 
 ```python
-import matplotlib.pyplot as plt
-from IPython import display
-import cPickle
+# event_handler to print training and testing info
+from paddle.v2.plot import Ploter
 
-step=0
+train_title = "Train cost"
+test_title = "Test cost"
+plot_cost = Ploter(train_title, test_title)
 
-train_costs=[],[]
-test_costs=[],[]
+step = 0
 
 def event_handler(event):
     global step
-    global train_costs
-    global test_costs
     if isinstance(event, paddle.event.EndIteration):
-        need_plot = False
         if step % 10 == 0:  # every 10 batches, record a train cost
-            train_costs[0].append(step)
-            train_costs[1].append(event.cost)
+            plot_cost.append(train_title, step, event.cost)
 
-        if step % 1000 == 0: # every 1000 batches, record a test cost
+        if step % 100 == 0: # every 100 batches, record a test cost
             result = trainer.test(
                 reader=paddle.batch(
                     uci_housing.test(), batch_size=2),
                 feeding=feeding)
-            test_costs[0].append(step)
-            test_costs[1].append(result.cost)
+            plot_cost.append(test_title, step, result.cost)
 
         if step % 100 == 0: # every 100 batches, update cost plot
-            plt.plot(*train_costs)
-            plt.plot(*test_costs)
-            plt.legend(['Train Cost', 'Test Cost'], loc='upper left')
-            display.clear_output(wait=True)
-            display.display(plt.gcf())
-            plt.gcf().clear()
+            plot_cost.plot()
+
         step += 1
 ```
 
@@ -213,7 +204,7 @@ trainer.train(
     num_passes=30)
 ```
 
-![png](./image/train-and-test.png)
+![png](./image/train_and_test.png)
 
 ## Summary
 This chapter introduces *Linear Regression* and how to train and test this model with PaddlePaddle, using the UCI Housing Data Set. Because a large number of more complex models and techniques are derived from linear regression, it is important to understand its underlying theory and limitation.

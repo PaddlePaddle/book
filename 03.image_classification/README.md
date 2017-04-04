@@ -389,6 +389,35 @@ feeding={'image': 0,
 
 可以使用`event_handler`回调函数来观察训练过程，或进行测试等, 该回调函数是`trainer.train`函数里设定。
 
+`event_handler_plot`可以用来利用回调数据来打点画图:
+
+![png](./image/train_and_test.png)
+
+```python
+from paddle.v2.plot import Ploter
+
+train_title = "Train cost"
+test_title = "Test cost"
+cost_ploter = Ploter(train_title, test_title)
+
+step = 0
+def event_handler_plot(event):
+    global step
+    if isinstance(event, paddle.event.EndIteration):
+        if step % 1 == 0:
+            cost_ploter.append(train_title, step, event.cost)
+            cost_ploter.plot()
+        step += 1
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
+            reader=paddle.batch(
+                paddle.dataset.cifar.test10(), batch_size=128),
+            feeding=feeding)
+        cost_ploter.append(test_title, step, result.cost)
+```
+
+`event_handler` 用来在训练过程中输出文本日志
+
 ```python
 # End batch and end pass event handler
 def event_handler(event):
@@ -413,7 +442,7 @@ def event_handler(event):
 trainer.train(
     reader=reader,
     num_passes=200,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     feeding=feeding)
 ```
 
