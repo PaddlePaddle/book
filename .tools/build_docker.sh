@@ -37,7 +37,7 @@ RUN ${update_mirror_cmd}
     pip install -U matplotlib jupyter numpy requests scipy
 
 EXPOSE 8888
-CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
+CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
 EOF
 
 docker build --no-cache  -t paddlepaddle/book:${paddle_tag}  -t paddlepaddle/book:${book_tag} .
