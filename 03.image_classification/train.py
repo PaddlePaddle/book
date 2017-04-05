@@ -13,6 +13,7 @@
 # limitations under the License
 
 import sys
+import gzip
 
 import paddle.v2 as paddle
 
@@ -66,6 +67,10 @@ def main():
                 sys.stdout.write('.')
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
+            # save parameters
+            with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+                parameters.to_tar(f)
+
             result = trainer.test(
                 reader=paddle.batch(
                     paddle.dataset.cifar.test10(), batch_size=128),
@@ -81,10 +86,29 @@ def main():
             paddle.reader.shuffle(
                 paddle.dataset.cifar.train10(), buf_size=50000),
             batch_size=128),
-        num_passes=200,
+        num_passes=1,
         event_handler=event_handler,
         feeding={'image': 0,
                  'label': 1})
+
+    # inference
+    from PIL import Image
+    import numpy as np
+
+    def load_image(file):
+        im = Image.open(file)
+        im = im.resize((32, 32), Image.ANTIALIAS)
+        im = np.array(im).astype(np.float32).flatten()
+        im = im / 255.0
+        return im
+
+    test_data = []
+    test_data.append((load_image('image/dog.png'), ))
+
+    probs = paddle.infer(
+        output_layer=out, parameters=parameters, input=test_data)
+    lab = np.argsort(-probs)  # probs and lab are the results of one batch data
+    print("Label of image/dog.png is: %d", lab[0][0])
 
 
 if __name__ == '__main__':

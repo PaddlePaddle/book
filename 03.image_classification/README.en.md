@@ -417,6 +417,10 @@ def event_handler_plot(event):
             cost_ploter.plot()
         step += 1
     if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
         result = trainer.test(
             reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
@@ -475,7 +479,29 @@ Figure 12. The error rate of VGG model on CIFAR10
 </p>
 
 
-After training is done, the model from each pass is saved in `output/pass-%05d`. For example, the model of Pass 300 is saved in `output/pass-00299`.
+
+## Application
+
+After training is done, users can use the trained model to classify images. The following code shows how to infer through `paddle.infer` interface.
+
+```python
+from PIL import Image
+import numpy as np
+def load_image(file):
+    im = Image.open(file)
+    im = im.resize((32, 32), Image.ANTIALIAS)
+    im = np.array(im).astype(np.float32).flatten()
+    im = im / 255.0
+    return im
+test_data = []
+test_data.append((load_image('image/dog.png'),))
+
+probs = paddle.infer(
+    output_layer=out, parameters=parameters, input=test_data)
+lab = np.argsort(-probs) # probs and lab are the results of one batch data
+print("Label of image/dog.png is: %d", lab[0][0])
+```
+
 
 ## Conclusion
 
