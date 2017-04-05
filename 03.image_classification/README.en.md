@@ -169,6 +169,7 @@ We must import and initialize PaddlePaddle (enable/disable GPU, set the number o
 
 ```python
 import sys
+import gzip
 import paddle.v2 as paddle
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
@@ -417,10 +418,6 @@ def event_handler_plot(event):
             cost_ploter.plot()
         step += 1
     if isinstance(event, paddle.event.EndPass):
-        # save parameters
-        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
-            parameters.to_tar(f)
-
         result = trainer.test(
             reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
@@ -441,6 +438,10 @@ def event_handler(event):
             sys.stdout.write('.')
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
         result = trainer.test(
             reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
@@ -499,7 +500,7 @@ test_data.append((load_image('image/dog.png'),))
 probs = paddle.infer(
     output_layer=out, parameters=parameters, input=test_data)
 lab = np.argsort(-probs) # probs and lab are the results of one batch data
-print("Label of image/dog.png is: %d", lab[0][0])
+print "Label of image/dog.png is: %d" % lab[0][0]
 ```
 
 

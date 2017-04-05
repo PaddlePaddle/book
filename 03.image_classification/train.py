@@ -108,7 +108,7 @@ def main():
     probs = paddle.infer(
         output_layer=out, parameters=parameters, input=test_data)
     lab = np.argsort(-probs)  # probs and lab are the results of one batch data
-    print("Label of image/dog.png is: %d", lab[0][0])
+    print "Label of image/dog.png is: %d" % lab[0][0]
 
 
 if __name__ == '__main__':
