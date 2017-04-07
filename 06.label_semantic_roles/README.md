@@ -189,6 +189,7 @@ conll05st-release/
 ```python
 import math
 import numpy as np
+import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 
@@ -346,15 +347,15 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。
+- CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。在训练中，`evaluator.sum`对CRF译码层统计结果进行求和并得到平均标记错误率。
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
-   name='crf_dec_l',
    size=label_dict_len,
    input=feature_out,
    label=target,
    param_attr=paddle.attr.Param(name='crfw'))
+evaluator.sum(input=crf_dec)
 ```
 
 ## 训练模型
@@ -365,7 +366,7 @@ crf_dec = paddle.layer.crf_decoding(
 
 ```python
 # create parameters
-parameters = paddle.parameters.create([crf_cost, crf_dec])
+parameters = paddle.parameters.create(crf_cost)
 ```
 
 可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
@@ -400,7 +401,8 @@ optimizer = paddle.optimizer.Momentum(
 
 trainer = paddle.trainer.SGD(cost=crf_cost,
                              parameters=parameters,
-                             update_equation=optimizer)
+                             update_equation=optimizer,
+                             extra_layers=crf_dec)
 ```
 
 ### 训练
@@ -436,8 +438,19 @@ feeding = {
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
         if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f" % (
-                event.pass_id, event.batch_id, event.cost)
+            print "Pass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+        if event.batch_id % 1000 == 0:
+            result = trainer.test(reader=reader, feeding=feeding)
+            print "\nTest with Pass %d, Batch %d, %s" % (event.pass_id, event.batch_id, result.metrics)
+
+    if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)  
+
+        result = trainer.test(reader=reader, feeding=feeding)
+        print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 
 通过`trainer.train`函数训练：
@@ -448,6 +461,41 @@ trainer.train(
     event_handler=event_handler,
     num_passes=10000,
     feeding=feeding)
+```
+
+### 应用模型
+
+训练完成之后，需要依据某个我们关心的性能指标选择最优的模型进行预测，可以简单的选择测试集上标记错误最少的那个模型。预测时使用 `paddle.layer.crf_decoding`，和训练不同的是，该层没有正确的标签层作为输入。如下所示：
+
+```python
+predict = paddle.layer.crf_decoding(
+    size=label_dict_len,
+    input=feature_out,
+    param_attr=paddle.attr.Param(name='crfw'))
+```
+
+这里选用测试集的一条数据作为示例。
+
+```python
+test_creator = paddle.dataset.conll05.test()
+test_data = []
+for item in test_creator():
+    test_data.append(item[0:8])
+    if len(test_data) == 1:
+        break
+```
+
+推断接口`paddle.infer`返回标签的索引，并查询词典`labels_reverse`，打印出标记的结果。
+
+```python
+labs = paddle.infer(
+    output_layer=predict, parameters=parameters, input=test_data, field='id')
+assert len(labs) == len(test_data[0][0])
+labels_reverse={}
+for (k,v) in label_dict.items():
+    labels_reverse[v]=k
+pre_lab = [labels_reverse[i] for i in labs]
+print pre_lab
 ```
 
 ## 总结
