@@ -389,7 +389,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。在训练中，`evaluator.sum`对CRF译码层统计结果进行求和并得到平均标记错误率。
+- CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。
 
 ```python
 crf_dec = paddle.layer.crf_decoding(

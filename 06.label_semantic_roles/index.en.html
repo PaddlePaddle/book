@@ -253,6 +253,7 @@ Here we fetch the dictionary, and print its size:
 ```python
 import math
 import numpy as np
+import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 
@@ -429,7 +430,7 @@ evaluator.sum(input=crf_dec)
 All necessary parameters will be traced created given output layers that we need to use.
 
 ```python
-parameters = paddle.parameters.create([crf_cost, crf_dec])
+parameters = paddle.parameters.create(crf_cost)
 ```
 
 We can print out parameter name. It will be generated if not specified.
