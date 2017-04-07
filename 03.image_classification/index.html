@@ -198,6 +198,7 @@ Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
 
 ```python
 import sys
+import gzip
 import paddle.v2 as paddle
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
@@ -451,6 +452,7 @@ def event_handler_plot(event):
             cost_ploter.plot()
         step += 1
     if isinstance(event, paddle.event.EndPass):
+
         result = trainer.test(
             reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
@@ -471,6 +473,10 @@ def event_handler(event):
             sys.stdout.write('.')
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
         result = trainer.test(
             reader=paddle.batch(
                 paddle.dataset.cifar.test10(), batch_size=128),
@@ -508,6 +514,28 @@ Test with Pass 0, {'classification_error_evaluator': 0.885200023651123}
 <img src="image/plot.png" width="400" ><br/>
 图12. CIFAR10数据集上VGG模型的分类错误率
 </p>
+
+## 应用模型
+
+可以使用训练好的模型对图片进行分类，下面程序展示了如何使用`paddle.infer`接口进行推断。
+
+```python
+from PIL import Image
+import numpy as np
+def load_image(file):
+    im = Image.open(file)
+    im = im.resize((32, 32), Image.ANTIALIAS)
+    im = np.array(im).astype(np.float32).flatten()
+    im = im / 255.0
+    return im
+test_data = []
+test_data.append((load_image('image/dog.png'),))
+
+probs = paddle.infer(
+    output_layer=out, parameters=parameters, input=test_data)
+lab = np.argsort(-probs) # probs and lab are the results of one batch data
+print "Label of image/dog.png is: %d" % lab[0][0]
+```
 
 
 ## 总结
