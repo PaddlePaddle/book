@@ -11,26 +11,29 @@ def main():
         type=paddle.data_type.integer_value(
             paddle.dataset.movielens.max_user_id() + 1))
     usr_emb = paddle.layer.embedding(input=uid, size=32)
+    usr_fc = paddle.layer.fc(input=usr_emb, size=32)
 
     usr_gender_id = paddle.layer.data(
         name='gender_id', type=paddle.data_type.integer_value(2))
     usr_gender_emb = paddle.layer.embedding(input=usr_gender_id, size=16)
+    usr_gender_fc = paddle.layer.fc(input=usr_gender_emb, size=16)
 
     usr_age_id = paddle.layer.data(
         name='age_id',
         type=paddle.data_type.integer_value(
             len(paddle.dataset.movielens.age_table)))
     usr_age_emb = paddle.layer.embedding(input=usr_age_id, size=16)
+    usr_age_fc = paddle.layer.fc(input=usr_age_emb, size=16)
 
     usr_job_id = paddle.layer.data(
         name='job_id',
         type=paddle.data_type.integer_value(
             paddle.dataset.movielens.max_job_id() + 1))
-
     usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
+    usr_job_fc = paddle.layer.fc(input=usr_job_emb, size=16)
 
     usr_combined_features = paddle.layer.fc(
-        input=[usr_emb, usr_gender_emb, usr_age_emb, usr_job_emb],
+        input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc],
         size=200,
         act=paddle.activation.Tanh())
 
@@ -39,12 +42,12 @@ def main():
         type=paddle.data_type.integer_value(
             paddle.dataset.movielens.max_movie_id() + 1))
     mov_emb = paddle.layer.embedding(input=mov_id, size=32)
+    mov_fc = paddle.layer.fc(input=mov_emb, size=32)
 
     mov_categories = paddle.layer.data(
         name='category_id',
         type=paddle.data_type.sparse_binary_vector(
             len(paddle.dataset.movielens.movie_categories())))
-
     mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
 
     mov_title_id = paddle.layer.data(
@@ -55,7 +58,7 @@ def main():
         input=mov_title_emb, hidden_size=32, context_len=3)
 
     mov_combined_features = paddle.layer.fc(
-        input=[mov_emb, mov_categories_hidden, mov_title_conv],
+        input=[mov_fc, mov_categories_hidden, mov_title_conv],
         size=200,
         act=paddle.activation.Tanh())
 
@@ -105,9 +108,6 @@ def main():
     movie = paddle.dataset.movielens.movie_info()[movie_id]
 
     feature = user.value() + movie.value()
-
-    def reader():
-        yield feature
 
     infer_dict = copy.copy(feeding)
     del infer_dict['score']

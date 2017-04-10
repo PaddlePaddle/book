@@ -185,33 +185,37 @@ paddle.init(use_gpu=False)
 
 ```python
 uid = paddle.layer.data(
-        name='user_id',
-        type=paddle.data_type.integer_value(
-            paddle.dataset.movielens.max_user_id() + 1))
+    name='user_id',
+    type=paddle.data_type.integer_value(
+        paddle.dataset.movielens.max_user_id() + 1))
 usr_emb = paddle.layer.embedding(input=uid, size=32)
+usr_fc = paddle.layer.fc(input=usr_emb, size=32)
 
 usr_gender_id = paddle.layer.data(
-        name='gender_id', type=paddle.data_type.integer_value(2))
+    name='gender_id', type=paddle.data_type.integer_value(2))
 usr_gender_emb = paddle.layer.embedding(input=usr_gender_id, size=16)
+usr_gender_fc = paddle.layer.fc(input=usr_gender_emb, size=16)
 
 usr_age_id = paddle.layer.data(
-        name='age_id',
-        type=paddle.data_type.integer_value(
-            len(paddle.dataset.movielens.age_table)))
+    name='age_id',
+    type=paddle.data_type.integer_value(
+        len(paddle.dataset.movielens.age_table)))
 usr_age_emb = paddle.layer.embedding(input=usr_age_id, size=16)
+usr_age_fc = paddle.layer.fc(input=usr_age_emb, size=16)
 
 usr_job_id = paddle.layer.data(
-        name='job_id',
-        type=paddle.data_type.integer_value(paddle.dataset.movielens.max_job_id(
-        ) + 1))
+    name='job_id',
+    type=paddle.data_type.integer_value(
+        paddle.dataset.movielens.max_job_id() + 1))
 usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
+usr_job_fc = paddle.layer.fc(input=usr_job_emb, size=16)
 ```
 
 As shown in the above code, the input is four dimension integers for each user, that is,  `user_id`,`gender_id`, `age_id` and `job_id`. In order to deal with these features conveniently, we use the language model in NLP to transform these discrete values into embedding vaules `usr_emb`, `usr_gender_emb`, `usr_age_emb` and `usr_job_emb`.
 
 ```python
 usr_combined_features = paddle.layer.fc(
-        input=[usr_emb, usr_gender_emb, usr_age_emb, usr_job_emb],
+        input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc],
         size=200,
         act=paddle.activation.Tanh())
 ```
@@ -226,16 +230,14 @@ mov_id = paddle.layer.data(
     type=paddle.data_type.integer_value(
         paddle.dataset.movielens.max_movie_id() + 1))
 mov_emb = paddle.layer.embedding(input=mov_id, size=32)
+mov_fc = paddle.layer.fc(input=mov_emb, size=32)
 
 mov_categories = paddle.layer.data(
     name='category_id',
     type=paddle.data_type.sparse_binary_vector(
         len(paddle.dataset.movielens.movie_categories())))
-
 mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
 
-
-movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
 mov_title_id = paddle.layer.data(
     name='movie_title',
     type=paddle.data_type.integer_value_sequence(len(movie_title_dict)))
@@ -244,7 +246,7 @@ mov_title_conv = paddle.networks.sequence_conv_pool(
     input=mov_title_emb, hidden_size=32, context_len=3)
 
 mov_combined_features = paddle.layer.fc(
-    input=[mov_emb, mov_categories_hidden, mov_title_conv],
+    input=[mov_fc, mov_categories_hidden, mov_title_conv],
     size=200,
     act=paddle.activation.Tanh())
 ```

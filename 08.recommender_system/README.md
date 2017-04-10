@@ -20,7 +20,7 @@
 
 ## 效果展示
 
-我们使用包含用户信息、电影信息与电影评分的数据集作为个性化推荐的应用场景。当我们训练好模型后，只需要输入对应的用户ID和电影ID，就可以得出一个匹配的分数（范围[1,5]，分数越高视为兴趣越大），然后根据所有电影的推荐得分排序，推荐给用户可能感兴趣的电影。
+我们使用包含用户信息、电影信息与电影评分的数据集作为个性化推荐的应用场景。当我们训练好模型后，只需要输入对应的用户ID和电影ID，就可以得出一个匹配的分数（范围[0,5]，分数越高视为兴趣越大），然后根据所有电影的推荐得分排序，推荐给用户可能感兴趣的电影。
 
 ```
 Input movie_id: 1962
@@ -189,26 +189,30 @@ print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id]
 
 ```python
 uid = paddle.layer.data(
-        name='user_id',
-        type=paddle.data_type.integer_value(
-            paddle.dataset.movielens.max_user_id() + 1))
+    name='user_id',
+    type=paddle.data_type.integer_value(
+        paddle.dataset.movielens.max_user_id() + 1))
 usr_emb = paddle.layer.embedding(input=uid, size=32)
+usr_fc = paddle.layer.fc(input=usr_emb, size=32)
 
 usr_gender_id = paddle.layer.data(
-        name='gender_id', type=paddle.data_type.integer_value(2))
+    name='gender_id', type=paddle.data_type.integer_value(2))
 usr_gender_emb = paddle.layer.embedding(input=usr_gender_id, size=16)
+usr_gender_fc = paddle.layer.fc(input=usr_gender_emb, size=16)
 
 usr_age_id = paddle.layer.data(
-        name='age_id',
-        type=paddle.data_type.integer_value(
-            len(paddle.dataset.movielens.age_table)))
+    name='age_id',
+    type=paddle.data_type.integer_value(
+        len(paddle.dataset.movielens.age_table)))
 usr_age_emb = paddle.layer.embedding(input=usr_age_id, size=16)
+usr_age_fc = paddle.layer.fc(input=usr_age_emb, size=16)
 
 usr_job_id = paddle.layer.data(
-        name='job_id',
-        type=paddle.data_type.integer_value(paddle.dataset.movielens.max_job_id(
-        ) + 1))
+    name='job_id',
+    type=paddle.data_type.integer_value(
+        paddle.dataset.movielens.max_job_id() + 1))
 usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
+usr_job_fc = paddle.layer.fc(input=usr_job_emb, size=16)
 ```
 
 如上述代码所示，对于每个用户，我们输入4维特征。其中包括`user_id`,`gender_id`,`age_id`,`job_id`。这几维特征均是简单的整数值。为了后续神经网络处理这些特征方便，我们借鉴NLP中的语言模型，将这几维离散的整数值，变换成embedding取出。分别形成`usr_emb`, `usr_gender_emb`, `usr_age_emb`, `usr_job_emb`。
@@ -216,7 +220,7 @@ usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
 
 ```python
 usr_combined_features = paddle.layer.fc(
-        input=[usr_emb, usr_gender_emb, usr_age_emb, usr_job_emb],
+        input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc],
         size=200,
         act=paddle.activation.Tanh())
 ```
@@ -232,16 +236,14 @@ mov_id = paddle.layer.data(
     type=paddle.data_type.integer_value(
         paddle.dataset.movielens.max_movie_id() + 1))
 mov_emb = paddle.layer.embedding(input=mov_id, size=32)
+mov_fc = paddle.layer.fc(input=mov_emb, size=32)
 
 mov_categories = paddle.layer.data(
     name='category_id',
     type=paddle.data_type.sparse_binary_vector(
         len(paddle.dataset.movielens.movie_categories())))
-
 mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
 
-
-movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
 mov_title_id = paddle.layer.data(
     name='movie_title',
     type=paddle.data_type.integer_value_sequence(len(movie_title_dict)))
@@ -250,7 +252,7 @@ mov_title_conv = paddle.networks.sequence_conv_pool(
     input=mov_title_emb, hidden_size=32, context_len=3)
 
 mov_combined_features = paddle.layer.fc(
-    input=[mov_emb, mov_categories_hidden, mov_title_conv],
+    input=[mov_fc, mov_categories_hidden, mov_title_conv],
     size=200,
     act=paddle.activation.Tanh())
 ```
