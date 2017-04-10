@@ -220,7 +220,8 @@ def wordemb(inlayer):
             name="_proj",
             initial_std=0.001,
             learning_rate=1,
-            l2_rate=0, ))
+            l2_rate=0,
+            sparse_update=True))
     return wordemb
 ```
 
@@ -290,10 +291,10 @@ cost = paddle.layer.classification_cost(input=predictword, label=nextword)
 
 ```python
 parameters = paddle.parameters.create(cost)
-adam_optimizer = paddle.optimizer.Adam(
+adagrad = paddle.optimizer.AdaGrad(
     learning_rate=3e-3,
     regularization=paddle.optimizer.L2Regularization(8e-4))
-trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
+trainer = paddle.trainer.SGD(cost, parameters, adagrad)
 ```
 
 下一步，我们开始训练过程。`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python generator。
