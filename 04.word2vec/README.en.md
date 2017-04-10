@@ -235,7 +235,8 @@ def wordemb(inlayer):
             name="_proj",
             initial_std=0.001,
             learning_rate=1,
-            l2_rate=0, ))
+            l2_rate=0,
+            sparse_update=True))
     return wordemb
 ```
 
@@ -301,10 +302,10 @@ cost = paddle.layer.classification_cost(input=predictword, label=nextword)
 
 ```python
 parameters = paddle.parameters.create(cost)
-adam_optimizer = paddle.optimizer.Adam(
+adagrad = paddle.optimizer.AdaGrad(
     learning_rate=3e-3,
     regularization=paddle.optimizer.L2Regularization(8e-4))
-trainer = paddle.trainer.SGD(cost, parameters, adam_optimizer)
+trainer = paddle.trainer.SGD(cost, parameters, adagrad)
 ```
 
 Next, we will begin the training process. `paddle.dataset.imikolov.train()` and `paddle.dataset.imikolov.test()` is our training set and test set. Both of the function will return a **reader**: In PaddlePaddle, reader is a python function which returns a Python iterator which output a single data instance at a time.
