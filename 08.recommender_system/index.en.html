@@ -280,6 +280,7 @@ mov_categories = paddle.layer.data(
         len(paddle.dataset.movielens.movie_categories())))
 mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
 
+movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
 mov_title_id = paddle.layer.data(
     name='movie_title',
     type=paddle.data_type.integer_value_sequence(len(movie_title_dict)))
