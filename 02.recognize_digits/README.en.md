@@ -172,7 +172,7 @@ def convolutional_neural_network(img):
         num_channel=1,
         pool_size=2,
         pool_stride=2,
-        act=paddle.activation.Tanh())
+        act=paddle.activation.Relu())
 
     conv_pool_2 = paddle.networks.simple_img_conv_pool(
         input=conv_pool_1,
@@ -181,13 +181,9 @@ def convolutional_neural_network(img):
         num_channel=20,
         pool_size=2,
         pool_stride=2,
-        act=paddle.activation.Tanh())
+        act=paddle.activation.Relu())
 
-    fc1 = paddle.layer.fc(input=conv_pool_2,
-                          size=128,
-                          act=paddle.activation.Tanh())
-
-    predict = paddle.layer.fc(input=fc1,
+    predict = paddle.layer.fc(input=conv_pool_2,
                               size=10,
                               act=paddle.activation.Softmax())
     return predict
@@ -203,9 +199,9 @@ images = paddle.layer.data(
 label = paddle.layer.data(
     name='label', type=paddle.data_type.integer_value(10))
 
-predict = softmax_regression(images)
-#predict = multilayer_perceptron(images) # uncomment for MLP
-#predict = convolutional_neural_network(images) # uncomment for LeNet5
+# predict = softmax_regression(images)
+# predict = multilayer_perceptron(images) # uncomment for MLP
+predict = convolutional_neural_network(images) # uncomment for LeNet5
 
 cost = paddle.layer.classification_cost(input=predict, label=label)
 ```
