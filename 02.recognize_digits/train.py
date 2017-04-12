@@ -29,7 +29,7 @@ def convolutional_neural_network(img):
         num_channel=1,
         pool_size=2,
         pool_stride=2,
-        act=paddle.activation.Tanh())
+        act=paddle.activation.Relu())
     # second conv layer
     conv_pool_2 = paddle.networks.simple_img_conv_pool(
         input=conv_pool_1,
@@ -38,14 +38,10 @@ def convolutional_neural_network(img):
         num_channel=20,
         pool_size=2,
         pool_stride=2,
-        act=paddle.activation.Tanh())
-    # The first fully-connected layer
-    fc1 = paddle.layer.fc(
-        input=conv_pool_2, size=128, act=paddle.activation.Tanh())
-    # The softmax layer, note that the hidden size should be 10,
-    # which is the number of unique digits
+        act=paddle.activation.Relu())
+    # fully-connected layer
     predict = paddle.layer.fc(
-        input=fc1, size=10, act=paddle.activation.Softmax())
+        input=conv_pool_2, size=10, act=paddle.activation.Softmax())
     return predict
 
 
@@ -58,9 +54,9 @@ label = paddle.layer.data(name='label', type=paddle.data_type.integer_value(10))
 
 # Here we can build the prediction network in different ways. Please
 # choose one by uncomment corresponding line.
-predict = softmax_regression(images)
-#predict = multilayer_perceptron(images)
-#predict = convolutional_neural_network(images)
+# predict = softmax_regression(images)
+# predict = multilayer_perceptron(images)
+predict = convolutional_neural_network(images)
 
 cost = paddle.layer.classification_cost(input=predict, label=label)
 
