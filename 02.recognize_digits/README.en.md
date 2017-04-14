@@ -1,9 +1,9 @@
 # Recognize Digits
 
-The source code for this tutorial is under [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). First-time readers, please refer to PaddlePaddle [installation instructions](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
+The source code for this tutorial is live at [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For instructions on getting started with Paddle, please refer to [installation instructions](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 
 ## Introduction
-When we learn a new programming language, the first task is usually to write a program that prints "Hello World." In Machine Learning or Deep Learning, the equivalent task is to train a model to perform handwritten digit recognition with [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a typical image classification problem. The problem is relatively easy, and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1). The input image is a 28x28 matrix, and the label is one of the digits from 0 to 9. Each image is normalized in size and centered.
+When one learns to program, the first task is usually to write a program that prints "Hello World!". In Machine Learning or Deep Learning, the equivalent task is to train a model to recognize hand-written digits on the dataset [MNIST](http://yann.lecun.com/exdb/mnist/). Handwriting recognition is a classic image classification problem. The problem is relatively easy and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1). The input image is a $28\times28$ matrix, and the label is one of the digits from $0$ to $9$. All images are normalized, meaning that they are both rescaled and centered.
 
 <p align="center">
 <img src="image/mnist_example_image.png" width="400"><br/>
@@ -12,37 +12,37 @@ Fig. 1. Examples of MNIST images
 
 The MNIST dataset is created from the [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3 (SD-3) and the Special Database 1 (SD-1). The SD-3 is labeled by the staff of the U.S. Census Bureau, while SD-1 is labeled by high school students the in U.S. Therefore the SD-3 is cleaner and easier to recognize than the SD-1 dataset. Yann LeCun et al. used half of the samples from each of SD-1 and SD-3 to create the MNIST training set (60,000 samples) and test set (10,000 samples), where training set was labeled by 250 different annotators, and it was guaranteed that there wasn't a complete overlap of annotators of training set and test set.
 
-Yann LeCun, one of the founders of Deep Learning, contributed highly towards handwritten character recognition in early days and proposed CNN (Convolutional Neural Network), which drastically improved recognition capability for handwritten characters. CNNs are now a critical concept in Deep Learning. From Yann LeCun's first proposal of LeNet to those winning models in ImageNet, such as VGGNet, GoogLeNet, ResNet, etc. (Please refer to [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification) tutorial), CNN achieved a series of impressive results in Image Classification tasks.
+Yann LeCun, one of the founders of Deep Learning, have previously made tremendous contributions to handwritten character recognition and proposed the **Convolutional Neural Network** (CNN), which drastically improved recognition capability for handwritten characters. CNNs are now a critical concept in Deep Learning. From the LeNet proposal by Yann LeCun, to those winning models in ImageNet competitions, such as VGGNet, GoogLeNet, and ResNet (See [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification) tutorial), CNNs have achieved a series of impressive results in Image Classification tasks.
 
-Many algorithms are tested on MNIST. In 1998, LeCun experimented with single layer linear classifier, MLP (Multilayer Perceptron) and Multilayer CNN LeNet. These algorithms constantly reduced test error from 12% to 0.7% \[[1](#References)\]. Since then, researchers have worked on many algorithms such as k-NN (K-Nearest Neighbors) \[[2](#References)\], Support Vector Machine (SVM) \[[3](#References)\], Neural Networks \[[4-7](#References)\] and Boosting \[[8](#References)\]. Various preprocessing methods like distortion removal, noise removal, blurring etc. have also been applied to increase recognition accuracy.
+Many algorithms are tested on MNIST. In 1998, LeCun experimented with single layer linear classifier, Multilayer Perceptron (MLP) and Multilayer CNN LeNet. These algorithms quickly reduced test error from 12% to 0.7% \[[1](#references)\]. Since then, researchers have worked on many algorithms such as **K-Nearest Neighbors** (k-NN) \[[2](#references)\], **Support Vector Machine** (SVM) \[[3](#references)\], **Neural Networks** \[[4-7](#references)\] and **Boosting** \[[8](#references)\]. Various preprocessing methods like distortion removal, noise removal, and blurring, have also been applied to increase recognition accuracy.
 
-In this tutorial, we tackle the task of handwritten character recognition. We start with a simple softmax regression model and guide our readers step-by-step to improve this model's performance on the task of recognition.
+In this tutorial, we tackle the task of handwritten character recognition. We start with a simple **softmax** regression model and guide our readers step-by-step to improve this model's performance on the task of recognition.
 
 
 ## Model Overview
 
-Before introducing classification algorithms and training procedure, we provide some definitions:
-- $X$ is the input: Input is a $28\times28$ MNIST image. It is flattened to a $784$ dimensional vector. $X=\left ( x_0, x_1, \dots, x_{783} \right )$.
-- $Y$ is the output: Output of the classifier is 1 of the 10 classes (digits from 0 to 9). $Y=\left ( y_0, y_1, \dots, y_9 \right )$. Each dimension $y_i$ represents the probability that the input image belongs to class $i$.
-- $L$ is the ground truth label: $L=\left ( l_0, l_1, \dots, l_9 \right )$. It is also 10 dimensional, but only one dimension is 1 and all others are all 0.
+Before introducing classification algorithms and training procedure, we define the following symbols:
+- $X$ is the input: Input is a $28\times 28$ MNIST image. It is flattened to a $784$ dimensional vector. $X=\left (x_0, x_1, \dots, x_{783} \right )$.
+- $Y$ is the output: Output of the classifier is 1 of the 10 classes (digits from 0 to 9). $Y=\left (y_0, y_1, \dots, y_9 \right )$. Each dimension $y_i$ represents the probability that the input image belongs to class $i$.
+- $L$ is the ground truth label: $L=\left ( l_0, l_1, \dots, l_9 \right )$. It is also 10 dimensional, but only one entry is $1$ and all others are $0$s.
 
 ### Softmax Regression
 
-In a simple softmax regression model, the input is fed to fully connected layers and a softmax function is applied to get probabilities of multiple output classes\[[9](#References)\].
+In a simple softmax regression model, the input is first fed to fully connected layers. Then, a softmax function is applied to output probabilities of multiple output classes\[[9](#references)\].
 
-Input $X$ is multiplied with weights $W$, and bias $b$ is added to generate activations.
+The input $X$ is multiplied by weights $W$ and then added to the bias $b$ to generate activations.
 
 $$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
 where $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
 
-For an $N$ class classification problem with $N$ output nodes, an $N$ dimensional vector is normalized to $N$ real values in the range [0, 1], each representing the probability of the sample to belong to the class. Here $y_i$ is the prediction probability that an image is digit $i$.
+For an $N$-class classification problem with $N$ output nodes, Softmax normalizes the resulting $N$ dimensional vector so that each of its entries falls in the range $[0,1]\in\math{R}$, representing the probability that the sample belongs to a certain class. Here $y_i$ denotes the predicted probability that an image is of digit $i$.
 
 In such a classification problem, we usually use the cross entropy loss function:
 
 $$  \text{crossentropy}(label, y) = -\sum_i label_ilog(y_i) $$
 
-Fig. 2 shows a softmax regression network, with weights in blue, and bias in red. +1 indicates bias is 1.
+Fig. 2 illustrates a softmax regression network, with the weights in blue, and the bias in red. `+1` indicates that the bias is $1$.
 
 <p align="center">
 <img src="image/softmax_regression_en.png" width=400><br/>
@@ -51,13 +51,13 @@ Fig. 2. Softmax regression network architecture<br/>
 
 ### Multilayer Perceptron
 
-The Softmax regression model described above uses the simplest two-layer neural network, i.e. it only contains an input layer and an output layer. So its regression ability is limited. To achieve better recognition results, we consider adding several hidden layers \[[10](#References)\] between the input layer and the output layer.
+The softmax regression model described above uses the simplest two-layer neural network. That is, it only contains an input layer and an output layer, with limited regression capability. To achieve better recognition results, consider adding several hidden layers\[[10](#references)\] between the input layer and the output layer.
 
-1.  After the first hidden layer, we get $ H_1 = \phi(W_1X + b_1) $, where $\phi$ is the activation function. Some common ones are sigmoid, tanh and ReLU.
+1.  After the first hidden layer, we get $ H_1 = \phi(W_1X + b_1) $, where $\phi$ denotes the activation function. Some [common ones](###list-of-common-activation-functions) are sigmoid, tanh and ReLU.
 2.  After the second hidden layer, we get $ H_2 = \phi(W_2H_1 + b_2) $.
-3.  Finally, after output layer, we get $Y=\text{softmax}(W_3H_2 + b_3)$, the final classification result vector.
+3.  Finally, the output layer outputs $Y=\text{softmax}(W_3H_2 + b_3)$, the vector denoting our classification result.
 
-Fig. 3. is Multilayer Perceptron network, with weights in blue, and bias in red. +1 indicates bias is 1.
+Fig. 3. shows a Multilayer Perceptron network, with the weights in blue, and the bias in red. +1 indicates that the bias is $1$.
 
 <p align="center">
 <img src="image/mlp_en.png" width=500><br/>
@@ -74,18 +74,18 @@ Fig. 3. Multilayer Perceptron network architecture<br/>
 Fig. 4. Convolutional layer<br/>
 </p>
 
-The Convolutional layer is the core of a Convolutional Neural Network. The parameters in this layer are composed of a set of filters or kernels. In the forward step, each kernel moves horizontally and vertically, we compute a dot product of the kernel and the input at the corresponding positions, to this result we add bias and apply an activation function. The result is a two-dimensional activation map. For example, some kernel may recognize corners, and some may recognize circles. These convolution kernels may respond strongly to the corresponding features.
+The **convolutional layer** is the core of a Convolutional Neural Network. The parameters in this layer are composed of a set of filters, also called kernels. We could visualize the convolution step in the following fashion: Each kernel slides horizontally and vertically till it covers the whole image. At every window, we compute the dot product of the kernel and the input. Then, we add the bias and apply an activation function. The result is a two-dimensional activation map. For example, some kernel may recognize corners, and some may recognize circles. These convolution kernels may respond strongly to the corresponding features.
 
-Fig. 4 is a dynamic graph of a convolutional layer, where depths are not shown for simplicity. Input is $W_1=5, H_1=5, D_1=3$. In fact, this is a common representation for colored images. $W_1$ and  $H_1$ of a colored image correspond to the width and height respectively. $D_1$ corresponds to the 3 color channels for RGB. The parameters of the convolutional layer are $K=2, F=3, S=2, P=1$. $K$ is the number of kernels. Here, $Filter W_0$ and $Filter   W_1$ are two kernels. $F$ is kernel size. $W0$ and $W1$ are both $3\times3$ matrix in all depths. $S$ is the stride. Kernels move leftwards or downwards by 2 units each time. $P$ is padding, an extension of the input. The gray area in the figure shows zero padding with size 1.
+Fig. 4 illustrates the dynamic programming of a convolutional layer, where depths are flattened for simplicity. The input is $W_1=5$, $H_1=5$, $D_1=3$. In fact, this is a common representation for colored images. $W_1$ and $H_1$ correspond to the width and height in a colored image. $D_1$ corresponds to the 3 color channels for RGB. The parameters of the convolutional layer are $K=2$, $F=3$, $S=2$, $P=1$. $K$ denotes the number of kernels; specifically, $Filter$ $W_0$ and $Filter$ $W_1$ are the kernels. $F$ is kernel size while $W0$ and $W1$ are both $F\timesF = 3\times3$ matrices in all depths. $S$ is the stride, which is the width of the sliding window; here, kernels move leftwards or downwards by 2 units each time. $P$ is the width of the padding, which denotes an extension of the input; here, the gray area shows zero padding with size 1.
 
 #### Pooling Layer
 
 <p align="center">
 <img src="image/max_pooling_en.png" width="400px"><br/>
-Fig. 5 Pooling layer<br/>
+Fig. 5 Pooling layer using max-pooling<br/>
 </p>
 
-A Pooling layer performs downsampling. The main functionality of this layer is to reduce computation by reducing the network parameters. It also prevents overfitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer can be of various types like max pooling, average pooling, etc. Max pooling uses rectangles to segment the input layer into several parts and computes the maximum value in each part as the output (Fig. 5.)
+A **pooling layer** performs downsampling. The main functionality of this layer is to reduce computation by reducing the network parameters. It also prevents over-fitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer can use various techniques, such as max pooling and average pooling. As shown in Fig.5, max pooling uses rectangles to segment the input layer into several parts and computes the maximum value in each part as the output.
 
 #### LeNet-5 Network
 
@@ -94,13 +94,13 @@ A Pooling layer performs downsampling. The main functionality of this layer is t
 Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
 </p>
 
-[LeNet-5](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Networks. Fig. 6. shows its architecture: A 2-dimensional input image is fed into two sets of convolutional layers and pooling layers, this output is then fed to a fully connected layer and a softmax classifier. The following three properties of convolution enable LeNet-5 to better recognize images than Multilayer fully connected perceptrons:
+[**LeNet-5**](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Networks. Fig. 6. shows its architecture: A 2-dimensional input image is fed into two sets of convolutional layers and pooling layers. This output is then fed to a fully connected layer and a softmax classifier. Compared to multilayer, fully connected perceptrons, the LeNet-5 can recognize images better. This is due to the following three properties of the convolution:
 
-- 3D properties of neurons: a convolutional layer is organized by width, height and depth. Neurons in each layer are connected to only a small region in the previous layer. This region is called the receptive field.
-- Local connection: A CNN utilizes the local space correlation by connecting local neurons. This design guarantees that the learned filter has a strong response to local input features. Stacking many such layers generates a non-linear filter that is more global. This enables the network to first obtain good representation for small parts of input and then combine them to represent a larger region.
-- Sharing weights: In a CNN, computation is iterated on shared parameters (weights and bias) to form a feature map. This means all neurons in the same depth of the output respond to the same feature. This allows detecting a feature regardless of its position in the input and enables translation equivariance.
+- The 3D nature of the neurons: a convolutional layer is organized by width, height and depth. Neurons in each layer are connected to only a small region in the previous layer. This region is called the receptive field.
+- Local connectivity: A CNN utilizes the local space correlation by connecting local neurons. This design guarantees that the learned filter has a strong response to local input features. Stacking many such layers generates a non-linear filter that is more global. This enables the network to first obtain good representation for small parts of input and then combine them to represent a larger region.
+- Weight sharing: In a CNN, computation is iterated on shared parameters (weights and bias) to form a feature map. This means that all the neurons in the same depth of the output respond to the same feature. This allows the network to detect a feature regardless of its position in the input. In other words, it is shift invariant.
 
-For more details on Convolutional Neural Networks, please refer to [this Stanford open course]( http://cs231n.github.io/convolutional-networks/ ) and [this Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) tutorial.
+For more details on Convolutional Neural Networks, please refer to the tutorial on [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) and the [relevant lecture](http://cs231n.github.io/convolutional-networks/) from a Stanford open course.
 
 ### List of Common Activation Functions  
 - Sigmoid activation function: $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
@@ -118,12 +118,12 @@ For more information, please refer to [Activation functions on Wikipedia](https:
 PaddlePaddle provides a Python module, `paddle.dataset.mnist`, which downloads and caches the [MNIST dataset](http://yann.lecun.com/exdb/mnist/).  The cache is under `/home/username/.cache/paddle/dataset/mnist`:
 
 
-|    File name          |       Description              |
-|----------------------|-------------------------|
-|train-images-idx3-ubyte|  Training images, 60,000 |
-|train-labels-idx1-ubyte|  Training labels, 60,000 |
-|t10k-images-idx3-ubyte |  Evaluation images, 10,000 |
-|t10k-labels-idx1-ubyte |  Evaluation labels, 10,000 |
+|    File name          |       Description | Size            |
+|----------------------|--------------|-----------|
+|train-images-idx3-ubyte|  Training images | 60,000 |
+|train-labels-idx1-ubyte|  Training labels | 60,000 |
+|t10k-images-idx3-ubyte |  Evaluation images | 10,000 |
+|t10k-labels-idx1-ubyte |  Evaluation labels | 10,000 |
 
 
 ## Model Configuration
@@ -134,9 +134,9 @@ A PaddlePaddle program starts from importing the API package:
 import paddle.v2 as paddle
 ```
 
-We want to use this program to demonstrate multiple kinds of models.  Let define each of them as a Python function:
+We want to use this program to demonstrate three different classifiers, each defined as a Python function:
 
-- softmax regression: the network has a fully-connection layer with softmax activation:
+- Softmax regression: the network has a fully-connection layer with softmax activation:
 
 ```python
 def softmax_regression(img):
@@ -146,7 +146,7 @@ def softmax_regression(img):
     return predict
 ```
 
-- multi-layer perceptron: this network has two hidden fully-connected layers, one with LeRU and the other with softmax activation:
+- Multi-Layer Perceptron: this network has two hidden fully-connected layers, one with ReLU and the other with softmax activation:
 
 ```python
 def multilayer_perceptron(img):
@@ -160,7 +160,7 @@ def multilayer_perceptron(img):
     return predict
 ```
 
-- convolution network LeNet-5: the input image is fed through two convolution-pooling layer, a fully-connected layer, and the softmax output layer:
+- Convolution network LeNet-5: the input image is fed through two convolution-pooling layers, a fully-connected layer, and the softmax output layer:
 
 ```python
 def convolutional_neural_network(img):
@@ -210,7 +210,7 @@ predict = softmax_regression(images)
 cost = paddle.layer.classification_cost(input=predict, label=label)
 ```
 
-Now, it is time to specify training parameters. The number 0.9 in the following `Momentum` optimizer means that 90% of the current the momentum comes from the momentum of the previous iteration.
+Now, it is time to specify training parameters. In the following `Momentum` optimizer, `momentum=0.9` means that 90% of the current momentum comes from that of the previous iteration. The learning rate relates to the speed at which the network training converges. Regularization is meant to prevent over-fitting; here we use the L2 regularization.
 
 ```python
 parameters = paddle.parameters.create(cost)
@@ -225,11 +225,11 @@ trainer = paddle.trainer.SGD(cost=cost,
                              update_equation=optimizer)
 ```
 
-Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`.  These two functions are *reader creators*, once called, returns a *reader*.  A reader is a Python function, which, once called, returns a Python generator, which yields instances of data.  
+Then we specify the training data `paddle.dataset.movielens.train()` and testing data `paddle.dataset.movielens.test()`. These two methods are *reader creators*. Once called, a reader creator returns a *reader*.  A reader is a Python method, which, once called, returns a Python generator, which yields instances of data.
 
-Here `shuffle` is a reader decorator, which takes a reader A as its parameter, and returns a new reader B, where B calls A to read in `buffer_size` data instances everytime into a buffer, then shuffles and yield instances in the buffer.  If you want very shuffled data, try use a larger buffer size.
+`shuffle` is a reader decorator. It takes in a reader A as input and returns a new reader B. Under the hood, B calls A to read data in the following fashion: it copies in `buffer_size` instances at a time into a buffer, shuffles the data, and yields the shuffled instances one at a time. A large buffer size would yield very shuffled data.
 
-`batch` is a special decorator, whose input is a reader and output is a *batch reader*, which doesn't yield an instance at a time, but a minibatch.
+`batch` is a special decorator, which takes in reader and outputs a *batch reader*, which doesn't yield an instance, but a minibatch at a time.
 
 ```python
 lists = []
@@ -276,11 +276,15 @@ print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
 print 'The classification accuracy is %.2f%%' % (100 - float(best[2]) * 100)
 ```
 
-Usually, with MNIST data, the softmax regression model can get accuracy around 92.34%, MLP can get about 97.66%, and convolution network can get up to around 99.20%.  Convolution layers have been widely considered a great invention for image processsing.
+Usually, with MNIST data, the softmax regression model achieves an accuracy around 92.34%, the MLP 97.66%, and the convolution network around 99.20%. Convolution layers have been widely considered a great invention for image processing.
 
 
 ## Conclusion
-This tutorial describes a few basic Deep Learning models viz. Softmax regression, Multilayer Perceptron Network and Convolutional Neural Network. The subsequent tutorials will derive more sophisticated models from these. So it is crucial to understand these models for future learning. When our model evolved from a simple softmax regression to slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST data set achieved large improvement in accuracy. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve results of an old one. Moreover, this tutorial introduced the basic flow of PaddlePaddle model design, starting with a dataprovider, model layer construction, to final training and prediction. Readers can leverage the flow used in this MNIST handwritten digit classification example and experiment with different data and network architectures to train models for classification tasks of their choice.
+This tutorial describes a few common deep learning models using **Softmax regression**, **Multilayer Perceptron Network**, and **Convolutional Neural Network**. Understanding these models is crucial for future learning; the subsequent tutorials derive more sophisticated networks by building on top of them.
+
+When our model evolves from a simple softmax regression to a slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST data set achieves a large improvement in accuracy. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve the results of an old one.
+
+Moreover, this tutorial introduces the basic flow of PaddlePaddle model design, which starts with a *dataprovider*, a model layer construction, and finally training and prediction. Motivated readers can leverage the flow used in this MNIST handwritten digit classification example and experiment with different data and network architectures to train models for classification tasks of their choice.
 
 ## References
 
