@@ -343,23 +343,23 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-- We will concatenate the output of the top LSTM unit with its input, and project the result into a hidden layer. Then, we put a fully connected layer on top to get the final feature vector representation.
-
- ```python
- feature_out = paddle.layer.mixed(
- size=label_dict_len,
- bias_attr=std_default,
- input=[
-     paddle.layer.full_matrix_projection(
-         input=input_tmp[0], param_attr=hidden_para_attr),
-     paddle.layer.full_matrix_projection(
-         input=input_tmp[1], param_attr=lstm_para_attr)
- ], )
- ```
-
-- At the end of the network, we use CRF as the cost function; the parameter of CRF cost will be named `crfw`.
+- In PaddlePaddle, state features and transition features of a CRF are implemented by a fully connected layer and a CRF layer seperately. The fully connected layer with linear activation learns the state features, here we use paddle.layer.mixed (paddle.layer.fc can be uesed as well), and the CRF layer in PaddlePaddle: paddle.layer.crf only learns the transition features, which is a cost layer and is the last layer of the network. paddle.layer.crf outputs the log probability of true tag sequence as the cost by given the input sequence and it requires the true tag sequence as target in the learning process.
 
 ```python
+# the fully connected layer learns the state features
+# The output of the top LSTM unit and its input are concatenated
+# and then is feed into a fully connected layer,
+# size of which equals to size of tag labels.
+
+feature_out = paddle.layer.mixed(
+    size=label_dict_len,
+    bias_attr=std_default,
+    input=[
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[0], param_attr=hidden_para_attr),
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[1], param_attr=lstm_para_attr)], )
+
 crf_cost = paddle.layer.crf(
     size=label_dict_len,
     input=feature_out,
