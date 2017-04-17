@@ -346,10 +346,10 @@ for i in range(1, depth):
 - In PaddlePaddle, state features and transition features of a CRF are implemented by a fully connected layer and a CRF layer seperately. The fully connected layer with linear activation learns the state features, here we use paddle.layer.mixed (paddle.layer.fc can be uesed as well), and the CRF layer in PaddlePaddle: paddle.layer.crf only learns the transition features, which is a cost layer and is the last layer of the network. paddle.layer.crf outputs the log probability of true tag sequence as the cost by given the input sequence and it requires the true tag sequence as target in the learning process.
 
 ```python
-# the fully connected layer learns the state features
-# The output of the top LSTM unit and its input are concatenated
-# and then is feed into a fully connected layer,
+
+# The output of the top LSTM unit and its input are feed into a fully connected layer,
 # size of which equals to size of tag labels.
+# The fully connected layer learns the state features
 
 feature_out = paddle.layer.mixed(
     size=label_dict_len,
@@ -370,7 +370,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- The CRF decoding layer is used for evaluation and inference. It shares weights with CRF layer.  The sharing of parameters among multiple layers is specified by using the same parameter name in these layers.
+- The CRF decoding layer is used for evaluation and inference. It shares weights with CRF layer.  The sharing of parameters among multiple layers is specified by using the same parameter name in these layers. If true tag sequence is provided in training process, `paddle.layer.crf_decoding` calculates labelling error for each input token and `evaluator.sum` sum the error over the entire sequence. Otherwise, `paddle.layer.crf_decoding`  generates the labelling tags.
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
