@@ -320,9 +320,13 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-- 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，经过一个全连接层映射到标记字典的维度，得到最终的特征向量表示。
+- 在PaddlePaddle中，CRF的状态特征和转移特征分别由一个全连接层和一个PaddlePaddle中的CRF层分别学习。在这个例子中，我们用线性激活的paddle.layer.mixed 来学习CRF的状态特征（也可以使用paddle.layer.fc），而 paddle.layer.crf只学习转移特征。paddle.layer.crf层是一个 cost 层，处于整个网络的末端，输出给定输入序列下，标记序列的log probability作为代价。训练阶段，该层需要输入正确的标记序列作为学习目标。
 
 ```python
+
+# 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，
+# 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
+
 feature_out = paddle.layer.mixed(
 size=label_dict_len,
 bias_attr=std_default,
@@ -332,11 +336,8 @@ input=[
     paddle.layer.full_matrix_projection(
         input=input_tmp[1], param_attr=lstm_para_attr)
 ], )
-```
 
-- 网络的末端定义CRF层计算损失(cost)，指定参数名字为 `crfw`，该层需要输入正确的数据标签(target)。
-
-```python
+# 学习 CRF 的转移特征
 crf_cost = paddle.layer.crf(
     size=label_dict_len,
     input=feature_out,
@@ -347,7 +348,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- CRF译码层和CRF层参数名字相同，即共享权重。如果输入了正确的数据标签(target)，会统计错误标签的个数，可以用来评估模型。如果没有输入正确的数据标签，该层可以推到出最优解，可以用来预测模型。
+- CRF解码和CRF层参数名字相同，即：加载了paddle.layer.crf层学习到的参数。在训练阶段，为 paddle.layer.crf_decoding 输入了正确的标记序列(target)，这一层会输出是否正确标记，evaluator.sum 用来计算序列上的标记错误率，可以用来评估模型。解码阶段，没有输入正确的数据标签，该层通过寻找概率最高的标记序列，解码出标记结果。
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
