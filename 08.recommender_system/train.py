@@ -3,9 +3,7 @@ import cPickle
 import copy
 
 
-def main():
-    paddle.init(use_gpu=False)
-    movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
+def get_usr_combined_features():
     uid = paddle.layer.data(
         name='user_id',
         type=paddle.data_type.integer_value(
@@ -36,7 +34,11 @@ def main():
         input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc],
         size=200,
         act=paddle.activation.Tanh())
+    return usr_combined_features
 
+
+def get_mov_combined_features():
+    movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
     mov_id = paddle.layer.data(
         name='movie_id',
         type=paddle.data_type.integer_value(
@@ -61,7 +63,13 @@ def main():
         input=[mov_fc, mov_categories_hidden, mov_title_conv],
         size=200,
         act=paddle.activation.Tanh())
+    return mov_combined_features
 
+
+def main():
+    paddle.init(use_gpu=False)
+    usr_combined_features = get_usr_combined_features()
+    mov_combined_features = get_mov_combined_features()
     inference = paddle.layer.cos_sim(
         a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
     cost = paddle.layer.mse_cost(

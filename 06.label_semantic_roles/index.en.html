@@ -253,6 +253,7 @@ Here we fetch the dictionary, and print its size:
 ```python
 import math
 import numpy as np
+import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 
@@ -415,11 +416,11 @@ crf_cost = paddle.layer.crf(
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
-   name='crf_dec_l',
    size=label_dict_len,
    input=feature_out,
    label=target,
    param_attr=paddle.attr.Param(name='crfw'))
+evaluator.sum(input=crf_dec)
 ```
 
 ## Train model
@@ -429,7 +430,7 @@ crf_dec = paddle.layer.crf_decoding(
 All necessary parameters will be traced created given output layers that we need to use.
 
 ```python
-parameters = paddle.parameters.create([crf_cost, crf_dec])
+parameters = paddle.parameters.create(crf_cost)
 ```
 
 We can print out parameter name. It will be generated if not specified.
@@ -462,7 +463,8 @@ optimizer = paddle.optimizer.Momentum(
 
 trainer = paddle.trainer.SGD(cost=crf_cost,
                              parameters=parameters,
-                             update_equation=optimizer)
+                             update_equation=optimizer,
+                             extra_layers=crf_dec)
 ```
 
 ### Trainer
@@ -497,8 +499,19 @@ feeding = {
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
         if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f" % (
-                event.pass_id, event.batch_id, event.cost)
+            print "Pass %d, Batch %d, Cost %f, %s" % (
+                event.pass_id, event.batch_id, event.cost, event.metrics)
+        if event.batch_id % 1000 == 0:
+            result = trainer.test(reader=reader, feeding=feeding)
+            print "\nTest with Pass %d, Batch %d, %s" % (event.pass_id, event.batch_id, result.metrics)
+
+    if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)  
+
+        result = trainer.test(reader=reader, feeding=feeding)
+        print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 
 `trainer.train` will train the model.
@@ -509,6 +522,42 @@ trainer.train(
     event_handler=event_handler,
     num_passes=10000,
     feeding=feeding)
+```
+
+### Application
+
+Aftern training is done, we need to select an optimal model based one performance index to do inference. In this task, one can simply select the model with the least number of marks on the test set. The `paddle.layer.crf_decoding` layer is used in the inference, but its inputs does not include the ground truth label.
+
+```python
+predict = paddle.layer.crf_decoding(
+    size=label_dict_len,
+    input=feature_out,
+    param_attr=paddle.attr.Param(name='crfw'))
+```
+
+Here, using one testing sample as an example.
+
+```python
+test_creator = paddle.dataset.conll05.test()
+test_data = []
+for item in test_creator():
+    test_data.append(item[0:8])
+    if len(test_data) == 1:
+        break
+```
+
+The inference interface `paddle.infer` returns the index of predicting labels. Then printing the tagging results based dictionary `labels_reverse`.
+
+
+```python
+labs = paddle.infer(
+    output_layer=predict, parameters=parameters, input=test_data, field='id')
+assert len(labs) == len(test_data[0][0])
+labels_reverse={}
+for (k,v) in label_dict.items():
+    labels_reverse[v]=k
+pre_lab = [labels_reverse[i] for i in labs]
+print pre_lab
 ```
 
 ## Conclusion
