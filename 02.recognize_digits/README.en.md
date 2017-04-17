@@ -131,6 +131,7 @@ PaddlePaddle provides a Python module, `paddle.dataset.mnist`, which downloads a
 A PaddlePaddle program starts from importing the API package:
 
 ```python
+import gzip
 import paddle.v2 as paddle
 ```
 
@@ -249,6 +250,10 @@ def event_handler_plot(event):
             cost_ploter.plot()
         step += 1
     if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
         result = trainer.test(reader=paddle.batch(
             paddle.dataset.mnist.test(), batch_size=128))
         cost_ploter.append(test_title, step, result.cost)
@@ -265,6 +270,10 @@ def event_handler(event):
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
     if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
         result = trainer.test(reader=paddle.batch(
             paddle.dataset.mnist.test(), batch_size=128))
         print "Test with Pass %d, Cost %f, %s\n" % (
@@ -280,7 +289,7 @@ trainer.train(
             paddle.dataset.mnist.train(), buf_size=8192),
         batch_size=128),
     event_handler=event_handler_plot,
-    num_passes=100)
+    num_passes=5)
 ```
 
 During training, `trainer.train` invokes `event_handler` for certain events. This gives us a chance to print the training progress.
@@ -305,13 +314,37 @@ print 'The classification accuracy is %.2f%%' % (100 - float(best[2]) * 100)
 
 Usually, with MNIST data, the softmax regression model achieves an accuracy around 92.34%, the MLP 97.66%, and the convolution network around 99.20%. Convolution layers have been widely considered a great invention for image processing.
 
+## Application
+
+After training is done, user can use the trained model to classify images. The following code shows how to inference MNIST images through `paddle.infer` interface.
+
+```python
+from PIL import Image
+import numpy as np
+def load_image(file):
+    im = Image.open(file).convert('L')
+    im = im.resize((28, 28), Image.ANTIALIAS)
+    im = np.array(im).astype(np.float32).flatten()
+    im = im / 255.0
+    return im
+test_data = []
+test_data.append((load_image('image/infer_3.png'),))
+
+probs = paddle.infer(
+    output_layer=predict, parameters=parameters, input=test_data)
+lab = np.argsort(-probs) # probs and lab are the results of one batch data
+print "Label of image/infer_3.png is: %d" % lab[0][0]
+```
+
 
 ## Conclusion
+
 This tutorial describes a few common deep learning models using **Softmax regression**, **Multilayer Perceptron Network**, and **Convolutional Neural Network**. Understanding these models is crucial for future learning; the subsequent tutorials derive more sophisticated networks by building on top of them.
 
 When our model evolves from a simple softmax regression to a slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST data set achieves a large improvement in accuracy. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve the results of an old one.
 
 Moreover, this tutorial introduces the basic flow of PaddlePaddle model design, which starts with a *dataprovider*, a model layer construction, and finally training and prediction. Motivated readers can leverage the flow used in this MNIST handwritten digit classification example and experiment with different data and network architectures to train models for classification tasks of their choice.
+
 
 ## References
 

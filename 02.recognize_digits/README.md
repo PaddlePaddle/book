@@ -132,6 +132,7 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 首先，加载PaddlePaddle的V2 api包。
 
 ```python
+import gzip
 import paddle.v2 as paddle
 ```
 其次，定义三个不同的分类器：
@@ -254,6 +255,10 @@ def event_handler_plot(event):
             cost_ploter.plot()
         step += 1
     if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
         result = trainer.test(reader=paddle.batch(
             paddle.dataset.mnist.test(), batch_size=128))
         cost_ploter.append(test_title, step, result.cost)
@@ -269,6 +274,10 @@ def event_handler(event):
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
     if isinstance(event, paddle.event.EndPass):
+        # save parameters
+        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            parameters.to_tar(f)
+
         result = trainer.test(reader=paddle.batch(
             paddle.dataset.mnist.test(), batch_size=128))
         print "Test with Pass %d, Cost %f, %s\n" % (
@@ -284,7 +293,7 @@ trainer.train(
             paddle.dataset.mnist.train(), buf_size=8192),
         batch_size=128),
     event_handler=event_handler_plot,
-    num_passes=100)
+    num_passes=5)
 ```
 
 训练过程是完全自动的，event_handler里打印的日志类似如下所示：
@@ -299,6 +308,29 @@ trainer.train(
 ```
 
 训练之后，检查模型的预测准确度。用 MNIST 训练的时候，一般 softmax回归模型的分类准确率为约为 92.34%，多层感知器为97.66%，卷积神经网络可以达到 99.20%。
+
+
+## 应用模型
+
+可以使用训练好的模型对手写体数字图片进行分类，下面程序展示了如何使用paddle.infer接口进行推断。
+
+```python
+from PIL import Image
+import numpy as np
+def load_image(file):
+    im = Image.open(file).convert('L')
+    im = im.resize((28, 28), Image.ANTIALIAS)
+    im = np.array(im).astype(np.float32).flatten()
+    im = im / 255.0
+    return im
+test_data = []
+test_data.append((load_image('image/infer_3.png'),))
+
+probs = paddle.infer(
+    output_layer=predict, parameters=parameters, input=test_data)
+lab = np.argsort(-probs) # probs and lab are the results of one batch data
+print "Label of image/infer_3.png is: %d" % lab[0][0]
+```
 
 ## 总结
 
