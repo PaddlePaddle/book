@@ -26,9 +26,9 @@
 ```
 如果设定显示翻译结果的条数（即[柱搜索算法](#柱搜索算法)的宽度）为3，生成的英语句子如下：
 ```text
-0 -5.36816   these are signs of hope and relief . <e>
-1 -6.23177   these are the light of hope and relief . <e>
-2 -7.7914  these are the light of hope and the relief of hope . <e>
+0 -5.36816   These are signs of hope and relief . <e>
+1 -6.23177   These are the light of hope and relief . <e>
+2 -7.7914  These are the light of hope and the relief of hope . <e>
 ```
 - 左起第一列是生成句子的序号；左起第二列是该条句子的得分（从大到小），分值越高越好；左起第三列是生成的英语句子。
 - 另外有两个特殊标志：`<e>`表示句子的结尾，`<unk>`表示未登录词（unknown word），即未在训练字典中出现的词。
@@ -74,7 +74,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 编码阶段分为三步：
 
-1. one-hot vector表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词$x_i$表示成一个列向量$w_i\epsilon R^{\left | V \right |},i=1,2,...,T$。这个向量$w_i$的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
+1. one-hot vector表示：将源语言句子$x=\left \{ x_1,x_2,...,x_T \right \}$的每个词$x_i$表示成一个列向量$w_i\epsilon \left \{ 0,1 \right \}^{\left | V \right |},i=1,2,...,T$。这个向量$w_i$的维度与词汇表大小$\left | V \right |$ 相同，并且只有一个维度上有值1（该位置对应该词在词汇表中的位置），其余全是0。
 
 2. 映射到低维语义空间的词向量：one-hot vector表示存在两个问题，1）生成的向量维度往往很大，容易造成维数灾难；2）难以刻画词与词之间的关系（如语义相似性，也就是无法很好地表达语义）。因此，需再one-hot vector映射到低维的语义空间，由一个固定维度的稠密向量（称为词向量）表示。记映射矩阵为$C\epsilon R^{K\times \left | V \right |}$，用$s_i=Cw_i$表示第$i$个词的词向量，$K$为向量维度。
 
@@ -167,7 +167,7 @@ e_{ij}&=align(z_i,h_j)\\\\
 
 该数据集有193319条训练数据，6003条测试数据，词典长度为30000。因为数据规模限制，使用该数据集训练出来的模型效果无法保证。
 
-## 训练流程说明
+## 流程说明
 
 ### paddle初始化
 
@@ -178,48 +178,34 @@ import paddle.v2 as paddle
 
 # 配置只使用cpu，并且使用一个cpu进行训练
 paddle.init(use_gpu=False, trainer_count=1)
-```
-
-### 数据定义
-
-首先要定义词典大小，数据生成和网络配置都需要用到。然后获取wmt14的dataset reader。
-
-```python
-# source and target dict dim.
-dict_size = 30000
-
-feeding = {
-    'source_language_word': 0,
-    'target_language_word': 1,
-    'target_language_next_word': 2
-}
-wmt14_reader = paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.wmt14.train(dict_size=dict_size), buf_size=8192),
-    batch_size=5)
+# 训练模式False，生成模式True
+is_generating = False
 ```
 
 ### 模型结构
 1. 首先，定义了一些全局变量。
 
    ```python
+   dict_size = 30000 # 字典维度
    source_dict_dim = dict_size # 源语言字典维度
    target_dict_dim = dict_size # 目标语言字典维度
    word_vector_dim = 512 # 词向量维度
    encoder_size = 512 # 编码器中的GRU隐层大小
    decoder_size = 512 # 解码器中的GRU隐层大小
+   beam_size = 3 # 柱宽度
+   max_length = 250 # 生成句子的最大长度
   ```
 
-1. 其次，实现编码器框架。分为三步：
+2. 其次，实现编码器框架。分为三步：
 
-   1 输入是一个文字序列，被表示成整型的序列。序列中每个元素是文字在字典中的索引。所以，我们定义数据层的数据类型为`integer_value_sequence`（整型序列），序列中每个元素的范围是`[0, source_dict_dim)`。
+   - 输入是一个文字序列，被表示成整型的序列。序列中每个元素是文字在字典中的索引。所以，我们定义数据层的数据类型为`integer_value_sequence`（整型序列），序列中每个元素的范围是`[0, source_dict_dim)`。
 
    ```python
     src_word_id = paddle.layer.data(
         name='source_language_word',
         type=paddle.data_type.integer_value_sequence(source_dict_dim))
    ```
-   1. 将上述编码映射到低维语言空间的词向量$\mathbf{s}$。
+   - 将上述编码映射到低维语言空间的词向量$\mathbf{s}$。
 
    ```python
     src_embedding = paddle.layer.embedding(
@@ -227,7 +213,7 @@ wmt14_reader = paddle.batch(
         size=word_vector_dim,
         param_attr=paddle.attr.ParamAttr(name='_source_language_embedding'))
    ```
-   1. 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
+   - 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
 
    ```python
     src_forward = paddle.networks.simple_gru(
@@ -237,9 +223,9 @@ wmt14_reader = paddle.batch(
     encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
    ```
 
-1. 接着，定义基于注意力机制的解码器框架。分为三步：
+3. 接着，定义基于注意力机制的解码器框架。分为三步：
 
-   1. 对源语言序列编码后的结果（见2.3），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
+   - 对源语言序列编码后的结果（见2的最后一步），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
 
    ```python
     with paddle.layer.mixed(size=decoder_size) as encoded_proj:
@@ -247,7 +233,7 @@ wmt14_reader = paddle.batch(
             input=encoded_vector)
    ```
 
-   1. 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
+   - 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
 
    ```python
     backward_first = paddle.layer.first_seq(input=src_backward)
@@ -257,7 +243,7 @@ wmt14_reader = paddle.batch(
             input=backward_first)
    ```
 
-   1. 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
+   - 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
       - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot。
       - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
       - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
@@ -294,7 +280,7 @@ wmt14_reader = paddle.batch(
         return out
     ```
 
-1. 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
+4. 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
 
     ```python
     decoder_group_name = "decoder_group"
@@ -303,137 +289,214 @@ wmt14_reader = paddle.batch(
     group_inputs = [group_input1, group_input2]
     ```
 
-1. 训练模式下的解码器调用：
+5. 训练模式下的解码器调用：
 
    - 首先，将目标语言序列的词向量trg_embedding，直接作为训练模式下的current_word传给`gru_decoder_with_attention`函数。
    - 其次，使用`recurrent_group`函数循环调用`gru_decoder_with_attention`函数。
    - 接着，使用目标语言的下一个词序列作为标签层lbl，即预测目标词。
    - 最后，用多类交叉熵损失函数`classification_cost`来计算损失值。
 
-    ```python
-    trg_embedding = paddle.layer.embedding(
-        input=paddle.layer.data(
-            name='target_language_word',
-            type=paddle.data_type.integer_value_sequence(target_dict_dim)),
-        size=word_vector_dim,
-        param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
-    group_inputs.append(trg_embedding)
+   ```python
+   if not is_generating:
+       trg_embedding = paddle.layer.embedding(
+           input=paddle.layer.data(
+               name='target_language_word',  
+               type=paddle.data_type.integer_value_sequence(target_dict_dim)),
+           size=word_vector_dim,
+           param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
+       group_inputs.append(trg_embedding)
 
-    # For decoder equipped with attention mechanism, in training,
-    # target embeding (the groudtruth) is the data input,
-    # while encoded source sequence is accessed to as an unbounded memory.
-    # Here, the StaticInput defines a read-only memory
-    # for the recurrent_group.
-    decoder = paddle.layer.recurrent_group(
-        name=decoder_group_name,
-        step=gru_decoder_with_attention,
-        input=group_inputs)
+       # For decoder equipped with attention mechanism, in training,
+       # target embeding (the groudtruth) is the data input,
+       # while encoded source sequence is accessed to as an unbounded memory.
+       # Here, the StaticInput defines a read-only memory
+       # for the recurrent_group.
+       decoder = paddle.layer.recurrent_group(
+           name=decoder_group_name,
+           step=gru_decoder_with_attention,
+           input=group_inputs)
 
-    lbl = paddle.layer.data(
-        name='target_language_next_word',
-        type=paddle.data_type.integer_value_sequence(target_dict_dim))
-    cost = paddle.layer.classification_cost(input=decoder, label=lbl)
+       lbl = paddle.layer.data(
+           name='target_language_next_word',
+           type=paddle.data_type.integer_value_sequence(target_dict_dim))
+       cost = paddle.layer.classification_cost(input=decoder, label=lbl)
     ```
+
+6. 生成模式下的解码器调用：
+
+   - 首先，在序列生成任务中，由于解码阶段的RNN总是引用上一时刻生成出的词的词向量，作为当前时刻的输入，因此，使用`GeneratedInput`来自动完成这一过程。具体说明可见[GeneratedInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
+   - 其次，使用`beam_search`函数循环调用`gru_decoder_with_attention`函数，生成出序列id。
+
+   ```python
+   if is_generating:
+       # In generation, the decoder predicts a next target word based on
+       # the encoded source sequence and the last generated target word.
+
+       # The encoded source sequence (encoder's output) must be specified by
+       # StaticInput, which is a read-only memory.
+       # Embedding of the last generated word is automatically gotten by
+       # GeneratedInputs, which is initialized by a start mark, such as <s>,
+       # and must be included in generation.
+
+       trg_embedding = paddle.layer.GeneratedInputV2(
+           size=target_dict_dim,
+           embedding_name='_target_language_embedding',
+           embedding_size=word_vector_dim)
+       group_inputs.append(trg_embedding)
+
+       beam_gen = paddle.layer.beam_search(
+           name=decoder_group_name,
+           step=gru_decoder_with_attention,
+           input=group_inputs,
+           bos_id=0,
+           eos_id=1,
+           beam_size=beam_size,
+           max_length=max_length)
+   ```
 
 注意：我们提供的配置在Bahdanau的论文\[[4](#参考文献)\]上做了一些简化，可参考[issue #1133](https://github.com/PaddlePaddle/Paddle/issues/1133)。
 
-### 参数定义
-
-首先依据模型配置的`cost`定义模型参数。
-
-```python
-parameters = paddle.parameters.create(cost)
-```
-
-可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
-
-```python
-for param in parameters.keys():
-    print param
-```
-
 ### 训练模型
 
-1. 构造trainer
+1. 参数定义
+
+    依据模型配置的`cost`定义模型参数。可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
+
+    ```python
+    if not is_generating:
+        parameters = paddle.parameters.create(cost)
+        for param in parameters.keys():
+            print param
+    ```
+
+2. 数据定义
+
+    获取wmt14的dataset reader。
+
+    ```python
+    if not is_generating:
+        wmt14_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.wmt14.train(dict_size=dict_size), buf_size=8192),
+            batch_size=5)
+    ```
+
+3. 构造trainer
 
     根据优化目标cost,网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法。
 
     ```python
-    optimizer = paddle.optimizer.Adam(
-        learning_rate=5e-5,
-        regularization=paddle.optimizer.L2Regularization(rate=8e-4))
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+    if not is_generating:
+        optimizer = paddle.optimizer.Adam(
+            learning_rate=5e-5,
+            regularization=paddle.optimizer.L2Regularization(rate=8e-4))
+        trainer = paddle.trainer.SGD(cost=cost,
+                                     parameters=parameters,
+                                     update_equation=optimizer)
     ```
 
-1. 构造event_handler
+4. 构造event_handler
 
-    可以通过自定义回调函数来评估训练过程中的各种状态，比如错误率等。下面的代码通过event.batch_id % 10 == 0 指定没10个batch打印一次日志，包含cost等信息。
+    可以通过自定义回调函数来评估训练过程中的各种状态，比如错误率等。下面的代码通过event.batch_id % 2 == 0 指定每2个batch打印一次日志，包含cost等信息。
 
     ```python
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 10 == 0:
-                print "\nPass %d, Batch %d, Cost %f, %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics)
+    if not is_generating:
+        def event_handler(event):
+            if isinstance(event, paddle.event.EndIteration):
+                if event.batch_id % 2 == 0:
+                    print "\nPass %d, Batch %d, Cost %f, %s" % (
+                        event.pass_id, event.batch_id, event.cost, event.metrics)
+    ```
+
+5. 启动训练
+
+    ```python
+    if not is_generating:
+        trainer.train(
+                reader=wmt14_reader, event_handler=event_handler, num_passes=2)
+    ```
+
+    训练开始后，可以观察到event_handler输出的日志如下：
+
+    Pass 0, Batch 0, Cost 148.444983, {'classification_error_evaluator': 1.0}
+    .........
+    Pass 0, Batch 10, Cost 335.896802, {'classification_error_evaluator': 0.9325153231620789}
+    .........
+
+
+### 生成模型
+
+1. 加载预训练的模型
+
+    由于NMT模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了一个模型供大家直接下载使用。该模型大小为205MB，[BLEU评估](#BLEU评估)值为26.92。
+
+    ```python
+    if is_generating:
+        parameters = paddle.dataset.wmt14.model()
+    ```
+2. 数据定义
+
+    从wmt14的生成集中读取前3个样本作为源语言句子。
+
+    ```python
+    if is_generating:
+        gen_creator = paddle.dataset.wmt14.gen(dict_size)
+        gen_data = []
+        gen_num = 3
+        for item in gen_creator():
+            gen_data.append((item[0], ))
+            if len(gen_data) == gen_num:
+                break
+    ```
+3. 构造infer
+
+    根据网络拓扑结构和模型参数构造出infer用来生成，在预测时还需要指定输出域`field`，这里使用生成句子的概率`prob`和句子中每个词的`id`。
+
+    ```python
+    if is_generating:
+        beam_result = paddle.infer(
+            output_layer=beam_gen,
+            parameters=parameters,
+            input=gen_data,
+            field=['prob', 'id'])
+    ```
+
+4. 打印生成结果
+
+    根据源/目标语言字典，将源语言句子和`beam_size`个生成句子打印输出。
+
+    ```python
+    if is_generating:
+        # get the dictionary
+        src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
+
+        # the delimited element of generated sequences is -1,
+        # the first element of each generated sequence is the sequence length
+        seq_list = []
+        seq = []
+        for w in beam_result[1]:
+            if w != -1:
+                seq.append(w)
             else:
-                sys.stdout.write('.')
-                sys.stdout.flush()
+                seq_list.append(' '.join([trg_dict.get(w) for w in seq[1:]]))
+                seq = []
+
+        prob = beam_result[0]
+        for i in xrange(gen_num):
+            print "\n*******************************************************\n"
+            print "src:", ' '.join(
+                [src_dict.get(w) for w in gen_data[i][0]]), "\n"
+            for j in xrange(beam_size):
+                print "prob = %f:" % (prob[i][j]), seq_list[i * beam_size + j]
     ```
 
-1. 启动训练：
+    生成开始后，可以观察到输出的日志如下：
 
-    ```python
-    trainer.train(
-        reader=wmt14_reader,
-        event_handler=event_handler,
-        num_passes=2,
-        feeding=feeding)
-    ```
+    src: <s> Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu <e>
 
-训练开始后，可以观察到event_handler输出的日志如下：
-
-```text
-Pass 0, Batch 0, Cost 148.444983, {'classification_error_evaluator': 1.0}
-.........
-Pass 0, Batch 10, Cost 335.896802, {'classification_error_evaluator': 0.9325153231620789}
-.........
-```
-
-    当`classification_error_evaluator`的值低于0.35的时候，表示训练成功。
-
-## 应用模型
-
-### 下载预训练的模型
-
-由于NMT模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了16个pass，其中每个pass耗时7个小时。因此，我们提供了一个预先训练好的模型（pass-00012）供大家直接下载使用。该模型大小为205MB，在所有16个模型中有最高的[BLEU评估](#BLEU评估)值26.92。下载并解压模型的命令如下：
-
-```bash
-cd pretrained
-./wmt14_model.sh
-```
-
-### BLEU评估
-
-BLEU(Bilingual Evaluation understudy)是一种广泛使用的机器翻译自动评测指标，由IBM的watson研究中心于2002年提出\[[5](#参考文献)\]，基本出发点是：机器译文越接近专业翻译人员的翻译结果，翻译系统的性能越好。其中，机器译文与人工参考译文之间的接近程度，采用句子精确度（precision）的计算方法，即比较两者的n元词组相匹配的个数，匹配的个数越多，BLEU得分越好。
-
-[Moses](http://www.statmt.org/moses/) 是一个统计学的开源机器翻译系统，我们使用其中的 [multi-bleu.perl](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/generic/multi-bleu.perl) 来做BLEU评估。下载脚本的命令如下：
-```bash
-./moses_bleu.sh
-```
-BLEU评估可以使用`eval_bleu`脚本如下，其中FILE为需要评估的文件名，BEAMSIZE为柱宽度，默认使用`data/wmt14/gen/ntst14.trg`作为标准的翻译结果。
-```bash
-./eval_bleu.sh FILE BEAMSIZE
-```
-本教程的具体命令如下：
-```bash
-./eval_bleu.sh gen_result 3
-```
-您会在屏幕上看到：
-```text
-BLEU = 26.92
-```
+    prob = -19.019573: The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
+    prob = -19.113066: The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
+    prob = -19.512890: The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
 
 ## 总结
 
