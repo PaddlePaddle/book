@@ -3,7 +3,7 @@ import cPickle
 import copy
 
 
-def get_usr_combined_features():    
+def get_usr_combined_features():
     uid = paddle.layer.data(
         name='user_id',
         type=paddle.data_type.integer_value(
@@ -36,6 +36,7 @@ def get_usr_combined_features():
         act=paddle.activation.Tanh())
     return usr_combined_features
 
+
 def get_mov_combined_features():
     movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
     mov_id = paddle.layer.data(
@@ -63,7 +64,7 @@ def get_mov_combined_features():
         size=200,
         act=paddle.activation.Tanh())
     return mov_combined_features
-    
+
 
 def main():
     paddle.init(use_gpu=False)
