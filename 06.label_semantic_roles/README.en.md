@@ -415,7 +415,7 @@ We will create trainer given model topology, parameters, and optimization method
 ```python
 optimizer = paddle.optimizer.Momentum(
     momentum=0,
-    learning_rate=2e-2,
+    learning_rate=1e-3,
     regularization=paddle.optimizer.L2Regularization(rate=8e-4),
     model_average=paddle.optimizer.ModelAverage(
         average_window=0.5, max_average_window=10000), )
@@ -433,7 +433,7 @@ As mentioned in data preparation section, we will use CoNLL 2005 test corpus as 
 ```python
 reader = paddle.batch(
     paddle.reader.shuffle(
-        conll05.test(), buf_size=8192), batch_size=20)
+        conll05.test(), buf_size=8192), batch_size=2)
 ```
 
 `feeding` is used to specify the correspondence between data instance and data layer. For example, according to following `feeding`, the 0th column of data instance produced by`conll05.test()` is matched to the data layer named `word_data`.
@@ -457,17 +457,17 @@ feeding = {
 ```python
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
+        if event.batch_id and event.batch_id % 10 == 0:
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
-        if event.batch_id % 1000 == 0:
+        if event.batch_id % 400 == 0:
             result = trainer.test(reader=reader, feeding=feeding)
             print "\nTest with Pass %d, Batch %d, %s" % (event.pass_id, event.batch_id, result.metrics)
 
     if isinstance(event, paddle.event.EndPass):
         # save parameters
         with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
-            parameters.to_tar(f)  
+            parameters.to_tar(f)
 
         result = trainer.test(reader=reader, feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
