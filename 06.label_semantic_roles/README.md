@@ -192,6 +192,7 @@ import numpy as np
 import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
+import paddle.v2.evaluator as evaluator
 
 paddle.init(use_gpu=False, trainer_count=1)
 
@@ -274,12 +275,12 @@ emb_layers.append(mark_embedding)
 
 ```python  
 hidden_0 = paddle.layer.mixed(
-size=hidden_dim,
-bias_attr=std_default,
-input=[
-    paddle.layer.full_matrix_projection(
-        input=emb, param_attr=std_default) for emb in emb_layers
-])
+    size=hidden_dim,
+    bias_attr=std_default,
+    input=[
+        paddle.layer.full_matrix_projection(
+            input=emb, param_attr=std_default) for emb in emb_layers
+    ])
 
 mix_hidden_lr = 1e-3
 lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
@@ -328,14 +329,14 @@ for i in range(1, depth):
 # 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
 
 feature_out = paddle.layer.mixed(
-size=label_dict_len,
-bias_attr=std_default,
-input=[
-    paddle.layer.full_matrix_projection(
-        input=input_tmp[0], param_attr=hidden_para_attr),
-    paddle.layer.full_matrix_projection(
-        input=input_tmp[1], param_attr=lstm_para_attr)
-], )
+    size=label_dict_len,
+    bias_attr=std_default,
+    input=[
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[0], param_attr=hidden_para_attr),
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[1], param_attr=lstm_para_attr)
+    ], )
 
 # 学习 CRF 的转移特征
 crf_cost = paddle.layer.crf(
@@ -348,7 +349,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- CRF解码和CRF层参数名字相同，即：加载了paddle.layer.crf层学习到的参数。在训练阶段，为 paddle.layer.crf_decoding 输入了正确的标记序列(target)，这一层会输出是否正确标记，evaluator.sum 用来计算序列上的标记错误率，可以用来评估模型。解码阶段，没有输入正确的数据标签，该层通过寻找概率最高的标记序列，解码出标记结果。
+- CRF解码和CRF层参数名字相同，即：加载了`paddle.layer.crf`层学习到的参数。在训练阶段，为`paddle.layer.crf_decoding` 输入了正确的标记序列(target)，这一层会输出是否正确标记，`evaluator.sum` 用来计算序列上的标记错误率，可以用来评估模型。解码阶段，没有输入正确的数据标签，该层通过寻找概率最高的标记序列，解码出标记结果。
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
