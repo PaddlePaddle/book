@@ -34,7 +34,7 @@ RUN ${update_mirror_cmd}
     apt-get -y install gcc && \
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
-    pip install -U matplotlib jupyter numpy requests scipy
+    pip install -U pillow matplotlib jupyter numpy requests scipy
 
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
