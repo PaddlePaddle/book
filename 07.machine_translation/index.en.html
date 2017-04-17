@@ -83,9 +83,9 @@ Let's consider an example of Chinese-to-English translation. The model is given 
 ```
 After training and with a beam-search size of 3, the generated translations are as follows:
 ```text
-0 -5.36816   these are signs of hope and relief . <e>
-1 -6.23177   these are the light of hope and relief . <e>
-2 -7.7914  these are the light of hope and the relief of hope . <e>
+0 -5.36816   These are signs of hope and relief . <e>
+1 -6.23177   These are the light of hope and relief . <e>
+2 -7.7914  These are the light of hope and the relief of hope . <e>
 ```
 - The first column corresponds to the id of the generated sentence; the second column corresponds to the score of the generated sentence (in descending order), where a larger value indicates better quality; the last column corresponds to the generated sentence.
 - There are two special tokens: `<e>` denotes the end of a sentence while `<unk>` denotes unknown word, i.e., a word not in the training dictionary.
@@ -136,7 +136,7 @@ Figure 4. Encoder-Decoder Framework
 
 There are three steps for encoding a sentence:
 
-1. One-hot vector representation of a word: Each word $x_i$ in the source sentence $x=\left \{ x_1,x_2,...,x_T \right \}$ is represented as a vector $w_i\epsilon R^{\left | V \right |},i=1,2,...,T$   where $w_i$ has the same dimensionality as the size of the dictionary, i.e., $\left | V \right |$, and has an element of one at the location corresponding to the location of the word in the dictionary and zero elsewhere.
+1. One-hot vector representation of a word: Each word $x_i$ in the source sentence $x=\left \{ x_1,x_2,...,x_T \right \}$ is represented as a vector $w_i\epsilon \left \{ 0,1 \right \}^{\left | V \right |},i=1,2,...,T$   where $w_i$ has the same dimensionality as the size of the dictionary, i.e., $\left | V \right |$, and has an element of one at the location corresponding to the location of the word in the dictionary and zero elsewhere.
 
 2. Word embedding as a representation in the low-dimensional semantic space: There are two problems with one-hot vector representation
 
