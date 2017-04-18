@@ -344,7 +344,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
 
 ### 训练
 
-可以通过`paddle.trainer.SGD`构造一个sgd trainer，并调用`trainer.train`来训练模型。
+可以通过`paddle.trainer.SGD`构造一个sgd trainer，并调用`trainer.train`来训练模型。另外，通过给train函数传递一个`event_handler`来获取每个batch和每个pass结束的状态。
 ```python
     # End batch and end pass event handler
     def event_handler(event):
@@ -359,7 +359,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
             result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
-可以通过给train函数传递一个`event_handler`来获取每个batch和每个pass结束的状态。比如构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；在每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
+比如，构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；在每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
 ```python
     from paddle.v2.plot import Ploter
 
@@ -373,6 +373,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
             cost_ploter.plot()
             step += 1
 ```
+或者构造一个`event_handler_plot`画出cost曲线。
 ```python
     # create trainer
     trainer = paddle.trainer.SGD(cost=cost,
