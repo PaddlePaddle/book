@@ -364,8 +364,7 @@ momentum_optimizer = paddle.optimizer.Momentum(
     learning_rate=0.1 / 128.0,
     learning_rate_decay_a=0.1,
     learning_rate_decay_b=50000 * 100,
-    learning_rate_schedule='discexp',
-    batch_size=128)
+    learning_rate_schedule='discexp')
 
 # Create trainer
 trainer = paddle.trainer.SGD(cost=cost,
@@ -483,7 +482,7 @@ Figure 12. The error rate of VGG model on CIFAR10
 
 ## Application
 
-After training is done, users can use the trained model to classify images. The following code shows how to infer through `paddle.infer` interface.
+After training is done, users can use the trained model to classify images. The following code shows how to infer through `paddle.infer` interface. You can remove the comments to change the model name.
 
 ```python
 from PIL import Image
@@ -491,11 +490,18 @@ import numpy as np
 def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
-    im = np.array(im).astype(np.float32).flatten()
+    im = np.array(im).astype(np.float32)
+    im = im.transpose((2, 0, 1)) # CHW
+    im = im[(2, 1, 0),:,:] # BGR
+    im = im.flatten()
     im = im / 255.0
     return im
 test_data = []
 test_data.append((load_image('image/dog.png'),))
+
+# users can remove the comments and change the model name
+# with gzip.open('params_pass_50.tar.gz', 'r') as f:
+#    parameters = paddle.parameters.Parameters.from_tar(f)
 
 probs = paddle.infer(
     output_layer=out, parameters=parameters, input=test_data)

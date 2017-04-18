@@ -356,8 +356,7 @@ momentum_optimizer = paddle.optimizer.Momentum(
     learning_rate=0.1 / 128.0,
     learning_rate_decay_a=0.1,
     learning_rate_decay_b=50000 * 100,
-    learning_rate_schedule='discexp',
-    batch_size=128)
+    learning_rate_schedule='discexp')
 
 # Create trainer
 trainer = paddle.trainer.SGD(cost=cost,
@@ -475,7 +474,7 @@ Test with Pass 0, {'classification_error_evaluator': 0.885200023651123}
 
 ## 应用模型
 
-可以使用训练好的模型对图片进行分类，下面程序展示了如何使用`paddle.infer`接口进行推断。
+可以使用训练好的模型对图片进行分类，下面程序展示了如何使用`paddle.infer`接口进行推断，可以打开注释，更改加载的模型。
 
 ```python
 from PIL import Image
@@ -483,11 +482,18 @@ import numpy as np
 def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
-    im = np.array(im).astype(np.float32).flatten()
+    im = np.array(im).astype(np.float32)
+    im = im.transpose((2, 0, 1)) # CHW
+    im = im[(2, 1, 0),:,:] # BGR
+    im = im.flatten()
     im = im / 255.0
     return im
+
 test_data = []
 test_data.append((load_image('image/dog.png'),))
+
+# with gzip.open('params_pass_50.tar.gz', 'r') as f:
+#    parameters = paddle.parameters.Parameters.from_tar(f)
 
 probs = paddle.infer(
     output_layer=out, parameters=parameters, input=test_data)
