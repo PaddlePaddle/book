@@ -141,7 +141,8 @@ import paddle.v2 as paddle
 def convolution_net(input_dim,
                     class_dim=2,
                     emb_dim=128,
-                    hid_dim=128):
+                    hid_dim=128,
+                    is_predict=False):
     data = paddle.layer.data("word",
                              paddle.data_type.integer_value_sequence(input_dim))
     emb = paddle.layer.embedding(input=data, size=emb_dim)
@@ -152,9 +153,12 @@ def convolution_net(input_dim,
     output = paddle.layer.fc(input=[conv_3, conv_4],
                              size=class_dim,
                              act=paddle.activation.Softmax())
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost
+    if not is_predict:
+        lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
+        cost = paddle.layer.classification_cost(input=output, label=lbl)
+        return cost
+    else:
+        return output
 ```
 网络的输入`input_dim`表示的是词典的大小，`class_dim`表示类别数。这里，我们使用[`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API实现了卷积和池化操作。
 
@@ -165,7 +169,8 @@ def stacked_lstm_net(input_dim,
                      class_dim=2,
                      emb_dim=128,
                      hid_dim=512,
-                     stacked_num=3):
+                     stacked_num=3,
+                     is_predict=False):
     """
     A Wrapper for sentiment classification task.
     This network uses bi-directional recurrent network,
@@ -223,9 +228,12 @@ def stacked_lstm_net(input_dim,
                              bias_attr=bias_attr,
                              param_attr=para_attr)
 
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost
+    if not is_predict:
+        lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
+        cost = paddle.layer.classification_cost(input=output, label=lbl)
+        return cost
+    else:
+        return output
 ```
 网络的输入`stacked_num`表示的是LSTM的层数，需要是奇数，确保最高层LSTM正向。Paddle里面是通过一个fc和一个lstmemory来实现基于LSTM的循环神经网络。
 
@@ -342,6 +350,38 @@ Pass 0, Batch 0, Cost 0.693721, {'classification_error_evaluator': 0.5546875}
 Pass 0, Batch 100, Cost 0.294321, {'classification_error_evaluator': 0.1015625}
 ...............................................................................................
 Test with Pass 0, {'classification_error_evaluator': 0.11432000249624252}
+```
+
+## 应用模型
+
+可以使用训练好的模型对电影评论进行分类，下面程序展示了如何使用`paddle.infer`接口进行推断。
+```python
+    import numpy as np
+
+    # Movie Reviews, from imdb test
+    reviews = [
+        'Read the book, forget the movie!',
+        'What a script, what a story, what a mess!',
+        'This is a great movie.',
+        'This is a good film. This is very funny.'
+    ]
+    reviews = [c.split() for c in reviews]
+
+    UNK = word_dict['<unk>']
+    input = []
+    for c in reviews:
+        input.append([[word_dict.get(words, UNK) for words in c]])
+
+    # 0 stands for positive sample, 1 stands for negative sample
+    label = {0:'pos', 1:'neg'}
+    # Use the network used by trainer
+    out = convolution_net(dict_dim, class_dim=class_dim, is_predict=True)
+    # out = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3, is_predict=True)
+    probs = paddle.infer(output_layer=out, parameters=parameters, input=input)
+
+    labs = np.argsort(-probs)
+    for idx, lab in enumerate(labs):
+        print idx, "predicting probability is", probs[idx], "label is", label[lab[0]]
 ```
 
 ## 总结
