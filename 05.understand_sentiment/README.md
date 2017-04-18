@@ -361,9 +361,7 @@ Test with Pass 0, {'classification_error_evaluator': 0.11432000249624252}
     # Movie Reviews, from imdb test
     reviews = [
         'Read the book, forget the movie!',
-        'What a script, what a story, what a mess!',
         'This is a great movie.',
-        'This is a good film. This is very funny.'
     ]
     reviews = [c.split() for c in reviews]
 
