@@ -192,6 +192,7 @@ import numpy as np
 import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
+import paddle.v2.evaluator as evaluator
 
 paddle.init(use_gpu=False, trainer_count=1)
 
@@ -274,12 +275,12 @@ emb_layers.append(mark_embedding)
 
 ```python  
 hidden_0 = paddle.layer.mixed(
-size=hidden_dim,
-bias_attr=std_default,
-input=[
-    paddle.layer.full_matrix_projection(
-        input=emb, param_attr=std_default) for emb in emb_layers
-])
+    size=hidden_dim,
+    bias_attr=std_default,
+    input=[
+        paddle.layer.full_matrix_projection(
+            input=emb, param_attr=std_default) for emb in emb_layers
+    ])
 
 mix_hidden_lr = 1e-3
 lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
@@ -328,14 +329,14 @@ for i in range(1, depth):
 # 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
 
 feature_out = paddle.layer.mixed(
-size=label_dict_len,
-bias_attr=std_default,
-input=[
-    paddle.layer.full_matrix_projection(
-        input=input_tmp[0], param_attr=hidden_para_attr),
-    paddle.layer.full_matrix_projection(
-        input=input_tmp[1], param_attr=lstm_para_attr)
-], )
+    size=label_dict_len,
+    bias_attr=std_default,
+    input=[
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[0], param_attr=hidden_para_attr),
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[1], param_attr=lstm_para_attr)
+    ], )
 
 # 学习 CRF 的转移特征
 crf_cost = paddle.layer.crf(
@@ -348,7 +349,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- CRF解码和CRF层参数名字相同，即：加载了paddle.layer.crf层学习到的参数。在训练阶段，为 paddle.layer.crf_decoding 输入了正确的标记序列(target)，这一层会输出是否正确标记，evaluator.sum 用来计算序列上的标记错误率，可以用来评估模型。解码阶段，没有输入正确的数据标签，该层通过寻找概率最高的标记序列，解码出标记结果。
+- CRF解码和CRF层参数名字相同，即：加载了`paddle.layer.crf`层学习到的参数。在训练阶段，为`paddle.layer.crf_decoding` 输入了正确的标记序列(target)，这一层会输出是否正确标记，`evaluator.sum` 用来计算序列上的标记错误率，可以用来评估模型。解码阶段，没有输入正确的数据标签，该层通过寻找概率最高的标记序列，解码出标记结果。
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
@@ -395,7 +396,7 @@ parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 # create optimizer
 optimizer = paddle.optimizer.Momentum(
     momentum=0,
-    learning_rate=2e-2,
+    learning_rate=1e-3,
     regularization=paddle.optimizer.L2Regularization(rate=8e-4),
     model_average=paddle.optimizer.ModelAverage(
         average_window=0.5, max_average_window=10000), )
@@ -413,7 +414,7 @@ trainer = paddle.trainer.SGD(cost=crf_cost,
 ```python
 reader = paddle.batch(
     paddle.reader.shuffle(
-        conll05.test(), buf_size=8192), batch_size=20)
+        conll05.test(), buf_size=8192), batch_size=2)
 ```
 
 通过`feeding`来指定每一个数据和data_layer的对应关系。 例如 下面`feeding`表示: `conll05.test()`产生数据的第0列对应`word_data`层的特征。
@@ -438,17 +439,17 @@ feeding = {
 ```python
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
+        if event.batch_id and event.batch_id % 10 == 0:
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
-        if event.batch_id % 1000 == 0:
+        if event.batch_id % 400 == 0:
             result = trainer.test(reader=reader, feeding=feeding)
             print "\nTest with Pass %d, Batch %d, %s" % (event.pass_id, event.batch_id, result.metrics)
 
     if isinstance(event, paddle.event.EndPass):
         # save parameters
         with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
-            parameters.to_tar(f)  
+            parameters.to_tar(f)
 
         result = trainer.test(reader=reader, feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
@@ -460,7 +461,7 @@ def event_handler(event):
 trainer.train(
     reader=reader,
     event_handler=event_handler,
-    num_passes=10000,
+    num_passes=1,
     feeding=feeding)
 ```
 
