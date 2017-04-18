@@ -311,6 +311,19 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
 ```
 可以通过给train函数传递一个`event_handler`来获取每个batch和每个pass结束的状态。比如构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；在每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
 ```python
+    from paddle.v2.plot import Ploter
+
+    train_title = "Train cost"
+    cost_ploter = Ploter(train_title)
+    step = 0
+    def event_handler_plot(event):
+        global step
+        if isinstance(event, paddle.event.EndIteration):
+            cost_ploter.append(train_title, step, event.cost)
+            cost_ploter.plot()
+            step += 1
+```
+```python
     # create trainer
     trainer = paddle.trainer.SGD(cost=cost,
                                  parameters=parameters,
