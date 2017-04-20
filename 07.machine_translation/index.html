@@ -458,13 +458,13 @@ is_generating = False
                 reader=wmt14_reader, event_handler=event_handler, num_passes=2)
     ```
 
-    训练开始后，可以观察到event_handler输出的日志如下：
-
-    Pass 0, Batch 0, Cost 148.444983, {'classification_error_evaluator': 1.0}
-    .........
-    Pass 0, Batch 10, Cost 335.896802, {'classification_error_evaluator': 0.9325153231620789}
-    .........
-
+ 训练开始后，可以观察到event_handler输出的日志如下：
+ ```text
+ Pass 0, Batch 0, Cost 148.444983, {'classification_error_evaluator': 1.0}
+ .........
+ Pass 0, Batch 10, Cost 335.896802, {'classification_error_evaluator': 0.9325153231620789}
+ .........
+ ```
 
 ### 生成模型
 
@@ -532,13 +532,14 @@ is_generating = False
                 print "prob = %f:" % (prob[i][j]), seq_list[i * beam_size + j]
     ```
 
-    生成开始后，可以观察到输出的日志如下：
+  生成开始后，可以观察到输出的日志如下：
+  ```text
+  src: <s> Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu <e>
 
-    src: <s> Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu <e>
-
-    prob = -19.019573: The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
-    prob = -19.113066: The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
-    prob = -19.512890: The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
+  prob = -19.019573: The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
+  prob = -19.113066: The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
+  prob = -19.512890: The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
+  ```
 
 ## 总结
 
