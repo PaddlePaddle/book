@@ -49,7 +49,16 @@ FROM ${paddle_image}:${paddle_tag}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
 COPY . /book
+EOF
 
+if [ -n ${http_proxy} ]; then
+cat >> Dockerfile <<EOF
+ENV http_proxy ${http_proxy}
+ENV https_proxy ${http_proxy}
+EOF
+fi
+
+cat >> Dockerfile <<EOF
 RUN pip install -U nltk \
     && python /book/.tools/cache_dataset.py
 
