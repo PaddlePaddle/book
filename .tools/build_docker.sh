@@ -50,8 +50,7 @@ MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
 COPY . /book
 
-RUN pip install -U nltk \
-    && python /book/.tools/cache_dataset.py
+RUN python -c "import paddle.v2.dataset.common as common; common.fetch_all()"
 
 RUN ${update_mirror_cmd}
     apt-get update && \
