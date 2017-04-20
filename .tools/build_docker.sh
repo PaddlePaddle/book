@@ -5,8 +5,33 @@ cd $cur_path/../
 #convert md to ipynb
 .tools/convert-markdown-into-ipynb-and-test.sh
 
-paddle_tag=0.10.0rc2
-book_tag=latest
+#paddle production image name
+if [ ! -n "$1" ]; then
+  paddle_image=paddlepaddle/paddle
+else
+  paddle_image=$1
+fi
+
+#paddle production image tag
+if [ ! -n "$2" ]; then
+  paddle_tag=0.10.0rc2
+else
+  paddle_tag=$2
+fi
+
+#paddle book image name
+if [ ! -n "$3" ]; then
+  book_image=paddlepaddle/book
+else
+  book_image=$3
+fi
+
+#paddle book image tag
+if [ ! -n "$4" ]; then
+  book_tag=latest
+else
+  book_tag=$4
+fi
 
 #generate docker file
 if [ ${USE_UBUNTU_REPO_MIRROR} ]; then
@@ -20,7 +45,7 @@ echo "paddle_tag:"$paddle_tag
 echo "book_tag:"$book_tag
 
 cat > Dockerfile <<EOF
-FROM paddlepaddle/paddle:${paddle_tag}
+FROM ${paddle_image}:${paddle_tag}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
 COPY . /book
@@ -40,4 +65,4 @@ EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
 EOF
 
-docker build --no-cache  -t paddlepaddle/book:${paddle_tag}  -t paddlepaddle/book:${book_tag} .
+docker build --no-cache  -t ${book_image}:${paddle_tag}  -t ${book_image}:${book_tag} .
