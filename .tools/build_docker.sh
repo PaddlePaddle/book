@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 cur_path="$(cd "$(dirname "$0")" && pwd -P)"
 cd $cur_path/../
 
