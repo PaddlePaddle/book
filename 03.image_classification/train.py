@@ -94,6 +94,7 @@ def main():
     # inference
     from PIL import Image
     import numpy as np
+    import os
 
     def load_image(file):
         im = Image.open(file)
@@ -103,7 +104,8 @@ def main():
         return im
 
     test_data = []
-    test_data.append((load_image('image/dog.png'), ))
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    test_data.append((load_image(cur_dir + '/image/dog.png'), ))
 
     probs = paddle.infer(
         output_layer=out, parameters=parameters, input=test_data)

@@ -488,6 +488,7 @@ After training is done, users can use the trained model to classify images. The 
 ```python
 from PIL import Image
 import numpy as np
+import os
 def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
@@ -495,7 +496,8 @@ def load_image(file):
     im = im / 255.0
     return im
 test_data = []
-test_data.append((load_image('image/dog.png'),))
+cur_dir = os.path.dirname(os.path.realpath(__file__))
+test_data.append((load_image(cur_dir + '/image/dog.png'),)
 
 probs = paddle.infer(
     output_layer=out, parameters=parameters, input=test_data)
