@@ -41,9 +41,9 @@ Let's consider an example of Chinese-to-English translation. The model is given 
 ```
 After training and with a beam-search size of 3, the generated translations are as follows:
 ```text
-0 -5.36816   these are signs of hope and relief . <e>
-1 -6.23177   these are the light of hope and relief . <e>
-2 -7.7914  these are the light of hope and the relief of hope . <e>
+0 -5.36816   These are signs of hope and relief . <e>
+1 -6.23177   These are the light of hope and relief . <e>
+2 -7.7914  These are the light of hope and the relief of hope . <e>
 ```
 - The first column corresponds to the id of the generated sentence; the second column corresponds to the score of the generated sentence (in descending order), where a larger value indicates better quality; the last column corresponds to the generated sentence.
 - There are two special tokens: `<e>` denotes the end of a sentence while `<unk>` denotes unknown word, i.e., a word not in the training dictionary.
@@ -94,7 +94,7 @@ Figure 4. Encoder-Decoder Framework
 
 There are three steps for encoding a sentence:
 
-1. One-hot vector representation of a word: Each word $x_i$ in the source sentence $x=\left \{ x_1,x_2,...,x_T \right \}$ is represented as a vector $w_i\epsilon R^{\left | V \right |},i=1,2,...,T$   where $w_i$ has the same dimensionality as the size of the dictionary, i.e., $\left | V \right |$, and has an element of one at the location corresponding to the location of the word in the dictionary and zero elsewhere.
+1. One-hot vector representation of a word: Each word $x_i$ in the source sentence $x=\left \{ x_1,x_2,...,x_T \right \}$ is represented as a vector $w_i\epsilon \left \{ 0,1 \right \}^{\left | V \right |},i=1,2,...,T$   where $w_i$ has the same dimensionality as the size of the dictionary, i.e., $\left | V \right |$, and has an element of one at the location corresponding to the location of the word in the dictionary and zero elsewhere.
 
 2. Word embedding as a representation in the low-dimensional semantic space: There are two problems with one-hot vector representation
 
@@ -213,25 +213,8 @@ import paddle.v2 as paddle
 
 # train with a single CPU
 paddle.init(use_gpu=False, trainer_count=1)
-```
-
-### Define DataSet
-
-We will define dictionary size, and create [**data reader**](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader#python-data-reader-design-doc) for WMT-14 dataset.
-
-```python
-# source and target dict dim.
-dict_size = 30000
-
-feeding = {
-    'source_language_word': 0,
-    'target_language_word': 1,
-    'target_language_next_word': 2
-}
-wmt14_reader = paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.wmt14.train(dict_size=dict_size), buf_size=8192),
-    batch_size=5)
+# False: training, True: generating
+is_generating = False
 ```
 
 ### Model Configuration
@@ -239,15 +222,18 @@ wmt14_reader = paddle.batch(
 1. Define some global variables
 
    ```python
+   dict_size = 30000 # dict dim
    source_dict_dim = dict_size # source language dictionary size
    target_dict_dim = dict_size # destination language dictionary size
    word_vector_dim = 512 # word embedding dimension
    encoder_size = 512 # hidden layer size of GRU in encoder
    decoder_size = 512 # hidden layer size of GRU in decoder
+   beam_size = 3 # expand width in beam search
+   max_length = 250 # a stop condition of sequence generation
   ```
 
-1. Implement Encoder as follows:
-   1. Input is a sequence of words represented by an integer word index sequence. So we define data layer of data type `integer_value_sequence`. The value range of each element in the sequence is `[0, source_dict_dim)`
+2. Implement Encoder as follows:
+   - Input is a sequence of words represented by an integer word index sequence. So we define data layer of data type `integer_value_sequence`. The value range of each element in the sequence is `[0, source_dict_dim)`
 
    ```python
     src_word_id = paddle.layer.data(
@@ -255,7 +241,7 @@ wmt14_reader = paddle.batch(
         type=paddle.data_type.integer_value_sequence(source_dict_dim))
    ```
 
-   1. Map the one-hot vector (represented by word index) into a word vector $\mathbf{s}$ in a low-dimensional semantic space
+   - Map the one-hot vector (represented by word index) into a word vector $\mathbf{s}$ in a low-dimensional semantic space
 
    ```python
     src_embedding = paddle.layer.embedding(
@@ -264,7 +250,7 @@ wmt14_reader = paddle.batch(
         param_attr=paddle.attr.ParamAttr(name='_source_language_embedding'))
    ```
 
-   1. Use bi-direcitonal GRU to encode the source language sequence, and concatenate the encoding outputs from the two GRUs to get $\mathbf{h}$
+   - Use bi-direcitonal GRU to encode the source language sequence, and concatenate the encoding outputs from the two GRUs to get $\mathbf{h}$
 
    ```python
     src_forward = paddle.networks.simple_gru(
@@ -274,9 +260,9 @@ wmt14_reader = paddle.batch(
     encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
    ```
 
-1. Implement Attention-based Decoder as follows:
+3. Implement Attention-based Decoder as follows:
 
-   1. Get a projection of the encoding (c.f. 2.3) of the source language sequence by passing it into a feed forward neural network
+   - Get a projection of the encoding (c.f. 2.3) of the source language sequence by passing it into a feed forward neural network
 
    ```python
     with paddle.layer.mixed(size=decoder_size) as encoded_proj:
@@ -284,7 +270,7 @@ wmt14_reader = paddle.batch(
             input=encoded_vector)
    ```
 
-   1. Use a non-linear transformation of the last hidden state of the backward GRU on the source language sentence as the initial state of the decoder RNN $c_0=h_T$
+   - Use a non-linear transformation of the last hidden state of the backward GRU on the source language sentence as the initial state of the decoder RNN $c_0=h_T$
 
    ```python
     backward_first = paddle.layer.first_seq(input=src_backward)
@@ -294,7 +280,7 @@ wmt14_reader = paddle.batch(
             input=backward_first)
    ```
 
-   1. Define the computation in each time step for the decoder RNN, i.e., according to the current context vector $c_i$, hidden state for the decoder $z_i$ and the $i$-th word $u_i$ in the target language to predict the probability $p_{i+1}$ for the $i+1$-th word.
+   - Define the computation in each time step for the decoder RNN, i.e., according to the current context vector $c_i$, hidden state for the decoder $z_i$ and the $i$-th word $u_i$ in the target language to predict the probability $p_{i+1}$ for the $i+1$-th word.
 
       - decoder_mem records the hidden state $z_i$ from the previous time step, with an initial state as decoder_boot.
       - context is computed via `simple_attention` as $c_i=\sum {j=1}^{T}a_{ij}h_j$, where enc_vec is the projection of $h_j$ and enc_proj is the projection of $h_j$ (c.f. 3.1). $a_{ij}$ is calculated within `simple_attention`.
@@ -332,7 +318,7 @@ wmt14_reader = paddle.batch(
         return out
     ```
 
-1. Define the name for the decoder and the first two input for `gru_decoder_with_attention`. Note that `StaticInput` is used for the two inputs. Please refer to [StaticInput Document](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入) for more details.
+4. Define the name for the decoder and the first two input for `gru_decoder_with_attention`. Note that `StaticInput` is used for the two inputs. Please refer to [StaticInput Document](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入) for more details.
 
     ```python
     decoder_group_name = "decoder_group"
@@ -341,132 +327,213 @@ wmt14_reader = paddle.batch(
     group_inputs = [group_input1, group_input2]
     ```
 
-1. Training mode:
+5. Training mode:
 
-      - word embedding from the target language trg_embedding is passed to `gru_decoder_with_attention` as current_word.
-      - `recurrent_group` calls `gru_decoder_with_attention` in a recurrent way
-      - the sequence of next words from the target language is used as label (lbl)
-      - multi-class cross-entropy (`classification_cost`) is used to calculate the cost
+   - word embedding from the target language trg_embedding is passed to `gru_decoder_with_attention` as current_word.
+   - `recurrent_group` calls `gru_decoder_with_attention` in a recurrent way
+   - the sequence of next words from the target language is used as label (lbl)
+   - multi-class cross-entropy (`classification_cost`) is used to calculate the cost
 
-    ```python
-    trg_embedding = paddle.layer.embedding(
-        input=paddle.layer.data(
-            name='target_language_word',
-            type=paddle.data_type.integer_value_sequence(target_dict_dim)),
-        size=word_vector_dim,
-        param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
-    group_inputs.append(trg_embedding)
+   ```python
+   if not is_generating:
+       trg_embedding = paddle.layer.embedding(
+           input=paddle.layer.data(
+               name='target_language_word',
+               type=paddle.data_type.integer_value_sequence(target_dict_dim)),
+           size=word_vector_dim,
+           param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
+       group_inputs.append(trg_embedding)
 
-    # For decoder equipped with attention mechanism, in training,
-    # target embeding (the groudtruth) is the data input,
-    # while encoded source sequence is accessed to as an unbounded memory.
-    # Here, the StaticInput defines a read-only memory
-    # for the recurrent_group.
-    decoder = paddle.layer.recurrent_group(
-        name=decoder_group_name,
-        step=gru_decoder_with_attention,
-        input=group_inputs)
+       # For decoder equipped with attention mechanism, in training,
+       # target embeding (the groudtruth) is the data input,
+       # while encoded source sequence is accessed to as an unbounded memory.
+       # Here, the StaticInput defines a read-only memory
+       # for the recurrent_group.
+       decoder = paddle.layer.recurrent_group(
+           name=decoder_group_name,
+           step=gru_decoder_with_attention,
+           input=group_inputs)
 
-    lbl = paddle.layer.data(
-        name='target_language_next_word',
-        type=paddle.data_type.integer_value_sequence(target_dict_dim))
-    cost = paddle.layer.classification_cost(input=decoder, label=lbl)
-    ```
+       lbl = paddle.layer.data(
+           name='target_language_next_word',
+           type=paddle.data_type.integer_value_sequence(target_dict_dim))
+       cost = paddle.layer.classification_cost(input=decoder, label=lbl)
+   ```
+
+6. Generating mode:
+
+   - the decoder predicts a next target word based on the the last generated target word. Embedding of the last generated word is automatically gotten by GeneratedInputs.
+   - `beam_search` calls `gru_decoder_with_attention` in a recurrent way, to predict sequence id.
+
+   ```python
+   if is_generating:
+       # In generation, the decoder predicts a next target word based on
+       # the encoded source sequence and the last generated target word.
+
+       # The encoded source sequence (encoder's output) must be specified by
+       # StaticInput, which is a read-only memory.
+       # Embedding of the last generated word is automatically gotten by
+       # GeneratedInputs, which is initialized by a start mark, such as <s>,
+       # and must be included in generation.
+
+       trg_embedding = paddle.layer.GeneratedInputV2(
+           size=target_dict_dim,
+           embedding_name='_target_language_embedding',
+           embedding_size=word_vector_dim)
+       group_inputs.append(trg_embedding)
+
+       beam_gen = paddle.layer.beam_search(
+           name=decoder_group_name,
+           step=gru_decoder_with_attention,
+           input=group_inputs,
+           bos_id=0,
+           eos_id=1,
+           beam_size=beam_size,
+           max_length=max_length)
+   ```
 
 Note: Our configuration is based on Bahdanau et al. \[[4](#Reference)\] but with a few simplifications. Please refer to [issue #1133](https://github.com/PaddlePaddle/Paddle/issues/1133) for more details.
 
-### Create Parameters
-
-Create every parameter that `cost` layer needs.
-
-```python
-parameters = paddle.parameters.create(cost)
-```
-
-We can get parameter names. If the parameter name is not specified during model configuration, it will be generated.
-
-```python
-for param in parameters.keys():
-    print param
-```
-
 ## Model Training
 
-1. Create trainer
+1. Create Parameters
+
+    Create every parameter that `cost` layer needs. And we can get parameter names. If the parameter name is not specified during model configuration, it will be generated.
+
+    ```python
+    if not is_generating:
+        parameters = paddle.parameters.create(cost)
+        for param in parameters.keys():
+            print param
+    ```
+
+2. Define DataSet
+
+    Create [**data reader**](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader#python-data-reader-design-doc) for WMT-14 dataset.
+
+    ```python
+    if not is_generating:
+        wmt14_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.wmt14.train(dict_size=dict_size), buf_size=8192),
+            batch_size=5)
+    ```
+3. Create trainer
 
     We need to tell trainer what to optimize, and how to optimize. Here trainer will optimize `cost` layer using stochastic gradient descent (SDG).
 
     ```python
-    optimizer = paddle.optimizer.Adam(
-        learning_rate=5e-5,
-        regularization=paddle.optimizer.L2Regularization(rate=8e-4))
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=optimizer)
+    if not is_generating:
+        optimizer = paddle.optimizer.Adam(
+            learning_rate=5e-5,
+            regularization=paddle.optimizer.L2Regularization(rate=8e-4))
+        trainer = paddle.trainer.SGD(cost=cost,
+                                     parameters=parameters,
+                                     update_equation=optimizer)
     ```
 
-1. Define event handler
+4. Define event handler
 
     The event handler is a callback function invoked by trainer when an event happens. Here we will print log in event handler.
 
     ```python
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 10 == 0:
-                print "\nPass %d, Batch %d, Cost %f, %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics)
+    if not is_generating:
+        def event_handler(event):
+            if isinstance(event, paddle.event.EndIteration):
+                if event.batch_id % 2 == 0:
+                    print "\nPass %d, Batch %d, Cost %f, %s" % (
+                        event.pass_id, event.batch_id, event.cost, event.metrics)
     ```
 
-1. Start training
+5. Start training
 
     ```python
-    trainer.train(
-        reader=wmt14_reader,
-        event_handler=event_handler,
-        num_passes=2,
-        feeding=feeding)
+    if not is_generating:
+        trainer.train(
+                reader=wmt14_reader, event_handler=event_handler, num_passes=2)
     ```
 
-    ```text
-    Pass 0, Batch 0, Cost 247.408008, {'classification_error_evaluator': 1.0}
-    Pass 0, Batch 10, Cost 212.058789, {'classification_error_evaluator': 0.8737863898277283}
-    ...
-    ```
-
-The model training is successful when the `classification_error_evaluator` is lower than 0.35.
+  The training log is as follows:
+  ```text
+  Pass 0, Batch 0, Cost 247.408008, {'classification_error_evaluator': 1.0}
+  Pass 0, Batch 10, Cost 212.058789, {'classification_error_evaluator': 0.8737863898277283}
+  ...
+  ```
 
 ## Model Usage
 
-### Download Pre-trained Model
+1. Download Pre-trained Model
 
-As the training of an NMT model is very time consuming, we provide a pre-trained model (pass-00012, ~205M). The model is trained with a cluster of 50 physical nodes (each node has two 6-core CPU). We trained 16 passes (taking about 5 days) with each pass taking about 7 hours. The provided model (pass-00012) has the highest [BLEU Score](#BLEU Score) of 26.92. Run the following command to download the model:
+    As the training of an NMT model is very time consuming, we provide a pre-trained model. The model is trained with a cluster of 50 physical nodes (each node has two 6-core CPU) over 5 days. The provided model has the [BLEU Score](#BLEU Score) of 26.92, and the size of 205M.
 
-```bash
-cd pretrained
-./wmt14_model.sh
-```
+    ```python
+    if is_generating:
+        parameters = paddle.dataset.wmt14.model()
+    ```
+2. Define DataSet
 
-### BLEU Evaluation
+    Get the first 3 samples of wmt14 generating set as the source language sequences.
 
-BLEU (Bilingual Evaluation understudy) is a metric widely used for automatic machine translation proposed by IBM Watson Research Center in 2002\[[5](#References)\]. The closer the translation produced by a machine is to the translation produced by a human expert, the better the performance of the translation system.
-To measure the closeness between machine translation and human translation, sentence precision is used. It compares the number of matched n-grams. More matches will lead to higher BLEU scores.
+   ```python
+   if is_generating:
+        gen_creator = paddle.dataset.wmt14.gen(dict_size)
+        gen_data = []
+        gen_num = 3
+        for item in gen_creator():
+            gen_data.append((item[0], ))
+            if len(gen_data) == gen_num:
+                break
+   ```
 
-[Moses](http://www.statmt.org/moses/) is an open-source machine translation system, we used [multi-bleu.perl](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/generic/multi-bleu.perl) for BLEU evaluation. Run the following command for downloading:
-```bash
-./moses_bleu.sh
-```
-BLEU evaluation can be performed using the `eval_bleu` script as follows, where FILE is the name of the file to be evaluated, BEAMSIZE is the beam size value, and `data/wmt14/gen/ntst14.trg` is used as the standard translation in default.
-```bash
-./eval_bleu.sh FILE BEAMSIZE
-```
-Specificaly, the script is run as follows:
-```bash
-./eval_bleu.sh gen_result 3
-```
-You will see the following message as output:
-```text
-BLEU = 26.92
-```
+3. Create infer
+
+    Use inference interface `paddle.infer` return the prediction probability (see field `prob`) and labels (see field `id`) of each generated sequence.
+
+   ```python
+   if is_generating:
+        beam_result = paddle.infer(
+            output_layer=beam_gen,
+            parameters=parameters,
+            input=gen_data,
+            field=['prob', 'id'])
+   ```
+4. Print generated translation
+
+    Print sequence and its `beam_size` generated translation results based on the dictionary.
+
+   ```python
+   if is_generating:
+        # get the dictionary
+        src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
+
+        # the delimited element of generated sequences is -1,
+        # the first element of each generated sequence is the sequence length
+        seq_list = []
+        seq = []
+        for w in beam_result[1]:
+            if w != -1:
+                seq.append(w)
+            else:
+                seq_list.append(' '.join([trg_dict.get(w) for w in seq[1:]]))
+                seq = []
+
+        prob = beam_result[0]
+        for i in xrange(gen_num):
+            print "\n*******************************************************\n"
+            print "src:", ' '.join(
+                [src_dict.get(w) for w in gen_data[i][0]]), "\n"
+            for j in xrange(beam_size):
+                print "prob = %f:" % (prob[i][j]), seq_list[i * beam_size + j]
+   ```
+
+  The generating log is as follows:
+  ```text
+  src: <s> Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu <e>
+
+  prob = -19.019573: The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
+  prob = -19.113066: The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
+  prob = -19.512890: The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
+  ```
 
 ## Summary
 

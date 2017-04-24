@@ -214,6 +214,7 @@ import numpy as np
 import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
+import paddle.v2.evaluator as evaluator
 
 paddle.init(use_gpu=False, trainer_count=1)
 
@@ -343,23 +344,23 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-- We will concatenate the output of the top LSTM unit with its input, and project the result into a hidden layer. Then, we put a fully connected layer on top to get the final feature vector representation.
-
- ```python
- feature_out = paddle.layer.mixed(
- size=label_dict_len,
- bias_attr=std_default,
- input=[
-     paddle.layer.full_matrix_projection(
-         input=input_tmp[0], param_attr=hidden_para_attr),
-     paddle.layer.full_matrix_projection(
-         input=input_tmp[1], param_attr=lstm_para_attr)
- ], )
- ```
-
-- At the end of the network, we use CRF as the cost function; the parameter of CRF cost will be named `crfw`.
+- In PaddlePaddle, state features and transition features of a CRF are implemented by a fully connected layer and a CRF layer seperately. The fully connected layer with linear activation learns the state features, here we use paddle.layer.mixed (paddle.layer.fc can be uesed as well), and the CRF layer in PaddlePaddle: paddle.layer.crf only learns the transition features, which is a cost layer and is the last layer of the network. paddle.layer.crf outputs the log probability of true tag sequence as the cost by given the input sequence and it requires the true tag sequence as target in the learning process.
 
 ```python
+
+# The output of the top LSTM unit and its input are feed into a fully connected layer,
+# size of which equals to size of tag labels.
+# The fully connected layer learns the state features
+
+feature_out = paddle.layer.mixed(
+    size=label_dict_len,
+    bias_attr=std_default,
+    input=[
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[0], param_attr=hidden_para_attr),
+        paddle.layer.full_matrix_projection(
+            input=input_tmp[1], param_attr=lstm_para_attr)], )
+
 crf_cost = paddle.layer.crf(
     size=label_dict_len,
     input=feature_out,
@@ -370,7 +371,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- The CRF decoding layer is used for evaluation and inference. It shares weights with CRF layer.  The sharing of parameters among multiple layers is specified by using the same parameter name in these layers.
+- The CRF decoding layer is used for evaluation and inference. It shares weights with CRF layer.  The sharing of parameters among multiple layers is specified by using the same parameter name in these layers. If true tag sequence is provided in training process, `paddle.layer.crf_decoding` calculates labelling error for each input token and `evaluator.sum` sum the error over the entire sequence. Otherwise, `paddle.layer.crf_decoding`  generates the labelling tags.
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
@@ -414,7 +415,7 @@ We will create trainer given model topology, parameters, and optimization method
 ```python
 optimizer = paddle.optimizer.Momentum(
     momentum=0,
-    learning_rate=2e-2,
+    learning_rate=1e-3,
     regularization=paddle.optimizer.L2Regularization(rate=8e-4),
     model_average=paddle.optimizer.ModelAverage(
         average_window=0.5, max_average_window=10000), )
@@ -432,7 +433,7 @@ As mentioned in data preparation section, we will use CoNLL 2005 test corpus as 
 ```python
 reader = paddle.batch(
     paddle.reader.shuffle(
-        conll05.test(), buf_size=8192), batch_size=20)
+        conll05.test(), buf_size=8192), batch_size=2)
 ```
 
 `feeding` is used to specify the correspondence between data instance and data layer. For example, according to following `feeding`, the 0th column of data instance produced by`conll05.test()` is matched to the data layer named `word_data`.
@@ -456,17 +457,17 @@ feeding = {
 ```python
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
+        if event.batch_id and event.batch_id % 10 == 0:
             print "Pass %d, Batch %d, Cost %f, %s" % (
                 event.pass_id, event.batch_id, event.cost, event.metrics)
-        if event.batch_id % 1000 == 0:
+        if event.batch_id % 400 == 0:
             result = trainer.test(reader=reader, feeding=feeding)
             print "\nTest with Pass %d, Batch %d, %s" % (event.pass_id, event.batch_id, result.metrics)
 
     if isinstance(event, paddle.event.EndPass):
         # save parameters
         with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
-            parameters.to_tar(f)  
+            parameters.to_tar(f)
 
         result = trainer.test(reader=reader, feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)

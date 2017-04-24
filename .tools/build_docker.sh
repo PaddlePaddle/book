@@ -48,7 +48,16 @@ FROM ${paddle_image}:${paddle_tag}
 MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 
 COPY . /book
+EOF
 
+if [ -n ${http_proxy} ]; then
+cat >> Dockerfile <<EOF
+ENV http_proxy ${http_proxy}
+ENV https_proxy ${http_proxy}
+EOF
+fi
+
+cat >> Dockerfile <<EOF
 RUN pip install -U nltk \
     && python /book/.tools/cache_dataset.py
 
@@ -58,7 +67,7 @@ RUN ${update_mirror_cmd}
     apt-get -y install gcc && \
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
-    pip install -U matplotlib jupyter numpy requests scipy
+    pip install -U pillow matplotlib jupyter numpy requests scipy
 
 #convert md to ipynb
 RUN /book/.tools/notedown.sh
