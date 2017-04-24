@@ -1,10 +1,7 @@
 #!/bin/bash
 set -xe
 
-pip install notedown
-
-cur_path="$(cd "$(dirname "$0")" && pwd -P)"
-cd $cur_path/../
+cd /book
 
 #convert md to ipynb
 for file in */{README,README\.en}.md ; do
