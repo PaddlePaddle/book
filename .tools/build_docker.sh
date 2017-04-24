@@ -4,9 +4,6 @@ set -e
 cur_path="$(cd "$(dirname "$0")" && pwd -P)"
 cd $cur_path/../
 
-#convert md to ipynb
-.tools/convert-markdown-into-ipynb-and-test.sh
-
 #paddle production image name
 if [ ! -n "$1" ]; then
   paddle_image=paddlepaddle/paddle
@@ -66,11 +63,14 @@ RUN pip install -U nltk \
 
 RUN ${update_mirror_cmd}
     apt-get update && \
-    apt-get install -y locales && \
+    apt-get install -y locales patch notedown && \
     apt-get -y install gcc && \
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
     pip install -U pillow matplotlib jupyter numpy requests scipy
+
+#convert md to ipynb
+RUN /book/.tools/notedown.sh
 
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
