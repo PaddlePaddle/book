@@ -63,12 +63,12 @@ RUN pip install -U nltk \
 
 RUN ${update_mirror_cmd}
     apt-get update && \
-    apt-get install -y locales patch notedown && \
+    apt-get install -y locales patch && \
     apt-get -y install gcc && \
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
     pip install --upgrade pip && \
-    pip install -U pillow matplotlib jupyter numpy requests scipy
+    pip install -U pillow notedown matplotlib jupyter numpy requests scipy
 
 #convert md to ipynb
 RUN /book/.tools/notedown.sh
