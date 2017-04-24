@@ -159,6 +159,22 @@ feeding={'x': 0, 'y': 1}
 
 ```python
 # event_handler to print training and testing info
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d, Batch %d, Cost %f" % (
+                event.pass_id, event.batch_id, event.cost)
+
+    if isinstance(event, paddle.event.EndPass):
+        result = trainer.test(
+            reader=paddle.batch(
+                uci_housing.test(), batch_size=2),
+            feeding=feeding)
+        print "Test %d, Cost %f" % (event.pass_id, result.cost)
+```
+
+```python
+# event_handler to print training and testing info
 from paddle.v2.plot import Ploter
 
 train_title = "Train cost"
@@ -167,7 +183,7 @@ cost_ploter = Ploter(train_title, test_title)
 
 step = 0
 
-def event_handler(event):
+def event_handler_plot(event):
     global step
     if isinstance(event, paddle.event.EndIteration):
         if step % 10 == 0:  # every 10 batches, record a train cost
@@ -195,7 +211,7 @@ trainer.train(
             uci_housing.train(), buf_size=500),
         batch_size=2),
     feeding=feeding,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     num_passes=30)
 ```
 
