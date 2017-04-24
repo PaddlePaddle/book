@@ -163,20 +163,19 @@ feeding={'x': 0, 'y': 1}
 Moreover, an event handler is provided to print the training progress:
 
 ```python
-lists = []
-
+# event_handler to print training and testing info
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
         if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f, %s" % (
-                event.pass_id, event.batch_id, event.cost, event.metrics)
+            print "Pass %d, Batch %d, Cost %f" % (
+                event.pass_id, event.batch_id, event.cost)
+
     if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(reader=paddle.batch(
-            paddle.dataset.mnist.test(), batch_size=128))
-        print "Test with Pass %d, Cost %f, %s\n" % (
-            event.pass_id, result.cost, result.metrics)
-        lists.append((event.pass_id, result.cost,
-                      result.metrics['classification_error_evaluator']))
+        result = trainer.test(
+            reader=paddle.batch(
+                uci_housing.test(), batch_size=2),
+            feeding=feeding)
+        print "Test %d, Cost %f" % (event.pass_id, result.cost)
 ```
 
 ```python
