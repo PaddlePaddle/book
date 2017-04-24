@@ -1,8 +1,8 @@
 #!/bin/bash
-set -e
+set -xe
 
 cur_path="$(cd "$(dirname "$0")" && pwd -P)"
-cd $cur_path/../
+cd "$cur_path"/../
 
 #paddle production image name
 if [ ! -n "$1" ]; then
@@ -50,7 +50,7 @@ MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
 COPY . /book
 EOF
 
-if [ -n ${http_proxy} ]; then
+if [ -n "${http_proxy}" ]; then
 cat >> Dockerfile <<EOF
 ENV http_proxy ${http_proxy}
 ENV https_proxy ${http_proxy}
@@ -68,10 +68,10 @@ RUN ${update_mirror_cmd}
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
     pip install --upgrade pip && \
-    pip install -U pillow notedown matplotlib jupyter numpy requests scipy
+    pip install -U notedown pillow matplotlib jupyter numpy requests scipy
 
 #convert md to ipynb
-RUN /book/.tools/notedown.sh
+RUN /bin/bash ./book/.tools/notedown.sh
 
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
