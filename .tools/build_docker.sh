@@ -58,8 +58,8 @@ EOF
 fi
 
 cat >> Dockerfile <<EOF
-  RUN pip install -U nltk \
-      && python /book/.tools/cache_dataset.py
+RUN pip install -U nltk \
+    && python /book/.tools/cache_dataset.py
 
 RUN ${update_mirror_cmd}
     apt-get update && \
