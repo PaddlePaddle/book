@@ -64,17 +64,17 @@ RUN pip install -U nltk \
 RUN ${update_mirror_cmd}
     apt-get update && \
     apt-get install -y locales patch && \
-    apt-get -y install gcc && \
+    apt-get -y install gcc curl && \
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
     pip install --upgrade pip && \
     pip install -U notedown pillow matplotlib jupyter numpy requests scipy
 
-wget -c http://golangtc.com/static/go/1.8/go1.8.linux-amd64.tar.gz  | tar -C /usr/lib/ -xz && \
+RUN curl https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz | tar -C /usr/lib/ -xz && \
     mkdir -p /usr/share/go
-export GOROOT=/usr/lib/go
-export GOPATH=/usr/share/go
-export PATH=${GOROOT}/bin:${GOPATH}/bin:$PATH
+ENV GOROOT /usr/lib/go
+ENV GOPATH /usr/share/go
+ENV PATH ${GOROOT}/bin:${GOPATH}/bin:$PATH
 
 #convert md to ipynb
 RUN /bin/bash .tools/convert-markdown-into-ipynb-and-test.sh
@@ -83,4 +83,4 @@ EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
 EOF
 
-docker build --no-cache  -t ${book_image}:${paddle_tag}  -t ${book_image}:${book_tag} .
+docker build --no-cache -t ${book_image}:${paddle_tag} -t ${book_image}:${book_tag} .
