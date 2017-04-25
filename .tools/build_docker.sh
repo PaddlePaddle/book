@@ -70,8 +70,14 @@ RUN ${update_mirror_cmd}
     pip install --upgrade pip && \
     pip install -U notedown pillow matplotlib jupyter numpy requests scipy
 
+wget -c http://golangtc.com/static/go/1.8/go1.8.linux-amd64.tar.gz  | tar -C /usr/lib/ -xz && \
+    mkdir -p /usr/share/go
+export GOROOT=/usr/lib/go
+export GOPATH=/usr/share/go
+export PATH=${GOROOT}/bin:${GOPATH}/bin:$PATH
+
 #convert md to ipynb
-RUN /bin/bash ./book/.tools/notedown.sh
+RUN /bin/bash .tools/convert-markdown-into-ipynb-and-test.sh
 
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
