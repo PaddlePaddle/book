@@ -54,8 +54,7 @@ def main():
         learning_rate=0.1 / 128.0,
         learning_rate_decay_a=0.1,
         learning_rate_decay_b=50000 * 100,
-        learning_rate_schedule='discexp',
-        batch_size=128)
+        learning_rate_schedule='discexp')
 
     # End batch and end pass event handler
     def event_handler(event):
@@ -86,7 +85,7 @@ def main():
             paddle.reader.shuffle(
                 paddle.dataset.cifar.train10(), buf_size=50000),
             batch_size=128),
-        num_passes=1,
+        num_passes=200,
         event_handler=event_handler,
         feeding={'image': 0,
                  'label': 1})
@@ -99,13 +98,26 @@ def main():
     def load_image(file):
         im = Image.open(file)
         im = im.resize((32, 32), Image.ANTIALIAS)
-        im = np.array(im).astype(np.float32).flatten()
+        im = np.array(im).astype(np.float32)
+        # The storage order of the loaded image is W(widht),
+        # H(height), C(channel). PaddlePaddle requires
+        # the CHW order, so transpose them.
+        im = im.transpose((2, 0, 1))  # CHW
+        # In the training phase, the channel order of CIFAR
+        # image is B(Blue), G(green), R(Red). But PIL open
+        # image in RGB mode. It must swap the channel order.
+        im = im[(2, 1, 0), :, :]  # BGR
+        im = im.flatten()
         im = im / 255.0
         return im
 
     test_data = []
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     test_data.append((load_image(cur_dir + '/image/dog.png'), ))
+
+    # users can remove the comments and change the model name
+    # with gzip.open('params_pass_50.tar.gz', 'r') as f:
+    #    parameters = paddle.parameters.Parameters.from_tar(f)
 
     probs = paddle.infer(
         output_layer=out, parameters=parameters, input=test_data)
