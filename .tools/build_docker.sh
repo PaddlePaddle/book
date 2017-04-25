@@ -77,7 +77,7 @@ ENV GOPATH /usr/share/go
 ENV PATH ${GOROOT}/bin:${GOPATH}/bin:$PATH
 
 #convert md to ipynb
-RUN /bin/bash .tools/convert-markdown-into-ipynb-and-test.sh
+RUN /bin/bash /book/.tools/convert-markdown-into-ipynb-and-test.sh
 
 EXPOSE 8888
 CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.disable_check_xsrf=True /book/"]
