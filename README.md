@@ -34,6 +34,31 @@ docker run -d -p 8888:8888 paddlepaddle/book
 docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 ```
 
+### 使用GPU训练
+
+本书默认使用CPU训练，若是要使用GPU训练，使用步骤会稍有变化。为了保证GPU驱动能够在镜像里面正常运行，我们推荐使用[nvidia-docker](https://github.com/NVIDIA/nvidia-docker)来运行镜像。请先安装nvidia-docker，之后请运行：
+
+```bash
+nvidia-docker run -d -p 8888:8888 paddlepaddle/book:0.10.0rc2-gpu
+```
+
+或者使用国内的镜像请运行：
+
+```bash
+nvidia-docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0rc2-gpu
+```
+
+还需要将以下代码
+```python
+paddle.init(use_gpu=False, trainer_count=1)
+```
+
+改成：
+```python
+paddle.init(use_gpu=True, trainer_count=1)
+```
+
+
 ## 贡献内容
 
 您要是能贡献新的章节那就太好了！请发Pull Requests把您写的章节加入到`/pending`下面的一个子目录里。当这一章稳定下来，我们一起把您的目录挪到根目录。

@@ -29,6 +29,33 @@ If you are living in somewhere slow to access DockerHub.com, you might try our m
 docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 ```
 
+### Training with GPU
+
+By default we are using CPU for training, if you want to train with GPU, the steps are a little different.
+
+To make sure GPU can be successfully used from inside container, please install [nvidia-docker](https://github.com/NVIDIA/nvidia-docker). Then run:
+
+```bash
+nvidia-docker run -d -p 8888:8888 paddlepaddle/book:0.10.0rc2-gpu
+```
+
+Or you can use the image registry mirror in China:
+
+```bash
+nvidia-docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0rc2-gpu
+```
+
+Change the code in the chapter that you are reading from
+```python
+paddle.init(use_gpu=False, trainer_count=1)
+```
+
+to:
+```python
+paddle.init(use_gpu=True, trainer_count=1)
+```
+
+
 ## Contribute
 
 Your contribution is welcome!  Please feel free to file Pull Requests to add your chapter as a directory under `/pending`. Once it is going stable, the community would like to move it to `/`.
