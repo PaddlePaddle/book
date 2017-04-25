@@ -491,7 +491,13 @@ def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
     im = np.array(im).astype(np.float32)
+    # The storage order of the loaded image is W(widht),
+    # H(height), C(channel). PaddlePaddle requires
+    # the CHW order, so transpose them.
     im = im.transpose((2, 0, 1)) # CHW
+    # In the training phase, the channel order of CIFAR
+    # image is B(Blue), G(green), R(Red). But PIL open
+    # image in RGB mode. It must swap the channel order.
     im = im[(2, 1, 0),:,:] # BGR
     im = im.flatten()
     im = im / 255.0

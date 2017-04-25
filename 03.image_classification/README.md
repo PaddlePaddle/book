@@ -483,7 +483,11 @@ def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
     im = np.array(im).astype(np.float32)
+    # PIL打开图片存储顺序为H(高度)，W(宽度)，C(通道)。
+    # PaddlePaddle要求数据顺序为CHW，所以需要转换顺序。
     im = im.transpose((2, 0, 1)) # CHW
+    # CIFAR训练图片通道顺序为B(蓝),G(绿),R(红),
+    # 而PIL打开图片默认通道顺序为RGB,因为需要交换通道。
     im = im[(2, 1, 0),:,:] # BGR
     im = im.flatten()
     im = im / 255.0
