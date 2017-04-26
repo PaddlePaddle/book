@@ -315,7 +315,15 @@ feeding = {
 }
 ```
 
-Callback function `event_handler` will be called during training when a pre-defined event happens.
+Callback function `event_handler` and  `event_handler_plot` will be called during training when a pre-defined event happens.
+
+```python
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d Batch %d Cost %.2f" % (
+                event.pass_id, event.batch_id, event.cost)
+```
 
 ```python
 step=0
@@ -323,7 +331,7 @@ step=0
 train_costs=[],[]
 test_costs=[],[]
 
-def event_handler(event):
+def event_handler_plot(event):
     global step
     global train_costs
     global test_costs
@@ -354,9 +362,9 @@ Finally, we can invoke `trainer.train` to start training:
 ```python
 trainer.train(
     reader=reader,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     feeding=feeding,
-    num_passes=200)
+    num_passes=2)
 ```
 
 ## Conclusion

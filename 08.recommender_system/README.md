@@ -321,20 +321,11 @@ trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
 
 下面我们开始训练过程。
 
-我们直接使用Paddle提供的数据集读取程序。`paddle.dataset.movielens.train()`和`paddle.dataset.movielens.test()`分别做训练和预测数据集。并且通过`reader_dict`来指定每一个数据和data_layer的对应关系。
+我们直接使用Paddle提供的数据集读取程序。`paddle.dataset.movielens.train()`和`paddle.dataset.movielens.test()`分别做训练和预测数据集。并且通过`feeding`来指定每一个数据和data_layer的对应关系。
 
-例如，这里的reader_dict表示的是，对于数据层 `user_id`，使用了reader中每一条数据的第0个元素。`gender_id`数据层使用了第1个元素。以此类推。
-
-训练过程是完全自动的。我们可以使用event_handler来观察训练过程，或进行测试等。这里我们在event_handler里面绘制了训练误差曲线和测试误差曲线。并且保存了模型。
-
+例如，这里的feeding表示的是，对于数据层 `user_id`，使用了reader中每一条数据的第0个元素。`gender_id`数据层使用了第1个元素。以此类推。
 
 ```python
-%matplotlib inline
-
-import matplotlib.pyplot as plt
-from IPython import display
-import cPickle
-
 feeding = {
     'user_id': 0,
     'gender_id': 1,
@@ -345,13 +336,31 @@ feeding = {
     'movie_title': 6,
     'score': 7
 }
+```
+
+训练过程是完全自动的。我们可以使用event_handler与event_handler_plot来观察训练过程，或进行测试等。这里我们在event_handler_plot里面绘制了训练误差曲线和测试误差曲线。并且保存了模型。
+
+```python
+def event_handler(event):
+    if isinstance(event, paddle.event.EndIteration):
+        if event.batch_id % 100 == 0:
+            print "Pass %d Batch %d Cost %.2f" % (
+                event.pass_id, event.batch_id, event.cost)
+```
+
+```python
+%matplotlib inline
+
+import matplotlib.pyplot as plt
+from IPython import display
+import cPickle
 
 step=0
 
 train_costs=[],[]
 test_costs=[],[]
 
-def event_handler(event):
+def event_handler_plot(event):
     global step
     global train_costs
     global test_costs
@@ -381,7 +390,7 @@ trainer.train(
             paddle.reader.shuffle(
             paddle.dataset.movielens.train(), buf_size=8192),
                             batch_size=256),
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     feeding=feeding,
     num_passes=2)
 ```
