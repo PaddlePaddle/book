@@ -349,42 +349,34 @@ def event_handler(event):
 ```
 
 ```python
-%matplotlib inline
+from paddle.v2.plot import Ploter
 
-import matplotlib.pyplot as plt
-from IPython import display
-import cPickle
+train_title = "Train cost"
+test_title = "Test cost"
+cost_ploter = Ploter(train_title, test_title)
 
-step=0
-
-train_costs=[],[]
-test_costs=[],[]
+step = 0
 
 def event_handler_plot(event):
     global step
-    global train_costs
-    global test_costs
     if isinstance(event, paddle.event.EndIteration):
-        need_plot = False
         if step % 10 == 0:  # every 10 batches, record a train cost
-            train_costs[0].append(step)
-            train_costs[1].append(event.cost)
+            cost_ploter.append(train_title, step, event.cost)
 
         if step % 1000 == 0: # every 1000 batches, record a test cost
-            result = trainer.test(reader=paddle.batch(
-                  paddle.dataset.movielens.test(), batch_size=256))
-            test_costs[0].append(step)
-            test_costs[1].append(result.cost)
+            result = trainer.test(
+                reader=paddle.batch(
+                    paddle.dataset.movielens.test(), batch_size=256),
+                feeding=feeding)
+            cost_ploter.append(test_title, step, result.cost)
 
         if step % 100 == 0: # every 100 batches, update cost plot
-            plt.plot(*train_costs)
-            plt.plot(*test_costs)
-            plt.legend(['Train Cost', 'Test Cost'], loc='upper left')
-            display.clear_output(wait=True)
-            display.display(plt.gcf())
-            plt.gcf().clear()
-        step += 1
+            cost_ploter.plot()
 
+        step += 1
+```
+
+```python
 trainer.train(
     reader=paddle.batch(
             paddle.reader.shuffle(
