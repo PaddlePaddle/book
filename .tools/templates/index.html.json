@@ -18,20 +18,20 @@
       "link": "./04.word2vec/index.html"
     },
     {
+      "name": "个性化推荐",
+      "link": "./05.recommender_system/index.html"
+    },
+    {
       "name": "情感分析",
-      "link": "./05.understand_sentiment/index.html"
+      "link": "./06.understand_sentiment/index.html"
     },
     {
       "name": "语义角色标注",
-      "link": "./06.label_semantic_roles/index.html"
+      "link": "./07.label_semantic_roles/index.html"
     },
     {
       "name": "机器翻译",
-      "link": "./07.machine_translation/index.html"
-    },
-    {
-      "name": "个性化推荐",
-      "link": "./08.recommender_system/index.html"
+      "link": "./08.machine_translation/index.html"
     }
   ]
 }

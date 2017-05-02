@@ -1,6 +1,6 @@
 # Personalized Recommendation
 
-The source code of this tutorial is in [book/recommender_system](https://github.com/PaddlePaddle/book/tree/develop/08.recommender_system).
+The source code of this tutorial is in [book/recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system).
 
 For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
 

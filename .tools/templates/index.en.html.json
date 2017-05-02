@@ -18,20 +18,20 @@
       "link": "./04.word2vec/index.en.html"
     },
     {
+      "name": "Personalized Recommendation",
+      "link": "./05.recommender_system/index.en.html"
+    },
+    {
       "name": "Sentiment Analysis",
-      "link": "./05.understand_sentiment/index.en.html"
+      "link": "./06.understand_sentiment/index.en.html"
     },
     {
       "name": "Semantic Role Labeling",
-      "link": "./06.label_semantic_roles/index.en.html"
+      "link": "./07.label_semantic_roles/index.en.html"
     },
     {
       "name": "Machine Translation",
-      "link": "./07.machine_translation/index.en.html"
-    },
-    {
-      "name": "Personalized Recommendation",
-      "link": "./08.recommender_system/index.en.html"
+      "link": "./08.machine_translation/index.en.html"
     }
   ]
 }

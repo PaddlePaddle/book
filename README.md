@@ -9,10 +9,10 @@
 1. [识别数字](http://book.paddlepaddle.org/02.recognize_digits)
 1. [图像分类](http://book.paddlepaddle.org/03.image_classification)
 1. [词向量](http://book.paddlepaddle.org/04.word2vec)
-1. [情感分析](http://book.paddlepaddle.org/05.understand_sentiment)
-1. [语义角色标注](http://book.paddlepaddle.org/06.label_semantic_roles)
-1. [机器翻译](http://book.paddlepaddle.org/07.machine_translation)
-1. [个性化推荐](http://book.paddlepaddle.org/08.recommender_system)
+1. [个性化推荐](http://book.paddlepaddle.org/05.recommender_system)
+1. [情感分析](http://book.paddlepaddle.org/06.understand_sentiment)
+1. [语义角色标注](http://book.paddlepaddle.org/07.label_semantic_roles)
+1. [机器翻译](http://book.paddlepaddle.org/08.machine_translation)
 
 ## 运行这本书
 
