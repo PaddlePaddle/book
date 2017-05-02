@@ -4,10 +4,10 @@
 1. [Recognize Digits](http://book.paddlepaddle.org/02.recognize_digits/index.en.html)
 1. [Image Classification](http://book.paddlepaddle.org/03.image_classification/index.en.html)
 1. [Word to Vector](http://book.paddlepaddle.org/04.word2vec/index.en.html)
-1. [Understand Sentiment](http://book.paddlepaddle.org/05.understand_sentiment/index.en.html)
-1. [Label Semantic Roles](http://book.paddlepaddle.org/06.label_semantic_roles/index.en.html)
-1. [Machine Translation](http://book.paddlepaddle.org/07.machine_translation/index.en.html)
-1. [Recommender System](http://book.paddlepaddle.org/08.recommender_system/index.en.html)
+1. [Recommender System](http://book.paddlepaddle.org/05.recommender_system/index.en.html)
+1. [Understand Sentiment](http://book.paddlepaddle.org/06.understand_sentiment/index.en.html)
+1. [Label Semantic Roles](http://book.paddlepaddle.org/07.label_semantic_roles/index.en.html)
+1. [Machine Translation](http://book.paddlepaddle.org/08.machine_translation/index.en.html)
 
 ## Running the Book
 
