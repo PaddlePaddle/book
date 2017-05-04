@@ -24,7 +24,7 @@ This tutorial explains a deep learning based approach and how to implement it us
 
 ## Model Overview
 
-To know more about deep learning based recommendation, let us start from going over the Youtube recommender system[[7](#参考文献)] before introducing our hybrid model.
+To know more about deep learning based recommendation, let us start from going over the Youtube recommender system[[7](#reference)] before introducing our hybrid model.
 
 
 ### YouTube's Deep Learning Recommendation Model
@@ -42,7 +42,7 @@ Youtube models candidate generation as a multiclass classification problem with 
 
 <p align="center">
 <img src="image/Deep_candidate_generation_model_architecture.en.png" width="70%" ><br/>
-Figure. Deep candidate geeration model.
+Figure 2. Deep candidate generation model.
 </p>
 
 The first stage of this model maps watching history and search queries into fixed-length representative features.  Then, an MLP (multi-layer perceptron, as described in the [Recognize Digits](https://github.com/PaddlePaddle/book/blob/develop/recognize_digits/README.md) tutorial) takes the concatenation of all representative vectors.  The output of the MLP represents the user' *intrinsic interests*.  At training time, it is used together with a softmax output layer for minimizing the classification error.   At serving time, it is used to compute the relevance of the user with all movies.
@@ -55,26 +55,49 @@ where $u$ is the representative vector of user $U$, $V$ is the corpus of all vid
 
 This model could have a performance issue as the softmax output covers millions of classification labels.  To optimize performance, at the training time, the authors down-sample negative samples, so the actual number of classes is reduced to thousands.  At serving time, the authors ignore the normalization of the softmax outputs, because the results are just for ranking.
 
-
 #### Ranking Network
 
 The architecture of the ranking network is similar to that of the candidate generation network.  Similar to ranking models widely used in online advertising, it uses rich features like video ID, last watching time, etc.  The output layer of the ranking network is a weighted logistic regression, which rates all candidate videos.
 
-
 ### Hybrid Model
 
-In the section, let us introduce our movie recommendation system.
+In the section, let us introduce our movie recommendation system. Especially, we feed moives titles into a text convolution network to get a fixed-length representative feature vector. Accordingly we will introduce the convolutional neural network for texts and the hybrid recommendation model respectively.
+
+#### Convolutional Neural Networks for Texts (CNN)
+
+**Convolutional Neural Networks** are frequently applied to data with grid-like topology such as two-dimensional images and one-dimensional texts. A CNN can extract multiple local features, combine them, and produce high-level abstractions, which correspond to semantic understanding. Empirically, CNN is shown to be efficient for image and text modeling.
+
+CNN mainly contains convolution and pooling operation, with versatile combinations in various applications. Here, we briefly describe a CNN as shown in Figure 3.
+
+
+<p align="center">
+<img src="image/text_cnn_en.png" width = "80%" align="center"/><br/>
+Figure 3. CNN for text modeling.
+</p>
+
+Let $n$ be the length of the sentence to process, and the $i$-th word has embedding as $x_i\in\mathbb{R}^k$，where $k$ is the embedding dimensionality.
+
+First, we concatenate the words by piecing together every $h$ words, each as a window of length $h$. This window is denoted as $x_{i:i+h-1}$, consisting of $x_{i},x_{i+1},\ldots,x_{i+h-1}$, where $x_i$ is the first word in the window and $i$ takes value ranging from $1$ to $n-h+1$: $x_{i:i+h-1}\in\mathbb{R}^{hk}$.
+
+Next, we apply the convolution operation: we apply the kernel $w\in\mathbb{R}^{hk}$ in each window, extracting features $c_i=f(w\cdot x_{i:i+h-1}+b)$, where $b\in\mathbb{R}$ is the bias and $f$ is a non-linear activation function such as $sigmoid$. Convolving by the kernel at every window ${x_{1:h},x_{2:h+1},\ldots,x_{n-h+1:n}}$ produces a feature map in the following form:
+
+$$c=[c_1,c_2,\ldots,c_{n-h+1}], c \in \mathbb{R}^{n-h+1}$$
+
+Next, we apply *max pooling* over time to represent the whole sentence $\hat c$, which is the maximum element across the feature map:
+
+$$\hat c=max(c)$$
+
+#### Model Structure Of The Hybrid Model
 
 In our network, the input includes features of users and movies.  The user feature includes four properties: user ID, gender, occupation, and age.  Movie features include their IDs, genres, and titles.
 
-We use fully-connected layers to map user features into representative feature vectors and concatenate them.  The process of movie features is similar, except that for movie titles -- we feed titles into a text convolution network as described in the [sentiment analysis tutorial](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md)）to get a fixed-length representative feature vector.
+We use fully-connected layers to map user features into representative feature vectors and concatenate them.  The process of movie features is similar, except that for movie titles -- we feed titles into a text convolution network as described in the above section to get a fixed-length representative feature vector.
 
 Given the feature vectors of users and movies, we compute the relevance using cosine similarity.  We minimize the squared error at training time.
 
 <p align="center">
-
 <img src="image/rec_regression_network_en.png" width="90%" ><br/>
-Figure 3. A hybrid recommendation model.
+Figure 4. A hybrid recommendation model.
 </p>
 
 ## Dataset
@@ -370,6 +393,7 @@ This tutorial goes over traditional approaches in recommender system and a deep 
 5. Kautz, Henry, Bart Selman, and Mehul Shah. "[Referral Web: Combining Social networks and collaborative filtering.](http://www.cs.cornell.edu/selman/papers/pdf/97.cacm.refweb.pdf)" Communications of the ACM 40.3 (1997): 63-65. APA
 6. Yuan, Jianbo, et al. ["Solving Cold-Start Problem in Large-scale Recommendation Engines: A Deep Learning Approach."](https://arxiv.org/pdf/1611.05480v1.pdf) *arXiv preprint arXiv:1611.05480* (2016).
 7. Covington P, Adams J, Sargin E. [Deep neural networks for youtube recommendations](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45530.pdf)[C]//Proceedings of the 10th ACM Conference on Recommender Systems. ACM, 2016: 191-198.
+8. Kim Y. [Convolutional neural networks for sentence classification](http://arxiv.org/pdf/1408.5882)[J]. arXiv preprint arXiv:1408.5882, 2014.
 
 <br/>
 This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
