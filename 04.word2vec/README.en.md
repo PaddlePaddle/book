@@ -2,7 +2,7 @@
 
 This is intended as a reference tutorial. The source code of this tutorial lives on [book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec).
 
-For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst).
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.en.md#running-the-book).
 
 ## Background Introduction
 
