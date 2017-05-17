@@ -1,0 +1,37 @@
+{
+  "is_en": false,
+  "chapters": [
+    {
+      "name": "新手入门",
+      "link": "./01.fit_a_line/index.cn.html"
+    },
+    {
+      "name": "识别数字",
+      "link": "./02.recognize_digits/index.cn.html"
+    },
+    {
+      "name": "图像分类",
+      "link": "./03.image_classification/index.cn.html"
+    },
+    {
+      "name": "词向量",
+      "link": "./04.word2vec/index.cn.html"
+    },
+    {
+      "name": "个性化推荐",
+      "link": "./05.recommender_system/index.cn.html"
+    },
+    {
+      "name": "情感分析",
+      "link": "./06.understand_sentiment/index.cn.html"
+    },
+    {
+      "name": "语义角色标注",
+      "link": "./07.label_semantic_roles/index.cn.html"
+    },
+    {
+      "name": "机器翻译",
+      "link": "./08.machine_translation/index.cn.html"
+    }
+  ]
+}
