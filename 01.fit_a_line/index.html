@@ -259,6 +259,33 @@ trainer.train(
 
 ![png](./image/train_and_test.png)
 
+### 应用模型
+
+#### 1. 生成测试数据
+
+```python
+test_data_creator = paddle.dataset.uci_housing.test()
+test_data = []
+
+for item in test_data_creator():
+    test_data.append((item[0], ))
+    if len(test_data) == 5:
+        break
+
+for data in test_data:
+    print data
+```
+
+#### 2. 推测 inference
+
+```python
+probs = paddle.infer(
+    output_layer=y_predict, parameters=parameters, input=test_data)
+
+for data in probs:
+    print data
+```
+
 ## 总结
 在这章里，我们借助波士顿房价这一数据集，介绍了线性回归模型的基本概念，以及如何使用PaddlePaddle实现训练和测试的过程。很多的模型和技巧都是从简单的线性回归模型演化而来，因此弄清楚线性模型的原理和局限非常重要。
 

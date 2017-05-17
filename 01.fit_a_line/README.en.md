@@ -222,6 +222,33 @@ trainer.train(
 
 ![png](./image/train_and_test.png)
 
+### Apply model
+
+#### 1. generate testing data
+
+```python
+test_data_creator = paddle.dataset.uci_housing.test()
+test_data = []
+
+for item in test_data_creator():
+    test_data.append((item[0], ))
+    if len(test_data) == 5:
+        break
+
+for data in test_data:
+    print data
+```
+
+#### 2. inference
+
+```python
+probs = paddle.infer(
+    output_layer=y_predict, parameters=parameters, input=test_data)
+
+for data in probs:
+    print data
+```
+
 ## Summary
 This chapter introduces *Linear Regression* and how to train and test this model with PaddlePaddle, using the UCI Housing Data Set. Because a large number of more complex models and techniques are derived from linear regression, it is important to understand its underlying theory and limitation.
 
