@@ -1,18 +1,18 @@
 # 深度学习入门
 
 [![Build Status](https://travis-ci.org/PaddlePaddle/book.svg?branch=develop)](https://travis-ci.org/PaddlePaddle/book)
-[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/index.en.html)
-[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/)
+[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.cn.html)
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
 
-1. [新手入门](http://book.paddlepaddle.org/01.fit_a_line)
-1. [识别数字](http://book.paddlepaddle.org/02.recognize_digits)
-1. [图像分类](http://book.paddlepaddle.org/03.image_classification)
-1. [词向量](http://book.paddlepaddle.org/04.word2vec)
-1. [个性化推荐](http://book.paddlepaddle.org/05.recommender_system)
-1. [情感分析](http://book.paddlepaddle.org/06.understand_sentiment)
-1. [语义角色标注](http://book.paddlepaddle.org/07.label_semantic_roles)
-1. [机器翻译](http://book.paddlepaddle.org/08.machine_translation)
+1. [新手入门](http://book.paddlepaddle.org/01.fit_a_line/index.cn.html)
+1. [识别数字](http://book.paddlepaddle.org/02.recognize_digits/index.cn.html)
+1. [图像分类](http://book.paddlepaddle.org/03.image_classification/index.cn.html)
+1. [词向量](http://book.paddlepaddle.org/04.word2vec/index.cn.html)
+1. [个性化推荐](http://book.paddlepaddle.org/05.recommender_system/index.cn.html)
+1. [情感分析](http://book.paddlepaddle.org/06.understand_sentiment/index.cn.html)
+1. [语义角色标注](http://book.paddlepaddle.org/07.label_semantic_roles/index.cn.html)
+1. [机器翻译](http://book.paddlepaddle.org/08.machine_translation/index.cn.html)
 
 ## 运行这本书
 

@@ -1,13 +1,18 @@
 # Deep Learning with PaddlePaddle
 
-1. [Fit a Line](http://book.paddlepaddle.org/01.fit_a_line/index.en.html)
-1. [Recognize Digits](http://book.paddlepaddle.org/02.recognize_digits/index.en.html)
-1. [Image Classification](http://book.paddlepaddle.org/03.image_classification/index.en.html)
-1. [Word to Vector](http://book.paddlepaddle.org/04.word2vec/index.en.html)
-1. [Recommender System](http://book.paddlepaddle.org/05.recommender_system/index.en.html)
-1. [Understand Sentiment](http://book.paddlepaddle.org/06.understand_sentiment/index.en.html)
-1. [Label Semantic Roles](http://book.paddlepaddle.org/07.label_semantic_roles/index.en.html)
-1. [Machine Translation](http://book.paddlepaddle.org/08.machine_translation/index.en.html)
+[![Build Status](https://travis-ci.org/PaddlePaddle/book.svg?branch=develop)](https://travis-ci.org/PaddlePaddle/book)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/)
+[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.cn.html)
+[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
+
+1. [Fit a Line](http://book.paddlepaddle.org/01.fit_a_line/)
+1. [Recognize Digits](http://book.paddlepaddle.org/02.recognize_digits/)
+1. [Image Classification](http://book.paddlepaddle.org/03.image_classification/)
+1. [Word to Vector](http://book.paddlepaddle.org/04.word2vec/)
+1. [Recommender System](http://book.paddlepaddle.org/05.recommender_system/)
+1. [Understand Sentiment](http://book.paddlepaddle.org/06.understand_sentiment/)
+1. [Label Semantic Roles](http://book.paddlepaddle.org/07.label_semantic_roles/)
+1. [Machine Translation](http://book.paddlepaddle.org/08.machine_translation/)
 
 ## Running the Book
 
