@@ -32,8 +32,7 @@ def conv_bn_layer(input,
         stride=stride,
         padding=padding,
         act=paddle.activation.Linear(),
-        bias_attr=False,
-		)
+        bias_attr=False,)
     return paddle.layer.batch_norm(input=tmp, act=active_type)
 
 
