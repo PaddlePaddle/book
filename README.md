@@ -22,7 +22,7 @@ We packed this book, Jupyter, PaddlePaddle, and all dependencies into a Docker i
 Just type
 
 ```bash
-docker run -d -p 8888:8888 paddlepaddle/book
+docker run -d -p 8888:8888 paddlepaddle/book:0.10.0
 ```
 
 This command will download the pre-built Docker image from DockerHub.com and run it in a container.  Please direct your Web browser to http://localhost:8888 to read the book.
@@ -30,7 +30,7 @@ This command will download the pre-built Docker image from DockerHub.com and run
 If you are living in somewhere slow to access DockerHub.com, you might try our mirror server docker.paddlepaddle.org:
 
 ```bash
-docker run -d -p 8888:8888 docker.paddlepaddle.org/book
+docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0
 ```
 
 ### Training with GPU
@@ -40,13 +40,13 @@ By default we are using CPU for training, if you want to train with GPU, the ste
 To make sure GPU can be successfully used from inside container, please install [nvidia-docker](https://github.com/NVIDIA/nvidia-docker). Then run:
 
 ```bash
-nvidia-docker run -d -p 8888:8888 paddlepaddle/book:0.10.0rc2-gpu
+nvidia-docker run -d -p 8888:8888 paddlepaddle/book:0.10.0-gpu
 ```
 
 Or you can use the image registry mirror in China:
 
 ```bash
-nvidia-docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0rc2-gpu
+nvidia-docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0-gpu
 ```
 
 Change the code in the chapter that you are reading from
