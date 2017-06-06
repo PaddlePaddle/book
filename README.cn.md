@@ -22,7 +22,7 @@
 只需要在命令行窗口里运行：
 
 ```bash
-docker run -d -p 8888:8888 paddlepaddle/book
+docker run -d -p 8888:8888 paddlepaddle/book:0.10.0
 ```
 
 会从DockerHub.com下载和运行本书的Docker image。阅读和在线编辑本书请在浏览器里访问 http://localhost:8888 。
@@ -30,7 +30,7 @@ docker run -d -p 8888:8888 paddlepaddle/book
 如果您访问DockerHub.com很慢，可以试试我们的另一个镜像docker.paddlepaddle.org：
 
 ```bash
-docker run -d -p 8888:8888 docker.paddlepaddle.org/book
+docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0
 ```
 
 ### 使用GPU训练
@@ -38,13 +38,13 @@ docker run -d -p 8888:8888 docker.paddlepaddle.org/book
 本书默认使用CPU训练，若是要使用GPU训练，使用步骤会稍有变化。为了保证GPU驱动能够在镜像里面正常运行，我们推荐使用[nvidia-docker](https://github.com/NVIDIA/nvidia-docker)来运行镜像。请先安装nvidia-docker，之后请运行：
 
 ```bash
-nvidia-docker run -d -p 8888:8888 paddlepaddle/book:0.10.0rc2-gpu
+nvidia-docker run -d -p 8888:8888 paddlepaddle/book:0.10.0-gpu
 ```
 
 或者使用国内的镜像请运行：
 
 ```bash
-nvidia-docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0rc2-gpu
+nvidia-docker run -d -p 8888:8888 docker.paddlepaddle.org/book:0.10.0-gpu
 ```
 
 还需要将以下代码
