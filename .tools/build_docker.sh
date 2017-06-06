@@ -13,7 +13,7 @@ fi
 
 #paddle production image tag
 if [ ! -n "$2" ]; then
-  paddle_tag=0.10.0rc2
+  paddle_tag=0.10.0
 else
   paddle_tag=$2
 fi
