@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="{% if is_en %}en{%else%}zh-Hans{% endif %}">
+<html lang="zh-Hans">
 <head>
     <meta charset="UTF-8">
-    <title>{% if not is_en %}深度学习入门{%else%}Deep Learning 101{% endif %}</title>
+    <title>深度学习入门</title>
     <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
     <script src="http://cdn.bootcss.com/tether/1.4.0/js/tether.js"></script>
     <script src="http://cdn.bootcss.com/jquery/3.1.0/jquery.slim.js"></script>
@@ -25,11 +25,11 @@
     background: #ecedee;
 }
 
-{% if not is_en %}
+
 .left-panel .card-header a {
     font-size: 14px;
 }
-{% endif %}
+
 
 .left-panel .card-block a:not(.click_active) {
     background: #e4e6e9;
@@ -74,17 +74,17 @@
         <ul class="nav navbar-nav">
           <li class="nav-item">
             <a class="nav-link" href="http://paddlepaddle.org">
-                {% if is_en %}Home{% else %}首页{% endif %}
+                首页
             </a>
           </li>
-          <li class="nav-item {% if not is_en %}active{% endif %}">
-            <a class="nav-link" href="{% if is_en %}./index.cn.html{% else %}#{%endif%}">
-                {% if is_en %}中文{% else %}深度学习入门{% endif %}
+          <li class="nav-item active">
+            <a class="nav-link" href="#">
+                深度学习入门
             </a>
           </li>
-          <li class="nav-item {% if is_en %}active{% endif %}">
-            <a class="nav-link" href="{% if is_en %}#{% else %}./index.html{% endif %}">
-                {% if is_en %}Deep Learning 101{% else %}English{% endif %}
+          <li class="nav-item ">
+            <a class="nav-link" href="./index.html">
+                English
             </a>
           </li>
           <li class="nav-item">
@@ -100,18 +100,46 @@
                     <div class="card-header" role="tab" id="headingOne">
                       <h5 class="mb-0">
                         <a aria-expanded="true" aria-controls="collapseOne">
-                            {% if is_en %}Deep Learning 101<span class="sr-only">(current)</span>{% else %}深度学习入门{% endif %}
+                            深度学习入门
                         </a>
                       </h5>
                     </div>
                     <div id="collapseOne" class="rounded-0 collapse show" role="tabpanel" aria-labelledby="headingOne">
                       <div class="card-block pl-0 pr-0 pt-0 pb-0">
                         <div class="list-group ">
-                          {% for chapter in chapters %}
-                            <a href="{{ chapter.link }}" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                {{ chapter.name }}
+                          
+                            <a href="./01.fit_a_line/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                新手入门
                             </a>
-                          {% endfor %}
+                          
+                            <a href="./02.recognize_digits/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                识别数字
+                            </a>
+                          
+                            <a href="./03.image_classification/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                图像分类
+                            </a>
+                          
+                            <a href="./04.word2vec/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                词向量
+                            </a>
+                          
+                            <a href="./05.recommender_system/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                个性化推荐
+                            </a>
+                          
+                            <a href="./06.understand_sentiment/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                情感分析
+                            </a>
+                          
+                            <a href="./07.label_semantic_roles/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                语义角色标注
+                            </a>
+                          
+                            <a href="./08.machine_translation/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                机器翻译
+                            </a>
+                          
                         </div>
                       </div>
                     </div>
@@ -119,7 +147,7 @@
                 </div>
             </div>
             <div class="col">
-                <iframe src="./01.fit_a_line/index{% if not is_en %}.cn{% endif %}.html" style="border: none; overflow-y : hidden" width="100%" height="100%" name="content_iframe" id="content_iframe">
+                <iframe src="./01.fit_a_line/index.cn.html" style="border: none; overflow-y : hidden" width="100%" height="100%" name="content_iframe" id="content_iframe">
                 </iframe>
             </div>
         </div>

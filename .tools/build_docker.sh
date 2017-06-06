@@ -74,6 +74,9 @@ RUN curl https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz -o go1.8
     tar -zxvf go1.8.linux-amd64.tar.gz -C /usr/local/ && \
     rm go1.8.linux-amd64.tar.gz
 
+ENV GOROOT /usr/local/go
+ENV PATH \${GOROOT}/bin:\${PATH}
+
 #convert md to ipynb
 RUN /bin/bash /book/.tools/convert-markdown-into-ipynb-and-test.sh
 

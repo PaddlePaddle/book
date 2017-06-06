@@ -35,8 +35,8 @@
     hooks:
     -   id: convert-markdown-into-html
         name: convert-markdown-into-html
-        description: Convert README.md into index.html and README.en.md into index.en.html
+        description: Convert README.md into index.html and README.cn.md into index.cn.html
         entry: python .pre-commit-hooks/convert_markdown_into_html.py
         language: system
-        files: .+README(\.en)?\.md$
+        files: .+README(\.cn)?\.md$
 
