@@ -27,16 +27,16 @@ def seqToseq_net(source_dict_dim, target_dict_dim, is_generating=False):
     encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
 
     #### Decoder
-    with paddle.layer.mixed(size=decoder_size) as encoded_proj:
-        encoded_proj += paddle.layer.full_matrix_projection(
-            input=encoded_vector)
+    encoded_proj = paddle.layer.mixed(
+        size=decoder_size,
+        input=paddle.layer.full_matrix_projection(encoded_vector))
 
     backward_first = paddle.layer.first_seq(input=src_backward)
 
-    with paddle.layer.mixed(
-            size=decoder_size, act=paddle.activation.Tanh()) as decoder_boot:
-        decoder_boot += paddle.layer.full_matrix_projection(
-            input=backward_first)
+    decoder_boot = paddle.layer.mixed(
+        size=decoder_size,
+        act=paddle.activation.Tanh(),
+        input=paddle.layer.full_matrix_projection(backward_first))
 
     def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
 
@@ -48,10 +48,12 @@ def seqToseq_net(source_dict_dim, target_dict_dim, is_generating=False):
             encoded_proj=enc_proj,
             decoder_state=decoder_mem)
 
-        with paddle.layer.mixed(size=decoder_size * 3) as decoder_inputs:
-            decoder_inputs += paddle.layer.full_matrix_projection(input=context)
-            decoder_inputs += paddle.layer.full_matrix_projection(
-                input=current_word)
+        decoder_inputs = paddle.layer.mixed(
+            size=decoder_size * 3,
+            input=[
+                paddle.layer.full_matrix_projection(input=context),
+                paddle.layer.full_matrix_projection(input=current_word)
+            ])
 
         gru_step = paddle.layer.gru_step(
             name='gru_decoder',
@@ -59,16 +61,16 @@ def seqToseq_net(source_dict_dim, target_dict_dim, is_generating=False):
             output_mem=decoder_mem,
             size=decoder_size)
 
-        with paddle.layer.mixed(
-                size=target_dict_dim,
-                bias_attr=True,
-                act=paddle.activation.Softmax()) as out:
-            out += paddle.layer.full_matrix_projection(input=gru_step)
+        out = paddle.layer.mixed(
+            size=target_dict_dim,
+            bias_attr=True,
+            act=paddle.activation.Softmax(),
+            input=paddle.layer.full_matrix_projection(input=gru_step))
         return out
 
     decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInputV2(input=encoded_vector, is_seq=True)
-    group_input2 = paddle.layer.StaticInputV2(input=encoded_proj, is_seq=True)
+    group_input1 = paddle.layer.StaticInput(input=encoded_vector, is_seq=True)
+    group_input2 = paddle.layer.StaticInput(input=encoded_proj, is_seq=True)
     group_inputs = [group_input1, group_input2]
 
     if not is_generating:
@@ -106,7 +108,7 @@ def seqToseq_net(source_dict_dim, target_dict_dim, is_generating=False):
         # GeneratedInputs, which is initialized by a start mark, such as <s>,
         # and must be included in generation.
 
-        trg_embedding = paddle.layer.GeneratedInputV2(
+        trg_embedding = paddle.layer.GeneratedInput(
             size=target_dict_dim,
             embedding_name='_target_language_embedding',
             embedding_size=word_vector_dim)
@@ -178,7 +180,7 @@ def main():
         beam_gen = seqToseq_net(source_dict_dim, target_dict_dim, is_generating)
         # get the pretrained model, whose bleu = 26.92
         parameters = paddle.dataset.wmt14.model()
-        # prob is the prediction probabilities, and id is the prediction word. 
+        # prob is the prediction probabilities, and id is the prediction word.
         beam_result = paddle.infer(
             output_layer=beam_gen,
             parameters=parameters,

@@ -228,19 +228,19 @@ is_generating = False
    - 对源语言序列编码后的结果（见2的最后一步），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
 
    ```python
-    with paddle.layer.mixed(size=decoder_size) as encoded_proj:
-        encoded_proj += paddle.layer.full_matrix_projection(
-            input=encoded_vector)
+   encoded_proj = paddle.layer.mixed(
+       size=decoder_size,
+       input=paddle.layer.full_matrix_projection(encoded_vector))
    ```
 
    - 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
 
    ```python
-    backward_first = paddle.layer.first_seq(input=src_backward)
-    with paddle.layer.mixed(
-            size=decoder_size, act=paddle.activation.Tanh()) as decoder_boot:
-        decoder_boot += paddle.layer.full_matrix_projection(
-            input=backward_first)
+   backward_first = paddle.layer.first_seq(input=src_backward)
+   decoder_boot = paddle.layer.mixed(
+       size=decoder_size,
+       act=paddle.activation.Tanh(),
+       input=paddle.layer.full_matrix_projection(backward_first))
    ```
 
    - 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
@@ -251,8 +251,7 @@ is_generating = False
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。
 
    ```python
-    def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
-
+   def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
         decoder_mem = paddle.layer.memory(
             name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
 
@@ -261,10 +260,12 @@ is_generating = False
             encoded_proj=enc_proj,
             decoder_state=decoder_mem)
 
-        with paddle.layer.mixed(size=decoder_size * 3) as decoder_inputs:
-            decoder_inputs += paddle.layer.full_matrix_projection(input=context)
-            decoder_inputs += paddle.layer.full_matrix_projection(
-                input=current_word)
+        decoder_inputs = paddle.layer.mixed(
+            size=decoder_size * 3,
+            input=[
+                paddle.layer.full_matrix_projection(input=context),
+                paddle.layer.full_matrix_projection(input=current_word)
+            ])
 
         gru_step = paddle.layer.gru_step(
             name='gru_decoder',
@@ -272,20 +273,20 @@ is_generating = False
             output_mem=decoder_mem,
             size=decoder_size)
 
-        with paddle.layer.mixed(
-                size=target_dict_dim,
-                bias_attr=True,
-                act=paddle.activation.Softmax()) as out:
-            out += paddle.layer.full_matrix_projection(input=gru_step)
+        out = paddle.layer.mixed(
+            size=target_dict_dim,
+            bias_attr=True,
+            act=paddle.activation.Softmax(),
+            input=paddle.layer.full_matrix_projection(input=gru_step))
         return out
-    ```
+   ```
 
 4. 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
 
     ```python
     decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInputV2(input=encoded_vector, is_seq=True)
-    group_input2 = paddle.layer.StaticInputV2(input=encoded_proj, is_seq=True)
+    group_input1 = paddle.layer.StaticInput(input=encoded_vector, is_seq=True)
+    group_input2 = paddle.layer.StaticInput(input=encoded_proj, is_seq=True)
     group_inputs = [group_input1, group_input2]
     ```
 
@@ -338,7 +339,7 @@ is_generating = False
        # GeneratedInputs, which is initialized by a start mark, such as <s>,
        # and must be included in generation.
 
-       trg_embedding = paddle.layer.GeneratedInputV2(
+       trg_embedding = paddle.layer.GeneratedInput(
            size=target_dict_dim,
            embedding_name='_target_language_embedding',
            embedding_size=word_vector_dim)

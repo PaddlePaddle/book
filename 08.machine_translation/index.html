@@ -307,19 +307,19 @@ is_generating = False
    - Get a projection of the encoding (c.f. 2.3) of the source language sequence by passing it into a feed forward neural network
 
    ```python
-    with paddle.layer.mixed(size=decoder_size) as encoded_proj:
-        encoded_proj += paddle.layer.full_matrix_projection(
-            input=encoded_vector)
+   encoded_proj = paddle.layer.mixed(
+       size=decoder_size,
+       input=paddle.layer.full_matrix_projection(encoded_vector))
    ```
 
    - Use a non-linear transformation of the last hidden state of the backward GRU on the source language sentence as the initial state of the decoder RNN $c_0=h_T$
 
    ```python
-    backward_first = paddle.layer.first_seq(input=src_backward)
-    with paddle.layer.mixed(
-            size=decoder_size, act=paddle.activation.Tanh()) as decoder_boot:
-        decoder_boot += paddle.layer.full_matrix_projection(
-            input=backward_first)
+   backward_first = paddle.layer.first_seq(input=src_backward)
+   decoder_boot = paddle.layer.mixed(
+       size=decoder_size,
+       act=paddle.activation.Tanh(),
+       input=paddle.layer.full_matrix_projection(backward_first))
    ```
 
    - Define the computation in each time step for the decoder RNN, i.e., according to the current context vector $c_i$, hidden state for the decoder $z_i$ and the $i$-th word $u_i$ in the target language to predict the probability $p_{i+1}$ for the $i+1$-th word.
@@ -331,8 +331,7 @@ is_generating = False
       - Softmax normalization is used in the end to computed the probability of words, i.e., $p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$. The output is returned.
 
    ```python
-    def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
-
+   def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
         decoder_mem = paddle.layer.memory(
             name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
 
@@ -341,10 +340,12 @@ is_generating = False
             encoded_proj=enc_proj,
             decoder_state=decoder_mem)
 
-        with paddle.layer.mixed(size=decoder_size * 3) as decoder_inputs:
-            decoder_inputs += paddle.layer.full_matrix_projection(input=context)
-            decoder_inputs += paddle.layer.full_matrix_projection(
-                input=current_word)
+        decoder_inputs = paddle.layer.mixed(
+            size=decoder_size * 3,
+            input=[
+                paddle.layer.full_matrix_projection(input=context),
+                paddle.layer.full_matrix_projection(input=current_word)
+            ])
 
         gru_step = paddle.layer.gru_step(
             name='gru_decoder',
@@ -352,20 +353,20 @@ is_generating = False
             output_mem=decoder_mem,
             size=decoder_size)
 
-        with paddle.layer.mixed(
-                size=target_dict_dim,
-                bias_attr=True,
-                act=paddle.activation.Softmax()) as out:
-            out += paddle.layer.full_matrix_projection(input=gru_step)
+        out = paddle.layer.mixed(
+            size=target_dict_dim,
+            bias_attr=True,
+            act=paddle.activation.Softmax(),
+            input=paddle.layer.full_matrix_projection(input=gru_step))
         return out
-    ```
+   ```
 
 4. Define the name for the decoder and the first two input for `gru_decoder_with_attention`. Note that `StaticInput` is used for the two inputs. Please refer to [StaticInput Document](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入) for more details.
 
     ```python
     decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInputV2(input=encoded_vector, is_seq=True)
-    group_input2 = paddle.layer.StaticInputV2(input=encoded_proj, is_seq=True)
+    group_input1 = paddle.layer.StaticInput(input=encoded_vector, is_seq=True)
+    group_input2 = paddle.layer.StaticInput(input=encoded_proj, is_seq=True)
     group_inputs = [group_input1, group_input2]
     ```
 
@@ -418,7 +419,7 @@ is_generating = False
        # GeneratedInputs, which is initialized by a start mark, such as <s>,
        # and must be included in generation.
 
-       trg_embedding = paddle.layer.GeneratedInputV2(
+       trg_embedding = paddle.layer.GeneratedInput(
            size=target_dict_dim,
            embedding_name='_target_language_embedding',
            embedding_size=word_vector_dim)
