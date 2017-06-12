@@ -11,7 +11,7 @@ cur_path="$(cd "$(dirname "$0")" && pwd -P)"
 cd $cur_path/../
 
 #convert md to ipynb
-for file in */{README,README\.en}.md ; do
+for file in */{README,README\.cn}.md ; do
     ~/go/bin/markdown-to-ipynb < $file > ${file%.*}".ipynb"
     if [ $? -ne 0 ]; then
         echo >&2 "markdown-to-ipynb $file error"
@@ -24,7 +24,7 @@ if [[ -z $TEST_EMBEDDED_PYTHON_SCRIPTS ]]; then
 fi
 
 #exec ipynb's py file
-for file in */{README,README\.en}.ipynb ; do
+for file in */{README,README\.cn}.ipynb ; do
     pushd $PWD > /dev/null
     cd $(dirname $file) > /dev/null
 

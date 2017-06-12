@@ -129,7 +129,7 @@ To address, we can design a bidirectional recurrent neural network by making a m
 Fig 4. Bidirectional LSTMs
 </p>
 
-Note that, this bidirectional RNNs is different with the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks [machine translation](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.en.md)
+Note that, this bidirectional RNNs is different with the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks [machine translation](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/README.md)
 
 ### Conditional Random Field (CRF)
 
@@ -160,7 +160,7 @@ where $\omega$ are the weights to the feature function that the CRF learns. Whil
 $$\DeclareMathOperator*{\argmax}{arg\,max} L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
 
 
-This objective function can be solved via back-propagation in an end-to-end manner. While decoding, given input sequences $X$, search for sequence $\bar{Y}$ to maximize the conditional probability $\bar{P}(Y|X)$ via decoding methods (such as *Viterbi*, or [Beam Search Algorithm](https://github.com/PaddlePaddle/book/blob/develop/07.machine_translation/README.en.md#Beam%20Search%20Algorithm)).
+This objective function can be solved via back-propagation in an end-to-end manner. While decoding, given input sequences $X$, search for sequence $\bar{Y}$ to maximize the conditional probability $\bar{P}(Y|X)$ via decoding methods (such as *Viterbi*, or [Beam Search Algorithm](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/README.md#beam-search-algorithm)).
 
 ### Deep Bidirectional LSTM (DB-LSTM) SRL model
 
