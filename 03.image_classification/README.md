@@ -505,7 +505,7 @@ def load_image(file):
     return im
 test_data = []
 cur_dir = os.path.dirname(os.path.realpath(__file__))
-test_data.append((load_image(cur_dir + '/image/dog.png'),)
+test_data.append((load_image(cur_dir + '/image/dog.png'),))
 
 # users can remove the comments and change the model name
 # with gzip.open('params_pass_50.tar.gz', 'r') as f:
