@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hans">
 <head>
     <meta charset="UTF-8">
-    <title>Deep Learning 101</title>
+    <title>深度学习入门</title>
     <link href="http://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet">
     <script src="http://cdn.bootcss.com/tether/1.4.0/js/tether.js"></script>
     <script src="http://cdn.bootcss.com/jquery/3.1.0/jquery.slim.js"></script>
@@ -25,6 +25,10 @@
     background: #ecedee;
 }
 
+
+.left-panel .card-header a {
+    font-size: 14px;
+}
 
 
 .left-panel .card-block a:not(.click_active) {
@@ -70,17 +74,17 @@
         <ul class="nav navbar-nav">
           <li class="nav-item">
             <a class="nav-link" href="http://paddlepaddle.org">
-                Home
-            </a>
-          </li>
-          <li class="nav-item ">
-            <a class="nav-link" href="./index.html">
-                中文
+                首页
             </a>
           </li>
           <li class="nav-item active">
             <a class="nav-link" href="#">
-                Deep Learning 101
+                深度学习入门
+            </a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" href="./index.html">
+                English
             </a>
           </li>
           <li class="nav-item">
@@ -96,7 +100,7 @@
                     <div class="card-header" role="tab" id="headingOne">
                       <h5 class="mb-0">
                         <a aria-expanded="true" aria-controls="collapseOne">
-                            Deep Learning 101<span class="sr-only">(current)</span>
+                            深度学习入门
                         </a>
                       </h5>
                     </div>
@@ -104,36 +108,36 @@
                       <div class="card-block pl-0 pr-0 pt-0 pb-0">
                         <div class="list-group ">
                           
-                            <a href="./01.fit_a_line/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Linear Regression
+                            <a href="./01.fit_a_line/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                新手入门
                             </a>
                           
-                            <a href="./02.recognize_digits/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Recognize Digits
+                            <a href="./02.recognize_digits/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                识别数字
                             </a>
                           
-                            <a href="./03.image_classification/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Image Classification
+                            <a href="./03.image_classification/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                图像分类
                             </a>
                           
-                            <a href="./04.word2vec/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Word2Vec
+                            <a href="./04.word2vec/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                词向量
                             </a>
                           
-                            <a href="./05.recommender_system/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Personalized Recommendation
+                            <a href="./05.recommender_system/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                个性化推荐
                             </a>
                           
-                            <a href="./06.understand_sentiment/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Sentiment Analysis
+                            <a href="./06.understand_sentiment/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                情感分析
                             </a>
                           
-                            <a href="./07.label_semantic_roles/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Semantic Role Labeling
+                            <a href="./07.label_semantic_roles/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                语义角色标注
                             </a>
                           
-                            <a href="./08.machine_translation/index.en.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
-                                Machine Translation
+                            <a href="./08.machine_translation/index.cn.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
+                                机器翻译
                             </a>
                           
                         </div>
@@ -143,7 +147,7 @@
                 </div>
             </div>
             <div class="col">
-                <iframe src="./01.fit_a_line/index.en.html" style="border: none; overflow-y : hidden" width="100%" height="100%" name="content_iframe" id="content_iframe">
+                <iframe src="./01.fit_a_line/index.cn.html" style="border: none; overflow-y : hidden" width="100%" height="100%" name="content_iframe" id="content_iframe">
                 </iframe>
             </div>
         </div>

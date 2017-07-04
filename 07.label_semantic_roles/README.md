@@ -1,138 +1,162 @@
-# 语义角色标注
+# Semantic Role Labeling
 
-本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/07.label_semantic_roles)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.md#运行这本书)。
+The source code of this chapter is live on [book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/07.label_semantic_roles).
 
-## 背景介绍
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
-自然语言分析技术大致分为三个层面：词法分析、句法分析和语义分析。语义角色标注是实现浅层语义分析的一种方式。在一个句子中，谓词是对主语的陈述或说明，指出“做什么”、“是什么”或“怎么样，代表了一个事件的核心，跟谓词搭配的名词称为论元。语义角色是指论元在动词所指事件中担任的角色。主要有：施事者（Agent）、受事者（Patient）、客体（Theme）、经验者（Experiencer）、受益者（Beneficiary）、工具（Instrument）、处所（Location）、目标（Goal）和来源（Source）等。
+## Background
 
-请看下面的例子，“遇到” 是谓词（Predicate，通常简写为“Pred”），“小明”是施事者（Agent），“小红”是受事者（Patient），“昨天” 是事件发生的时间（Time），“公园”是事情发生的地点（Location）。
+Natural language analysis techniques consist of lexical, syntactic, and semantic analysis. **Semantic Role Labeling (SRL)** is an instance of **Shallow Semantic Analysis**.
 
-$$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mbox{Time}\mbox{在[公园]}_{\mbox{Location}}\mbox{[遇到]}_{\mbox{Predicate}}\mbox{了[小红]}_{\mbox{Patient}}\mbox{。}$$
+In a sentence, a **predicate** states a property or a characterization of a *subject*, such as what it does and what it is like. The predicate represents the core of an event, whereas the words accompanying the predicate are **arguments**. A **semantic role** refers to the abstract role an argument of a predicate take on in the event, including *agent*, *patient*, *theme*, *experiencer*, *beneficiary*, *instrument*, *location*, *goal*, and *source*.
 
-语义角色标注（Semantic Role Labeling，SRL）以句子的谓词为中心，不对句子所包含的语义信息进行深入分析，只分析句子中各成分与谓词之间的关系，即句子的谓词（Predicate）- 论元（Argument）结构，并用语义角色来描述这些结构关系，是许多自然语言理解任务（如信息抽取，篇章分析，深度问答等）的一个重要中间步骤。在研究中一般都假定谓词是给定的，所要做的就是找出给定谓词的各个论元和它们的语义角色。
+In the following example of a Chinese sentence, "to encounter" is the predicate (*pred*); "Ming" is the *agent*; "Hong" is the *patient*; "yesterday" and "evening" are the *time*; finally, "the park" is the *location*.
 
-传统的SRL系统大多建立在句法分析基础之上，通常包括5个流程：
+$$\mbox{[小明 Ming]}_{\mbox{Agent}}\mbox{[昨天 yesterday]}_{\mbox{Time}}\mbox{[晚上 evening]}_\mbox{Time}\mbox{在[公园 a park]}_{\mbox{Location}}\mbox{[遇到 to encounter]}_{\mbox{Predicate}}\mbox{了[小红 Hong]}_{\mbox{Patient}}\mbox{。}$$
 
-1. 构建一棵句法分析树，例如，图1是对上面例子进行依存句法分析得到的一棵句法树。
-2. 从句法树上识别出给定谓词的候选论元。
-3. 候选论元剪除；一个句子中的候选论元可能很多，候选论元剪除就是从大量的候选项中剪除那些最不可能成为论元的候选项。
-4. 论元识别：这个过程是从上一步剪除之后的候选中判断哪些是真正的论元，通常当做一个二分类问题来解决。
-5. 对第4步的结果，通过多分类得到论元的语义角色标签。可以看到，句法分析是基础，并且后续步骤常常会构造的一些人工特征，这些特征往往也来自句法分析。
+Instead of analyzing the semantic information, **Semantic Role Labeling** (**SRL**) identifies the relation between the predicate and the other constituents surrounding it. The predicate-argument structures are labeled as specific semantic roles. A wide range of natural language understanding tasks, including *information extraction*, *discourse analysis*, and *deepQA*. Research usually assumes a predicate of a sentence to be specified; the only task is to identify its arguments and their semantic roles.
 
-<div  align="center">
-<img src="image/dependency_parsing.png" width = "80%" align=center /><br>
-图1. 依存句法分析句法树示例
-</div>
+Conventional SRL systems mostly build on top of syntactic analysis, usually consisting of five steps:
 
-然而，完全句法分析需要确定句子所包含的全部句法信息，并确定句子各成分之间的关系，是一个非常困难的任务，目前技术下的句法分析准确率并不高，句法分析的细微错误都会导致SRL的错误。为了降低问题的复杂度，同时获得一定的句法结构信息，“浅层句法分析”的思想应运而生。浅层句法分析也称为部分句法分析（partial parsing）或语块划分（chunking）。和完全句法分析得到一颗完整的句法树不同，浅层句法分析只需要识别句子中某些结构相对简单的独立成分，例如：动词短语，这些被识别出来的结构称为语块。为了回避 “无法获得准确率较高的句法树” 所带来的困难，一些研究\[[1](#参考文献)\]也提出了基于语块（chunk）的SRL方法。基于语块的SRL方法将SRL作为一个序列标注问题来解决。序列标注任务一般都会采用BIO表示方式来定义序列标注的标签集，我们先来介绍这种表示方法。在BIO表示法中，B代表语块的开始，I代表语块的中间，O代表语块结束。通过B、I、O 三种标记将不同的语块赋予不同的标签，例如：对于一个角色为A的论元，将它所包含的第一个语块赋予标签B-A，将它所包含的其它语块赋予标签I-A，不属于任何论元的语块赋予标签O。
+1. Construct a syntax tree, as shown in Fig. 1
+2. Identity the candidate arguments of the given predicate on the tree.
+3. Prune the most unlikely candidate arguments.
+4. Identify the real arguments, often by a binary classifier.
+5. Multi-classify on results from step 4 to label the semantic roles. Steps 2 and 3 usually introduce hand-designed features based on syntactic analysis (step 1).
 
-我们继续以上面的这句话为例，图1展示了BIO表示方法。
 
 <div  align="center">
-<img src="image/bio_example.png" width = "90%"  align=center /><br>
-图2. BIO标注方法示例
+<img src="image/dependency_parsing_en.png" width = "80%" align=center /><br>
+Fig 1. Syntax tree
 </div>
 
-从上面的例子可以看到，根据序列标注结果可以直接得到论元的语义角色标注结果，是一个相对简单的过程。这种简单性体现在：（1）依赖浅层句法分析，降低了句法分析的要求和难度；（2）没有了候选论元剪除这一步骤；（3）论元的识别和论元标注是同时实现的。这种一体化处理论元识别和论元标注的方法，简化了流程，降低了错误累积的风险，往往能够取得更好的结果。
 
-与基于语块的SRL方法类似，在本教程中我们也将SRL看作一个序列标注问题，不同的是，我们只依赖输入文本序列，不依赖任何额外的语法解析结果或是复杂的人造特征，利用深度神经网络构建一个端到端学习的SRL系统。我们以[CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/)任务中SRL任务的公开数据集为例，实践下面的任务：给定一句话和这句话里的一个谓词，通过序列标注的方式，从句子中找到谓词对应的论元，同时标注它们的语义角色。
+However, a complete syntactic analysis requires identifying the relation among all constituents. Thus, the accuracy of SRL is sensitive to the preciseness of the syntactic analysis, making SRL challenging. To reduce its complexity and obtain some information on the syntactic structures, we often use *shallow syntactic analysis* a.k.a. partial parsing or chunking. Unlike complete syntactic analysis, which requires the construction of the complete parsing tree, *Shallow Syntactic Analysis* only requires identifying some independent constituents with relatively simple structures, such as verb phrases (chunk). To avoid difficulties in constructing a syntax tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking-based SRL methods, which reduces SRL into a sequence tagging problem. Sequence tagging tasks classify syntactic chunks using **BIO representation**. For syntactic chunks forming role A, its first chunk receives the B-A tag (Begin) and the remaining ones receive the tag I-A (Inside); in the end, the chunks left out receive the tag O.
 
-## 模型概览
+The BIO representation of above example is shown in Fig.1.
 
-循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于前馈神经网络（Feed-forward Neural Network），RNN能够处理输入之间前后关联的问题。LSTM是RNN的一种重要变种，常用来学习长序列中蕴含的长程依赖关系，我们在[情感分析](https://github.com/PaddlePaddle/book/tree/develop/05.understand_sentiment)一篇中已经介绍过，这一篇中我们依然利用LSTM来解决SRL问题。
+<div  align="center">
+<img src="image/bio_example_en.png" width = "90%"  align=center /><br>
+Fig 2. BIO representation
+</div>
 
-### 栈式循环神经网络（Stacked Recurrent Neural Network）
+This example illustrates the simplicity of sequence tagging, since
 
-深层网络有助于形成层次化特征，网络上层在下层已经学习到的初级特征基础上，形成更复杂的高级特征。尽管LSTM沿时间轴展开后等价于一个非常“深”的前馈网络，但由于LSTM各个时间步参数共享，$t-1$时刻状态到$t$时刻的映射，始终只经过了一次非线性映射，也就是说单层LSTM对状态转移的建模是 “浅” 的。堆叠多个LSTM单元，令前一个LSTM$t$时刻的输出，成为下一个LSTM单元$t$时刻的输入，帮助我们构建起一个深层网络，我们把它称为第一个版本的栈式循环神经网络。深层网络提高了模型拟合复杂模式的能力，能够更好地建模跨不同时间步的模式\[[2](#参考文献)\]。
+1. It only relies on shallow syntactic analysis, reduces the precision requirement of syntactic analysis;
+2. Pruning the candidate arguments is no longer necessary;
+3. Arguments are identified and tagged at the same time. Simplifying the workflow reduces the risk of accumulating errors; oftentimes, methods that unify multiple steps boost performance.
 
-然而，训练一个深层LSTM网络并非易事。纵向堆叠多个LSTM单元可能遇到梯度在纵向深度上传播受阻的问题。通常，堆叠4层LSTM单元可以正常训练，当层数达到4~8层时，会出现性能衰减，这时必须考虑一些新的结构以保证梯度纵向顺畅传播，这是训练深层LSTM网络必须解决的问题。我们可以借鉴LSTM解决 “梯度消失梯度爆炸” 问题的智慧之一：在记忆单元（Memory Cell）这条信息传播的路线上没有非线性映射，当梯度反向传播时既不会衰减、也不会爆炸。因此，深层LSTM模型也可以在纵向上添加一条保证梯度顺畅传播的路径。
+In this tutorial, our SRL system is built as an end-to-end system via a neural network. The system takes only text sequences as input, without using any syntactic parsing results or complex hand-designed features. The public dataset [CoNLL-2004 and CoNLL-2005 Shared Tasks](http://www.cs.upc.edu/~srlconll/) is used for the following task: given a sentence with predicates marked, identify the corresponding arguments and their semantic roles through sequence tagging.
 
-一个LSTM单元完成的运算可以被分为三部分：（1）输入到隐层的映射（input-to-hidden） ：每个时间步输入信息$x$会首先经过一个矩阵映射，再作为遗忘门，输入门，记忆单元，输出门的输入，注意，这一次映射没有引入非线性激活；（2）隐层到隐层的映射（hidden-to-hidden）：这一步是LSTM计算的主体，包括遗忘门，输入门，记忆单元更新，输出门的计算；（3）隐层到输出的映射（hidden-to-output）：通常是简单的对隐层向量进行激活。我们在第一个版本的栈式网络的基础上，加入一条新的路径：除上一层LSTM输出之外，将前层LSTM的输入到隐层的映射作为的一个新的输入，同时加入一个线性映射去学习一个新的变换。
+## Model
 
-图3是最终得到的栈式循环神经网络结构示意图。
+**Recurrent Neural Networks** (*RNN*) are important tools for sequence modeling and have been successfully used in some natural language processing tasks. Unlike feed-forward neural networks, RNNs can model the dependencies between elements of sequences. As a variant of RNNs', LSTMs aim model long-term dependency in long sequences. We have introduced this in [understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/05.understand_sentiment). In this chapter, we continue to use LSTMs to solve SRL problems.
+
+### Stacked Recurrent Neural Network
+
+*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural network. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to parameter sharing over time, LSTMs are also *shallow*; that is, the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
+
+
+However, in a deep LSTM network, any gradient propagated back in depth needs to traverse a large number of nonlinear steps. As a result, while LSTMs of 4 layers can be trained properly, those with 4-8 have much worse performance. Conventional LSTMs prevent back-propagated errors from vanishing or exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
+
+
+A single LSTM cell has three operations:
+
+1. input-to-hidden: map input $x$ to the input of the forget gates, input gates, memory cells and output gates by linear transformation (i.e., matrix mapping);
+2. hidden-to-hidden: calculate forget gates, input gates, output gates and update memory cell, this is the main part of LSTMs;
+3. hidden-to-output: this part typically involves an activation operation on hidden states.
+
+Based on the stacked LSTMs, we add shortcut connections: take the input-to-hidden from the previous layer as a new input and learn another linear transformation.
+
+Fig.3 illustrates the final stacked recurrent neural networks.
 
 <p align="center">  
-<img src="./image/stacked_lstm.png" width = "40%"  align=center><br>
-图3. 基于LSTM的栈式循环神经网络结构示意图
+<img src="./image/stacked_lstm_en.png" width = "40%"  align=center><br>
+Fig 3. Stacked Recurrent Neural Networks
 </p>
 
-### 双向循环神经网络（Bidirectional Recurrent Neural Network）
+### Bidirectional Recurrent Neural Network
 
-在LSTM中，$t$时刻的隐藏层向量编码了到$t$时刻为止所有输入的信息，但$t$时刻的LSTM可以看到历史，却无法看到未来。在绝大多数自然语言处理任务中，我们几乎总是能拿到整个句子。这种情况下，如果能够像获取历史信息一样，得到未来的信息，对序列学习任务会有很大的帮助。
+While LSTMs can summarize the history -- all the previous input seen up until now -- they can not see the future. Because most NLP (natural language processing) tasks provide the entirety of sentences, sequential learning can benefit from having the future encoded as well as the history.
 
-为了克服这一缺陷，我们可以设计一种双向循环网络单元，它的思想简单且直接：对上一节的栈式循环神经网络进行一个小小的修改，堆叠多个LSTM单元，让每一层LSTM单元分别以：正向、反向、正向 …… 的顺序学习上一层的输出序列。于是，从第2层开始，$t$时刻我们的LSTM单元便总是可以看到历史和未来的信息。图4是基于LSTM的双向循环神经网络结构示意图。
+To address, we can design a bidirectional recurrent neural network by making a minor modification. A higher LSTM layer can process the sequence in reversed direction with regards to its immediate lower LSTM layer, i.e., deep LSTM layers take turns to train on input sequences from left-to-right and right-to-left. Therefore, LSTM layers at time-step $t$ can see both histories and the future, starting from the second layer. Fig. 4 illustrates the bidirectional recurrent neural networks.
+
 
 <p align="center">  
-<img src="./image/bidirectional_stacked_lstm.png" width = "60%" align=center><br>
-图4. 基于LSTM的双向循环神经网络结构示意图
+<img src="./image/bidirectional_stacked_lstm_en.png" width = "60%" align=center><br>
+Fig 4. Bidirectional LSTMs
 </p>
 
-需要说明的是，这种双向RNN结构和Bengio等人在机器翻译任务中使用的双向RNN结构\[[3](#参考文献), [4](#参考文献)\] 并不相同，我们会在后续[机器翻译](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.md)任务中，介绍另一种双向循环神经网络。
+Note that, this bidirectional RNNs is different with the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following tasks [machine translation](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/README.md)
 
-### 条件随机场 (Conditional Random Field)
+### Conditional Random Field (CRF)
 
-使用神经网络模型解决问题的思路通常是：前层网络学习输入的特征表示，网络的最后一层在特征基础上完成最终的任务。在SRL任务中，深层LSTM网络学习输入的特征表示，条件随机场（Conditional Random Filed， CRF）在特征的基础上完成序列标注，处于整个网络的末端。
+Typically, a neural network's lower layers learn representations while its very top layer learns the final task. These principles can guide our problem-solving approaches. In SRL tasks, a **Conditional Random Field** (*CRF*) is built on top of the network in order to perform the final prediction to tag sequences. It takes as input the representations provided by the last LSTM layer.
 
-CRF是一种概率化结构模型，可以看作是一个概率无向图模型，结点表示随机变量，边表示随机变量之间的概率依赖关系。简单来讲，CRF学习条件概率$P(X|Y)$，其中 $X = (x_1, x_2, ... , x_n)$ 是输入序列，$Y = (y_1, y_2, ... , y_n)$ 是标记序列；解码过程是给定 $X$序列求解令$P(Y|X)$最大的$Y$序列，即$Y^* = \mbox{arg max}_{Y} P(Y | X)$。
 
-序列标注任务只需要考虑输入和输出都是一个线性序列，并且由于我们只是将输入序列作为条件，不做任何条件独立假设，因此输入序列的元素之间并不存在图结构。综上，在序列标注任务中使用的是如图5所示的定义在链式图上的CRF，称之为线性链条件随机场（Linear Chain Conditional Random Field）。
+The CRF is an undirected probabilistic graph with nodes denoting random variables and edges denoting dependencies between these variables. In essence, CRFs learn the conditional probability $P(Y|X)$, where $X = (x_1, x_2, ... , x_n)$ are sequences of input and $Y = (y_1, y_2, ... , y_n)$ are label sequences; to decode, simply search through $Y$ for a sequence that maximizes the conditional probability $P(Y|X)$, i.e., $Y^* = \mbox{arg max}_{Y} P(Y | X)$。
+
+Sequence tagging tasks do not assume a lot of conditional independence, because they are only concerned with the input and the output being linear sequences. Thus, the graph model of sequence tagging tasks is usually a simple chain or line, which results in a **Linear-Chain Conditional Random Field**, shown in Fig.5.
 
 <p align="center">  
 <img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
-图5. 序列标注任务中使用的线性链条件随机场
+Fig 5. Linear Chain Conditional Random Field used in SRL tasks
 </p>
 
-根据线性链条件随机场上的因子分解定理\[[5](#参考文献)\]，在给定观测序列$X$时，一个特定标记序列$Y$的概率可以定义为：
+By the fundamental theorem of random fields \[[5](#Reference)\], the joint distribution over the label sequence $Y$ given $X$ has the form:
 
 $$p(Y | X) = \frac{1}{Z(X)} \text{exp}\left(\sum_{i=1}^{n}\left(\sum_{j}\lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} \mu_k s_k (y_i, X, i)\right)\right)$$
 
-其中$Z(X)$是归一化因子，$t_j$ 是定义在边上的特征函数，依赖于当前和前一个位置，称为转移特征，表示对于输入序列$X$及其标注序列在 $i$及$i - 1$位置上标记的转移概率。$s_k$是定义在结点上的特征函数，称为状态特征，依赖于当前位置，表示对于观察序列$X$及其$i$位置的标记概率。$\lambda_j$ 和 $\mu_k$ 分别是转移特征函数和状态特征函数对应的权值。实际上，$t$和$s$可以用相同的数学形式表示，再对转移特征和状态特在各个位置$i$求和有：$f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$，把$f$统称为特征函数，于是$P(Y|X)$可表示为：
+
+where, $Z(X)$ is normalization constant, ${t_j}$ represents the feature functions defined on edges called the *transition feature*, which denotes the transition probabilities from $y_{i-1}$ to $y_i$ given input sequence $X$. ${s_k}$ represents the feature function defined on nodes, called the state feature, denoting the probability of $y_i$ given input sequence $X$. In addition, $\lambda_j$ and $\mu_k$ are weights corresponding to $t_j$ and $s_k$. Alternatively, $t$ and $s$ can be written in the same form that depends on $y_{i - 1}$, $y_i$, $X$, and $i$. Taking its summation over all nodes $i$, we have: $f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$, which defines the *feature function* $f$. Thus, $P(Y|X)$ can be written as:
 
 $$p(Y|X, W) = \frac{1}{Z(X)}\text{exp}\sum_{k}\omega_{k}f_{k}(Y, X)$$
 
-$\omega$是特征函数对应的权值，是CRF模型要学习的参数。训练时，对于给定的输入序列和对应的标记序列集合$D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$ ，通过正则化的极大似然估计，求解如下优化目标：
+where $\omega$ are the weights to the feature function that the CRF learns. While training, given input sequences and label sequences $D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$, by maximum likelihood estimation (**MLE**), we construct the following objective function:
+
 
 $$\DeclareMathOperator*{\argmax}{arg\,max} L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
 
-这个优化目标可以通过反向传播算法和整个神经网络一起求解。解码时，对于给定的输入序列$X$，通过解码算法（通常有：维特比算法、Beam Search）求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
 
-### 深度双向LSTM（DB-LSTM）SRL模型
+This objective function can be solved via back-propagation in an end-to-end manner. While decoding, given input sequences $X$, search for sequence $\bar{Y}$ to maximize the conditional probability $\bar{P}(Y|X)$ via decoding methods (such as *Viterbi*, or [Beam Search Algorithm](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/README.md#beam-search-algorithm)).
 
-在SRL任务中，输入是 “谓词” 和 “一句话”，目标是从这句话中找到谓词的论元，并标注论元的语义角色。如果一个句子含有$n$个谓词，这个句子会被处理$n$次。一个最为直接的模型是下面这样：
+### Deep Bidirectional LSTM (DB-LSTM) SRL model
 
-1. 构造输入；
- - 输入1是谓词，输入2是句子
- - 将输入1扩展成和输入2一样长的序列，用one-hot方式表示；
-2. one-hot方式的谓词序列和句子序列通过词表，转换为实向量表示的词向量序列；
-3. 将步骤2中的2个词向量序列作为双向LSTM的输入，学习输入序列的特征表示；
-4. CRF以步骤3中模型学习到的特征为输入，以标记序列为监督信号，实现序列标注；
+Given predicates and a sentence, SRL tasks aim to identify arguments of the given predicate and their semantic roles. If a sequence has $n$ predicates, we will process this sequence $n$ times. Here is the breakdown of a straight-forward model:
 
-大家可以尝试上面这种方法。这里，我们提出一些改进，引入两个简单但对提高系统性能非常有效的特征：
+1. Construct inputs;
+ - input 1: predicate, input 2: sentence
+ - expand input 1 into a sequence of the same length with input 2's sentence, using one-hot representation;
+2. Convert the one-hot sequences from step 1 to vector sequences via a word embedding's lookup table;
+3. Learn the representation of input sequences by taking vector sequences from step 2 as inputs;
+4. Take the representation from step 3 as input, label sequence as supervisory signal, and realize sequence tagging tasks.
 
-- 谓词上下文：上面的方法中，只用到了谓词的词向量表达谓词相关的所有信息，这种方法始终是非常弱的，特别是如果谓词在句子中出现多次，有可能引起一定的歧义。从经验出发，谓词前后若干个词的一个小片段，能够提供更丰富的信息，帮助消解歧义。于是，我们把这样的经验也添加到模型中，为每个谓词同时抽取一个“谓词上下文” 片段，也就是从这个谓词前后各取$n$个词构成的一个窗口片段；
-- 谓词上下文区域标记：为句子中的每一个词引入一个0-1二值变量，表示它们是否在“谓词上下文”片段中；
+Here, we propose some improvements by introducing two simple but effective features:
 
-修改后的模型如下（图6是一个深度为4的模型结构示意图）：
+- predicate context (**ctx-p**): A single predicate word may not describe all the predicate information, especially when the same words appear multiple times in a sentence. With the expanded context, the ambiguity can be largely eliminated. Thus, we extract $n$ words before and after predicate to construct a window chunk.
 
-1. 构造输入
- - 输入1是句子序列，输入2是谓词序列，输入3是谓词上下文，从句子中抽取这个谓词前后各$n$个词，构成谓词上下文，用one-hot方式表示，输入4是谓词上下文区域标记，标记了句子中每一个词是否在谓词上下文中；
- - 将输入2~3均扩展为和输入1一样长的序列；
-2. 输入1~4均通过词表取词向量转换为实向量表示的词向量序列；其中输入1、3共享同一个词表，输入2和4各自独有词表；
-3. 第2步的4个词向量序列作为双向LSTM模型的输入；LSTM模型学习输入序列的特征表示，得到新的特性表示序列；
-4. CRF以第3步中LSTM学习到的特征为输入，以标记序列为监督信号，完成序列标注；
+- region mark ($m_r$): The binary marker on a word, $m_r$, takes the value of $1$ when the word is in the predicate context region, and $0$ if not.
+
+After these modifications, the model is as follows, as illustrated in Figure 6:
+
+1. Construct inputs
+ - Input 1: word sequence. Input 2: predicate. Input 3: predicate context, extract $n$ words before and after predicate. Input 4: region mark sequence, where an entry is 1 if word is located in the predicate context region, 0 otherwise.
+ - expand input 2~3 into sequences with the same length with input 1
+2. Convert input 1~4 to vector sequences via word embedding lookup tables; While input 1 and 3 shares the same lookup table, input 2 and 4 have separate lookup tables.
+3. Take the four vector sequences from step 2 as inputs to bidirectional LSTMs; Train the LSTMs to update representations.
+4. Take the representation from step 3 as input to CRF, label sequence as supervisory signal, and complete sequence tagging tasks.
+
 
 <div  align="center">  
-<img src="image/db_lstm_network.png" width = "60%"  align=center /><br>
-图6. SRL任务上的深层双向LSTM模型
+<img src="image/db_lstm_network_en.png" width = "60%"  align=center /><br>
+Fig 6. DB-LSTM for SRL tasks
 </div>
 
+## Data Preparation
 
-## 数据介绍
+In the tutorial, we use [CoNLL 2005](http://www.cs.upc.edu/~srlconll/) SRL task open dataset as an example. Note that the training set and development set of the CoNLL 2005 SRL task are not free to download after the competition. Currently, only the test set can be obtained, including 23 sections of the Wall Street Journal and three sections of the Brown corpus. In this tutorial, we use the WSJ corpus as the training dataset to explain the model. However, since the training set is small, for a usable neural network SRL system, please consider paying for the full corpus.
 
-在此教程中，我们选用[CoNLL 2005](http://www.cs.upc.edu/~srlconll/)SRL任务开放出的数据集作为示例。需要特别说明的是，CoNLL 2005 SRL任务的训练数集和开发集在比赛之后并非免费进行公开，目前，能够获取到的只有测试集，包括Wall Street Journal的23节和Brown语料集中的3节。在本教程中，我们以测试集中的WSJ数据为训练集来讲解模型。但是，由于测试集中样本的数量远远不够，如果希望训练一个可用的神经网络SRL系统，请考虑付费获取全量数据。
-
-原始数据中同时包括了词性标注、命名实体识别、语法解析树等多种信息。本教程中，我们使用test.wsj文件夹中的数据进行训练和测试，并只会用到words文件夹（文本序列）和props文件夹（标注结果）下的数据。本教程使用的数据目录如下：
+The original data includes a variety of information such as POS tagging, naming entity recognition, syntax tree, etc. In this tutorial, we only use the data under `test.wsj/words/` (text sequence) and `test.wsj/props/` (label results). The data directory used in this tutorial is as follows:
 
 ```text
 conll05st-release/
@@ -141,27 +165,26 @@ conll05st-release/
     └── words  # 输入文本序列
 ```
 
-标注信息源自Penn TreeBank\[[7](#参考文献)\]和PropBank\[[8](#参考文献)\]的标注结果。PropBank标注结果的标签和我们在文章一开始示例中使用的标注结果标签不同，但原理是相同的，关于标注结果标签含义的说明，请参考论文\[[9](#参考文献)\]。
+The annotation information is derived from the results of Penn TreeBank\[[7](#references)\] and PropBank \[[8](# references)\]. The labeling of the PropBank is different from the labeling methods mentioned before, but shares with it the same underlying principle. For descriptions of the labeling, please refer to the paper \[[9](#references)\].
 
-原始数据需要进行数据预处理才能被PaddlePaddle处理，预处理包括下面几个步骤:
+The raw data needs to be preprocessed into formats that PaddlePaddle can handle. The preprocessing consists of the following steps:
 
-1. 将文本序列和标记序列其合并到一条记录中；
-2. 一个句子如果含有$n$个谓词，这个句子会被处理$n$次，变成$n$条独立的训练样本，每个样本一个不同的谓词；
-3. 抽取谓词上下文和构造谓词上下文区域标记；
-4. 构造以BIO法表示的标记；
-5. 依据词典获取词对应的整数索引。
-
+1. Merge the text sequence and the tag sequence into the same record;
+2. If a sentence contains $n$ predicates, the sentence will be processed $n$ times into $n$ separate training samples, each sample with a different predicate;
+3. Extract the predicate context and construct the predicate context region marker;
+4. Construct the markings in BIO format;
+5. Obtain the integer index corresponding to the word according to the dictionary.
 
 ```python
 # import paddle.v2.dataset.conll05 as conll05
-# conll05.corpus_reader函数完成上面第1步和第2步.
-# conll05.reader_creator函数完成上面第3步到第5步.
-# conll05.test函数可以获取处理之后的每条样本来供PaddlePaddle训练.
+# conll05.corpus_reader does step 1 and 2 as mentioned above.
+# conll05.reader_creator does step 3 to 5.
+# conll05.test gets preprocessed training instances.
 ```
 
-预处理完成之后一条训练样本包含9个特征，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。下表是一条训练样本的示例。
+After preprocessing, a training sample contains nine features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, label sequence. The following table is an example of a training sample.
 
-| 句子序列 | 谓词 | 谓词上下文（窗口 = 5） | 谓词上下文区域标记 | 标注序列 |
+| word sequence | predicate | predicate context（5 columns） | region mark sequence | label sequence|
 |---|---|---|---|---|
 | A | set | n't been set . × | 0 | B-A1 |
 | record | set | n't been set . × | 0 | I-A1 |
@@ -172,19 +195,18 @@ conll05st-release/
 | set | set | n't been set . × | 1 | B-V |
 | . | set | n't been set . × | 1 | O |
 
+In addition to the data, we provide following resources:
 
-除数据之外，我们同时提供了以下资源：
-
-| 文件名称 | 说明 |
+| filename | explanation |
 |---|---|
-| word_dict | 输入句子的词典，共计44068个词 |
-| label_dict | 标记的词典，共计106个标记 |
-| predicate_dict | 谓词的词典，共计3162个词 |
-| emb | 一个训练好的词表，32维 |
+| word_dict | dictionary of input sentences, total 44068 words |
+| label_dict | dictionary of labels, total 106 labels |
+| predicate_dict | predicate dictionary, total 3162 predicates |
+| emb | a pre-trained word vector lookup table, 32-dimentional |
 
-我们在英文维基百科上训练语言模型得到了一份词向量用来初始化SRL模型。在SRL模型训练过程中，词向量不再被更新。关于语言模型和词向量可以参考[词向量](https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/README.md) 这篇教程。我们训练语言模型的语料共有995,000,000个token，词典大小控制为4900,000词。CoNLL 2005训练语料中有5%的词不在这4900,000个词中，我们将它们全部看作未登录词，用`<unk>`表示。
+We trained a language model on the English Wikipedia to get a word vector lookup table used to initialize the SRL model. While training the SRL model, the word vector lookup table is no longer updated. To learn more about the language model and the word vector lookup table, please refer to the tutorial [word vector](https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/README.md). There are 995,000,000 tokens in the training corpus, and the dictionary size is 4900,000 words. In the CoNLL 2005 training corpus, 5% of the words are not in the 4900,000 words, and we see them all as unknown words, represented by `<unk>`.
 
-获取词典，打印词典大小：
+Here we fetch the dictionary, and print its size:
 
 ```python
 import math
@@ -206,50 +228,51 @@ print label_dict_len
 print pred_len
 ```
 
-## 模型配置说明
+## Model Configuration
 
-- 定义输入数据维度及模型超参数。
+- Define input data dimensions and model hyperparameters.
 
 ```python
-mark_dict_len = 2    # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
-word_dim = 32        # 词向量维度
-mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
-hidden_dim = 512     # LSTM隐层向量的维度 ： 512 / 4
-depth = 8            # 栈式LSTM的深度
+mark_dict_len = 2    # value range of region mark. Region mark is either 0 or 1, so range is 2
+word_dim = 32        # word vector dimension
+mark_dim = 5         # adjacent dimension
+hidden_dim = 512     # the dimension of LSTM hidden layer vector is 128 (512/4)
+depth = 8            # depth of stacked LSTM
 
-# 一条样本总共9个特征，下面定义了9个data层，每个层类型为integer_value_sequence，表示整数ID的序列类型.
-def d_type(size):
-    return paddle.data_type.integer_value_sequence(size)
+# There are 9 features per sample, so we will define 9 data layers.
+# They type for each layer is integer_value_sequence.
+def d_type(value_range):
+    return paddle.data_type.integer_value_sequence(value_range)
 
-# 句子序列
+# word sequence
 word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
-# 谓词
+# predicate
 predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len))
 
-# 谓词上下文5个特征
+# 5 features for predicate context
 ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len))
 ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
 ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
 ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
 ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
 
-# 谓词上下区域标志
+# region marker sequence
 mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
 
-# 标注序列
+# label sequence
 target = paddle.layer.data(name='target', type=d_type(label_dict_len))
 ```
 
-这里需要特别说明的是hidden_dim = 512指定了LSTM隐层向量的维度为128维，关于这一点请参考PaddlePaddle官方文档中[lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)的说明。
+Note that `hidden_dim = 512` means a LSTM hidden vector of 128 dimension (512/4). Please refer to PaddlePaddle's official documentation for detail: [lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)。
 
-- 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
+- Transform the word sequence itself, the predicate, the predicate context, and the region mark sequence into embedded vector sequences.
 
 ```python  
 
-# 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
-# is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
+# Since word vectorlookup table is pre-trained, we won't update it this time.
+# is_static being True prevents updating the lookup table during training.
 emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
-# 设置超参数
+# hyperparameter configurations
 default_std = 1 / math.sqrt(hidden_dim) / 3.0
 std_default = paddle.attr.Param(initial_std=default_std)
 std_0 = paddle.attr.Param(initial_std=0.)
@@ -271,7 +294,7 @@ emb_layers.append(predicate_embedding)
 emb_layers.append(mark_embedding)
 ```
 
-- 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
+- 8 LSTM units are trained through alternating left-to-right / right-to-left order denoted by the variable `reverse`.
 
 ```python  
 hidden_0 = paddle.layer.mixed(
@@ -295,7 +318,7 @@ lstm_0 = paddle.layer.lstmemory(
     bias_attr=std_0,
     param_attr=lstm_para_attr)
 
-#stack L-LSTM and R-LSTM with direct edges
+# stack L-LSTM and R-LSTM with direct edges
 input_tmp = [hidden_0, lstm_0]
 
 for i in range(1, depth):
@@ -321,12 +344,13 @@ for i in range(1, depth):
     input_tmp = [mix_hidden, lstm]
 ```
 
-- 在PaddlePaddle中，CRF的状态特征和转移特征分别由一个全连接层和一个PaddlePaddle中的CRF层分别学习。在这个例子中，我们用线性激活的paddle.layer.mixed 来学习CRF的状态特征（也可以使用paddle.layer.fc），而 paddle.layer.crf只学习转移特征。paddle.layer.crf层是一个 cost 层，处于整个网络的末端，输出给定输入序列下，标记序列的log probability作为代价。训练阶段，该层需要输入正确的标记序列作为学习目标。
+- In PaddlePaddle, state features and transition features of a CRF are implemented by a fully connected layer and a CRF layer seperately. The fully connected layer with linear activation learns the state features, here we use paddle.layer.mixed (paddle.layer.fc can be uesed as well), and the CRF layer in PaddlePaddle: paddle.layer.crf only learns the transition features, which is a cost layer and is the last layer of the network. paddle.layer.crf outputs the log probability of true tag sequence as the cost by given the input sequence and it requires the true tag sequence as target in the learning process.
 
 ```python
 
-# 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，
-# 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
+# The output of the top LSTM unit and its input are feed into a fully connected layer,
+# size of which equals to size of tag labels.
+# The fully connected layer learns the state features
 
 feature_out = paddle.layer.mixed(
     size=label_dict_len,
@@ -335,10 +359,8 @@ feature_out = paddle.layer.mixed(
         paddle.layer.full_matrix_projection(
             input=input_tmp[0], param_attr=hidden_para_attr),
         paddle.layer.full_matrix_projection(
-            input=input_tmp[1], param_attr=lstm_para_attr)
-    ], )
+            input=input_tmp[1], param_attr=lstm_para_attr)], )
 
-# 学习 CRF 的转移特征
 crf_cost = paddle.layer.crf(
     size=label_dict_len,
     input=feature_out,
@@ -349,7 +371,7 @@ crf_cost = paddle.layer.crf(
         learning_rate=mix_hidden_lr))
 ```
 
-- CRF解码和CRF层参数名字相同，即：加载了`paddle.layer.crf`层学习到的参数。在训练阶段，为`paddle.layer.crf_decoding` 输入了正确的标记序列(target)，这一层会输出是否正确标记，`evaluator.sum` 用来计算序列上的标记错误率，可以用来评估模型。解码阶段，没有输入正确的数据标签，该层通过寻找概率最高的标记序列，解码出标记结果。
+- The CRF decoding layer is used for evaluation and inference. It shares weights with CRF layer.  The sharing of parameters among multiple layers is specified by using the same parameter name in these layers. If true tag sequence is provided in training process, `paddle.layer.crf_decoding` calculates labelling error for each input token and `evaluator.sum` sum the error over the entire sequence. Otherwise, `paddle.layer.crf_decoding`  generates the labelling tags.
 
 ```python
 crf_dec = paddle.layer.crf_decoding(
@@ -360,27 +382,25 @@ crf_dec = paddle.layer.crf_decoding(
 evaluator.sum(input=crf_dec)
 ```
 
-## 训练模型
+## Train model
 
-### 定义参数
+### Create Parameters
 
-首先依据模型配置的`crf_cost`定义模型参数。
+All necessary parameters will be traced created given output layers that we need to use.
 
 ```python
-# create parameters
 parameters = paddle.parameters.create(crf_cost)
 ```
 
-可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
+We can print out parameter name. It will be generated if not specified.
 
 ```python
 print parameters.keys()
 ```
 
-如上文提到，我们用基于英文维基百科训练好的词向量来初始化序列输入、谓词上下文总共6个特征的embedding层参数，在训练中不更新。
+Now we load the pre-trained word lookup tables from word embeddings trained on the English language Wikipedia.
 
 ```python
-# 这里加载PaddlePaddle上版保存的二进制模型
 def load_parameter(file_name, h, w):
     with open(file_name, 'rb') as f:
         f.read(16)
@@ -388,12 +408,11 @@ def load_parameter(file_name, h, w):
 parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 ```
 
-### 构造训练(Trainer)
+### Create Trainer
 
-然后根据网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法(momentum设置为0)，同时设定了学习率、正则等。
+We will create trainer given model topology, parameters, and optimization method. We will use the most basic **SGD** method, which is a momentum optimizer with 0 momentum. Meanwhile, we will set learning rate and regularization.
 
 ```python
-# create optimizer
 optimizer = paddle.optimizer.Momentum(
     momentum=0,
     learning_rate=1e-3,
@@ -407,9 +426,9 @@ trainer = paddle.trainer.SGD(cost=crf_cost,
                              extra_layers=crf_dec)
 ```
 
-### 训练
+### Trainer
 
-数据介绍部分提到CoNLL 2005训练集付费，这里我们使用测试集训练供大家学习。`conll05.test()`每次产生一条样本，包含9个特征，shuffle和组完batch后作为训练的输入。
+As mentioned in data preparation section, we will use CoNLL 2005 test corpus as the training data set. `conll05.test()` outputs one training instance at a time. It is shuffled and batched into mini batches, and used as input.
 
 ```python
 reader = paddle.batch(
@@ -417,8 +436,7 @@ reader = paddle.batch(
         conll05.test(), buf_size=8192), batch_size=2)
 ```
 
-通过`feeding`来指定每一个数据和data_layer的对应关系。 例如 下面`feeding`表示: `conll05.test()`产生数据的第0列对应`word_data`层的特征。
-
+`feeding` is used to specify the correspondence between data instance and data layer. For example, according to following `feeding`, the 0th column of data instance produced by`conll05.test()` is matched to the data layer named `word_data`.
 
 ```python
 feeding = {
@@ -434,7 +452,7 @@ feeding = {
 }
 ```
 
-可以使用`event_handler`回调函数来观察训练过程，或进行测试等。这里我们打印了训练过程的cost，该回调函数是`trainer.train`函数里设定。
+`event_handler` can be used as callback for training events, it will be used as an argument for the `train` method. Following `event_handler` prints cost during training.
 
 ```python
 def event_handler(event):
@@ -455,19 +473,19 @@ def event_handler(event):
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
 
-通过`trainer.train`函数训练：
+`trainer.train` will train the model.
 
 ```python
 trainer.train(
     reader=reader,
     event_handler=event_handler,
-    num_passes=1,
+    num_passes=10000,
     feeding=feeding)
 ```
 
-### 应用模型
+### Application
 
-训练完成之后，需要依据某个我们关心的性能指标选择最优的模型进行预测，可以简单的选择测试集上标记错误最少的那个模型。预测时使用 `paddle.layer.crf_decoding`，和训练不同的是，该层没有正确的标签层作为输入。如下所示：
+Aftern training is done, we need to select an optimal model based one performance index to do inference. In this task, one can simply select the model with the least number of marks on the test set. The `paddle.layer.crf_decoding` layer is used in the inference, but its inputs does not include the ground truth label.
 
 ```python
 predict = paddle.layer.crf_decoding(
@@ -476,7 +494,7 @@ predict = paddle.layer.crf_decoding(
     param_attr=paddle.attr.Param(name='crfw'))
 ```
 
-这里选用测试集的一条数据作为示例。
+Here, using one testing sample as an example.
 
 ```python
 test_creator = paddle.dataset.conll05.test()
@@ -487,7 +505,8 @@ for item in test_creator():
         break
 ```
 
-推断接口`paddle.infer`返回标签的索引，并查询词典`labels_reverse`，打印出标记的结果。
+The inference interface `paddle.infer` returns the index of predicting labels. Then printing the tagging results based dictionary `labels_reverse`.
+
 
 ```python
 labs = paddle.infer(
@@ -500,11 +519,11 @@ pre_lab = [labels_reverse[i] for i in labs]
 print pre_lab
 ```
 
-## 总结
+## Conclusion
 
-语义角色标注是许多自然语言理解任务的重要中间步骤。这篇教程中我们以语义角色标注任务为例，介绍如何利用PaddlePaddle进行序列标注任务。教程中所介绍的模型来自我们发表的论文\[[10](#参考文献)\]。由于 CoNLL 2005 SRL任务的训练数据目前并非完全开放，教程中只使用测试数据作为示例。在这个过程中，我们希望减少对其它自然语言处理工具的依赖，利用神经网络数据驱动、端到端学习的能力，得到一个和传统方法可比、甚至更好的模型。在论文中我们证实了这种可能性。关于模型更多的信息和讨论可以在论文中找到。
+Semantic Role Labeling is an important intermediate step in a wide range of natural language processing tasks. In this tutorial, we use SRL as an example to illustrate using PaddlePaddle to do sequence tagging tasks. The models proposed are from our published paper\[[10](#Reference)\]. We only use test data for illustration since the training data on the CoNLL 2005 dataset is not completely public. This aims to propose an end-to-end neural network model with fewer dependencies on natural language processing tools but is comparable, or even better than traditional models in terms of performance. Please check out our paper for more information and discussions.
 
-## 参考文献
+## Reference
 1. Sun W, Sui Z, Wang M, et al. [Chinese semantic role labeling with shallow parsing](http://www.aclweb.org/anthology/D09-1#page=1513)[C]//Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 3-Volume 3. Association for Computational Linguistics, 2009: 1475-1483.
 2. Pascanu R, Gulcehre C, Cho K, et al. [How to construct deep recurrent neural networks](https://arxiv.org/abs/1312.6026)[J]. arXiv preprint arXiv:1312.6026, 2013.
 3. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.
@@ -517,4 +536,4 @@ print pre_lab
 10. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
+This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.

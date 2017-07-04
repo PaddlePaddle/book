@@ -40,160 +40,167 @@
 
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
+# Word2Vec
 
-# 词向量
+This is intended as a reference tutorial. The source code of this tutorial lives on [book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec).
 
-本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.md#运行这本书)。
+For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
-## 背景介绍
+## Background Introduction
 
-本章我们介绍词的向量表征，也称为word embedding。词向量是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
+This section introduces the concept of **word embedding**, which is a vector representation of words. It is a popular technique used in natural language processing. Word embeddings support many Internet services, including search engines, advertising systems, and recommendation systems.
 
-在这些互联网服务里，我们经常要比较两个词或者两段文本之间的相关性。为了做这样的比较，我们往往先要把词表示成计算机适合处理的方式。最自然的方式恐怕莫过于向量空间模型(vector space model)。
-在这种方式里，每个词被表示成一个实数向量（one-hot vector），其长度为字典大小，每个维度对应一个字典里的每个词，除了这个词对应维度上的值是1，其他元素都是0。
+### One-Hot Vectors
 
-One-hot vector虽然自然，但是用处有限。比如，在互联网广告系统里，如果用户输入的query是“母亲节”，而有一个广告的关键词是“康乃馨”。虽然按照常理，我们知道这两个词之间是有联系的——母亲节通常应该送给母亲一束康乃馨；但是这两个词对应的one-hot vectors之间的距离度量，无论是欧氏距离还是余弦相似度(cosine similarity)，由于其向量正交，都认为这两个词毫无相关性。 得出这种与我们相悖的结论的根本原因是：每个词本身的信息量都太小。所以，仅仅给定两个词，不足以让我们准确判别它们是否相关。要想精确计算相关性，我们还需要更多的信息——从大量数据里通过机器学习方法归纳出来的知识。
+Building these services requires us to quantify the similarity between two words or paragraphs. This calls for a new representation of all the words to make them more suitable for computation. An obvious way to achieve this is through the vector space model, where every word is represented as an **one-hot vector**.
 
-在机器学习领域里，各种“知识”被各种模型表示，词向量模型(word embedding model)就是其中的一类。通过词向量模型可将一个 one-hot vector映射到一个维度更低的实数向量（embedding vector），如$embedding(母亲节) = [0.3, 4.2, -1.5, ...], embedding(康乃馨) = [0.2, 5.6, -2.3, ...]$。在这个映射到的实数向量表示中，希望两个语义（或用法）上相似的词对应的词向量“更像”，这样如“母亲节”和“康乃馨”的对应词向量的余弦相似度就不再为零了。
+For each word, its vector representation has the corresponding entry in the vector as 1, and all other entries as 0. The lengths of one-hot vectors match the size of the dictionary. Each entry of a vector corresponds to the presence (or absence) of a word in the dictionary.
 
-词向量模型可以是概率模型、共生矩阵(co-occurrence matrix)模型或神经元网络模型。在用神经网络求词向量之前，传统做法是统计一个词语的共生矩阵$X$。$X$是一个$|V| \times |V|$ 大小的矩阵，$X_{ij}$表示在所有语料中，词汇表`V`(vocabulary)中第i个词和第j个词同时出现的词数，$|V|$为词汇表的大小。对$X$做矩阵分解（如奇异值分解，Singular Value Decomposition \[[5](#参考文献)\]），得到的$U$即视为所有词的词向量：
+One-hot vectors are intuitive, yet they have limited usefulness. Take the example of an Internet advertising system: Suppose a customer enters the query "Mother's Day", while an ad bids for the keyword carnations". Because the one-hot vectors of these two words are perpendicular, the metric distance (either Euclidean or cosine similarity) between them would indicate  little relevance. However, *we* know that these two queries are connected semantically, since people often gift their mothers bundles of carnation flowers on Mother's Day. This discrepancy is due to the low information capacity in each vector. That is, comparing the vector representations of two words does not assess their relevance sufficiently. To calculate their similarity accurately, we need more information, which could be learned from large amounts of data through machine learning methods.
+
+Like many machine learning models, word embeddings can represent knowledge in various ways. Another model may project an one-hot vector to an embedding vector of lower dimension e.g. $embedding(mother's day) = [0.3, 4.2, -1.5, ...], embedding(carnations) = [0.2, 5.6, -2.3, ...]$. Mapping one-hot vectors onto an embedded vector space has the potential to bring the embedding vectors of similar words (either semantically or usage-wise) closer to each other, so that the cosine similarity between the corresponding vectors for words like "Mother's Day" and "carnations" are no longer zero.
+
+A word embedding model could be a probabilistic model, a co-occurrence matrix model, or a neural network. Before people started using neural networks to generate word embedding, the traditional method was to calculate a co-occurrence matrix $X$ of words. Here, $X$ is a $|V| \times |V|$ matrix, where $X_{ij}$ represents the co-occurrence times of the $i$th and $j$th words in the vocabulary `V` within all corpus, and $|V|$ is the size of the vocabulary. By performing matrix decomposition on $X$ e.g. Singular Value Decomposition \[[5](#References)\]
 
 $$X = USV^T$$
 
-但这样的传统做法有很多问题：<br/>
-1) 由于很多词没有出现，导致矩阵极其稀疏，因此需要对词频做额外处理来达到好的矩阵分解效果；<br/>
-2) 矩阵非常大，维度太高(通常达到$10^6*10^6$的数量级)；<br/>
-3) 需要手动去掉停用词（如although, a,...），不然这些频繁出现的词也会影响矩阵分解的效果。
+the resulting $U$ can be seen as the word embedding of all the words.
 
+However, this method suffers from many drawbacks:
+1) Since many pairs of words don't co-occur, the co-occurrence matrix is sparse. To achieve good performance of matrix factorization, further treatment on word frequency is needed;
+2) The matrix is large, frequently on the order of $10^6*10^6$;
+3) We need to manually filter out stop words (like "although", "a", ...), otherwise these frequent words will affect the performance of matrix factorization.
 
-基于神经网络的模型不需要计算存储一个在全语料上统计的大表，而是通过学习语义信息得到词向量，因此能很好地解决以上问题。在本章里，我们将展示基于神经网络训练词向量的细节，以及如何用PaddlePaddle训练一个词向量模型。
+The neural network based model does not require storing huge hash tables of statistics on all of the corpus. It obtains the word embedding by learning from semantic information, hence could avoid the aforementioned problems in the traditional method. In this chapter, we will introduce the details of neural network word embedding model and how to train such model in PaddlePaddle.
 
+## Results Demonstration
 
-## 效果展示
-
-本章中，当词向量训练好后，我们可以用数据可视化算法t-SNE\[[4](#参考文献)\]画出词语特征在二维上的投影（如下图所示）。从图中可以看出，语义相关的词语（如a, the, these; big, huge）在投影上距离很近，语意无关的词（如say, business; decision, japan）在投影上的距离很远。
+In this section, after training the word embedding model, we could use the data visualization algorithm $t-$SNE\[[4](#reference)\] to draw the word embedding vectors after projecting them onto a two-dimensional space (see figure below). From the figure we could see that the semantically relevant words -- *a*, *the*, and *these* or *big* and *huge* -- are close to each other in the projected space, while irrelevant words -- *say* and *business* or *decision* and *japan* -- are far from each other.
 
 <p align="center">
     <img src = "image/2d_similarity.png" width=400><br/>
-    图1. 词向量的二维投影
+    Figure 1. Two dimension projection of word embeddings
 </p>
 
-另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
+### Cosine Similarity
+
+On the other hand, we know that the cosine similarity between two vectors falls between $[-1,1]$. Specifically, the cosine similarity is 1 when the vectors are identical, 0 when the vectors are perpendicular, -1 when the are of opposite directions. That is, the cosine similarity between two vectors scales with their relevance. So we can calculate the cosine similarity of two word embedding vectors to represent their relevance:
 
 ```
-similarity: 0.899180685161
 please input two words: big huge
+similarity: 0.899180685161
 
 please input two words: from company
 similarity: -0.0997506977351
 ```
 
-以上结果可以通过运行`calculate_dis.py`, 加载字典里的单词和对应训练特征结果得到，我们将在[应用模型](#应用模型)中详细描述用法。
+The above results could be obtained by running `calculate_dis.py`, which loads the words in the dictionary and their corresponding trained word embeddings. For detailed instruction, see section [Model Application](#Model Application).
 
 
-## 模型概览
+## Model Overview
 
-在这里我们介绍三个训练词向量的模型：N-gram模型，CBOW模型和Skip-gram模型，它们的中心思想都是通过上下文得到一个词出现的概率。对于N-gram模型，我们会先介绍语言模型的概念，并在之后的[训练模型](#训练模型)中，带大家用PaddlePaddle实现它。而后两个模型，是近年来最有名的神经元词向量模型，由 Tomas Mikolov 在Google 研发\[[3](#参考文献)\]，虽然它们很浅很简单，但训练效果很好。
+In this section, we will introduce three word embedding models: N-gram model, CBOW, and Skip-gram, which all output the frequency of each word given its immediate context.
 
-### 语言模型
+For N-gram model, we will first introduce the concept of language model, and implement it using PaddlePaddle in section [Model Training](#Model Training).
 
-在介绍词向量模型之前，我们先来引入一个概念：语言模型。
-语言模型旨在为语句的联合概率函数$P(w_1, ..., w_T)$建模, 其中$w_i$表示句子中的第i个词。语言模型的目标是，希望模型对有意义的句子赋予大概率，对没意义的句子赋予小概率。
-这样的模型可以应用于很多领域，如机器翻译、语音识别、信息检索、词性标注、手写识别等，它们都希望能得到一个连续序列的概率。 以信息检索为例，当你在搜索“how long is a football bame”时（bame是一个医学名词），搜索引擎会提示你是否希望搜索"how long is a football game", 这是因为根据语言模型计算出“how long is a football bame”的概率很低，而与bame近似的，可能引起错误的词中，game会使该句生成的概率最大。
+The latter two models, which became popular recently, are neural word embedding model developed by Tomas Mikolov at Google \[[3](#reference)\]. Despite their apparent simplicity, these models train very well.
 
-对语言模型的目标概率$P(w_1, ..., w_T)$，如果假设文本中每个词都是相互独立的，则整句话的联合概率可以表示为其中所有词语条件概率的乘积，即：
+### Language Model
+
+Before diving into word embedding models, we will first introduce the concept of **language model**. Language models build the joint probability function $P(w_1, ..., w_T)$ of a sentence, where $w_i$ is the i-th word in the sentence. The goal is to give higher probabilities to meaningful sentences, and lower probabilities to meaningless constructions.
+
+In general, models that generate the probability of a sequence can be applied to many fields, like machine translation, speech recognition, information retrieval, part-of-speech tagging, and handwriting recognition. Take information retrieval, for example. If you were to search for "how long is a football bame" (where bame is a medical noun), the search engine would have asked if you had meant "how long is a football game" instead. This is because the probability of "how long is a football bame" is very low according to the language model; in addition, among all of the words easily confused with "bame", "game" would build the most probable sentence.
+
+#### Target Probability
+For language model's target probability $P(w_1, ..., w_T)$, if the words in the sentence were to be independent, the joint probability of the whole sentence would be the product of each word's probability:
 
 $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t)$$
 
-然而我们知道语句中的每个词出现的概率都与其前面的词紧密相关, 所以实际上通常用条件概率表示语言模型：
+However, the frequency of words in a sentence typically relates to the words before them, so canonical language models are constructed using conditional probability in its target probability:
 
 $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
 
 
-
 ### N-gram neural model
 
-在计算语言学中，n-gram是一种重要的文本表示方法，表示一个文本中连续的n个项。基于具体的应用场景，每一项可以是一个字母、单词或者音节。 n-gram模型也是统计语言模型中的一种重要方法，用n-gram训练语言模型时，一般用每个n-gram的历史n-1个词语组成的内容来预测第n个词。
+In computational linguistics, n-gram is an important method to represent text. An n-gram represents a contiguous sequence of n consecutive items given a text. Based on the desired application scenario, each item could be a letter, a syllable or a word. The N-gram model is also an important method in statistical language modeling. When training language models with n-grams, the first (n-1) words of an n-gram are used to predict the *n*th word.
 
-Yoshua Bengio等科学家就于2003年在著名论文 Neural Probabilistic Language Models \[[1](#参考文献)\] 中介绍如何学习一个神经元网络表示的词向量模型。文中的神经概率语言模型（Neural Network Language Model，NNLM）通过一个线性映射和一个非线性隐层连接，同时学习了语言模型和词向量，即通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度灾难（curse of dimensionality）,即训练和测试数据不同导致的模型不准。注意：由于“神经概率语言模型”说法较为泛泛，我们在这里不用其NNLM的本名，考虑到其具体做法，本文中称该模型为N-gram neural model。
+Yoshua Bengio and other scientists describe how to train a word embedding model using neural network in the famous paper of Neural Probabilistic Language Models \[[1](#reference)\] published in 2003. The Neural Network Language Model (NNLM) described in the paper learns the language model and word embedding simultaneously through a linear transformation and a non-linear hidden connection. That is, after training on large amounts of corpus, the model learns the word embedding; then, it computes the probability of the whole sentence, using the embedding. This type of language model can overcome the **curse of dimensionality** i.e. model inaccuracy caused by the difference in dimensionality between training and testing data. Note that the term *neural network language model* is ill-defined, so we will not use the name NNLM but only refer to it as *N-gram neural model* in this section.
 
-我们在上文中已经讲到用条件概率建模语言模型，即一句话中第$t$个词的概率和该句话的前$t-1$个词相关。可实际上越远的词语其实对该词的影响越小，那么如果考虑一个n-gram, 每个词都只受其前面`n-1`个词的影响，则有：
+We have previously described language model using conditional probability, where the probability of the *t*-th word in a sentence depends on all $t-1$ words before it. Furthermore, since words further prior have less impact on a word, and every word within an n-gram is only effected by its previous n-1 words, we have:
 
 $$P(w_1, ..., w_T) = \prod_{t=n}^TP(w_t|w_{t-1}, w_{t-2}, ..., w_{t-n+1})$$
 
-给定一些真实语料，这些语料中都是有意义的句子，N-gram模型的优化目标则是最大化目标函数:
+Given some real corpus in which all sentences are meaningful, the n-gram model should maximize the following objective function:
 
 $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
-其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
+where $f(w_t, w_{t-1}, ..., w_{t-n+1})$ represents the conditional probability of the current word $w_t$ given its previous $n-1$ words, and $R(\theta)$ represents parameter regularization term.
 
 <p align="center">
-       <img src="image/nnlm.png" width=500><br/>
-       图2. N-gram神经网络模型
+       <img src="image/nnlm_en.png" width=500><br/>
+       Figure 2. N-gram neural network model
 </p>
 
-图2展示了N-gram神经网络模型，从下往上看，该模型分为以下几个部分：
- - 对于每个样本，模型输入$w_{t-n+1},...w_{t-1}$, 输出句子第t个词为字典中`|V|`个词的概率。
 
-   每个输入词$w_{t-n+1},...w_{t-1}$首先通过映射矩阵映射到词向量$C(w_{t-n+1}),...C(w_{t-1})$。
+Figure 2 shows the N-gram neural network model. From the bottom up, the model has the following components:
 
- - 然后所有词语的词向量连接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
+ - For each sample, the model gets input $w_{t-n+1},...w_{t-1}$, and outputs the probability that the t-th word is one of `|V|` in the dictionary.
+
+ Every input word $w_{t-n+1},...w_{t-1}$ first gets transformed into word embedding $C(w_{t-n+1}),...C(w_{t-1})$ through a transformation matrix.
+
+ - All the word embeddings concatenate into a single vector, which is mapped (nonlinearly) into the $t$-th word hidden representation:
 
     $$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
 
-    其中，$x$为所有词语的词向量连接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
+   where $x$ is the large vector concatenated from all the word embeddings representing the context; $\theta$, $U$, $b_1$, $b_2$ and $W$ are parameters connecting word embedding layers to the hidden layers. $g$ represents the unnormalized probability of the output word, $g_i$ represents the unnormalized probability of the output word being the i-th word in the dictionary.
 
- - 根据softmax的定义，通过归一化$g_i$, 生成目标词$w_t$的概率为：
+ - Based on the definition of softmax, using normalized $g_i$, the probability that the output word is $w_t$ is represented as:
 
   $$P(w_t | w_1, ..., w_{t-n+1}) = \frac{e^{g_{w_t}}}{\sum_i^{|V|} e^{g_i}}$$
 
- - 整个网络的损失值(cost)为多类分类交叉熵，用公式表示为
+ - The cost of the entire network is a multi-class cross-entropy and can be described by the following loss function
 
    $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 
-   其中$y_k^i$表示第$i$个样本第$k$类的真实标签(0或1)，$softmax(g_k^i)$表示第i个样本第k类softmax输出的概率。
-
-
+   where $y_k^i$ represents the true label for the $k$-th class in the $i$-th sample ($0$ or $1$), $softmax(g_k^i)$ represents the softmax probability for the $k$-th class in the $i$-th sample.
 
 ### Continuous Bag-of-Words model(CBOW)
 
-CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时，模型如下图所示：
+CBOW model predicts the current word based on the N words both before and after it. When $N=2$, the model is as the figure below:
 
 <p align="center">
-    <img src="image/cbow.png" width=250><br/>
-    图3. CBOW模型
+    <img src="image/cbow_en.png" width=250><br/>
+    Figure 3. CBOW model
 </p>
 
-具体来说，不考虑上下文的词语输入顺序，CBOW是用上下文词语的词向量的均值来预测当前词。即：
+Specifically, by ignoring the order of words in the sequence, CBOW uses the average value of the word embedding of the context to predict the current word:
 
-$$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
+$$\text{context} = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
 
-其中$x_t$为第$t$个词的词向量，分类分数（score）向量 $z=U*context$，最终的分类$y$采用softmax，损失函数采用多类分类交叉熵。
+where $x_t$ is the word embedding of the t-th word, classification score vector is $z=U*\text{context}$, the final classification $y$ uses softmax and the loss function uses multi-class cross-entropy.
 
 ### Skip-gram model
 
-CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效。而Skip-gram的方法中，用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
+The advantages of CBOW is that it smooths over the word embeddings of the context and reduces noise, so it is very effective on small dataset. Skip-gram uses a word to predict its context and get multiple context for the given word, so it can be used in larger datasets.
 
 <p align="center">
-    <img src="image/skipgram.png" width=250><br/>
-    图4. Skip-gram模型
+    <img src="image/skipgram_en.png" width=250><br/>
+    Figure 4. Skip-gram model
 </p>
 
-如上图所示，Skip-gram模型的具体做法是，将一个词的词向量映射到$2n$个词的词向量（$2n$表示当前输入词的前后各$n$个词），然后分别通过softmax得到这$2n$个词的分类损失值之和。
+As illustrated in the figure above, skip-gram model maps the word embedding of the given word onto $2n$ word embeddings (including $n$ words before and $n$ words after the given word), and then combine the classification loss of all those $2n$ words by softmax.
 
+## Dataset
 
-## 数据准备
-
-### 数据介绍
-
-本教程使用Penn Treebank （PTB）（经Tomas Mikolov预处理过的版本）数据集。PTB数据集较小，训练速度快，应用于Mikolov的公开语言模型训练工具\[[2](#参考文献)\]中。其统计情况如下：
+We will use Peen Treebank (PTB) (Tomas Mikolov's pre-processed version) dataset. PTB is a small dataset, used in Recurrent Neural Network Language Modeling Toolkit\[[2](#reference)\]. Its statistics are as follows:
 
 <p align="center">
 <table>
     <tr>
-        <td>训练数据</td>
-        <td>验证数据</td>
-        <td>测试数据</td>
+        <td>training set</td>
+        <td>validation set</td>
+        <td>test set</td>
     </tr>
     <tr>
         <td>ptb.train.txt</td>
@@ -201,21 +208,27 @@ CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去�
         <td>ptb.test.txt</td>
     </tr>
     <tr>
-        <td>42068句</td>
-        <td>3370句</td>
-        <td>3761句</td>
+        <td>42068 lines</td>
+        <td>3370 lines</td>
+        <td>3761 lines</td>
     </tr>
 </table>
 </p>
 
+### Python Dataset Module
 
-### 数据预处理
+We encapsulated the PTB Data Set in our Python module `paddle.dataset.imikolov`. This module can
 
-本章训练的是5-gram模型，表示在PaddlePaddle训练时，每条数据的前4个词用来预测第5个词。PaddlePaddle提供了对应PTB数据集的python包`paddle.dataset.imikolov`，自动做数据的下载与预处理，方便大家使用。
+1. download the dataset to `~/.cache/paddle/dataset/imikolov`, if not yet, and
+2. [preprocesses](#preprocessing) the dataset.
 
-预处理会把数据集中的每一句话前后加上开始符号`<s>`以及结束符号`<e>`。然后依据窗口大小（本教程中为5），从头到尾每次向右滑动窗口并生成一条数据。
+### Preprocessing
 
-如"I have a dream that one day" 一句提供了5条数据：
+We will be training a 5-gram model. Given five words in a window, we will predict the fifth word given the first four words.
+
+Beginning and end of a sentence have a special meaning, so we will add begin token `<s>` in the front of the sentence. And end token `<e>` in the end of the sentence. By moving the five word window in the sentence, data instances are generated.
+
+For example, the sentence "I have a dream that one day" generates five data instances:
 
 ```text
 <s> I have a dream
@@ -225,33 +238,35 @@ a dream that one day
 dream that one day <e>
 ```
 
-最后，每个输入会按其单词次在字典里的位置，转化成整数的索引序列，作为PaddlePaddle的输入。
-## 编程实现
+At last, each data instance will be converted into an integer sequence according it's words' index inside the dictionary.
 
-本配置的模型结构如下图所示：
+## Training
+
+The neural network that we will be using is illustrated in the graph below:
 
 <p align="center">
-    <img src="image/ngram.png" width=400><br/>
-    图5. 模型配置中的N-gram神经网络模型
+    <img src="image/ngram.en.png" width=400><br/>
+    Figure 5. N-gram neural network model in model configuration
 </p>
 
-首先，加载所需要的包：
+`word2vec/train.py` demonstrates training word2vec using PaddlePaddle:
+
+- Import packages.
 
 ```python
 import math
 import paddle.v2 as paddle
 ```
 
-然后，定义参数：
+- Configure parameter.
+
 ```python
-embsize = 32 # 词向量维度
-hiddensize = 256 # 隐层维度
-N = 5 # 训练5-Gram
+embsize = 32 # word vector dimension
+hiddensize = 256 # hidden layer dimension
+N = 5 # train 5-gram
 ```
 
-接着，定义网络结构：
-
-- 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
+- Map the $n-1$ words $w_{t-n+1},...w_{t-1}$ before $w_t$ to a D-dimensional vector though matrix of dimention $|V|\times D$ (D=32 in this example).
 
 ```python
 def wordemb(inlayer):
@@ -267,13 +282,13 @@ def wordemb(inlayer):
     return wordemb
 ```
 
-- 定义输入层接受的数据类型以及名字。
+- Define name and type for input to data layer.
 
 ```python
-paddle.init(use_gpu=False, trainer_count=3) # 初始化PaddlePaddle
+paddle.init(use_gpu=False, trainer_count=3)
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
-# 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)
+# Every layer takes integer value of range [0, dict_size)
 firstword = paddle.layer.data(
     name="firstw", type=paddle.data_type.integer_value(dict_size))
 secondword = paddle.layer.data(
@@ -291,13 +306,13 @@ Ethird = wordemb(thirdword)
 Efourth = wordemb(fourthword)
 ```
 
-- 将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
+- Concatenate n-1 word embedding vectors into a single feature vector.
 
 ```python
 contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
 ```
 
-- 将历史文本特征经过一个全连接得到文本隐层特征。
+- Feature vector will go through a fully connected layer which outputs a hidden feature vector.
 
 ```python
 hidden1 = paddle.layer.fc(input=contextemb,
@@ -310,7 +325,7 @@ hidden1 = paddle.layer.fc(input=contextemb,
                                 learning_rate=1))
 ```
 
-- 将文本隐层特征，再经过一个全连接，映射成一个$|V|$维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
+- Hidden feature vector will go through another fully conected layer, turn into a $|V|$ dimensional vector. At the same time softmax will be applied to get the probability of each word being generated.
 
 ```python
 predictword = paddle.layer.fc(input=hidden1,
@@ -319,17 +334,13 @@ predictword = paddle.layer.fc(input=hidden1,
                               act=paddle.activation.Softmax())
 ```
 
-- 网络的损失函数为多分类交叉熵，可直接调用`classification_cost`函数。
+- We will use cross-entropy cost function.
 
 ```python
 cost = paddle.layer.classification_cost(input=predictword, label=nextword)
 ```
 
-然后，指定训练相关的参数：
-
-- 训练方法（optimizer)： 代表训练过程在更新权重时采用动量优化器，本教程使用Adam优化器。
-- 训练速度（learning_rate）： 迭代的速度，与网络的训练收敛速度有关系。
-- 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
+- Create parameter, optimizer and trainer.
 
 ```python
 parameters = paddle.parameters.create(cost)
@@ -339,9 +350,9 @@ adagrad = paddle.optimizer.AdaGrad(
 trainer = paddle.trainer.SGD(cost, parameters, adagrad)
 ```
 
-下一步，我们开始训练过程。`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python generator。
+Next, we will begin the training process. `paddle.dataset.imikolov.train()` and `paddle.dataset.imikolov.test()` is our training set and test set. Both of the function will return a **reader**: In PaddlePaddle, reader is a python function which returns a Python iterator which output a single data instance at a time.
 
-`paddle.batch`的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
+`paddle.batch` takes reader as input, outputs a **batched reader**: In PaddlePaddle, a reader outputs a single data instance at a time but batched reader outputs a minibatch of data instances.
 
 ```python
 import gzip
@@ -366,6 +377,7 @@ trainer.train(
     event_handler=event_handler)
 ```
 
+`trainer.train` will start training, the output of `event_handler` will be similar to following:
 ```text
 Pass 0, Batch 0, Cost 7.870579, {'classification_error_evaluator': 1.0}, Testing metrics {'classification_error_evaluator': 0.999591588973999}
 Pass 0, Batch 100, Cost 6.136420, {'classification_error_evaluator': 0.84375}, Testing metrics {'classification_error_evaluator': 0.8328699469566345}
@@ -373,19 +385,16 @@ Pass 0, Batch 200, Cost 5.786797, {'classification_error_evaluator': 0.8125}, Te
 ...
 ```
 
-训练过程是完全自动的，event_handler里打印的日志类似如上所示：
-
-经过30个pass，我们将得到平均错误率为classification_error_evaluator=0.735611。
+After 30 passes, we can get average error rate around 0.735611.
 
 
-## 应用模型
-训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型查看参数用来做后续应用。
+## Model Application
 
+After the model is trained, we can load saved model parameters and uses it for other models. We can also use the parameters in applications.
 
-### 查看词向量
+### Viewing Word Vector
 
-PaddlePaddle训练出来的参数可以直接使用`parameters.get()`获取出来。例如查看单词`apple`的词向量，即为
-
+Parameters trained by PaddlePaddle can be viewed by `parameters.get()`. For example, we can check the word vector for word `apple`.
 
 ```python
 embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
@@ -402,10 +411,9 @@ print embeddings[word_dict['apple']]
 0.19072419 -0.24286366]
 ```
 
+### Modifying Word Vector
 
-### 修改词向量
-
-获得到的embedding为一个标准的numpy矩阵。我们可以对这个numpy矩阵进行修改，然后赋值回去。
+Word vectors (`embeddings`) that we get is a numpy array. We can modify this array and set it back to `parameters`.
 
 
 ```python
@@ -417,10 +425,9 @@ modify_embedding(embeddings)
 parameters.set("_proj", embeddings)
 ```
 
-### 计算词语之间的余弦距离
+### Calculating Cosine Similarity
 
-两个向量之间的距离可以用余弦值来表示，余弦值在$[-1,1]$的区间内，向量间余弦值越大，其距离越近。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
-用法如下：
+Cosine similarity is one way of quantifying the similarity between two vectors. The range of result is $[-1, 1]$. The bigger the value, the similar two vectors are:
 
 
 ```python
@@ -436,11 +443,14 @@ print spatial.distance.cosine(emb_1, emb_2)
 0.99375076448
 ```
 
-## 总结
-本章中，我们介绍了词向量、语言模型和词向量的关系、以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据向量间的余弦夹角，来判断query和文档关键词这二者间的相关性。在句法分析和语义分析中，训练好的词向量可以用来初始化模型，以得到更好的效果。在文档分类中，有了词向量之后，可以用聚类的方法将文档中同义词进行分组。希望大家在本章后能够自行运用词向量进行相关领域的研究。
+## Conclusion
+
+This chapter introduces word embedding, the relationship between language model and word embedding, and how to train neural networks to learn word embedding.
+
+In information retrieval, the relevance between the query and document keyword can be computed through the cosine similarity of their word embeddings. In grammar analysis and semantic analysis, a previously trained word embedding can initialize models for better performance. In document classification, clustering the word embedding can group synonyms in the documents. We hope that readers can use word embedding models in their work after reading this chapter.
 
 
-## 参考文献
+## Referenes
 1. Bengio Y, Ducharme R, Vincent P, et al. [A neural probabilistic language model](http://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)[J]. journal of machine learning research, 2003, 3(Feb): 1137-1155.
 2. Mikolov T, Kombrink S, Deoras A, et al. [Rnnlm-recurrent neural network language modeling toolkit](http://www.fit.vutbr.cz/~imikolov/rnnlm/rnnlm-demo.pdf)[C]//Proc. of the 2011 ASRU Workshop. 2011: 196-201.
 3. Mikolov T, Chen K, Corrado G, et al. [Efficient estimation of word representations in vector space](https://arxiv.org/pdf/1301.3781.pdf)[J]. arXiv preprint arXiv:1301.3781, 2013.
@@ -448,7 +458,7 @@ print spatial.distance.cosine(emb_1, emb_2)
 5. https://en.wikipedia.org/wiki/Singular_value_decomposition
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享 署名-非商业性使用-相同方式共享 4.0 国际 许可协议</a>进行许可。
+This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
 
 </div>
 <!-- You can change the lines below now. -->
