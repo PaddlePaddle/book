@@ -68,7 +68,7 @@
 
 ### 文本卷积神经网络简介（CNN）
 
-我们在[推荐系统](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system)一节介绍过应用于文本数据的卷及神经网络模型的计算过程，这里进行一个简单的回顾。
+我们在[推荐系统](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system)一节介绍过应用于文本数据的卷积神经网络模型的计算过程，这里进行一个简单的回顾。
 
 对卷积神经网络来说，首先使用卷积处理输入的词向量序列，产生一个特征图（feature map），对特征图采用时间维度上的最大池化（max pooling over time）操作得到此卷积核对应的整句话的特征，最后，将所有卷积核得到的特征拼接起来即为文本的定长向量表示，对于文本分类问题，将其连接至softmax即构建出完整的模型。在实际应用中，我们会使用多个卷积核来处理句子，窗口大小相同的卷积核堆叠起来形成一个矩阵，这样可以更高效的完成运算。另外，我们也可使用窗口大小不同的卷积核来处理句子，[推荐系统](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system)一节的图3作为示意画了四个卷积核，不同颜色表示不同大小的卷积核操作。
 
