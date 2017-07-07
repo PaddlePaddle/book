@@ -136,8 +136,8 @@ def seq_to_seq_net(source_dict_dim,
 
 
 def main():
-    paddle.init(use_gpu=True, trainer_count=1)
-    is_generating = True
+    paddle.init(use_gpu=False, trainer_count=1)
+    is_generating = False
 
     # source and target dict dim.
     dict_size = 30000

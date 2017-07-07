@@ -227,16 +227,16 @@ is_generating = False
 ### 模型结构
 1. 首先，定义了一些全局变量。
 
-   ```python
-   dict_size = 30000 # 字典维度
-   source_dict_dim = dict_size # 源语言字典维度
-   target_dict_dim = dict_size # 目标语言字典维度
-   word_vector_dim = 512 # 词向量维度
-   encoder_size = 512 # 编码器中的GRU隐层大小
-   decoder_size = 512 # 解码器中的GRU隐层大小
-   beam_size = 3 # 柱宽度
-   max_length = 250 # 生成句子的最大长度
-  ```
+    ```python
+    dict_size = 30000 # 字典维度
+    source_dict_dim = dict_size # 源语言字典维度
+    target_dict_dim = dict_size # 目标语言字典维度
+    word_vector_dim = 512 # 词向量维度
+    encoder_size = 512 # 编码器中的GRU隐层大小
+    decoder_size = 512 # 解码器中的GRU隐层大小
+    beam_size = 3 # 柱宽度
+    max_length = 250 # 生成句子的最大长度
+    ```
 
 2. 其次，实现编码器框架。分为三步：
 
@@ -251,9 +251,7 @@ is_generating = False
 
    ```python
     src_embedding = paddle.layer.embedding(
-        input=src_word_id,
-        size=word_vector_dim,
-        param_attr=paddle.attr.ParamAttr(name='_source_language_embedding'))
+        input=src_word_id, size=word_vector_dim)
    ```
    - 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
 
@@ -270,19 +268,22 @@ is_generating = False
    - 对源语言序列编码后的结果（见2的最后一步），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
 
    ```python
-   encoded_proj = paddle.layer.mixed(
-       size=decoder_size,
-       input=paddle.layer.full_matrix_projection(encoded_vector))
+   encoded_proj = paddle.layer.fc(
+         act=paddle.activation.Linear(),
+         size=decoder_size,
+         bias_attr=False,
+         input=encoded_vector)
    ```
 
    - 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
 
    ```python
    backward_first = paddle.layer.first_seq(input=src_backward)
-   decoder_boot = paddle.layer.mixed(
-       size=decoder_size,
-       act=paddle.activation.Tanh(),
-       input=paddle.layer.full_matrix_projection(backward_first))
+   decoder_boot = paddle.layer.fc(
+         size=decoder_size,
+         act=paddle.activation.Tanh(),
+         bias_attr=False,
+         input=backward_first)
    ```
 
    - 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
@@ -302,12 +303,13 @@ is_generating = False
             encoded_proj=enc_proj,
             decoder_state=decoder_mem)
 
-        decoder_inputs = paddle.layer.mixed(
+        decoder_inputs = paddle.layer.fc(
+            act=paddle.activation.Linear(),
             size=decoder_size * 3,
-            input=[
-                paddle.layer.full_matrix_projection(input=context),
-                paddle.layer.full_matrix_projection(input=current_word)
-            ])
+            bias_attr=False,
+            input=[context, current_word],
+            layer_attr=paddle.attr.ExtraLayerAttribute(
+                error_clipping_threshold=100.0))
 
         gru_step = paddle.layer.gru_step(
             name='gru_decoder',
@@ -327,8 +329,8 @@ is_generating = False
 
     ```python
     decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInput(input=encoded_vector, is_seq=True)
-    group_input2 = paddle.layer.StaticInput(input=encoded_proj, is_seq=True)
+    group_input1 = paddle.layer.StaticInput(input=encoded_vector)
+    group_input2 = paddle.layer.StaticInput(input=encoded_proj)
     group_inputs = [group_input1, group_input2]
     ```
 
@@ -343,7 +345,7 @@ is_generating = False
    if not is_generating:
        trg_embedding = paddle.layer.embedding(
            input=paddle.layer.data(
-               name='target_language_word',  
+               name='target_language_word',
                type=paddle.data_type.integer_value_sequence(target_dict_dim)),
            size=word_vector_dim,
            param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
@@ -372,14 +374,13 @@ is_generating = False
 
    ```python
    if is_generating:
-       # In generation, the decoder predicts a next target word based on
-       # the encoded source sequence and the last generated target word.
+      # In generation, the decoder predicts a next target word based on
+      # the encoded source sequence and the previous generated target word.
 
-       # The encoded source sequence (encoder's output) must be specified by
-       # StaticInput, which is a read-only memory.
-       # Embedding of the last generated word is automatically gotten by
-       # GeneratedInputs, which is initialized by a start mark, such as <s>,
-       # and must be included in generation.
+      # The encoded source sequence (encoder's output) must be specified by
+      # StaticInput, which is a read-only memory.
+      # Embedding of the previous generated word is automatically retrieved
+      # by GeneratedInputs initialized by a start mark <s>.
 
        trg_embedding = paddle.layer.GeneratedInput(
            size=target_dict_dim,
@@ -510,36 +511,31 @@ is_generating = False
 
     ```python
     if is_generating:
-        # get the dictionary
+        # load the dictionary
         src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
 
-        # the delimited element of generated sequences is -1,
-        # the first element of each generated sequence is the sequence length
-        seq_list = []
-        seq = []
-        for w in beam_result[1]:
-            if w != -1:
-                seq.append(w)
-            else:
-                seq_list.append(' '.join([trg_dict.get(w) for w in seq[1:]]))
-                seq = []
+        gen_sen_idx = np.where(beam_result[1] == -1)[0]
+        assert len(gen_sen_idx) == len(gen_data) * beam_size
 
-        prob = beam_result[0]
-        for i in xrange(gen_num):
-            print "\n*******************************************************\n"
-            print "src:", ' '.join(
-                [src_dict.get(w) for w in gen_data[i][0]]), "\n"
+        # -1 is the delimiter of generated sequences.
+        # the first element of each generated sequence its length.
+        start_pos, end_pos = 1, 0
+        for i, sample in enumerate(gen_data):
+            print(" ".join([src_dict[w] for w in sample[0][1:-1]]))
             for j in xrange(beam_size):
-                print "prob = %f:" % (prob[i][j]), seq_list[i * beam_size + j]
+                end_pos = gen_sen_idx[i * beam_size + j]
+                print("%.4f\t%s" % (beam_result[0][i][j], " ".join(
+                    trg_dict[w] for w in beam_result[1][start_pos:end_pos])))
+                start_pos = end_pos + 2
+            print("\n")
     ```
 
   生成开始后，可以观察到输出的日志如下：
   ```text
-  src: <s> Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu <e>
-
-  prob = -19.019573: The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
-  prob = -19.113066: The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
-  prob = -19.512890: The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
+  Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu
+  -19.0196        The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
+  -19.1131        The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
+  -19.5129        The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
   ```
 
 ## 总结
