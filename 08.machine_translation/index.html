@@ -272,34 +272,32 @@ is_generating = False
    decoder_size = 512 # hidden layer size of GRU in decoder
    beam_size = 3 # expand width in beam search
    max_length = 250 # a stop condition of sequence generation
-  ```
+   ```
 
 2. Implement Encoder as follows:
    - Input is a sequence of words represented by an integer word index sequence. So we define data layer of data type `integer_value_sequence`. The value range of each element in the sequence is `[0, source_dict_dim)`
 
    ```python
-    src_word_id = paddle.layer.data(
-        name='source_language_word',
-        type=paddle.data_type.integer_value_sequence(source_dict_dim))
+   src_word_id = paddle.layer.data(
+       name='source_language_word',
+       type=paddle.data_type.integer_value_sequence(source_dict_dim))
    ```
 
    - Map the one-hot vector (represented by word index) into a word vector $\mathbf{s}$ in a low-dimensional semantic space
 
    ```python
-    src_embedding = paddle.layer.embedding(
-        input=src_word_id,
-        size=word_vector_dim,
-        param_attr=paddle.attr.ParamAttr(name='_source_language_embedding'))
+   src_embedding = paddle.layer.embedding(
+       input=src_word_id, size=word_vector_dim)
    ```
 
    - Use bi-direcitonal GRU to encode the source language sequence, and concatenate the encoding outputs from the two GRUs to get $\mathbf{h}$
 
    ```python
-    src_forward = paddle.networks.simple_gru(
-        input=src_embedding, size=encoder_size)
-    src_backward = paddle.networks.simple_gru(
-        input=src_embedding, size=encoder_size, reverse=True)
-    encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
+   src_forward = paddle.networks.simple_gru(
+       input=src_embedding, size=encoder_size)
+   src_backward = paddle.networks.simple_gru(
+       input=src_embedding, size=encoder_size, reverse=True)
+   encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
    ```
 
 3. Implement Attention-based Decoder as follows:
@@ -307,19 +305,22 @@ is_generating = False
    - Get a projection of the encoding (c.f. 2.3) of the source language sequence by passing it into a feed forward neural network
 
    ```python
-   encoded_proj = paddle.layer.mixed(
-       size=decoder_size,
-       input=paddle.layer.full_matrix_projection(encoded_vector))
+   encoded_proj = paddle.layer.fc(
+         act=paddle.activation.Linear(),
+         size=decoder_size,
+         bias_attr=False,
+         input=encoded_vector)
    ```
 
    - Use a non-linear transformation of the last hidden state of the backward GRU on the source language sentence as the initial state of the decoder RNN $c_0=h_T$
 
    ```python
    backward_first = paddle.layer.first_seq(input=src_backward)
-   decoder_boot = paddle.layer.mixed(
-       size=decoder_size,
-       act=paddle.activation.Tanh(),
-       input=paddle.layer.full_matrix_projection(backward_first))
+   decoder_boot = paddle.layer.fc(
+         size=decoder_size,
+         act=paddle.activation.Tanh(),
+         bias_attr=False,
+         input=backward_first)
    ```
 
    - Define the computation in each time step for the decoder RNN, i.e., according to the current context vector $c_i$, hidden state for the decoder $z_i$ and the $i$-th word $u_i$ in the target language to predict the probability $p_{i+1}$ for the $i+1$-th word.
@@ -340,12 +341,13 @@ is_generating = False
             encoded_proj=enc_proj,
             decoder_state=decoder_mem)
 
-        decoder_inputs = paddle.layer.mixed(
+        decoder_inputs = paddle.layer.fc(
+            act=paddle.activation.Linear(),
             size=decoder_size * 3,
-            input=[
-                paddle.layer.full_matrix_projection(input=context),
-                paddle.layer.full_matrix_projection(input=current_word)
-            ])
+            bias_attr=False,
+            input=[context, current_word],
+            layer_attr=paddle.attr.ExtraLayerAttribute(
+            error_clipping_threshold=100.0))
 
         gru_step = paddle.layer.gru_step(
             name='gru_decoder',
@@ -353,11 +355,11 @@ is_generating = False
             output_mem=decoder_mem,
             size=decoder_size)
 
-        out = paddle.layer.mixed(
+        out = paddle.layer.fc(
             size=target_dict_dim,
             bias_attr=True,
             act=paddle.activation.Softmax(),
-            input=paddle.layer.full_matrix_projection(input=gru_step))
+            input=gru_step)
         return out
    ```
 
@@ -365,8 +367,8 @@ is_generating = False
 
     ```python
     decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInput(input=encoded_vector, is_seq=True)
-    group_input2 = paddle.layer.StaticInput(input=encoded_proj, is_seq=True)
+    group_input1 = paddle.layer.StaticInput(input=encoded_vector)
+    group_input2 = paddle.layer.StaticInput(input=encoded_proj)
     group_inputs = [group_input1, group_input2]
     ```
 
@@ -411,13 +413,12 @@ is_generating = False
    ```python
    if is_generating:
        # In generation, the decoder predicts a next target word based on
-       # the encoded source sequence and the last generated target word.
+       # the encoded source sequence and the previous generated target word.
 
        # The encoded source sequence (encoder's output) must be specified by
        # StaticInput, which is a read-only memory.
-       # Embedding of the last generated word is automatically gotten by
-       # GeneratedInputs, which is initialized by a start mark, such as <s>,
-       # and must be included in generation.
+       # Embedding of the previous generated word is automatically retrieved
+       # by GeneratedInputs initialized by a start mark <s>.
 
        trg_embedding = paddle.layer.GeneratedInput(
            size=target_dict_dim,
@@ -546,36 +547,31 @@ Note: Our configuration is based on Bahdanau et al. \[[4](#Reference)\] but with
 
    ```python
    if is_generating:
-        # get the dictionary
-        src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
+       # load the dictionary
+       src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
 
-        # the delimited element of generated sequences is -1,
-        # the first element of each generated sequence is the sequence length
-        seq_list = []
-        seq = []
-        for w in beam_result[1]:
-            if w != -1:
-                seq.append(w)
-            else:
-                seq_list.append(' '.join([trg_dict.get(w) for w in seq[1:]]))
-                seq = []
+       gen_sen_idx = np.where(beam_result[1] == -1)[0]
+       assert len(gen_sen_idx) == len(gen_data) * beam_size
 
-        prob = beam_result[0]
-        for i in xrange(gen_num):
-            print "\n*******************************************************\n"
-            print "src:", ' '.join(
-                [src_dict.get(w) for w in gen_data[i][0]]), "\n"
-            for j in xrange(beam_size):
-                print "prob = %f:" % (prob[i][j]), seq_list[i * beam_size + j]
+       # -1 is the delimiter of generated sequences.
+       # the first element of each generated sequence its length.
+       start_pos, end_pos = 1, 0
+       for i, sample in enumerate(gen_data):
+           print(" ".join([src_dict[w] for w in sample[0][1:-1]]))
+           for j in xrange(beam_size):
+               end_pos = gen_sen_idx[i * beam_size + j]
+               print("%.4f\t%s" % (beam_result[0][i][j], " ".join(
+                     trg_dict[w] for w in beam_result[1][start_pos:end_pos])))
+               start_pos = end_pos + 2
+           print("\n")
    ```
 
   The generating log is as follows:
   ```text
-  src: <s> Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu <e>
-
-  prob = -19.019573: The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
-  prob = -19.113066: The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
-  prob = -19.512890: The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
+  Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu
+  -19.0196        The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
+  -19.1131        The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
+  -19.5129        The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
   ```
 
 ## Summary
