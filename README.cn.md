@@ -13,6 +13,8 @@
 1. [语义角色标注](http://book.paddlepaddle.org/07.label_semantic_roles/index.cn.html)
 1. [机器翻译](http://book.paddlepaddle.org/08.machine_translation/index.cn.html)
 
+更多学习内容请访问PaddlePaddle[视频课堂](http://bit.baidu.com/Course/datalist/column/117.html)。
+
 ## 运行这本书
 
 您现在在看的这本书是一本“交互式”电子书 —— 每一章都可以运行在一个Jupyter Notebook里。
