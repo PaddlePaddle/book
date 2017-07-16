@@ -1,12 +1,11 @@
 import sys
-import gzip
 import numpy as np
 
 import paddle.v2 as paddle
 
 
 def save_model(parameters, save_path):
-    with gzip.open(save_path, 'w') as f:
+    with open(save_path, 'w') as f:
         parameters.to_tar(f)
 
 
@@ -173,13 +172,13 @@ def main():
                     sys.stdout.flush()
 
                 if not event.batch_id % 10:
-                    save_path = 'params_pass_%05d_batch_%05d.tar.gz' % (
+                    save_path = 'params_pass_%05d_batch_%05d.tar' % (
                         event.pass_id, event.batch_id)
                     save_model(parameters, save_path)
 
             if isinstance(event, paddle.event.EndPass):
                 # save parameters
-                save_path = 'params_pass_%05d.tar.gz' % (event.pass_id)
+                save_path = 'params_pass_%05d.tar' % (event.pass_id)
                 save_model(parameters, save_path)
 
         # start to train

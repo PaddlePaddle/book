@@ -313,8 +313,6 @@ Next, we will begin the training process. `paddle.dataset.imikolov.train()` and 
 `paddle.batch` takes reader as input, outputs a **batched reader**: In PaddlePaddle, a reader outputs a single data instance at a time but batched reader outputs a minibatch of data instances.
 
 ```python
-import gzip
-
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
         if event.batch_id % 100 == 0:
@@ -326,7 +324,7 @@ def event_handler(event):
                     paddle.batch(
                         paddle.dataset.imikolov.test(word_dict, N), 32))
         print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
-        with gzip.open("model_%d.tar.gz"%event.pass_id, 'w') as f:
+        with open("model_%d.tar"%event.pass_id, 'w') as f:
             parameters.to_tar(f)
 
 trainer.train(
