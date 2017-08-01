@@ -205,6 +205,11 @@ def event_handler_plot(event):
             plot_cost.plot()
 
         step += 1
+
+    if isinstance(event, paddle.event.EndPass):
+        if event.pass_id % 10 == 0:
+            with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
+                parameters.to_tar(f)
 ```
 
 ### Start Training
@@ -221,6 +226,37 @@ trainer.train(
 ```
 
 ![png](./image/train_and_test.png)
+
+### Apply model
+
+#### 1. generate testing data
+
+```python
+test_data_creator = paddle.dataset.uci_housing.test()
+test_data = []
+test_label = []
+
+for item in test_data_creator():
+    test_data.append((item[0],))
+    test_label.append(item[1])
+    if len(test_data) == 5:
+        break
+```
+
+#### 2. inference
+
+```python
+# load parameters from tar file.
+# users can remove the comments and change the model name
+# with open('params_pass_20.tar', 'r') as f:
+#     parameters = paddle.parameters.Parameters.from_tar(f)
+
+probs = paddle.infer(
+    output_layer=y_predict, parameters=parameters, input=test_data)
+
+for i in xrange(len(probs)):
+    print "label=" + str(test_label[i][0]) + ", predict=" + str(probs[i][0])
+```
 
 ## Summary
 This chapter introduces *Linear Regression* and how to train and test this model with PaddlePaddle, using the UCI Housing Data Set. Because a large number of more complex models and techniques are derived from linear regression, it is important to understand its underlying theory and limitation.

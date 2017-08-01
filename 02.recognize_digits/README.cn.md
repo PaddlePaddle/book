@@ -1,6 +1,6 @@
 # 识别数字
 
-本教程源代码目录在[book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
+本教程源代码目录在[book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)，更多内容请参考本教程的[视频课堂](http://bit.baidu.com/course/detail/id/167.html)。
 
 ## 背景介绍
 当我们学习编程的时候，编写的第一个程序一般是实现打印"Hello World"。而机器学习（或深度学习）的入门教程，一般都是 [MNIST](http://yann.lecun.com/exdb/mnist/) 数据库上的手写识别问题。原因是手写识别属于典型的图像分类问题，比较简单，同时MNIST数据集也很完备。MNIST数据集作为一个简单的计算机视觉数据集，包含一系列如图1所示的手写数字图片和对应的标签。图片是28x28的像素矩阵，标签则对应着0~9的10个数字。每张图片都经过了大小归一化和居中处理。
@@ -132,7 +132,6 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 首先，加载PaddlePaddle的V2 api包。
 
 ```python
-import gzip
 import paddle.v2 as paddle
 ```
 其次，定义三个不同的分类器：
@@ -256,7 +255,7 @@ def event_handler_plot(event):
         step += 1
     if isinstance(event, paddle.event.EndPass):
         # save parameters
-        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
             parameters.to_tar(f)
 
         result = trainer.test(reader=paddle.batch(
@@ -275,7 +274,7 @@ def event_handler(event):
                 event.pass_id, event.batch_id, event.cost, event.metrics)
     if isinstance(event, paddle.event.EndPass):
         # save parameters
-        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
             parameters.to_tar(f)
 
         result = trainer.test(reader=paddle.batch(

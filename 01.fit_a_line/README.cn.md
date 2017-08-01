@@ -1,7 +1,7 @@
 # 线性回归
 让我们从经典的线性回归（Linear Regression \[[1](#参考文献)\]）模型开始这份教程。在这一章里，你将使用真实的数据集建立起一个房价预测模型，并且了解到机器学习中的若干重要概念。
 
-本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
+本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)，更多内容请参考本教程的[视频课堂](http://bit.baidu.com/course/detail/id/137.html)。
 
 ## 背景介绍
 给定一个大小为$n$的数据集  ${\{y_{i}, x_{i1}, ..., x_{id}\}}_{i=1}^{n}$，其中$x_{i1}, \ldots, x_{id}$是第$i$个样本$d$个属性上的取值，$y_i$是该样本待预测的目标。线性回归模型假设目标$y_i$可以被属性间的线性组合描述，即
@@ -200,6 +200,11 @@ def event_handler_plot(event):
             cost_ploter.plot()
 
         step += 1
+
+    if isinstance(event, paddle.event.EndPass):
+        if event.pass_id % 10 == 0:
+            with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
+                parameters.to_tar(f)
 ```
 
 ### 开始训练
@@ -216,6 +221,37 @@ trainer.train(
 ```
 
 ![png](./image/train_and_test.png)
+
+### 应用模型
+
+#### 1. 生成测试数据
+
+```python
+test_data_creator = paddle.dataset.uci_housing.test()
+test_data = []
+test_label = []
+
+for item in test_data_creator():
+    test_data.append((item[0],))
+    test_label.append(item[1])
+    if len(test_data) == 5:
+        break
+```
+
+#### 2. 推测 inference
+
+```python
+# load parameters from tar file.
+# users can remove the comments and change the model name
+# with open('params_pass_20.tar', 'r') as f:
+#     parameters = paddle.parameters.Parameters.from_tar(f)
+
+probs = paddle.infer(
+    output_layer=y_predict, parameters=parameters, input=test_data)
+
+for i in xrange(len(probs)):
+    print "label=" + str(test_label[i][0]) + ", predict=" + str(probs[i][0])
+```
 
 ## 总结
 在这章里，我们借助波士顿房价这一数据集，介绍了线性回归模型的基本概念，以及如何使用PaddlePaddle实现训练和测试的过程。很多的模型和技巧都是从简单的线性回归模型演化而来，因此弄清楚线性模型的原理和局限非常重要。

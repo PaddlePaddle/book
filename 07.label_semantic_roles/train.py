@@ -1,6 +1,5 @@
 import math
 import numpy as np
-import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 import paddle.v2.evaluator as evaluator
@@ -183,7 +182,7 @@ def main():
 
         if isinstance(event, paddle.event.EndPass):
             # save parameters
-            with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+            with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
                 parameters.to_tar(f)
 
             result = trainer.test(reader=reader, feeding=feeding)
