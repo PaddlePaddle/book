@@ -43,7 +43,7 @@
 
 # 词向量
 
-本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
+本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)，更多内容请参考本教程的[视频课堂](http://bit.baidu.com/course/detail/id/175.html)。
 
 ## 背景介绍
 
@@ -344,8 +344,6 @@ trainer = paddle.trainer.SGD(cost, parameters, adagrad)
 `paddle.batch`的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
 
 ```python
-import gzip
-
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
         if event.batch_id % 100 == 0:
@@ -357,7 +355,7 @@ def event_handler(event):
                     paddle.batch(
                         paddle.dataset.imikolov.test(word_dict, N), 32))
         print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
-        with gzip.open("model_%d.tar.gz"%event.pass_id, 'w') as f:
+        with open("model_%d.tar"%event.pass_id, 'w') as f:
             parameters.to_tar(f)
 
 trainer.train(

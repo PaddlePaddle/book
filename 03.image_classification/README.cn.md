@@ -1,6 +1,6 @@
 # 图像分类
 
-本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
+本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)，更多内容请参考本教程的[视频课堂](http://bit.baidu.com/course/detail/id/168.html)。
 
 ## 背景介绍
 
@@ -156,7 +156,6 @@ Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
 
 ```python
 import sys
-import gzip
 import paddle.v2 as paddle
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
@@ -431,7 +430,7 @@ def event_handler(event):
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
         # save parameters
-        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
             parameters.to_tar(f)
 
         result = trainer.test(
@@ -496,9 +495,9 @@ def load_image(file):
 
 test_data = []
 cur_dir = os.getcwd()
-test_data.append((load_image(cur_dir + '/image/dog.png'),)
+test_data.append((load_image(cur_dir + '/image/dog.png'),))
 
-# with gzip.open('params_pass_50.tar.gz', 'r') as f:
+# with open('params_pass_50.tar', 'r') as f:
 #    parameters = paddle.parameters.Parameters.from_tar(f)
 
 probs = paddle.infer(

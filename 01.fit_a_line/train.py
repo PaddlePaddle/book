@@ -31,6 +31,9 @@ def main():
                     event.pass_id, event.batch_id, event.cost)
 
         if isinstance(event, paddle.event.EndPass):
+            if event.pass_id % 10 == 0:
+                with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
+                    parameters.to_tar(f)
             result = trainer.test(
                 reader=paddle.batch(uci_housing.test(), batch_size=2),
                 feeding=feeding)
@@ -44,6 +47,28 @@ def main():
         feeding=feeding,
         event_handler=event_handler,
         num_passes=30)
+
+    # inference
+    test_data_creator = paddle.dataset.uci_housing.test()
+    test_data = []
+    test_label = []
+
+    for item in test_data_creator():
+        test_data.append((item[0], ))
+        test_label.append(item[1])
+        if len(test_data) == 5:
+            break
+
+    # load parameters from tar file.
+    # users can remove the comments and change the model name
+    # with open('params_pass_20.tar', 'r') as f:
+    #     parameters = paddle.parameters.Parameters.from_tar(f)
+
+    probs = paddle.infer(
+        output_layer=y_predict, parameters=parameters, input=test_data)
+
+    for i in xrange(len(probs)):
+        print "label=" + str(test_label[i][0]) + ", predict=" + str(probs[i][0])
 
 
 if __name__ == '__main__':

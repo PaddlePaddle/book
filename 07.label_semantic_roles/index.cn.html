@@ -42,7 +42,7 @@
 <div id="markdown" style='display:none'>
 # 语义角色标注
 
-本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/07.label_semantic_roles)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
+本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/07.label_semantic_roles)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)，更多内容请参考本教程的[视频课堂](http://bit.baidu.com/course/detail/id/178.html)。
 
 ## 背景介绍
 
@@ -110,7 +110,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 图4. 基于LSTM的双向循环神经网络结构示意图
 </p>
 
-需要说明的是，这种双向RNN结构和Bengio等人在机器翻译任务中使用的双向RNN结构\[[3](#参考文献), [4](#参考文献)\] 并不相同，我们会在后续[机器翻译](https://github.com/PaddlePaddle/book/blob/develop/machine_translation/README.md)任务中，介绍另一种双向循环神经网络。
+需要说明的是，这种双向RNN结构和Bengio等人在机器翻译任务中使用的双向RNN结构\[[3](#参考文献), [4](#参考文献)\] 并不相同，我们会在后续[机器翻译](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/README.cn.md)任务中，介绍另一种双向循环神经网络。
 
 ### 条件随机场 (Conditional Random Field)
 
@@ -224,14 +224,13 @@ conll05st-release/
 | predicate_dict | 谓词的词典，共计3162个词 |
 | emb | 一个训练好的词表，32维 |
 
-我们在英文维基百科上训练语言模型得到了一份词向量用来初始化SRL模型。在SRL模型训练过程中，词向量不再被更新。关于语言模型和词向量可以参考[词向量](https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/README.md) 这篇教程。我们训练语言模型的语料共有995,000,000个token，词典大小控制为4900,000词。CoNLL 2005训练语料中有5%的词不在这4900,000个词中，我们将它们全部看作未登录词，用`<unk>`表示。
+我们在英文维基百科上训练语言模型得到了一份词向量用来初始化SRL模型。在SRL模型训练过程中，词向量不再被更新。关于语言模型和词向量可以参考[词向量](https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/README.cn.md) 这篇教程。我们训练语言模型的语料共有995,000,000个token，词典大小控制为4900,000词。CoNLL 2005训练语料中有5%的词不在这4900,000个词中，我们将它们全部看作未登录词，用`<unk>`表示。
 
 获取词典，打印词典大小：
 
 ```python
 import math
 import numpy as np
-import gzip
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 import paddle.v2.evaluator as evaluator
@@ -490,7 +489,7 @@ def event_handler(event):
 
     if isinstance(event, paddle.event.EndPass):
         # save parameters
-        with gzip.open('params_pass_%d.tar.gz' % event.pass_id, 'w') as f:
+        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
             parameters.to_tar(f)
 
         result = trainer.test(reader=reader, feeding=feeding)

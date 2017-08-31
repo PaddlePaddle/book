@@ -42,7 +42,7 @@
 <div id="markdown" style='display:none'>
 # 机器翻译
 
-本教程源代码目录在[book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
+本教程源代码目录在[book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation)， 初次使用请参考PaddlePaddle[安装教程](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)，更多内容请参考本教程的[视频课堂](http://bit.baidu.com/course/detail/id/179.html)。
 
 ## 背景介绍
 
@@ -81,7 +81,7 @@
 
 ### GRU
 
-我们已经在[情感分析](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md)一章中介绍了循环神经网络（RNN）及长短时间记忆网络（LSTM）。相比于简单的RNN，LSTM增加了记忆单元（memory cell）、输入门（input gate）、遗忘门（forget gate）及输出门（output gate），这些门及记忆单元组合起来大大提升了RNN处理远距离依赖问题的能力。
+我们已经在[情感分析](https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/README.cn.md)一章中介绍了循环神经网络（RNN）及长短时间记忆网络（LSTM）。相比于简单的RNN，LSTM增加了记忆单元（memory cell）、输入门（input gate）、遗忘门（forget gate）及输出门（output gate），这些门及记忆单元组合起来大大提升了RNN处理远距离依赖问题的能力。
 
 GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN的一种扩展，如下图所示。GRU单元只有两个门：
 - 重置门（reset gate）：如果重置门关闭，会忽略掉历史信息，即历史不相干的信息不会影响未来的输出。
@@ -95,7 +95,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 ### 双向循环神经网络
 
-我们已经在[语义角色标注](https://github.com/PaddlePaddle/book/blob/develop/label_semantic_roles/README.md)一章中介绍了一种双向循环神经网络，这里介绍Bengio团队在论文\[[2](#参考文献),[4](#参考文献)\]中提出的另一种结构。该结构的目的是输入一个序列，得到其在每个时刻的特征表示，即输出的每个时刻都用定长向量表示到该时刻的上下文语义信息。
+我们已经在[语义角色标注](https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/README.cn.md)一章中介绍了一种双向循环神经网络，这里介绍Bengio团队在论文\[[2](#参考文献),[4](#参考文献)\]中提出的另一种结构。该结构的目的是输入一个序列，得到其在每个时刻的特征表示，即输出的每个时刻都用定长向量表示到该时刻的上下文语义信息。
 
 具体来说，该双向循环神经网络分别在时间维以顺序和逆序——即前向（forward）和后向（backward）——依次处理输入序列，并将每个时间步RNN的输出拼接成为最终的输出层。这样每个时间步的输出节点，都包含了输入序列中当前时刻完整的过去和未来的上下文信息。下图展示的是一个按时间步展开的双向循环神经网络。该网络包含一个前向和一个后向RNN，其中有六个权重矩阵：输入到前向隐层和后向隐层的权重矩阵（$W_1, W_3$），隐层到隐层自己的权重矩阵（$W_2,W_5$），前向隐层和后向隐层到输出层的权重矩阵（$W_4, W_6$）。注意，该网络的前向隐层和后向隐层之间没有连接。
 
@@ -227,16 +227,16 @@ is_generating = False
 ### 模型结构
 1. 首先，定义了一些全局变量。
 
-   ```python
-   dict_size = 30000 # 字典维度
-   source_dict_dim = dict_size # 源语言字典维度
-   target_dict_dim = dict_size # 目标语言字典维度
-   word_vector_dim = 512 # 词向量维度
-   encoder_size = 512 # 编码器中的GRU隐层大小
-   decoder_size = 512 # 解码器中的GRU隐层大小
-   beam_size = 3 # 柱宽度
-   max_length = 250 # 生成句子的最大长度
-  ```
+    ```python
+    dict_size = 30000 # 字典维度
+    source_dict_dim = dict_size # 源语言字典维度
+    target_dict_dim = dict_size # 目标语言字典维度
+    word_vector_dim = 512 # 词向量维度
+    encoder_size = 512 # 编码器中的GRU隐层大小
+    decoder_size = 512 # 解码器中的GRU隐层大小
+    beam_size = 3 # 柱宽度
+    max_length = 250 # 生成句子的最大长度
+    ```
 
 2. 其次，实现编码器框架。分为三步：
 
@@ -251,9 +251,7 @@ is_generating = False
 
    ```python
     src_embedding = paddle.layer.embedding(
-        input=src_word_id,
-        size=word_vector_dim,
-        param_attr=paddle.attr.ParamAttr(name='_source_language_embedding'))
+        input=src_word_id, size=word_vector_dim)
    ```
    - 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
 
@@ -270,19 +268,22 @@ is_generating = False
    - 对源语言序列编码后的结果（见2的最后一步），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
 
    ```python
-    with paddle.layer.mixed(size=decoder_size) as encoded_proj:
-        encoded_proj += paddle.layer.full_matrix_projection(
-            input=encoded_vector)
+   encoded_proj = paddle.layer.fc(
+         act=paddle.activation.Linear(),
+         size=decoder_size,
+         bias_attr=False,
+         input=encoded_vector)
    ```
 
    - 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
 
    ```python
-    backward_first = paddle.layer.first_seq(input=src_backward)
-    with paddle.layer.mixed(
-            size=decoder_size, act=paddle.activation.Tanh()) as decoder_boot:
-        decoder_boot += paddle.layer.full_matrix_projection(
-            input=backward_first)
+   backward_first = paddle.layer.first_seq(input=src_backward)
+   decoder_boot = paddle.layer.fc(
+         size=decoder_size,
+         act=paddle.activation.Tanh(),
+         bias_attr=False,
+         input=backward_first)
    ```
 
    - 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
@@ -293,8 +294,7 @@ is_generating = False
       - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。
 
    ```python
-    def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
-
+   def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
         decoder_mem = paddle.layer.memory(
             name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
 
@@ -303,10 +303,13 @@ is_generating = False
             encoded_proj=enc_proj,
             decoder_state=decoder_mem)
 
-        with paddle.layer.mixed(size=decoder_size * 3) as decoder_inputs:
-            decoder_inputs += paddle.layer.full_matrix_projection(input=context)
-            decoder_inputs += paddle.layer.full_matrix_projection(
-                input=current_word)
+        decoder_inputs = paddle.layer.fc(
+            act=paddle.activation.Linear(),
+            size=decoder_size * 3,
+            bias_attr=False,
+            input=[context, current_word],
+            layer_attr=paddle.attr.ExtraLayerAttribute(
+                error_clipping_threshold=100.0))
 
         gru_step = paddle.layer.gru_step(
             name='gru_decoder',
@@ -314,20 +317,20 @@ is_generating = False
             output_mem=decoder_mem,
             size=decoder_size)
 
-        with paddle.layer.mixed(
-                size=target_dict_dim,
-                bias_attr=True,
-                act=paddle.activation.Softmax()) as out:
-            out += paddle.layer.full_matrix_projection(input=gru_step)
+        out = paddle.layer.mixed(
+            size=target_dict_dim,
+            bias_attr=True,
+            act=paddle.activation.Softmax(),
+            input=paddle.layer.full_matrix_projection(input=gru_step))
         return out
-    ```
+   ```
 
 4. 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
 
     ```python
     decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInputV2(input=encoded_vector, is_seq=True)
-    group_input2 = paddle.layer.StaticInputV2(input=encoded_proj, is_seq=True)
+    group_input1 = paddle.layer.StaticInput(input=encoded_vector)
+    group_input2 = paddle.layer.StaticInput(input=encoded_proj)
     group_inputs = [group_input1, group_input2]
     ```
 
@@ -342,7 +345,7 @@ is_generating = False
    if not is_generating:
        trg_embedding = paddle.layer.embedding(
            input=paddle.layer.data(
-               name='target_language_word',  
+               name='target_language_word',
                type=paddle.data_type.integer_value_sequence(target_dict_dim)),
            size=word_vector_dim,
            param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
@@ -371,16 +374,15 @@ is_generating = False
 
    ```python
    if is_generating:
-       # In generation, the decoder predicts a next target word based on
-       # the encoded source sequence and the last generated target word.
+      # In generation, the decoder predicts a next target word based on
+      # the encoded source sequence and the previous generated target word.
 
-       # The encoded source sequence (encoder's output) must be specified by
-       # StaticInput, which is a read-only memory.
-       # Embedding of the last generated word is automatically gotten by
-       # GeneratedInputs, which is initialized by a start mark, such as <s>,
-       # and must be included in generation.
+      # The encoded source sequence (encoder's output) must be specified by
+      # StaticInput, which is a read-only memory.
+      # Embedding of the previous generated word is automatically retrieved
+      # by GeneratedInputs initialized by a start mark <s>.
 
-       trg_embedding = paddle.layer.GeneratedInputV2(
+       trg_embedding = paddle.layer.GeneratedInput(
            size=target_dict_dim,
            embedding_name='_target_language_embedding',
            embedding_size=word_vector_dim)
@@ -509,36 +511,31 @@ is_generating = False
 
     ```python
     if is_generating:
-        # get the dictionary
+        # load the dictionary
         src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
 
-        # the delimited element of generated sequences is -1,
-        # the first element of each generated sequence is the sequence length
-        seq_list = []
-        seq = []
-        for w in beam_result[1]:
-            if w != -1:
-                seq.append(w)
-            else:
-                seq_list.append(' '.join([trg_dict.get(w) for w in seq[1:]]))
-                seq = []
+        gen_sen_idx = np.where(beam_result[1] == -1)[0]
+        assert len(gen_sen_idx) == len(gen_data) * beam_size
 
-        prob = beam_result[0]
-        for i in xrange(gen_num):
-            print "\n*******************************************************\n"
-            print "src:", ' '.join(
-                [src_dict.get(w) for w in gen_data[i][0]]), "\n"
+        # -1 is the delimiter of generated sequences.
+        # the first element of each generated sequence its length.
+        start_pos, end_pos = 1, 0
+        for i, sample in enumerate(gen_data):
+            print(" ".join([src_dict[w] for w in sample[0][1:-1]]))
             for j in xrange(beam_size):
-                print "prob = %f:" % (prob[i][j]), seq_list[i * beam_size + j]
+                end_pos = gen_sen_idx[i * beam_size + j]
+                print("%.4f\t%s" % (beam_result[0][i][j], " ".join(
+                    trg_dict[w] for w in beam_result[1][start_pos:end_pos])))
+                start_pos = end_pos + 2
+            print("\n")
     ```
 
   生成开始后，可以观察到输出的日志如下：
   ```text
-  src: <s> Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu <e>
-
-  prob = -19.019573: The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
-  prob = -19.113066: The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
-  prob = -19.512890: The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
+  Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu
+  -19.0196        The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
+  -19.1131        The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
+  -19.5129        The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
   ```
 
 ## 总结
