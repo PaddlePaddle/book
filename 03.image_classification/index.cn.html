@@ -537,7 +537,7 @@ def load_image(file):
     return im
 
 test_data = []
-cur_dir = os.path.dirname(os.path.realpath(__file__))
+cur_dir = os.getcwd()
 test_data.append((load_image(cur_dir + '/image/dog.png'),)
 
 # with gzip.open('params_pass_50.tar.gz', 'r') as f:
