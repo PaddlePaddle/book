@@ -371,7 +371,7 @@ def load_image(file):
     return im
 
 test_data = []
-cur_dir = os.path.dirname(os.path.realpath(__file__))
+cur_dir = os.getcwd()
 test_data.append((load_image(cur_dir + '/image/infer_3.png'),))
 
 probs = paddle.infer(
