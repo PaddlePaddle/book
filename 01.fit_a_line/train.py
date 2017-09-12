@@ -21,6 +21,10 @@ def main():
     trainer = paddle.trainer.SGD(
         cost=cost, parameters=parameters, update_equation=optimizer)
 
+    # save model proto as file
+    with open("model.proto", "w") as f:
+        f.write(str(trainer.__topology_in_proto__))
+
     feeding = {'x': 0, 'y': 1}
 
     # event_handler to print training and testing info
