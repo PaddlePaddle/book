@@ -16,7 +16,7 @@ addons:
       - python2.7-dev
       - golang
 before_install:
-  -  pip install -U virtualenv pre-commit pip
+  -  sudo pip install -U virtualenv pre-commit pip
   -  GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 script:
   -  PATH=/tmp/go/bin:$PATH .travis/precommit.sh
