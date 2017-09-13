@@ -20,10 +20,11 @@
     background-color: #597cf1;
     color: #fff;
 }
-
+ 
 .left-panel .card-header {
     background: #ecedee;
 }
+
 
 
 .left-panel .card-block a:not(.click_active) {
@@ -102,39 +103,39 @@
                     <div id="collapseOne" class="rounded-0 collapse show" role="tabpanel" aria-labelledby="headingOne">
                       <div class="card-block pl-0 pr-0 pt-0 pb-0">
                         <div class="list-group ">
-
+                          
                             <a href="./01.fit_a_line/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Linear Regression
                             </a>
-
+                          
                             <a href="./02.recognize_digits/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Recognize Digits
                             </a>
-
+                          
                             <a href="./03.image_classification/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Image Classification
                             </a>
-
+                          
                             <a href="./04.word2vec/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Word2Vec
                             </a>
-
+                          
                             <a href="./05.recommender_system/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Personalized Recommendation
                             </a>
-
+                          
                             <a href="./06.understand_sentiment/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Sentiment Analysis
                             </a>
-
+                          
                             <a href="./07.label_semantic_roles/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Semantic Role Labeling
                             </a>
-
+                          
                             <a href="./08.machine_translation/index.html" target="content_iframe" class="list-group-item list-group-item-action" style="border: 0px; border-bottom: 2px solid #dddfe3;">
                                 Machine Translation
                             </a>
-
+                          
                         </div>
                       </div>
                     </div>
@@ -158,11 +159,11 @@
             alllinks[i].setAttribute("target", "_blank")
         }
     });
-    $(".list-group a").click(function(){
-       $(".list-group a.click_active").removeClass("click_active");
-       $(this).addClass("click_active");
+    $(".list-group a").click(function(){ 
+       $(".list-group a.click_active").removeClass("click_active"); 
+       $(this).addClass("click_active"); 
     })
-    $($(".list-group a")[0]).addClass("click_active")
+    $($(".list-group a")[0]).addClass("click_active") 
     </script>
 </body>
 </html>
