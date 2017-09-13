@@ -1,6 +1,6 @@
 # Machine Translation
 
-The source codes is located at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/07.machine_translation). Please refer to the PaddlePaddle [installation tutorial](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst) if you are a first time user.
+The source code of this tutorial is live at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/07.machine_translation). Please refer to the [installation tutorial](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/getstarted/build_and_install/docker_install_en.rst) for getting started with Paddle.
 
 ## Background
 
@@ -448,7 +448,7 @@ cd pretrained
 
 ### BLEU Evaluation
 
-BLEU (Bilingual Evaluation understudy) is a metric widely used for automatic machine translation proposed by IBM Watson Research Center in 2002\[[5](#References)\]. The closer the translation produced by a machine is to the translation produced by a human expert, the better the performance of the translation system.
+Bilingual Evaluation understudy (BLEU) is a metric widely used for automatic machine translation proposed by IBM Watson Research Center in 2002\[[5](#References)\]. The closer the translation produced by a machine is to the translation produced by a human expert, the better the performance of the translation system.
 To measure the closeness between machine translation and human translation, sentence precision is used. It compares the number of matched n-grams. More matches will lead to higher BLEU scores.
 
 [Moses](http://www.statmt.org/moses/) is an open-source machine translation system, we used [multi-bleu.perl](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/generic/multi-bleu.perl) for BLEU evaluation. Run the following command for downloading:
