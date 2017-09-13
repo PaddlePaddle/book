@@ -53,8 +53,8 @@ PaddlePaddle. Please see [here](TODO) for more details.
 ## Build
 
 We have already prepared the pre-built docker image
-`paddlepaddle/book:mnist`, here is the command if you want build the
-docker image again.
+`paddlepaddle/book:mnist`, here is the command if you want to build
+the docker image again.
 
 ```bash
 docker build -t paddlepaddle/book:mnist .
