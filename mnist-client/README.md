@@ -16,7 +16,7 @@ this
 ### Start the Inference Server
 
 The inference server can be used to inference any model trained by
-PaddlePaddle. Please see [here](TODO) for more details.
+PaddlePaddle. Please see [here](../serve/README.md) for more details.
 
 1. Download the MNIST inference model topylogy and parameters to the
    current working directory.
