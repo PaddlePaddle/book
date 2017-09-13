@@ -1,21 +1,28 @@
-# PaddlePaddle Serving Example
+# Inference Server Example
 
-
-## Build
-
-    $ docker build -t serve .
+The inference server can be used to inference any model trained by
+PaddlePaddle. It provides an HTTP endpoint.
 
 ## Run
 
-    $ docker run -v `pwd`:/data -it -p 8000:80 -e WITH_GPU=0 paddlepaddle/book:serve
-    $ curl -H "Content-Type: application/json" -X POST -d '{"img":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}' http://localhost:8000/
+The inference server reads a trained model (a topology file and a
+parameter file) and serves HTTP request at port `8000`.
 
+We will first show how to obtain the PaddlePaddle model, and then how
+to start the server.
 
-## How to save PaddlePaddle model
+We will use Docker to run the demo, if you are not familiar with
+Docker, please checkout
+this
+[tutorial](https://github.com/PaddlePaddle/Paddle/wiki/TLDR-for-new-docker-user).
 
-Neural network model in PaddlePaddle contains two parts, the parameter, and the topology.
+### Obtain the PaddlePaddle Model
 
-Paddle training scripts contain the neural network topology, which is representing by layers. For example,
+Neural network model in PaddlePaddle contains two parts, the
+parameter, and the topology.
+
+A PaddlePaddle training script contains the neural network topology,
+which is represented by layers. For example,
 
 ```python
 img = paddle.layer.data(name="img", type=paddle.data_type.dense_vector(784))
@@ -23,7 +30,8 @@ hidden = fc_layer(input=type, size=200)
 prediction = fc_layer(input=hidden, size=10, act=paddle.activation.Softmax())
 ```
 
-The parameter instance is created by topology and updated by the `train` method.
+The parameter instance is created by the topology and updated by the
+`train` method.
 
 ```python
 ...
@@ -35,7 +43,9 @@ trainer = paddle.trainer.SGD(cost=cost, parameters=params)
 
 PaddlePaddle stores the topology and parameter separately.
 
-1. To serialize a topology, we need to create a topology instance explicitly by the outputs of the neural network. Then, invoke `serialize_for_inference` method. The example code is
+1. To serialize a topology, we need to create a topology instance
+   explicitly by the outputs of the neural network. Then, invoke
+   `serialize_for_inference` method. The example code is
 
   ```python
   # Save the inference topology to protobuf.
@@ -44,28 +54,59 @@ PaddlePaddle stores the topology and parameter separately.
       inference_topology.serialize_for_inference(f)
   ```
 
-2. To save a parameter, we need to invoke `to_tar` method in Parameter class. The example code is,
+2. To save a parameter, we need to invoke `to_tar` method in Parameter
+   class. The example code is,
 
   ```python
   with open('param.tar', 'w') as f:
             params.to_tar(f)
   ```
 
- After we serialize the parameter and topology to two files, we could use that two files to set up an inference server.
+ After we serialize the parameter and topology to two files, we could
+ use that two files to set up an inference server.
+
+ For a working example, please see [here](https://github.com/reyoung/paddle_mnist_v2_demo/blob/master/train.py).
 
 
-## How to set up an inference server
+### Start the Server
 
-...
+Make sure the `inference_topology.pkl` and `param.tar` mentioned in
+the last section are in your current working directory, and run the
+command:
 
+```bash
+docker run --name paddle_serve -v `pwd`:/data -d -p 8000:80 -e WITH_GPU=0 paddlepaddle/book:serve
+```
 
-## What is the data format of inference server
+The above command will mount the current working directory to the
+`/data` directory inside the docker container. The inference server
+will load the model topology and parameters that we just created from
+there.
 
-The inference server will handle a post request on uri `/`. The contant type of the request and response is json. You need to manually add `Content-Type` request header as `Content-Type: application/json`.
+To run the inference server with GPU support, please
+install [nvidia-docker](https://github.com/NVIDIA/nvidia-docker)
+first, and run:
 
-The request json object is a single json object, which key is the layer name of input data. The value of that object is decided by data type.
+```bash
+nvidia-docker run --name paddle_serve -v `pwd`:/data -d -p 8000:80 -e WITH_GPU=1 paddlepaddle/book:serve
+```
 
-There are tweleve data types are supported by PaddePaddle, and they are organized in a matrix.
+After you are done with the demo, you can run `docker stop
+paddle_serve` to stop this docker container.
+
+## HTTP API
+
+The inference server will handle HTTP POST request on path `/`. The
+content type of the request and response is json. You need to manually
+add `Content-Type` request header as `Content-Type: application/json`.
+
+The request json object is a single json dictionay object, whose key
+is the layer name of input data. The type of the corresponding value
+is decided by the data type. For most cases the corresponding value
+will be a list of floats. For completeness we will list all data types
+below:
+
+There are tweleve data types supported by PaddePaddle:
 
 | | plain | a sequence | a sequence of sequence |
 | --- | --- | --- | ---|
@@ -74,11 +115,16 @@ There are tweleve data types are supported by PaddePaddle, and they are organize
 | sparse | [i, i, ...] | [[i, i, ...], [i, i, ...], ...] | [[[i, i, ...], [i, i, ...], ...], [[i, i, ...], [i, i, ...], ...], ...] |
 | sparse | [[i, f], [i, f], ... ] | [[[i, f], [i, f], ... ], ...] | [[[[i, f], [i, f], ... ], ...], ...]
 
-In that table, `i` stands for a `int` value and `f` stands for a `float` value.
+In the table, `i` stands for a `int` value and `f` stands for a
+`float` value.
 
-What `data_type` should be used is decided by the training topology. For example,
+What `data_type` should be used is decided by the training
+topology. For example,
 
-* For image data, they are usually a plain dense vector, we flatten the image into a vector. The pixels of that image are usually normalized in `[-1.0, 1.0]` or `[0.0, 1.0]`(it depends on each neural network.).
+* For image data, they are usually a plain dense vector, we flatten
+  the image into a vector. The pixel values of that image are usually
+  normalized in `[-1.0, 1.0]` or `[0.0, 1.0]`(depends on each neural
+  network).
 
     ```text
     +-------+
@@ -86,7 +132,11 @@ What `data_type` should be used is decided by the training topology. For example
    |139 211| +---->[0.95, 0.95, 0.54, 0.82]
    +-------+
     ```
-* For text data, each word of that text is represented by a integer. The association map between word and integer is decided by the training process. A sentence is represented by a list of integer.
+
+* For text data, each word of that text is represented by an
+  integer. The association map between word and integer is decided by
+  the training process. A sentence is represented by a list of
+  integer.
 
    ```text
     I am good .
@@ -138,4 +188,17 @@ The response is a json object, too. The example of return data are:
 }
 ```
 
-The `code` and `message` represent the status of the request. The `data` are the outputs of the neural network; they could be a probability of each class, could be the IDs of output sentence, and so on.
+The `code` and `message` represent the status of the request. The
+`data` are the outputs of the neural network; they could be a
+probability of each class, could be the IDs of output sentence, and so
+on.
+
+## Build
+
+We have already prepared the pre-built docker image
+`paddlepaddle/book:serve`, here is the command if you want to build
+the docker image again.
+
+```bash
+docker build -t paddlepaddle/book:serve .
+```
