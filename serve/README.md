@@ -1,12 +1,12 @@
 # Inference Server Example
 
-The inference server can be used to inference any model trained by
+The inference server can be used to perform inference on any model trained on
 PaddlePaddle. It provides an HTTP endpoint.
 
 ## Run
 
 The inference server reads a trained model (a topology file and a
-parameter file) and serves HTTP request at port `8000`.
+parameter file) and serves HTTP requests at port `8000`.
 
 We will first show how to obtain the PaddlePaddle model, and then how
 to start the server.
@@ -14,12 +14,12 @@ to start the server.
 We will use Docker to run the demo, if you are not familiar with
 Docker, please checkout
 this
-[tutorial](https://github.com/PaddlePaddle/Paddle/wiki/TLDR-for-new-docker-user).
+[TLDR](https://github.com/PaddlePaddle/Paddle/wiki/TLDR-for-new-docker-user).
 
 ### Obtain the PaddlePaddle Model
 
-Neural network model in PaddlePaddle contains two parts, the
-parameter, and the topology.
+A neural network model in PaddlePaddle contains two parts: the
+**parameter** and the **topology**.
 
 A PaddlePaddle training script contains the neural network topology,
 which is represented by layers. For example,
@@ -45,7 +45,7 @@ PaddlePaddle stores the topology and parameter separately.
 
 1. To serialize a topology, we need to create a topology instance
    explicitly by the outputs of the neural network. Then, invoke
-   `serialize_for_inference` method. The example code is
+   `serialize_for_inference` method.
 
   ```python
   # Save the inference topology to protobuf.
@@ -55,17 +55,17 @@ PaddlePaddle stores the topology and parameter separately.
   ```
 
 2. To save a parameter, we need to invoke `to_tar` method in Parameter
-   class. The example code is,
+   class.
 
   ```python
   with open('param.tar', 'w') as f:
             params.to_tar(f)
   ```
 
- After we serialize the parameter and topology to two files, we could
- use that two files to set up an inference server.
+ After serializing the parameter and topology into two files, we could
+ use them to set up an inference server.
 
- For a working example, please see [here](https://github.com/reyoung/paddle_mnist_v2_demo/blob/master/train.py).
+ For a working example, please see [train.py](https://github.com/reyoung/paddle_mnist_v2_demo/blob/master/train.py).
 
 
 ### Start the Server
@@ -79,12 +79,12 @@ docker run --name paddle_serve -v `pwd`:/data -d -p 8000:80 -e WITH_GPU=0 paddle
 ```
 
 The above command will mount the current working directory to the
-`/data` directory inside the docker container. The inference server
+`/data/` directory inside the docker container. The inference server
 will load the model topology and parameters that we just created from
 there.
 
-To run the inference server with GPU support, please
-install [nvidia-docker](https://github.com/NVIDIA/nvidia-docker)
+To run the inference server with GPU support, please make sure you have
+[nvidia-docker](https://github.com/NVIDIA/nvidia-docker)
 first, and run:
 
 ```bash
@@ -103,7 +103,7 @@ add `Content-Type` request header as `Content-Type: application/json`.
 The request json object is a single json dictionay object, whose key
 is the layer name of input data. The type of the corresponding value
 is decided by the data type. For most cases the corresponding value
-will be a list of floats. For completeness we will list all data types
+will be a list of floats. For completeness, we will list all data types
 below:
 
 There are tweleve data types supported by PaddePaddle:
@@ -188,8 +188,8 @@ The response is a json object, too. The example of return data are:
 }
 ```
 
-The `code` and `message` represent the status of the request. The
-`data` are the outputs of the neural network; they could be a
+Here, `code` and `message` represent the status of the request.
+`data` corresponds to the outputs of the neural network; they could be a
 probability of each class, could be the IDs of output sentence, and so
 on.
 
