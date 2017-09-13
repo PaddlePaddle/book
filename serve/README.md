@@ -50,7 +50,7 @@ PaddlePaddle stores the topology and parameter separately.
   with open('param.tar', 'w') as f:
             params.to_tar(f)
   ```
-  
+
  After we serialize the parameter and topology to two files, we could use that two files to set up an inference server.
 
 
@@ -80,12 +80,12 @@ What `data_type` should be used is decided by the training topology. For example
 
 * For image data, they are usually a plain dense vector, we flatten the image into a vector. The pixels of that image are usually normalized in `[-1.0, 1.0]` or `[0.0, 1.0]`(it depends on each neural network.).
 
-	```text
-	+-------+
+    ```text
+    +-------+
    |243 241|
    |139 211| +---->[0.95, 0.95, 0.54, 0.82]
    +-------+
-	```
+    ```
 * For text data, each word of that text is represented by a integer. The association map between word and integer is decided by the training process. A sentence is represented by a list of integer.
 
    ```text
@@ -95,7 +95,7 @@ What `data_type` should be used is decided by the training topology. For example
         v
    23 942 402 19  +----->  [23, 942, 402, 19]
    ```
-   
+
 A sample request data of a `4x4` image and a sentence could be
 
 ```json
