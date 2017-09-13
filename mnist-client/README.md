@@ -43,9 +43,14 @@ PaddlePaddle. Please see [here](TODO) for more details.
 ### Start the Front End
 
 1. Run the following command
-    ```bash
-    docker run -it -p 5000:5000 paddlepaddle/book:mnist
-    ```
+   ```bash
+   docker run -it -p 5000:5000 -e BACKEND_URL=http://localhost:8000/ paddlepaddle/book:mnist
+   ```
+
+   `BACKEND_URL` in the above command specifies the inference server
+   endpoint. If you started the inference server on another machine,
+   or want to visit the front end remotely, you may want to change its
+   value.
 
 1. Visit http://localhost:5000 and you will see the PaddlePaddle MNIST demo.
 
