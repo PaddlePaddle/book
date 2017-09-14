@@ -1,8 +1,8 @@
-import sys
+import sys, os
 import numpy as np
-
 import paddle.v2 as paddle
 
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 def save_model(parameters, save_path):
     with open(save_path, 'w') as f:
@@ -135,7 +135,7 @@ def seq_to_seq_net(source_dict_dim,
 
 
 def main():
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
     is_generating = False
 
     # source and target dict dim.

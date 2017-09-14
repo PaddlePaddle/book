@@ -1,7 +1,9 @@
 import paddle.v2 as paddle
 import cPickle
 import copy
+import os
 
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 def get_usr_combined_features():
     uid = paddle.layer.data(
@@ -67,7 +69,7 @@ def get_mov_combined_features():
 
 
 def main():
-    paddle.init(use_gpu=False)
+    paddle.init(use_gpu=with_gpu)
     usr_combined_features = get_usr_combined_features()
     mov_combined_features = get_mov_combined_features()
     inference = paddle.layer.cos_sim(

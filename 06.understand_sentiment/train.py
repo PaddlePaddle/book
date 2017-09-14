@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+import sys, os
 import paddle.v2 as paddle
 
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
     data = paddle.layer.data("word",
@@ -102,7 +103,7 @@ def stacked_lstm_net(input_dim,
 
 if __name__ == '__main__':
     # init
-    paddle.init(use_gpu=False)
+    paddle.init(use_gpu=with_gpu)
 
     #data
     print 'load dictionary...'
