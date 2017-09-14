@@ -5,6 +5,7 @@ import os
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
+
 def get_usr_combined_features():
     uid = paddle.layer.data(
         name='user_id',

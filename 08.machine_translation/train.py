@@ -4,6 +4,7 @@ import paddle.v2 as paddle
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
+
 def save_model(parameters, save_path):
     with open(save_path, 'w') as f:
         parameters.to_tar(f)

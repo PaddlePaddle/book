@@ -21,6 +21,7 @@ from resnet import resnet_cifar10
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
+
 def main():
     datadim = 3 * 32 * 32
     classdim = 10
