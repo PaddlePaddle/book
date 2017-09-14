@@ -5,6 +5,7 @@ import paddle.v2 as paddle
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
+
 def softmax_regression(img):
     predict = paddle.layer.fc(
         input=img, size=10, act=paddle.activation.Softmax())

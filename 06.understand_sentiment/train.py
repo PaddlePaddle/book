@@ -17,6 +17,7 @@ import paddle.v2 as paddle
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
+
 def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
     data = paddle.layer.data("word",
                              paddle.data_type.integer_value_sequence(input_dim))
