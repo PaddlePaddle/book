@@ -12,6 +12,11 @@ def main():
     y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
     cost = paddle.layer.square_error_cost(input=y_predict, label=y)
 
+    # Save the inference topology to protobuf.
+    inference_topology = paddle.topology.Topology(layers=y_predict)
+    with open("inference_topology.pkl", 'wb') as f:
+        inference_topology.serialize_for_inference(f)
+
     # create parameters
     parameters = paddle.parameters.create(cost)
 
@@ -20,10 +25,6 @@ def main():
 
     trainer = paddle.trainer.SGD(
         cost=cost, parameters=parameters, update_equation=optimizer)
-
-    # save model proto as file
-    with open("model.proto", "w") as f:
-        f.write(str(trainer.__topology_in_proto__))
 
     feeding = {'x': 0, 'y': 1}
 
