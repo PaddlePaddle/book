@@ -6,7 +6,9 @@ PaddlePaddle. It provides an HTTP endpoint.
 ## Run
 
 The inference server reads a trained model (a topology file and a
-parameter file) and serves HTTP requests at port `8000`.
+parameter file) and serves HTTP request at port `8000`. **The HTTP API
+will differ slightly for each model,** please see [HTTP
+API](#http-api) for details.
 
 We will first show how to obtain the PaddlePaddle model, and then how
 to start the server.
