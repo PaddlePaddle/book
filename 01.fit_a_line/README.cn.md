@@ -126,7 +126,7 @@ y_predict = paddle.layer.fc(input=x,
                                 size=1,
                                 act=paddle.activation.Linear())
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
-cost = paddle.layer.mse_cost(input=y_predict, label=y)
+cost = paddle.layer.square_error_cost(input=y_predict, label=y)
 ```
 
 ### 保存网络拓扑
