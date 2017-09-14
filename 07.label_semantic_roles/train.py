@@ -1,8 +1,10 @@
-import math
+import math, os
 import numpy as np
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 import paddle.v2.evaluator as evaluator
+
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 word_dict, verb_dict, label_dict = conll05.get_dict()
 word_dict_len = len(word_dict)
@@ -118,7 +120,7 @@ def load_parameter(file_name, h, w):
 
 
 def main():
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
     # define network topology
     feature_out = db_lstm()

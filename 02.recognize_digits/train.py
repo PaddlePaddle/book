@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import paddle.v2 as paddle
 
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 def softmax_regression(img):
     predict = paddle.layer.fc(
@@ -49,7 +50,7 @@ def convolutional_neural_network(img):
 
 
 def main():
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
     # define network topology
     images = paddle.layer.data(

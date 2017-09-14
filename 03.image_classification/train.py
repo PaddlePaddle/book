@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import sys
+import sys, os
 
 import paddle.v2 as paddle
 
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
 
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 def main():
     datadim = 3 * 32 * 32
     classdim = 10
 
     # PaddlePaddle init
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
     image = paddle.layer.data(
         name="image", type=paddle.data_type.dense_vector(datadim))

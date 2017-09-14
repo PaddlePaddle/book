@@ -1,10 +1,12 @@
+import os
 import paddle.v2 as paddle
 import paddle.v2.dataset.uci_housing as uci_housing
 
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 def main():
     # init
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
     # network config
     x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))

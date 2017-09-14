@@ -1,6 +1,8 @@
-import math
+import math, os
 
 import paddle.v2 as paddle
+
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 embsize = 32
 hiddensize = 256
@@ -17,7 +19,7 @@ def wordemb(inlayer):
 
 
 def main():
-    paddle.init(use_gpu=False, trainer_count=3)
+    paddle.init(use_gpu=with_gpu, trainer_count=3)
     word_dict = paddle.dataset.imikolov.build_dict()
     dict_size = len(word_dict)
     # Every layer takes integer value of range [0, dict_size)
