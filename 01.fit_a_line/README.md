@@ -132,8 +132,19 @@ y_predict = paddle.layer.fc(input=x,
                                 size=1,
                                 act=paddle.activation.Linear())
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
-cost = paddle.layer.mse_cost(input=y_predict, label=y)
+cost = paddle.layer.square_error_cost(input=y_predict, label=y)
 ```
+
+### Save Topology
+
+```python
+# Save the inference topology to protobuf.
+inference_topology = paddle.topology.Topology(layers=y_predict)
+with open("inference_topology.pkl", 'wb') as f:
+    inference_topology.serialize_for_inference(f)
+```
+
+
 ### Create Parameters
 
 ```python
