@@ -136,7 +136,7 @@ def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
                              act=paddle.activation.Softmax())
     lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
     cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost
+    return cost, output
 ```
 
 1. Define input data and its dimension
@@ -175,7 +175,6 @@ def stacked_lstm_net(input_dim,
     """
     assert stacked_num % 2 == 1
 
-    layer_attr = paddle.attr.Extra(drop_rate=0.5)
     fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
     lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
     para_attr = [fc_para_attr, lstm_para_attr]
@@ -192,7 +191,7 @@ def stacked_lstm_net(input_dim,
                           act=linear,
                           bias_attr=bias_attr)
     lstm1 = paddle.layer.lstmemory(
-        input=fc1, act=relu, bias_attr=bias_attr, layer_attr=layer_attr)
+        input=fc1, act=relu, bias_attr=bias_attr)
 
     inputs = [fc1, lstm1]
     for i in range(2, stacked_num + 1):
@@ -205,8 +204,7 @@ def stacked_lstm_net(input_dim,
             input=fc,
             reverse=(i % 2) == 0,
             act=relu,
-            bias_attr=bias_attr,
-            layer_attr=layer_attr)
+            bias_attr=bias_attr)
         inputs = [fc, lstm]
 
     fc_last = paddle.layer.pooling(
@@ -221,7 +219,7 @@ def stacked_lstm_net(input_dim,
 
     lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
     cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost
+    return cost, output
 ```
 
 1. Define input data and its dimension
@@ -245,9 +243,9 @@ dict_dim = len(word_dict)
 class_dim = 2
 
 # option 1
-cost = convolution_net(dict_dim, class_dim=class_dim)
+[cost, output] = convolution_net(dict_dim, class_dim=class_dim)
 # option 2
-# cost = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
+# [cost, output] = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
 ```
 
 ## Model Training
@@ -311,6 +309,9 @@ def event_handler(event):
             sys.stdout.write('.')
             sys.stdout.flush()
     if isinstance(event, paddle.event.EndPass):
+        with open('./params_pass_%d.tar' % event.pass_id, 'w') as f:
+                parameters.to_tar(f)
+
         result = trainer.test(reader=test_reader, feeding=feeding)
         print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 ```
