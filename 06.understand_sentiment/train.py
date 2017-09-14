@@ -64,8 +64,7 @@ def stacked_lstm_net(input_dim,
 
     fc1 = paddle.layer.fc(
         input=emb, size=hid_dim, act=linear, bias_attr=bias_attr)
-    lstm1 = paddle.layer.lstmemory(
-        input=fc1, act=relu, bias_attr=bias_attr)
+    lstm1 = paddle.layer.lstmemory(input=fc1, act=relu, bias_attr=bias_attr)
 
     inputs = [fc1, lstm1]
     for i in range(2, stacked_num + 1):
@@ -76,10 +75,7 @@ def stacked_lstm_net(input_dim,
             param_attr=para_attr,
             bias_attr=bias_attr)
         lstm = paddle.layer.lstmemory(
-            input=fc,
-            reverse=(i % 2) == 0,
-            act=relu,
-            bias_attr=bias_attr)
+            input=fc, reverse=(i % 2) == 0, act=relu, bias_attr=bias_attr)
         inputs = [fc, lstm]
 
     fc_last = paddle.layer.pooling(
