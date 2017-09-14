@@ -30,7 +30,7 @@ def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
         input=[conv_3, conv_4], size=class_dim, act=paddle.activation.Softmax())
     lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
     cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost
+    return cost, output
 
 
 def stacked_lstm_net(input_dim,
@@ -53,7 +53,6 @@ def stacked_lstm_net(input_dim,
     """
     assert stacked_num % 2 == 1
 
-    layer_attr = paddle.attr.Extra(drop_rate=0.5)
     fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
     lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
     para_attr = [fc_para_attr, lstm_para_attr]
@@ -67,8 +66,7 @@ def stacked_lstm_net(input_dim,
 
     fc1 = paddle.layer.fc(
         input=emb, size=hid_dim, act=linear, bias_attr=bias_attr)
-    lstm1 = paddle.layer.lstmemory(
-        input=fc1, act=relu, bias_attr=bias_attr, layer_attr=layer_attr)
+    lstm1 = paddle.layer.lstmemory(input=fc1, act=relu, bias_attr=bias_attr)
 
     inputs = [fc1, lstm1]
     for i in range(2, stacked_num + 1):
@@ -79,11 +77,7 @@ def stacked_lstm_net(input_dim,
             param_attr=para_attr,
             bias_attr=bias_attr)
         lstm = paddle.layer.lstmemory(
-            input=fc,
-            reverse=(i % 2) == 0,
-            act=relu,
-            bias_attr=bias_attr,
-            layer_attr=layer_attr)
+            input=fc, reverse=(i % 2) == 0, act=relu, bias_attr=bias_attr)
         inputs = [fc, lstm]
 
     fc_last = paddle.layer.pooling(
@@ -99,7 +93,7 @@ def stacked_lstm_net(input_dim,
 
     lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
     cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost
+    return cost, output
 
 
 if __name__ == '__main__':
@@ -123,8 +117,8 @@ if __name__ == '__main__':
     # network config
     # Please choose the way to build the network
     # by uncommenting the corresponding line.
-    cost = convolution_net(dict_dim, class_dim=class_dim)
-    # cost = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
+    [cost, output] = convolution_net(dict_dim, class_dim=class_dim)
+    # [cost, output] = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
 
     # create parameters
     parameters = paddle.parameters.create(cost)
@@ -145,15 +139,22 @@ if __name__ == '__main__':
                 sys.stdout.write('.')
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
+            with open('./params_pass_%d.tar' % event.pass_id, 'w') as f:
+                parameters.to_tar(f)
+
             result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 
     # create trainer
     trainer = paddle.trainer.SGD(
         cost=cost, parameters=parameters, update_equation=adam_optimizer)
+    # Save the inference topology to protobuf.
+    inference_topology = paddle.topology.Topology(layers=output)
+    with open("./inference_topology.pkl", 'wb') as f:
+        inference_topology.serialize_for_inference(f)
 
     trainer.train(
         reader=train_reader,
         event_handler=event_handler,
         feeding=feeding,
-        num_passes=2)
+        num_passes=20)

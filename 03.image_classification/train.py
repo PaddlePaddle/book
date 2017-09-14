@@ -81,6 +81,12 @@ def main():
     # Create trainer
     trainer = paddle.trainer.SGD(
         cost=cost, parameters=parameters, update_equation=momentum_optimizer)
+
+    # Save the inference topology to protobuf.
+    inference_topology = paddle.topology.Topology(layers=out)
+    with open("inference_topology.pkl", 'wb') as f:
+        inference_topology.serialize_for_inference(f)
+
     trainer.train(
         reader=paddle.batch(
             paddle.reader.shuffle(
