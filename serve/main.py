@@ -57,4 +57,4 @@ if __name__ == '__main__':
         params = paddle.parameters.Parameters.from_tar(param_f)
         inferer = paddle.inference.Inference(parameters=params, fileobj=topo_f)
     print 'serving on port', port
-    app.run(host='0.0.0.0', port=port, threaded=True)
+    app.run(host='0.0.0.0', port=port, threaded=False)
