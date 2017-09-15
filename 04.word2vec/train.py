@@ -1,4 +1,5 @@
 import math, os
+import numpy
 
 import paddle.v2 as paddle
 
@@ -16,6 +17,31 @@ def wordemb(inlayer):
         param_attr=paddle.attr.Param(
             name="_proj", initial_std=0.001, learning_rate=1, l2_rate=0))
     return wordemb
+
+
+# save and load word dict and embedding table
+def save_dict_and_embedding(word_dict, embeddings):
+    with open("word_dict", "w") as f:
+        for key in word_dict:
+            f.write(key + " " + str(word_dict[key]) + "\n")
+    with open("embedding_table", "w") as f:
+        for line in embeddings:
+            f.write(",".join([str(x) for x in line]) + "\n")
+
+
+def load_dict_and_embedding():
+    word_dict = dict()
+    embeddings = []
+
+    with open("word_dict", "r") as f:
+        for line in f:
+            key, value = line.strip().split(" ")
+            word_dict[key] = value
+    with open("embedding_table", "r") as f:
+        for line in f:
+            embeddings.append(
+                numpy.array([float(x) for x in line.strip().split(',')]))
+    return word_dict, embeddings
 
 
 def main():
@@ -76,8 +102,12 @@ def main():
     trainer = paddle.trainer.SGD(cost, parameters, adagrad)
     trainer.train(
         paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
-        num_passes=100,
+        num_passes=1,
         event_handler=event_handler)
+
+    # save word dict and embedding table
+    embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
+    save_dict_and_embedding(word_dict, embeddings)
 
 
 if __name__ == '__main__':
