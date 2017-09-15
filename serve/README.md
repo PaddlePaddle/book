@@ -202,6 +202,11 @@ Here, `code` and `message` represent the status of the request.
 probability of each class, could be the IDs of output sentence, and so
 on.
 
+## MNIST Demo Client
+
+If you have trained an model with [train.py](https://github.com/reyoung/paddle_mnist_v2_demo/blob/master/train.py) and
+start a inference server. Then you can use this [client](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits/client/client.py) to test if it works right.
+
 ## Build
 
 We have already prepared the pre-built docker image
