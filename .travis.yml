@@ -15,11 +15,13 @@ addons:
       - python-pip
       - python2.7-dev
       - golang
+  ssh_known_hosts: 52.76.173.135
 before_install:
   -  sudo pip install -U virtualenv pre-commit pip
   -  GOPATH=/tmp/go go get -u github.com/wangkuiyi/ipynb/markdown-to-ipynb
 script:
   -  PATH=/tmp/go/bin:$PATH .travis/precommit.sh
+  - .travis/deploy.sh
 notifications:
   email:
     on_success: change
