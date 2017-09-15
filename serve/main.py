@@ -75,7 +75,10 @@ def worker():
             trace = traceback.format_exc()
             recvQ.put((False, trace))
             continue
-        recvQ.put((True, r.tolist()))
+        if isinstance(r, list):
+            recvQ.put((True, [elem.tolist() for elem in r]))
+        else:
+            recvQ.put((True, r.tolist()))
 
 
 if __name__ == '__main__':
