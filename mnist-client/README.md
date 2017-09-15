@@ -22,8 +22,8 @@ PaddlePaddle. Please see [here](../serve/README.md) for more details.
    current working directory.
 
     ```bash
-    wget https://s3.us-east-2.amazonaws.com/models.paddlepaddle/inference_topology.pkl
-    wget https://s3.us-east-2.amazonaws.com/models.paddlepaddle/param.tar
+    wget https://s3.us-east-2.amazonaws.com/models.paddlepaddle/end-to-end-mnist/inference_topology.pkl
+    wget https://s3.us-east-2.amazonaws.com/models.paddlepaddle/end-to-end-mnist/param.tar
     ```
 
 1. Run following command to start the inference server:
