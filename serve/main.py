@@ -38,16 +38,11 @@ def successResp(data):
 
 
 sendQ = Queue()
-thread_local = threading.local()
 
 
 @app.route('/', methods=['POST'])
 def infer():
-    recv_queue = getattr(thread_local, 'recv_queue', None)
-    if recv_queue is None:
-        thread_local.recv_queue = Queue()
-        recv_queue = thread_local.recv_queue
-
+    recv_queue = Queue()
     sendQ.put((request.json, recv_queue))
     success, resp = recv_queue.get()
     if success:
