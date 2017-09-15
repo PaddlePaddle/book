@@ -207,6 +207,26 @@ hiddensize = 256 # 隐层维度
 N = 5 # 训练5-Gram
 ```
 
+用于保存和加载word_dict和embedding table的函数
+```python
+def wordemb(inlayer):
+    wordemb = paddle.layer.table_projection(
+        input=inlayer,
+        size=embsize,
+        param_attr=paddle.attr.Param(
+            name="_proj", initial_std=0.001, learning_rate=1, l2_rate=0))
+    return wordemb
+
+
+# save and load word dict and embedding table
+def save_dict_and_embedding(word_dict, embeddings):
+    with open("word_dict", "w") as f:
+        for key in word_dict:
+            f.write(key + " " + str(word_dict[key]) + "\n")
+    with open("embedding_table", "w") as f:
+        numpy.savetxt(f, embeddings, delimiter=',', newline='\n')
+```
+
 接着，定义网络结构：
 
 - 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
@@ -332,6 +352,16 @@ Pass 0, Batch 200, Cost 5.786797, {'classification_error_evaluator': 0.8125}, Te
 训练过程是完全自动的，event_handler里打印的日志类似如上所示：
 
 经过30个pass，我们将得到平均错误率为classification_error_evaluator=0.735611。
+
+## 保存词典和embedding
+
+训练完成之后，我们可以把词典和embedding table单独保存下来，后面可以直接使用
+
+```python
+# save word dict and embedding table
+embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
+save_dict_and_embedding(word_dict, embeddings)
+```
 
 
 ## 应用模型

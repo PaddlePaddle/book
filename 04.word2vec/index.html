@@ -266,6 +266,27 @@ hiddensize = 256 # hidden layer dimension
 N = 5 # train 5-gram
 ```
 
+
+- functions used to save and load word dict and embedding table
+```python
+def wordemb(inlayer):
+    wordemb = paddle.layer.table_projection(
+        input=inlayer,
+        size=embsize,
+        param_attr=paddle.attr.Param(
+            name="_proj", initial_std=0.001, learning_rate=1, l2_rate=0))
+    return wordemb
+
+
+# save and load word dict and embedding table
+def save_dict_and_embedding(word_dict, embeddings):
+    with open("word_dict", "w") as f:
+        for key in word_dict:
+            f.write(key + " " + str(word_dict[key]) + "\n")
+    with open("embedding_table", "w") as f:
+        numpy.savetxt(f, embeddings, delimiter=',', newline='\n')
+```
+
 - Map the $n-1$ words $w_{t-n+1},...w_{t-1}$ before $w_t$ to a D-dimensional vector though matrix of dimention $|V|\times D$ (D=32 in this example).
 
 ```python
@@ -384,6 +405,16 @@ Pass 0, Batch 200, Cost 5.786797, {'classification_error_evaluator': 0.8125}, Te
 ```
 
 After 30 passes, we can get average error rate around 0.735611.
+
+## Save word dict and embedding table
+
+after training, we can save the word dict and embedding table for the future usage.
+
+```python
+# save word dict and embedding table
+embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
+save_dict_and_embedding(word_dict, embeddings)
+```
 
 
 ## Model Application

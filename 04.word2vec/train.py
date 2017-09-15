@@ -1,6 +1,7 @@
-import math, os
-import numpy
+import math
+import os
 
+import numpy
 import paddle.v2 as paddle
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
@@ -25,22 +26,17 @@ def save_dict_and_embedding(word_dict, embeddings):
         for key in word_dict:
             f.write(key + " " + str(word_dict[key]) + "\n")
     with open("embedding_table", "w") as f:
-        for line in embeddings:
-            f.write(",".join([str(x) for x in line]) + "\n")
+        numpy.savetxt(f, embeddings, delimiter=',', newline='\n')
 
 
 def load_dict_and_embedding():
     word_dict = dict()
-    embeddings = []
-
     with open("word_dict", "r") as f:
         for line in f:
             key, value = line.strip().split(" ")
             word_dict[key] = value
-    with open("embedding_table", "r") as f:
-        for line in f:
-            embeddings.append(
-                numpy.array([float(x) for x in line.strip().split(',')]))
+
+    embeddings = numpy.loadtxt("embedding_table", delimiter=",")
     return word_dict, embeddings
 
 
@@ -102,7 +98,7 @@ def main():
     trainer = paddle.trainer.SGD(cost, parameters, adagrad)
     trainer.train(
         paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
-        num_passes=1,
+        num_passes=100,
         event_handler=event_handler)
 
     # save word dict and embedding table
