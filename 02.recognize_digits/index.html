@@ -42,23 +42,21 @@
 <div id="markdown" style='display:none'>
 # Recognize Digits
 
-The source code for this tutorial is live at [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For instructions on getting started with Paddle, please refer to [installation instructions](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code for this tutorial locates in [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For instructions on getting started with Paddle, please refer to [installation instructions](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Introduction
-When one learns to program, the first task is usually to write a program that prints "Hello World!". In Machine Learning or Deep Learning, the equivalent task is to train a model to recognize hand-written digits on the dataset [MNIST](http://yann.lecun.com/exdb/mnist/). Handwriting recognition is a classic image classification problem. The problem is relatively easy and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1). The input image is a $28\times28$ matrix, and the label is one of the digits from $0$ to $9$. All images are normalized, meaning that they are both rescaled and centered.
+When one learns to program, the first task is usually to write a program that prints "Hello World!". In Machine Learning or Deep Learning, an equivalent task is to train a model to recognize hand-written digits using the [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a classic image classification problem. The problem is relatively easy and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1). The input image is a $28\times28$ matrix, and the label is one of the digits from $0$ to $9$. All images are normalized, meaning that they are both rescaled and centered.
 
 <p align="center">
 <img src="image/mnist_example_image.png" width="400"><br/>
 Fig. 1. Examples of MNIST images
 </p>
 
-The MNIST dataset is created from the [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3 (SD-3) and the Special Database 1 (SD-1). The SD-3 is labeled by the staff of the U.S. Census Bureau, while SD-1 is labeled by high school students the in U.S. Therefore the SD-3 is cleaner and easier to recognize than the SD-1 dataset. Yann LeCun et al. used half of the samples from each of SD-1 and SD-3 to create the MNIST training set (60,000 samples) and test set (10,000 samples), where training set was labeled by 250 different annotators, and it was guaranteed that there wasn't a complete overlap of annotators of training set and test set.
+The MNIST dataset is from the [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3 (SD-3) and the Special Database 1 (SD-1). The SD-3 is labeled by the staff of the U.S. Census Bureau, while SD-1 is labeled by high school students. Therefore the SD-3 is cleaner and easier to recognize than the SD-1 dataset. Yann LeCun et al. used half of the samples from each of SD-1 and SD-3 to create the MNIST training set of 60,000 samples and test set of 10,000 samples. 250 annotators labeled the training set, thus guaranteed that there wasn't a complete overlap of annotators of training set and test set.
 
-Yann LeCun, one of the founders of Deep Learning, has previously made tremendous contributions to handwritten character recognition and proposed the **Convolutional Neural Network** (CNN), which drastically improved recognition capability for handwritten characters. CNNs are now a critical concept in Deep Learning. From the LeNet proposal by Yann LeCun, to those winning models in ImageNet competitions, such as VGGNet, GoogLeNet, and ResNet (See [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification) tutorial), CNNs have achieved a series of impressive results in Image Classification tasks.
+The MNIST dataset has been used for evaluating many image recognition algorithms such as a single layer linear classifier, Multilayer Perceptron (MLP) and Multilayer CNN LeNet\[[1](#references)\], K-Nearest Neighbors (k-NN) \[[2](#references)\], Support Vector Machine (SVM) \[[3](#references)\], Neural Networks \[[4-7](#references)\], Boosting \[[8](#references)\] and preprocessing methods like distortion removal, noise removal, and blurring.  Among these algorithms, the *Convolutional Neural Network* (CNN) has achieved a series of impressive results in Image Classification tasks, including VGGNet, GoogLeNet, and ResNet (See [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification) tutorial).
 
-Many algorithms are tested on MNIST. In 1998, LeCun experimented with single layer linear classifier, Multilayer Perceptron (MLP) and Multilayer CNN LeNet. These algorithms quickly reduced test error from 12% to 0.7% \[[1](#references)\]. Since then, researchers have worked on many algorithms such as **K-Nearest Neighbors** (k-NN) \[[2](#references)\], **Support Vector Machine** (SVM) \[[3](#references)\], **Neural Networks** \[[4-7](#references)\] and **Boosting** \[[8](#references)\]. Various preprocessing methods like distortion removal, noise removal, and blurring, have also been applied to increase recognition accuracy.
-
-In this tutorial, we tackle the task of handwritten character recognition. We start with a simple **softmax** regression model and guide our readers step-by-step to improve this model's performance on the task of recognition.
+In this tutorial, we start with a simple **softmax** regression model and go on with MLP and CNN.  Readers will see how these methods improve the recognition accuracy step-by-step.
 
 
 ## Model Overview
@@ -118,7 +116,7 @@ Fig. 4. Convolutional layer<br/>
 
 The **convolutional layer** is the core of a Convolutional Neural Network. The parameters in this layer are composed of a set of filters, also called kernels. We could visualize the convolution step in the following fashion: Each kernel slides horizontally and vertically till it covers the whole image. At every window, we compute the dot product of the kernel and the input. Then, we add the bias and apply an activation function. The result is a two-dimensional activation map. For example, some kernel may recognize corners, and some may recognize circles. These convolution kernels may respond strongly to the corresponding features.
 
-Fig. 4 illustrates the dynamic programming of a convolutional layer, where depths are flattened for simplicity. The input is $W_1=5$, $H_1=5$, $D_1=3$. In fact, this is a common representation for colored images. $W_1$ and $H_1$ correspond to the width and height in a colored image. $D_1$ corresponds to the 3 color channels for RGB. The parameters of the convolutional layer are $K=2$, $F=3$, $S=2$, $P=1$. $K$ denotes the number of kernels; specifically, $Filter$ $W_0$ and $Filter$ $W_1$ are the kernels. $F$ is kernel size while $W0$ and $W1$ are both $F\timesF = 3\times3$ matrices in all depths. $S$ is the stride, which is the width of the sliding window; here, kernels move leftwards or downwards by 2 units each time. $P$ is the width of the padding, which denotes an extension of the input; here, the gray area shows zero padding with size 1.
+Fig. 4 illustrates the dynamic programming of a convolutional layer, where depths are flattened for simplicity. The input is $W_1=5$, $H_1=5$, $D_1=3$. In fact, this is a common representation for colored images. $W_1$ and $H_1$ correspond to the width and height in a colored image. $D_1$ corresponds to the three color channels for RGB. The parameters of the convolutional layer are $K=2$, $F=3$, $S=2$, $P=1$. $K$ denotes the number of kernels; specifically, $Filter$ $W_0$ and $Filter$ $W_1$ are the kernels. $F$ is kernel size while $W0$ and $W1$ are both $F\timesF = 3\times3$ matrices in all depths. $S$ is the stride, which is the width of the sliding window; here, kernels move leftwards or downwards by two units each time. $P$ is the width of the padding, which denotes an extension of the input; here, the gray area shows zero padding with size 1.
 
 #### Pooling Layer
 
@@ -138,13 +136,13 @@ Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
 
 [**LeNet-5**](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Networks. Fig. 6. shows its architecture: A 2-dimensional input image is fed into two sets of convolutional layers and pooling layers. This output is then fed to a fully connected layer and a softmax classifier. Compared to multilayer, fully connected perceptrons, the LeNet-5 can recognize images better. This is due to the following three properties of the convolution:
 
-- The 3D nature of the neurons: a convolutional layer is organized by width, height and depth. Neurons in each layer are connected to only a small region in the previous layer. This region is called the receptive field.
+- The 3D nature of the neurons: a convolutional layer is organized by width, height, and depth. Neurons in each layer are connected to only a small region in the previous layer. This region is called the receptive field.
 - Local connectivity: A CNN utilizes the local space correlation by connecting local neurons. This design guarantees that the learned filter has a strong response to local input features. Stacking many such layers generates a non-linear filter that is more global. This enables the network to first obtain good representation for small parts of input and then combine them to represent a larger region.
-- Weight sharing: In a CNN, computation is iterated on shared parameters (weights and bias) to form a feature map. This means that all the neurons in the same depth of the output respond to the same feature. This allows the network to detect a feature regardless of its position in the input. In other words, it is shift invariant.
+- Weight sharing: In a CNN, computation is iterated on shared parameters (weights and bias) to form a feature map. This means that all the neurons in the same depth of the output response to the same feature. This allows the network to detect a feature regardless of its position in the input.
 
 For more details on Convolutional Neural Networks, please refer to the tutorial on [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) and the [relevant lecture](http://cs231n.github.io/convolutional-networks/) from a Stanford open course.
 
-### List of Common Activation Functions  
+### List of Common Activation Functions
 - Sigmoid activation function: $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
 
 - Tanh activation function: $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
@@ -265,9 +263,9 @@ trainer = paddle.trainer.SGD(cost=cost,
 
 Then we specify the training data `paddle.dataset.mnist.train()` and testing data `paddle.dataset.mnist.test()`. These two methods are *reader creators*. Once called, a reader creator returns a *reader*.  A reader is a Python method, which, once called, returns a Python generator, which yields instances of data.
 
-`shuffle` is a reader decorator. It takes in a reader A as input and returns a new reader B. Under the hood, B calls A to read data in the following fashion: it copies in `buffer_size` instances at a time into a buffer, shuffles the data, and yields the shuffled instances one at a time. A large buffer size would yield very shuffled data.
+`shuffle` is a reader decorator. It takes a reader A as input and returns a new reader B. Under the hood, B calls A to read data in the following fashion: it copies in `buffer_size` instances at a time into a buffer, shuffles the data, and yields the shuffled instances one at a time. A large buffer size would yield very shuffled data.
 
-`batch` is a special decorator, which takes in reader and outputs a *batch reader*, which doesn't yield an instance, but a minibatch at a time.
+`batch` is a special decorator, which takes a reader and outputs a *batch reader*, which doesn't yield an instance, but a minibatch at a time.
 
 `event_handler_plot` is used to plot a figure like below：
 
@@ -357,7 +355,7 @@ Usually, with MNIST data, the softmax regression model achieves an accuracy arou
 
 ## Application
 
-After training is done, user can use the trained model to classify images. The following code shows how to inference MNIST images through `paddle.infer` interface.
+After training, users can use the trained model to classify images. The following code shows how to inference MNIST images through `paddle.infer` interface.
 
 ```python
 from PIL import Image
@@ -385,15 +383,15 @@ print "Label of image/infer_3.png is: %d" % lab[0][0]
 
 This tutorial describes a few common deep learning models using **Softmax regression**, **Multilayer Perceptron Network**, and **Convolutional Neural Network**. Understanding these models is crucial for future learning; the subsequent tutorials derive more sophisticated networks by building on top of them.
 
-When our model evolves from a simple softmax regression to a slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST data set achieves a large improvement in accuracy. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve the results of an old one.
+When our model evolves from a simple softmax regression to a slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST dataset achieves a large improvement in accuracy. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve the results of an old one.
 
-Moreover, this tutorial introduces the basic flow of PaddlePaddle model design, which starts with a *dataprovider*, a model layer construction, and finally training and prediction. Motivated readers can leverage the flow used in this MNIST handwritten digit classification example and experiment with different data and network architectures to train models for classification tasks of their choice.
+Moreover, this tutorial introduces the basic flow of PaddlePaddle model design, which starts with a *data provider*, a model layer construction, and finally training and prediction. Motivated readers can leverage the flow used in this MNIST handwritten digit classification example and experiment with different data and network architectures to train models for classification tasks of their choice.
 
 
 ## References
 
 1. LeCun, Yann, Léon Bottou, Yoshua Bengio, and Patrick Haffner. ["Gradient-based learning applied to document recognition."](http://ieeexplore.ieee.org/abstract/document/726791/) Proceedings of the IEEE 86, no. 11 (1998): 2278-2324.
-2. Wejéus, Samuel. ["A Neural Network Approach to Arbitrary SymbolRecognition on Modern Smartphones."](http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A753279&dswid=-434) (2014).
+2. Wejéus, Samuel. ["A Neural Network Approach to Arbitrary SymbolRecognition on Modern Smartphones."](http://www.diva-portal.org/smash/record.jsf?pid=diva2:753279&dswid=-434) (2014).
 3. Decoste, Dennis, and Bernhard Schölkopf. ["Training invariant support vector machines."](http://link.springer.com/article/10.1023/A:1012454411458) Machine learning 46, no. 1-3 (2002): 161-190.
 4. Simard, Patrice Y., David Steinkraus, and John C. Platt. ["Best Practices for Convolutional Neural Networks Applied to Visual Document Analysis."](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.160.8494&rep=rep1&type=pdf) In ICDAR, vol. 3, pp. 958-962. 2003.
 5. Salakhutdinov, Ruslan, and Geoffrey E. Hinton. ["Learning a Nonlinear Embedding by Preserving Class Neighbourhood Structure."](http://www.jmlr.org/proceedings/papers/v2/salakhutdinov07a/salakhutdinov07a.pdf) In AISTATS, vol. 11. 2007.

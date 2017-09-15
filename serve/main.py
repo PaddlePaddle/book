@@ -38,13 +38,13 @@ def successResp(data):
 
 
 sendQ = Queue()
-recvQ = Queue()
 
 
 @app.route('/', methods=['POST'])
 def infer():
-    sendQ.put(request.json)
-    success, resp = recvQ.get()
+    recv_queue = Queue()
+    sendQ.put((request.json, recv_queue))
+    success, resp = recv_queue.get()
     if success:
         return successResp(resp)
     else:
@@ -60,7 +60,7 @@ def worker():
         inferer = paddle.inference.Inference(parameters=params, fileobj=topo_f)
 
     while True:
-        j = sendQ.get()
+        j, recv_queue = sendQ.get()
         try:
             feeding = {}
             d = []
@@ -70,9 +70,9 @@ def worker():
                 r = inferer.infer([d], feeding=feeding)
         except:
             trace = traceback.format_exc()
-            recvQ.put((False, trace))
+            recv_queue.put((False, trace))
             continue
-        recvQ.put((True, r.tolist()))
+        recv_queue.put((True, r.tolist()))
 
 
 if __name__ == '__main__':

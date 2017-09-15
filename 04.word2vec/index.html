@@ -42,21 +42,21 @@
 <div id="markdown" style='display:none'>
 # Word2Vec
 
-This is intended as a reference tutorial. The source code of this tutorial lives on [book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec).
+This is intended as a reference tutorial. The source code of this tutorial is located at [book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec).
 
 For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Background Introduction
 
-This section introduces the concept of **word embedding**, which is a vector representation of words. It is a popular technique used in natural language processing. Word embeddings support many Internet services, including search engines, advertising systems, and recommendation systems.
+This section introduces the concept of **word embeddings**, which are vector representations of words. Word embeddings is a popular technique used in natural language processing to support applications such as search engines, advertising systems, and recommendation systems.
 
 ### One-Hot Vectors
 
-Building these services requires us to quantify the similarity between two words or paragraphs. This calls for a new representation of all the words to make them more suitable for computation. An obvious way to achieve this is through the vector space model, where every word is represented as an **one-hot vector**.
+Building these applications requires us to quantify the similarity between two words or paragraphs. This calls for a new representation of all the words to make them more suitable for computation. An obvious way to achieve this is through the vector space model, where every word is represented as an **one-hot vector**.
 
 For each word, its vector representation has the corresponding entry in the vector as 1, and all other entries as 0. The lengths of one-hot vectors match the size of the dictionary. Each entry of a vector corresponds to the presence (or absence) of a word in the dictionary.
 
-One-hot vectors are intuitive, yet they have limited usefulness. Take the example of an Internet advertising system: Suppose a customer enters the query "Mother's Day", while an ad bids for the keyword carnations". Because the one-hot vectors of these two words are perpendicular, the metric distance (either Euclidean or cosine similarity) between them would indicate  little relevance. However, *we* know that these two queries are connected semantically, since people often gift their mothers bundles of carnation flowers on Mother's Day. This discrepancy is due to the low information capacity in each vector. That is, comparing the vector representations of two words does not assess their relevance sufficiently. To calculate their similarity accurately, we need more information, which could be learned from large amounts of data through machine learning methods.
+One-hot vectors are intuitive, yet they have limited usefulness. Take the example of an Internet advertising system: Suppose a customer enters the query "Mother's Day", while an ad bids for the keyword "carnations". Because the one-hot vectors of these two words are perpendicular, the metric distance (either Euclidean or cosine similarity) between them would indicate  little relevance. However, *we* know that these two queries are connected semantically, since people often gift their mothers bundles of carnation flowers on Mother's Day. This discrepancy is due to the low information capacity in each vector. That is, comparing the vector representations of two words does not assess their relevance sufficiently. To calculate their similarity accurately, we need more information, which could be learned from large amounts of data through machine learning methods.
 
 Like many machine learning models, word embeddings can represent knowledge in various ways. Another model may project an one-hot vector to an embedding vector of lower dimension e.g. $embedding(mother's day) = [0.3, 4.2, -1.5, ...], embedding(carnations) = [0.2, 5.6, -2.3, ...]$. Mapping one-hot vectors onto an embedded vector space has the potential to bring the embedding vectors of similar words (either semantically or usage-wise) closer to each other, so that the cosine similarity between the corresponding vectors for words like "Mother's Day" and "carnations" are no longer zero.
 
@@ -75,7 +75,7 @@ The neural network based model does not require storing huge hash tables of stat
 
 ## Results Demonstration
 
-In this section, after training the word embedding model, we could use the data visualization algorithm $t-$SNE\[[4](#reference)\] to draw the word embedding vectors after projecting them onto a two-dimensional space (see figure below). From the figure we could see that the semantically relevant words -- *a*, *the*, and *these* or *big* and *huge* -- are close to each other in the projected space, while irrelevant words -- *say* and *business* or *decision* and *japan* -- are far from each other.
+In this section, we use the $t-$SNE\[[4](#reference)\] data visualization algorithm to draw the word embedding vectors after projecting them onto a two-dimensional space (see figure below). From the figure we can see that the semantically relevant words -- *a*, *the*, and *these* or *big* and *huge* -- are close to each other in the projected space, while irrelevant words -- *say* and *business* or *decision* and *japan* -- are far from each other.
 
 <p align="center">
     <img src = "image/2d_similarity.png" width=400><br/>
@@ -94,14 +94,14 @@ please input two words: from company
 similarity: -0.0997506977351
 ```
 
-The above results could be obtained by running `calculate_dis.py`, which loads the words in the dictionary and their corresponding trained word embeddings. For detailed instruction, see section [Model Application](#Model Application).
+The above results could be obtained by running `calculate_dis.py`, which loads the words in the dictionary and their corresponding trained word embeddings. For detailed instruction, see section [Model Application](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec#model-application).
 
 
 ## Model Overview
 
 In this section, we will introduce three word embedding models: N-gram model, CBOW, and Skip-gram, which all output the frequency of each word given its immediate context.
 
-For N-gram model, we will first introduce the concept of language model, and implement it using PaddlePaddle in section [Model Training](#Model Training).
+For N-gram model, we will first introduce the concept of language model, and implement it using PaddlePaddle in section [Training](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec#model-application).
 
 The latter two models, which became popular recently, are neural word embedding model developed by Tomas Mikolov at Google \[[3](#reference)\]. Despite their apparent simplicity, these models train very well.
 
@@ -135,7 +135,7 @@ Given some real corpus in which all sentences are meaningful, the n-gram model s
 
 $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
-where $f(w_t, w_{t-1}, ..., w_{t-n+1})$ represents the conditional probability of the current word $w_t$ given its previous $n-1$ words, and $R(\theta)$ represents parameter regularization term.
+where $f(w_t, w_{t-1}, ..., w_{t-n+1})$ represents the conditional logarithmic probability of the current word $w_t$ given its previous $n-1$ words, and $R(\theta)$ represents parameter regularization term.
 
 <p align="center">
        <img src="image/nnlm_en.png" width=500><br/>
@@ -193,7 +193,7 @@ As illustrated in the figure above, skip-gram model maps the word embedding of t
 
 ## Dataset
 
-We will use Peen Treebank (PTB) (Tomas Mikolov's pre-processed version) dataset. PTB is a small dataset, used in Recurrent Neural Network Language Modeling Toolkit\[[2](#reference)\]. Its statistics are as follows:
+We will use Penn Treebank (PTB) (Tomas Mikolov's pre-processed version) dataset. PTB is a small dataset, used in Recurrent Neural Network Language Modeling Toolkit\[[2](#reference)\]. Its statistics are as follows:
 
 <p align="center">
 <table>
@@ -388,7 +388,7 @@ After 30 passes, we can get average error rate around 0.735611.
 
 ## Model Application
 
-After the model is trained, we can load saved model parameters and uses it for other models. We can also use the parameters in applications.
+After the model is trained, we can load the  saved model parameters and use it for other models. We can also use the parameters in various applications.
 
 ### Viewing Word Vector
 
@@ -443,7 +443,7 @@ print spatial.distance.cosine(emb_1, emb_2)
 
 ## Conclusion
 
-This chapter introduces word embedding, the relationship between language model and word embedding, and how to train neural networks to learn word embedding.
+This chapter introduces word embeddings, the relationship between language model and word embedding, and how to train neural networks to learn word embedding.
 
 In information retrieval, the relevance between the query and document keyword can be computed through the cosine similarity of their word embeddings. In grammar analysis and semantic analysis, a previously trained word embedding can initialize models for better performance. In document classification, clustering the word embedding can group synonyms in the documents. We hope that readers can use word embedding models in their work after reading this chapter.
 
