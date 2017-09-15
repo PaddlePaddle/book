@@ -98,6 +98,8 @@ first, and run:
 nvidia-docker run --name paddle_serve -v `pwd`:/data -d -p 8000:80 -e WITH_GPU=1 paddlepaddle/book:serve
 ```
 
+this command will start a server on port `8000`.
+
 After you are done with the demo, you can run `docker stop
 paddle_serve` to stop this docker container.
 
@@ -113,7 +115,7 @@ is decided by the data type. For most cases the corresponding value
 will be a list of floats. For completeness, we will list all data types
 below:
 
-There are tweleve data types supported by PaddePaddle:
+There are twelve data types supported by PaddePaddle:
 
 | | plain | a sequence | a sequence of sequence |
 | --- | --- | --- | ---|
