@@ -4,6 +4,8 @@ import traceback
 import paddle.v2 as paddle
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from Queue import Queue
+import threading
 
 tarfn = os.getenv('PARAMETER_TAR_PATH', None)
 
@@ -35,26 +37,47 @@ def successResp(data):
     return jsonify(code=0, message="success", data=data)
 
 
+sendQ = Queue()
+recvQ = Queue()
+
+
 @app.route('/', methods=['POST'])
 def infer():
-    global inferer
-    try:
-        feeding = {}
-        d = []
-        for i, key in enumerate(request.json):
-            d.append(request.json[key])
-            feeding[key] = i
-        r = inferer.infer([d], feeding=feeding)
-    except:
-        trace = traceback.format_exc()
-        return errorResp(trace)
-    return successResp(r.tolist())
+    sendQ.put(request.json)
+    success, resp = recvQ.get()
+    if success:
+        return successResp(resp)
+    else:
+        return errorResp(resp)
 
 
-if __name__ == '__main__':
+# PaddlePaddle v0.10.0 does not support inference from different
+# threads, so we create a single worker thread.
+def worker():
     paddle.init(use_gpu=with_gpu)
     with open(tarfn) as param_f, open(topology_filepath) as topo_f:
         params = paddle.parameters.Parameters.from_tar(param_f)
         inferer = paddle.inference.Inference(parameters=params, fileobj=topo_f)
+
+    while True:
+        j = sendQ.get()
+        try:
+            feeding = {}
+            d = []
+            for i, key in enumerate(j):
+                d.append(j[key])
+                feeding[key] = i
+                r = inferer.infer([d], feeding=feeding)
+        except:
+            trace = traceback.format_exc()
+            recvQ.put((False, trace))
+            continue
+        recvQ.put((True, r.tolist()))
+
+
+if __name__ == '__main__':
+    t = threading.Thread(target=worker)
+    t.daemon = True
+    t.start()
     print 'serving on port', port
-    app.run(host='0.0.0.0', port=port, threaded=False)
+    app.run(host='0.0.0.0', port=port, threaded=True)
