@@ -78,12 +78,12 @@
             </a>
           </li>
           <li class="nav-item {% if not is_en %}active{% endif %}">
-            <a class="nav-link" href="{% if is_en %}./index.html{% else %}#{%endif%}">
+            <a class="nav-link" href="{% if is_en %}./index.cn.html{% else %}#{%endif%}">
                 {% if is_en %}中文{% else %}深度学习入门{% endif %}
             </a>
           </li>
           <li class="nav-item {% if is_en %}active{% endif %}">
-            <a class="nav-link" href="{% if is_en %}#{% else %}./index.en.html{% endif %}">
+            <a class="nav-link" href="{% if is_en %}#{% else %}./index.html{% endif %}">
                 {% if is_en %}Deep Learning 101{% else %}English{% endif %}
             </a>
           </li>
@@ -119,7 +119,7 @@
                 </div>
             </div>
             <div class="col">
-                <iframe src="./01.fit_a_line/index{% if is_en %}.en{% endif %}.html" style="border: none; overflow-y : hidden" width="100%" height="100%" name="content_iframe" id="content_iframe">
+                <iframe src="./01.fit_a_line/index{% if not is_en %}.cn{% endif %}.html" style="border: none; overflow-y : hidden" width="100%" height="100%" name="content_iframe" id="content_iframe">
                 </iframe>
             </div>
         </div>
