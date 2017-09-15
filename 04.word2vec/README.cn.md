@@ -209,15 +209,6 @@ N = 5 # 训练5-Gram
 
 用于保存和加载word_dict和embedding table的函数
 ```python
-def wordemb(inlayer):
-    wordemb = paddle.layer.table_projection(
-        input=inlayer,
-        size=embsize,
-        param_attr=paddle.attr.Param(
-            name="_proj", initial_std=0.001, learning_rate=1, l2_rate=0))
-    return wordemb
-
-
 # save and load word dict and embedding table
 def save_dict_and_embedding(word_dict, embeddings):
     with open("word_dict", "w") as f:
@@ -225,6 +216,17 @@ def save_dict_and_embedding(word_dict, embeddings):
             f.write(key + " " + str(word_dict[key]) + "\n")
     with open("embedding_table", "w") as f:
         numpy.savetxt(f, embeddings, delimiter=',', newline='\n')
+
+
+def load_dict_and_embedding():
+    word_dict = dict()
+    with open("word_dict", "r") as f:
+        for line in f:
+            key, value = line.strip().split(" ")
+            word_dict[key] = value
+
+    embeddings = numpy.loadtxt("embedding_table", delimiter=",")
+    return word_dict, embeddings
 ```
 
 接着，定义网络结构：
