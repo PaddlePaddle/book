@@ -1,5 +1,7 @@
-import math, os
+import math
+import os
 
+import numpy
 import paddle.v2 as paddle
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
@@ -16,6 +18,26 @@ def wordemb(inlayer):
         param_attr=paddle.attr.Param(
             name="_proj", initial_std=0.001, learning_rate=1, l2_rate=0))
     return wordemb
+
+
+# save and load word dict and embedding table
+def save_dict_and_embedding(word_dict, embeddings):
+    with open("word_dict", "w") as f:
+        for key in word_dict:
+            f.write(key + " " + str(word_dict[key]) + "\n")
+    with open("embedding_table", "w") as f:
+        numpy.savetxt(f, embeddings, delimiter=',', newline='\n')
+
+
+def load_dict_and_embedding():
+    word_dict = dict()
+    with open("word_dict", "r") as f:
+        for line in f:
+            key, value = line.strip().split(" ")
+            word_dict[key] = value
+
+    embeddings = numpy.loadtxt("embedding_table", delimiter=",")
+    return word_dict, embeddings
 
 
 def main():
@@ -78,6 +100,10 @@ def main():
         paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
         num_passes=100,
         event_handler=event_handler)
+
+    # save word dict and embedding table
+    embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
+    save_dict_and_embedding(word_dict, embeddings)
 
 
 if __name__ == '__main__':

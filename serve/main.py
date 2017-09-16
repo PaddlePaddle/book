@@ -22,7 +22,7 @@ if topology_filepath is None:
     )
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
-
+output_field = os.getenv('OUTPUT_FIELD', 'value')
 port = int(os.getenv('PORT', '80'))
 
 app = Flask(__name__)
@@ -38,13 +38,13 @@ def successResp(data):
 
 
 sendQ = Queue()
-recvQ = Queue()
 
 
 @app.route('/', methods=['POST'])
 def infer():
-    sendQ.put(request.json)
-    success, resp = recvQ.get()
+    recv_queue = Queue()
+    sendQ.put((request.json, recv_queue))
+    success, resp = recv_queue.get()
     if success:
         return successResp(resp)
     else:
@@ -55,24 +55,30 @@ def infer():
 # threads, so we create a single worker thread.
 def worker():
     paddle.init(use_gpu=with_gpu)
+
+    fields = filter(lambda x: len(x) != 0, output_field.split(","))
+
     with open(tarfn) as param_f, open(topology_filepath) as topo_f:
         params = paddle.parameters.Parameters.from_tar(param_f)
         inferer = paddle.inference.Inference(parameters=params, fileobj=topo_f)
 
     while True:
-        j = sendQ.get()
+        j, recv_queue = sendQ.get()
         try:
             feeding = {}
             d = []
             for i, key in enumerate(j):
                 d.append(j[key])
                 feeding[key] = i
-                r = inferer.infer([d], feeding=feeding)
+                r = inferer.infer([d], feeding=feeding, field=fields)
         except:
             trace = traceback.format_exc()
-            recvQ.put((False, trace))
+            recv_queue.put((False, trace))
             continue
-        recvQ.put((True, r.tolist()))
+        if isinstance(r, list):
+            recv_queue.put((True, [elem.tolist() for elem in r]))
+        else:
+            recv_queue.put((True, r.tolist()))
 
 
 if __name__ == '__main__':

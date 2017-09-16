@@ -1,6 +1,6 @@
 # Sentiment Analysis
 
-The source codes of this section locates at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/06.understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source codes of this section is located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/06.understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Background
 
@@ -28,7 +28,7 @@ The model we used in this chapter uses **Convolutional Neural Networks** (**CNNs
 
 ### Revisit to the Convolutional Neural Networks for Texts (CNN)
 
-The convolutional neural network for texts is introduced in chapter [recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system), let's have a brief overview.
+The convolutional neural network for texts is introduced in chapter [recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system), here is a brief overview.
 
 CNN mainly contains convolution and pooling operation, with versatile combinations in various applications. We firstly apply the convolution operation: we apply the kernel in each window, extracting features. Convolving by the kernel at every window produces a feature map. Next, we apply *max pooling* over time to represent the whole sentence, which is the maximum element across the feature map. In real applications, we will apply multiple CNN kernels on the sentences. It can be implemented efficiently by concatenating the kernels together as a matrix. Also, we can use CNN kernels with different kernel size. Finally, concatenating the resulting features produces a fixed-length representation, which can be combined with a softmax to form the model for the sentiment analysis problem.
 
@@ -164,8 +164,8 @@ def stacked_lstm_net(input_dim,
     """
     A Wrapper for sentiment classification task.
     This network uses a bi-directional recurrent network,
-    consisting three LSTM layers. This configure refers to
-    the paper with following url, but use fewer layers.
+    consisting of three LSTM layers. This configuration is 
+    motivated from the following paper, but uses few layers.
         http://www.aclweb.org/anthology/P15-1109
     input_dim: here is word dictionary dimension.
     class_dim: number of categories.
