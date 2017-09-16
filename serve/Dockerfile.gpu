@@ -1,4 +1,4 @@
-FROM paddlepaddle/paddle
+FROM paddlepaddle/paddle:latest-gpu
 
 ENV PARAMETER_TAR_PATH=/data/param.tar \
     TOPOLOGY_FILE_PATH=/data/inference_topology.pkl
