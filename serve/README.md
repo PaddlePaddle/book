@@ -95,7 +95,7 @@ To run the inference server with GPU support, please make sure you have
 first, and run:
 
 ```bash
-nvidia-docker run --name paddle_serve -v `pwd`:/data -d -p 8000:80 -e WITH_GPU=1 paddlepaddle/book:serve
+nvidia-docker run --name paddle_serve -v `pwd`:/data -d -p 8000:80 -e WITH_GPU=1 paddlepaddle/book:serve-gpu
 ```
 
 this command will start a server on port `8000`.
@@ -215,4 +215,5 @@ the docker image again.
 
 ```bash
 docker build -t paddlepaddle/book:serve .
+docker build -t paddlepaddle/book:serve-gpu -f Dockerfile.gpu .
 ```

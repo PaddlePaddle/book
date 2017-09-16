@@ -164,7 +164,7 @@ def stacked_lstm_net(input_dim,
     """
     A Wrapper for sentiment classification task.
     This network uses a bi-directional recurrent network,
-    consisting of three LSTM layers. This configuration is 
+    consisting of three LSTM layers. This configuration is
     motivated from the following paper, but uses few layers.
         http://www.aclweb.org/anthology/P15-1109
     input_dim: here is word dictionary dimension.
