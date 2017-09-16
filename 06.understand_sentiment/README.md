@@ -1,6 +1,6 @@
 # Sentiment Analysis
 
-The source codes of this section can be located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/06.understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source codes of this section is located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/06.understand_sentiment). First-time users may refer to PaddlePaddle for [Installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Background
 
@@ -15,9 +15,9 @@ In natural language processing, sentiment analysis refers to determining the emo
 
 <p align="center">Table 1 Sentiment Analysis in Movie Reviews</p>
 
-In natural language processing, sentiment analysis can be categorized as a **Text Classification problem**, i.e., to categorize a piece of text to a specific class. It involves two related tasks: text representation and classification. Before the emergence of deep learning techniques, the mainstream methods for text representation include BOW (*bag of words*) and topic modeling, while the latter contain SVM (*support vector machine*) and LR (*logistic regression*).
+In natural language processing, sentiment analysis can be categorized as a **Text Classification problem**, i.e., to categorize a piece of text to a specific class. It involves two related tasks: text representation and classification. Before the emergence of deep learning techniques, the mainstream methods for text representation include BOW (*bag of words*) and topic modeling, while the latter contains SVM (*support vector machine*) and LR (*logistic regression*).
 
-The BOW model does not capture all the information in a piece of text, as it ignores syntax and grammar and just treats the text as a set of words. For example, “this movie is extremely bad“ and “boring, dull, and empty work” describe very similar semantic meaning, yet their BOW representations have with little similarity. Furthermore, “the movie is bad“ and “the movie is not bad“ have high similarity with BOW features, but they express completely opposite semantics.
+The BOW model does not capture all the information in a piece of text, as it ignores syntax and grammar and just treats the text as a set of words. For example, “this movie is extremely bad“ and “boring, dull, and empty work” describe very similar semantic meaning, yet their BOW representations have very little similarity. Furthermore, “the movie is bad“ and “the movie is not bad“ have high similarity with BOW features, but they express completely opposite semantics.
 
 This chapter introduces a deep learning model that handles these issues in BOW. Our model embeds texts into a low-dimensional space and takes word order into consideration. It is an end-to-end framework and it has large performance improvement over traditional methods \[[1](#Reference)\].
 
@@ -28,15 +28,15 @@ The model we used in this chapter uses **Convolutional Neural Networks** (**CNNs
 
 ### Revisit to the Convolutional Neural Networks for Texts (CNN)
 
-The convolutional neural network for texts is introduced in chapter [recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system), here we make a brief overview.
+The convolutional neural network for texts is introduced in chapter [recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system), here is a brief overview.
 
-CNN mainly contains convolution and pooling operation, with versatile combinations in various applications. We first apply the convolution operation: we apply the kernel in each window, extracting features. Convolving by the kernel at every window produces a feature map. Next, we apply *max pooling* over time to represent the whole sentence, which is the maximum element across the feature map. In real applications, we will apply multiple CNN kernels on the sentences. It can be implemented efficiently by concatenating the kernels together as a matrix. Also, we can use CNN kernels with different kernel size. Finally, concatenating the resulting features produces a fixed-length representation, which can be combined with a softmax to form the model for the sentiment analysis problem.
+CNN mainly contains convolution and pooling operation, with versatile combinations in various applications. We firstly apply the convolution operation: we apply the kernel in each window, extracting features. Convolving by the kernel at every window produces a feature map. Next, we apply *max pooling* over time to represent the whole sentence, which is the maximum element across the feature map. In real applications, we will apply multiple CNN kernels on the sentences. It can be implemented efficiently by concatenating the kernels together as a matrix. Also, we can use CNN kernels with different kernel size. Finally, concatenating the resulting features produces a fixed-length representation, which can be combined with a softmax to form the model for the sentiment analysis problem.
 
 For short texts, the aforementioned CNN model can achieve very high accuracy \[[1](#Reference)\]. If we want to extract more abstract representations, we may apply a deeper CNN model \[[2](#Reference),[3](#Reference)\].
 
 ### Recurrent Neural Network (RNN)
 
-RNN is an effective model for sequential data. In terms of computability, the RNN is Turing-complete \[[4](#Reference)\]. Since NLP is a classical problem on sequential data, the RNN, especially its variant LSTM\[[5](#Reference)\]), achieves state-of-the-art performance on various NLP tasks, such as language modeling, syntax parsing, POS-tagging, image captioning, dialog, machine translation, and so forth.
+RNN is an effective model for sequential data. In terms of computability, the RNN is Turing-complete \[[4](#Reference)\]. Since NLP is a classical problem of sequential data, the RNN, especially its variant LSTM\[[5](#Reference)\]), achieves state-of-the-art performance on various NLP tasks, such as language modeling, syntax parsing, POS-tagging, image captioning, dialog, machine translation, and so forth.
 
 <p align="center">
 <img src="image/rnn.png" width = "60%" align="center"/><br/>
@@ -49,7 +49,7 @@ $$\vec{h_t}=f(\vec{x_t},\vec{h_{t-1}})=\sigma(W_{xh}\vec{x_t}+W_{hh}\vec{h_{h-1}
 
 where $W_{xh}$ is the weight matrix to feed into the latent layer; $W_{hh}$ is the latent-to-latent matrix; $b_h$ is the latent bias and $\sigma$ refers to the $sigmoid$ function.
 
-In NLP, words are often represented as a one-hot vectors and then mapped to an embedding. The embedded feature goes through an RNN as input $x_t$ at every time step. Moreover, we can add other layers on top of RNN, such as a deep or stacked RNN. Finally, the last latent state may be used as a feature for sentence classification.
+In NLP, words are often represented as one-hot vectors and then mapped to an embedding. The embedded feature goes through an RNN as input $x_t$ at every time step. Moreover, we can add other layers on top of RNN, such as a deep or stacked RNN. Finally, the last latent state may be used as a feature for sentence classification.
 
 ### Long-Short Term Memory (LSTM)
 
@@ -75,7 +75,7 @@ In the equation，$i_t, f_t, c_t, o_t$ stand for input gate, forget gate, memory
 Figure 2. LSTM at time step $t$ [7].
 </p>
 
-LSTM enhances the ability of considering long-term reliance, with the help of memory cell and gate. Similar structures are also proposed in Gated Recurrent Unit (GRU)\[[8](Reference)\] with simpler design. **The structures are still similar to RNN, though with some modifications (As shown in Figure 2), i.e., latent status depends on input as well as the latent status of last time-step, and the process goes on recurrently until all input are consumed:**
+LSTM enhances the ability of considering long-term reliance, with the help of memory cell and gate. Similar structures are also proposed in Gated Recurrent Unit (GRU)\[[8](Reference)\] with a simpler design. **The structures are still similar to RNN, though with some modifications (As shown in Figure 2), i.e., latent status depends on input as well as the latent status of the last time step, and the process goes on recurrently until all inputs are consumed:**
 
 $$ h_t=Recrurent(x_t,h_{t-1})$$
 where $Recrurent$ is a simple RNN, GRU or LSTM.
@@ -93,7 +93,7 @@ Figure 3. Stacked Bidirectional LSTM for NLP modeling.
 
 ## Dataset
 
-We use [IMDB](http://ai.stanford.edu/%7Eamaas/data/sentiment/) dataset for sentiment analysis in this tutorial, which consists of 50,000 movie reviews split evenly into 25k train and 25k test sets. In the labeled train/test sets, a negative review has a score <= 4 out of 10, and a positive review has a score >= 7 out of 10.
+We use [IMDB](http://ai.stanford.edu/%7Eamaas/data/sentiment/) dataset for sentiment analysis in this tutorial, which consists of 50,000 movie reviews split evenly into a 25k train set and a 25k test set. In the labeled train/test sets, a negative review has a score <= 4 out of 10, and a positive review has a score >= 7 out of 10.
 
 `paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens`, and `wmt14`, etc. There's no need for us to manually download and preprocess IMDB.
 
@@ -163,9 +163,9 @@ def stacked_lstm_net(input_dim,
                      stacked_num=3):
     """
     A Wrapper for sentiment classification task.
-    This network uses bi-directional recurrent network,
-    consisting three LSTM layers. This configure is referred to
-    the paper as following url, but use fewer layrs.
+    This network uses a bi-directional recurrent network,
+    consisting of three LSTM layers. This configuration is
+    motivated from the following paper, but uses few layers.
         http://www.aclweb.org/anthology/P15-1109
     input_dim: here is word dictionary dimension.
     class_dim: number of categories.
@@ -334,7 +334,7 @@ In this chapter, we use sentiment analysis as an example to introduce applying d
 ## Reference
 
 1. Kim Y. [Convolutional neural networks for sentence classification](http://arxiv.org/pdf/1408.5882)[J]. arXiv preprint arXiv:1408.5882, 2014.
-2. Kalchbrenner N, Grefenstette E, Blunsom P. [A convolutional neural network for modelling sentences](http://arxiv.org/pdf/1404.2188.pdf?utm_medium=App.net&utm_source=PourOver)[J]. arXiv preprint arXiv:1404.2188, 2014.
+2. Kalchbrenner N, Grefenstette E, Blunsom P. [A convolutional neural network for modeling sentences](http://arxiv.org/pdf/1404.2188.pdf?utm_medium=App.net&utm_source=PourOver)[J]. arXiv preprint arXiv:1404.2188, 2014.
 3. Yann N. Dauphin, et al. [Language Modeling with Gated Convolutional Networks](https://arxiv.org/pdf/1612.08083v1.pdf)[J] arXiv preprint arXiv:1612.08083, 2016.
 4. Siegelmann H T, Sontag E D. [On the computational power of neural nets](http://research.cs.queensu.ca/home/akl/cisc879/papers/SELECTED_PAPERS_FROM_VARIOUS_SOURCES/05070215382317071.pdf)[C]//Proceedings of the fifth annual workshop on Computational learning theory. ACM, 1992: 440-449.
 5. Hochreiter S, Schmidhuber J. [Long short-term memory](http://web.eecs.utk.edu/~itamar/courses/ECE-692/Bobby_paper1.pdf)[J]. Neural computation, 1997, 9(8): 1735-1780.
