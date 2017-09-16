@@ -11,7 +11,7 @@ differ in the numbers and types of inputs, **the HTTP API will differ
 slightly for each model,** please see [HTTP API](#http-api) for the
 API spec,
 and
-[here](https://github.com/PaddlePaddle/book/wiki/PaddlePaddle-Book-pretrained-model) for
+[here](https://github.com/PaddlePaddle/book/wiki/Using-Pre-trained-Models) for
 the request examples of different models that illustrate the
 difference.
 
@@ -21,7 +21,7 @@ to start the server.
 We will use Docker to run the demo, if you are not familiar with
 Docker, please checkout
 this
-[TLDR](https://github.com/PaddlePaddle/Paddle/wiki/TLDR-for-new-docker-user).
+[TLDR](https://github.com/PaddlePaddle/Paddle/wiki/Docker-for-Beginners).
 
 ### Obtain the PaddlePaddle Model
 
