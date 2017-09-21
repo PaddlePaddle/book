@@ -34,7 +34,7 @@ def load_dict_and_embedding():
     with open("word_dict", "r") as f:
         for line in f:
             key, value = line.strip().split(" ")
-            word_dict[key] = value
+            word_dict[key] = int(value)
 
     embeddings = numpy.loadtxt("embedding_table", delimiter=",")
     return word_dict, embeddings
