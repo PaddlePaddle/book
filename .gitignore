@@ -6,4 +6,3 @@ pandoc.template
 py_env*
 *.ipynb
 build
-Dockerfile

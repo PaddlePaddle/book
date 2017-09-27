@@ -1,16 +1,24 @@
+import os
 import paddle.v2 as paddle
 import paddle.v2.dataset.uci_housing as uci_housing
+
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 
 def main():
     # init
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
     # network config
     x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
     y_predict = paddle.layer.fc(input=x, size=1, act=paddle.activation.Linear())
     y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
     cost = paddle.layer.square_error_cost(input=y_predict, label=y)
+
+    # Save the inference topology to protobuf.
+    inference_topology = paddle.topology.Topology(layers=y_predict)
+    with open("inference_topology.pkl", 'wb') as f:
+        inference_topology.serialize_for_inference(f)
 
     # create parameters
     parameters = paddle.parameters.create(cost)
@@ -20,10 +28,6 @@ def main():
 
     trainer = paddle.trainer.SGD(
         cost=cost, parameters=parameters, update_equation=optimizer)
-
-    # save model proto as file
-    with open("model.proto", "w") as f:
-        f.write(str(trainer.__topology_in_proto__))
 
     feeding = {'x': 0, 'y': 1}
 

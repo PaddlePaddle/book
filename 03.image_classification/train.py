@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import sys
+import sys, os
 
 import paddle.v2 as paddle
 
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
+
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 
 def main():
@@ -25,7 +27,7 @@ def main():
     classdim = 10
 
     # PaddlePaddle init
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
     image = paddle.layer.data(
         name="image", type=paddle.data_type.dense_vector(datadim))
@@ -79,6 +81,12 @@ def main():
     # Create trainer
     trainer = paddle.trainer.SGD(
         cost=cost, parameters=parameters, update_equation=momentum_optimizer)
+
+    # Save the inference topology to protobuf.
+    inference_topology = paddle.topology.Topology(layers=out)
+    with open("inference_topology.pkl", 'wb') as f:
+        inference_topology.serialize_for_inference(f)
+
     trainer.train(
         reader=paddle.batch(
             paddle.reader.shuffle(

@@ -6,24 +6,24 @@ The source code of this tutorial is live at [book/machine_translation](https://g
 
 Machine translation (MT) leverages computers to translate from one language to another. The language to be translated is referred to as the source language, while the language to be translated into is referred to as the target language. Thus, Machine translation is the process of translating from the source language to the target language. It is one of the most important research topics in the field of natural language processing.
 
-Early machine translation systems are mainly rule-based i.e. they rely on a language expert to specify the translation rules between the two languages. It is quite difficult to cover all the rules used in one languge. So it is quite a challenge for language experts to specify all possible rules in two or more different languages. Hence, a major challenge in conventional machine translation has been the difficulty in obtaining a complete rule set \[[1](#References)\].
+Early machine translation systems are mainly rule-based i.e. they rely on a language expert to specify the translation rules between the two languages. It is quite difficult to cover all the rules used in one language. So it is quite a challenge for language experts to specify all possible rules in two or more different languages. Hence, a major challenge in conventional machine translation has been the difficulty in obtaining a complete rule set \[[1](#references)\].
 
 
 To address the aforementioned problems, statistical machine translation techniques have been developed. These techniques learn the translation rules from a large corpus, instead of being designed by a language expert. While these techniques overcome the bottleneck of knowledge acquisition, there are still quite a lot of challenges, for example:
 
-1. human designed features cannot cover all possible linguistic variations;
+1. Human designed features cannot cover all possible linguistic variations;
 
-2. it is difficult to use global features;
+2. It is difficult to use global features;
 
-3. the techniques heavily rely on pre-processing techniques like word alignment, word segmentation and tokenization, rule-extraction and syntactic parsing etc. The error introduced in any of these steps could accumulate and impact translation quality.
+3. The techniques heavily rely on pre-processing techniques like word alignment, word segmentation and tokenization, rule-extraction and syntactic parsing etc. The error introduced in any of these steps could accumulate and impact translation quality.
 
 
 
 The recent development of deep learning provides new solutions to these challenges. The two main categories for deep learning based machine translation techniques are:
 
-1. techniques based on the statistical machine translation system but with some key components improved with neural networks, e.g., language model, reordering model (please refer to the left part of Figure 1);
+1. Techniques based on the statistical machine translation system but with some key components improved with neural networks, e.g., language model, reordering model (please refer to the left part of Figure 1);
 
-2. techniques mapping from source language to target language directly using a neural network, or end-to-end neural machine translation (NMT).
+2. Techniques mapping from source language to target language directly using a neural network, or end-to-end neural machine translation (NMT).
 
 <p align="center">
 <img src="image/nmt_en.png" width=400><br/>
@@ -98,9 +98,9 @@ There are three steps for encoding a sentence:
 
 2. Word embedding as a representation in the low-dimensional semantic space: There are two problems with one-hot vector representation
 
-  * the dimensionality of the vector is typically large, leading to the curse of dimensionality;
+  * The dimensionality of the vector is typically large, leading to the curse of dimensionality;
 
-  * it is hard to capture the relationships between words, i.e., semantic similarities. Therefore, it is useful to project the one-hot vector into a low-dimensional semantic space as a dense vector with fixed dimensions, i.e., $s_i=Cw_i$ for the $i$-th word, with $C\epsilon R^{K\times \left | V \right |}$ as the projection matrix and $K$ is the dimensionality of the word embedding vector.
+  * It is hard to capture the relationships between words, i.e., semantic similarities. Therefore, it is useful to project the one-hot vector into a low-dimensional semantic space as a dense vector with fixed dimensions, i.e., $s_i=Cw_i$ for the $i$-th word, with $C\epsilon R^{K\times \left | V \right |}$ as the projection matrix and $K$ is the dimensionality of the word embedding vector.
 
 3. Encoding of the source sequence via RNN: This can be described mathematically as:
 
@@ -338,10 +338,10 @@ is_generating = False
 
 5. Training mode:
 
-   - word embedding from the target language trg_embedding is passed to `gru_decoder_with_attention` as current_word.
+   - Word embedding from the target language trg_embedding is passed to `gru_decoder_with_attention` as current_word.
    - `recurrent_group` calls `gru_decoder_with_attention` in a recurrent way
-   - the sequence of next words from the target language is used as label (lbl)
-   - multi-class cross-entropy (`classification_cost`) is used to calculate the cost
+   - The sequence of next words from the target language is used as label (lbl)
+   - Multi-class cross-entropy (`classification_cost`) is used to calculate the cost
 
    ```python
    if not is_generating:
@@ -371,7 +371,7 @@ is_generating = False
 
 6. Generating mode:
 
-   - the decoder predicts a next target word based on the the last generated target word. Embedding of the last generated word is automatically gotten by GeneratedInputs.
+   - The decoder predicts a next target word based on the the last generated target word. Embedding of the last generated word is automatically gotten by GeneratedInputs.
    - `beam_search` calls `gru_decoder_with_attention` in a recurrent way, to predict sequence id.
 
    ```python

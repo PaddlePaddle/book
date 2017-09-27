@@ -64,7 +64,7 @@ RUN pip install -U nltk \
 RUN ${update_mirror_cmd}
     apt-get update && \
     apt-get install -y locales patch && \
-    apt-get -y install gcc curl git && \
+    apt-get -y install gcc curl git vim && \
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
     pip install --upgrade pip && \

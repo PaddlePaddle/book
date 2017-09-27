@@ -42,26 +42,20 @@
 <div id="markdown" style='display:none'>
 # Personalized Recommendation
 
-The source code of this tutorial is in [book/recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system).
-
-For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code from this tutorial is at [here](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system).  For instructions to run it, please refer to [this guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 
 ## Background
 
-With the fast growth of e-commerce, online videos, and online reading business, users have to rely on recommender systems to avoid manually browsing tremendous volume of choices.  Recommender systems understand users' interest by mining user behavior and other properties of users and products.
+The recommender system is a component of e-commerce, online videos, and online reading services.  There are several different approaches for recommender systems to learn from user behavior and product properties and to understand users' interests.
 
-Some well know approaches include:
+- User behavior-based approach.  A well-known method of this approach is collaborative filtering, which assumes that if two users made similar purchases, they share common interests and would likely go on making the same decision. Some variants of collaborative filtering are user-based[[3](#reference)], item-based [[4](#reference)], social network based[[5](#reference)], and model-based.
 
-- User behavior-based approach.  A well-known method is collaborative filtering. The underlying assumption is that if a person A has the same opinion as a person B on an issue, A is more likely to have B's opinion on a different issue than that of a randomly chosen person.
+- Content-based approach[[1](#reference)].  This approach represents product properties and user interests as feature vectors of the same space so that it could measure how much a user is interested in a product by the distance between two feature vectors.
 
-- Content-based recommendation[[1](#reference)]. This approach infers feature vectors that represent products from their descriptions.  It also infers feature vectors that represent users' interests.  Then it measures the relevance of users and products by some distances between these feature vectors.
+- Hybrid approach[[2](#reference)]: This one combines above two to help with each other about the data sparsity problem[[6](#reference)].
 
-- Hybrid approach[[2](#reference)]: This approach uses the content-based information to help address the cold start problem[[6](#reference)] in behavior-based approach.
-
-Among these options, collaborative filtering might be the most studied one.  Some of its variants include user-based[[3](#reference)], item-based [[4](#reference)], social network based[[5](#reference)], and model-based.
-
-This tutorial explains a deep learning based approach and how to implement it using PaddlePaddle.  We will train a model using a dataset that includes user information, movie information, and ratings.  Once we train the model, we will be able to get a predicted rating given a pair of user and movie IDs.
+This tutorial explains a deep learning based hybrid approach and its implement in PaddlePaddle.  We are going to train a model using a dataset that includes user information, movie information, and ratings.  Once we train the model, we will be able to get a predicted rating given a pair of user and movie IDs.
 
 
 ## Model Overview

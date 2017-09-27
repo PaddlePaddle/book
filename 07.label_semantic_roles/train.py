@@ -1,8 +1,10 @@
-import math
+import math, os
 import numpy as np
 import paddle.v2 as paddle
 import paddle.v2.dataset.conll05 as conll05
 import paddle.v2.evaluator as evaluator
+
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 word_dict, verb_dict, label_dict = conll05.get_dict()
 word_dict_len = len(word_dict)
@@ -118,7 +120,7 @@ def load_parameter(file_name, h, w):
 
 
 def main():
-    paddle.init(use_gpu=False, trainer_count=1)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
     # define network topology
     feature_out = db_lstm()
@@ -158,6 +160,9 @@ def main():
     reader = paddle.batch(
         paddle.reader.shuffle(conll05.test(), buf_size=8192), batch_size=10)
 
+    test_reader = paddle.batch(
+        paddle.reader.shuffle(conll05.test(), buf_size=8192), batch_size=10)
+
     feeding = {
         'word_data': 0,
         'ctx_n2_data': 1,
@@ -176,7 +181,7 @@ def main():
                 print "Pass %d, Batch %d, Cost %f, %s" % (
                     event.pass_id, event.batch_id, event.cost, event.metrics)
             if event.batch_id % 1000 == 0:
-                result = trainer.test(reader=reader, feeding=feeding)
+                result = trainer.test(reader=test_reader, feeding=feeding)
                 print "\nTest with Pass %d, Batch %d, %s" % (
                     event.pass_id, event.batch_id, result.metrics)
 
@@ -185,7 +190,7 @@ def main():
             with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
                 parameters.to_tar(f)
 
-            result = trainer.test(reader=reader, feeding=feeding)
+            result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 
     trainer.train(
@@ -209,6 +214,7 @@ def main():
         output_layer=predict,
         parameters=parameters,
         input=test_data,
+        feeding=feeding,
         field='id')
     assert len(probs) == len(test_data[0][0])
     labels_reverse = {}

@@ -90,7 +90,7 @@ class Main {
 		}
 	    }
             $.ajax({
-                url: 'http://localhost:8000/',
+                url: BACKEND_URL,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({"img":inputs}),
