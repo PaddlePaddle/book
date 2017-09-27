@@ -1,6 +1,6 @@
 # Recognize Digits
 
-The source code for this tutorial locates in [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For instructions on getting started with Paddle, please refer to [installation instructions](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code for this tutorial is here:  [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For instructions on getting started with Paddle, please refer to [installation instructions](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Introduction
 When one learns to program, the first task is usually to write a program that prints "Hello World!". In Machine Learning or Deep Learning, an equivalent task is to train a model to recognize hand-written digits using the [MNIST](http://yann.lecun.com/exdb/mnist/) dataset. Handwriting recognition is a classic image classification problem. The problem is relatively easy and MNIST is a complete dataset. As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1). The input image is a $28\times28$ matrix, and the label is one of the digits from $0$ to $9$. All images are normalized, meaning that they are both rescaled and centered.
@@ -34,7 +34,7 @@ $$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
 where $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
 
-For an $N$-class classification problem with $N$ output nodes, Softmax normalizes the resulting $N$ dimensional vector so that each of its entries falls in the range $[0,1]\in\math{R}$, representing the probability that the sample belongs to a certain class. Here $y_i$ denotes the predicted probability that an image is of digit $i$.
+For an $N$-class classification problem with $N$ output nodes, Softmax normalizes the resulting $N$ dimensional vector so that each of its entries falls in the range $[0,1]\in {R}$, representing the probability that the sample belongs to a certain class. Here $y_i$ denotes the predicted probability that an image is of digit $i$.
 
 In such a classification problem, we usually use the cross entropy loss function:
 
@@ -98,7 +98,7 @@ Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
 - Local connectivity: A CNN utilizes the local space correlation by connecting local neurons. This design guarantees that the learned filter has a strong response to local input features. Stacking many such layers generates a non-linear filter that is more global. This enables the network to first obtain good representation for small parts of input and then combine them to represent a larger region.
 - Weight sharing: In a CNN, computation is iterated on shared parameters (weights and bias) to form a feature map. This means that all the neurons in the same depth of the output response to the same feature. This allows the network to detect a feature regardless of its position in the input.
 
-For more details on Convolutional Neural Networks, please refer to the tutorial on [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) and the [relevant lecture](http://cs231n.github.io/convolutional-networks/) from a Stanford open course.
+For more details on Convolutional Neural Networks, please refer to the tutorial on [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) and the [relevant lecture](http://cs231n.github.io/convolutional-networks/) from a Stanford course.
 
 ### List of Common Activation Functions
 - Sigmoid activation function: $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
@@ -261,6 +261,7 @@ def event_handler_plot(event):
 ```python
 lists = []
 
+# event handler to print the progress
 def event_handler(event):
     if isinstance(event, paddle.event.EndIteration):
         if event.batch_id % 100 == 0:
@@ -280,6 +281,7 @@ def event_handler(event):
 ```
 
 ```python
+# Train the model now
 trainer.train(
     reader=paddle.batch(
         paddle.reader.shuffle(
@@ -341,7 +343,7 @@ print "Label of image/infer_3.png is: %d" % lab[0][0]
 
 This tutorial describes a few common deep learning models using **Softmax regression**, **Multilayer Perceptron Network**, and **Convolutional Neural Network**. Understanding these models is crucial for future learning; the subsequent tutorials derive more sophisticated networks by building on top of them.
 
-When our model evolves from a simple softmax regression to a slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST dataset achieves a large improvement in accuracy. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve the results of an old one.
+When our model evolves from a simple softmax regression to a slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST dataset achieves a large improvement. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve the results of an old one.
 
 Moreover, this tutorial introduces the basic flow of PaddlePaddle model design, which starts with a *data provider*, a model layer construction, and finally training and prediction. Motivated readers can leverage the flow used in this MNIST handwritten digit classification example and experiment with different data and network architectures to train models for classification tasks of their choice.
 
