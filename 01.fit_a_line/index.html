@@ -114,16 +114,16 @@ The UCI housing dataset has 506 instances. Each instance describes the attribute
 | CRIM | per capita crime rate by town | Continuous|
 | ZN | proportion of residential land zoned for lots over 25,000 sq.ft. | Continuous |
 | INDUS | proportion of non-retail business acres per town | Continuous |
-| CHAS | Charles River dummy variable | Discrete, 1 if tract bounds river; 0 otherwise|
-| NOX | nitric oxides concentration (parts per 10 million) | Continuous |
+| CHAS | whether the property is close to Charles River | Discrete|
+| NOX | nitric oxide concentration (parts per 10 million) | Continuous |
 | RM | average number of rooms per dwelling | Continuous |
 | AGE | proportion of owner-occupied units built prior to 1940 | Continuous |
 | DIS | weighted distances to five Boston employment centres | Continuous |
 | RAD | index of accessibility to radial highways | Continuous |
-| TAX | full-value property-tax rate per $10,000 | Continuous |
+| TAX | full-value property-tax rate per \$10,000 | Continuous |
 | PTRATIO | pupil-teacher ratio by town | Continuous |
 | B | 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town | Continuous |
-| LSTAT | % lower status of the population | Continuous |
+| LSTAT | percentage lower status of the population | Continuous |
 | MEDV | Median value of owner-occupied homes in $1000's | Continuous |
 
 The last entry is the median home price.
@@ -171,8 +171,8 @@ Logistic regression is essentially a fully-connected layer with linear activatio
 ```python
 x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
 y_predict = paddle.layer.fc(input=x,
-                                size=1,
-                                act=paddle.activation.Linear())
+                            size=1,
+                            act=paddle.activation.Linear())
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
 cost = paddle.layer.mse_cost(input=y_predict, label=y)
 ```
