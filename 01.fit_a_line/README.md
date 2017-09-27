@@ -6,7 +6,7 @@ The source code for this tutorial lives on [book/fit_a_line](https://github.com/
 ## Problem Setup
 Suppose we have a dataset of $n$ real estate properties. Each real estate property will be referred to as **homes** in this chapter for clarity.
 
-Each home is associated with $d$ attributes. The attributes describe characteristics such the number of rooms in the home, the number of schools or hospitals in the neighborhood, and the traffic condition nearby.
+Each home is associated with $d$ attributes. The attributes describe characteristics such as the number of rooms in the home, the number of schools or hospitals in the neighborhood, and the traffic condition nearby.
 
 In our problem setup, the attribute $x_{i,j}$ denotes the $j$th characteristic of the $i$th home. In addition, $y_i$ denotes the price of the $i$th home. Our task is to predict $y_i$ given a set of attributes $\{x_{i,1}, ..., x_{i,d}\}$. We assume that the price of a home is a linear combination of all of its attributes, namely,
 
@@ -15,7 +15,7 @@ $$y_i = \omega_1x_{i,1} + \omega_2x_{i,2} + \ldots + \omega_dx_{i,d} + b,  i=1,\
 where $\vec{\omega}$ and $b$ are the model parameters we want to estimate. Once they are learned, we will be able to predict the price of a home, given the attributes associated with it. We call this model **Linear Regression**. In other words, we want to regress a value against several values linearly. In practice, a linear model is often too simplistic to capture the real relationships between the variables. Yet, because Linear Regression is easy to train and analyze, it has been applied to a large number of real problems. As a result, it is an important topic in many classic Statistical Learning and Machine Learning textbooks \[[2,3,4](#References)\].
 
 ## Results Demonstration
-We first show the result of our model. The dataset [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) is used to train a linear model to predict the home prices in Boston. The figure below shows the predictions the model makes for some home prices. The $X$-axis represents the median value of the prices of similar homes within a bin, while the $Y$-axis represents the home value our linear model predicts. The dotted line represents points where $X=Y$. When reading the diagram, the more precise the model predicts, the closer the point is to the dotted line.
+We first show the result of our model. The dataset [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) is used to train a linear model to predict the home prices in Boston. The figure below shows the predictions the model makes for some home prices. The $X$-axis represents the median value of the prices of similar homes within a bin, while the $Y$-axis represents the home value our linear model predicts. The dotted line represents points where $X=Y$. When reading the diagram, the closer the point is to the dotted line, better the model's prediction.
 <p align="center">
     <img src = "image/predictions_en.png" width=400><br/>
     Figure 1. Predicted Value V.S. Actual Value
@@ -45,7 +45,7 @@ After setting up our model, there are several major steps to go through to train
 1. Initialize the parameters including the weights $\vec{\omega}$ and the bias $b$. For example, we can set their mean values as $0$s, and their standard deviations as $1$s.
 2. Feedforward. Evaluate the network output and compute the corresponding loss.
 3. [Backpropagate](https://en.wikipedia.org/wiki/Backpropagation) the errors. The errors will be propagated from the output layer back to the input layer, during which the model parameters will be updated with the corresponding errors.
-4. Repeat steps 2~3, until the loss is below a predefined threshold or the maximum number of repeats is reached.
+4. Repeat steps 2~3, until the loss is below a predefined threshold or the maximum number of epochs is reached.
 
 ## Dataset
 
@@ -60,8 +60,8 @@ import paddle.v2.dataset.uci_housing as uci_housing
 
 We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
 
-1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if not yet, and
-2.  [preprocesses](#preprocessing) the dataset.
+1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if you haven't yet, and
+2.  [preprocess](#preprocessing) the dataset.
 
 ### An Introduction of the Dataset
 
@@ -93,7 +93,7 @@ We define a feature vector of length 13 for each home, where each entry correspo
 Note that although a discrete value is also written as numeric values such as 0, 1, or 2, its meaning differs from a continuous value drastically.  The linear difference between two discrete values has no meaning. For example, suppose $0$, $1$, and $2$ are used to represent colors *Red*, *Green*, and *Blue* respectively. Judging from the numeric representation of these colors, *Red* differs more from *Blue* than it does from *Green*. Yet in actuality, it is not true that extent to which the color *Blue* is different from *Red* is greater than the extent to which *Green* is different from *Red*. Therefore, when handling a discrete feature that has $d$ possible values, we usually convert it to $d$ new features where each feature takes a binary value, $0$ or $1$, indicating whether the original value is absent or present. Alternatively, the discrete features can be mapped onto a continuous multi-dimensional vector through an embedding table. For our problem here, because CHAS itself is a binary discrete value, we do not need to do any preprocessing.
 
 #### Feature Normalization
-We also observe a huge difference among the value ranges of the 13 features (Figure 2). For instance, the values of feature *B* fall in $[0.32, 396.90]$, whereas those of feature *NOX* has a range of $[0.3850, 0.8170]$. An effective optimization would require data normalization. The goal of data normalization is to scale te values of each feature into roughly the same range, perhaps $[-0.5, 0.5]$. Here, we adopt a popular normalization technique where we substract the mean value from the feature value and divide the result by the width of the original range.
+We also observe a huge difference among the value ranges of the 13 features (Figure 2). For instance, the values of feature *B* fall in $[0.32, 396.90]$, whereas those of feature *NOX* has a range of $[0.3850, 0.8170]$. An effective optimization would require data normalization. The goal of data normalization is to scale the values of each feature into roughly the same range, perhaps $[-0.5, 0.5]$. Here, we adopt a popular normalization technique where we subtract the mean value from the feature value and divide the result by the width of the original range.
 
 There are at least three reasons for [Feature Normalization](https://en.wikipedia.org/wiki/Feature_scaling) (Feature Scaling):
 - A value range that is too large or too small might cause floating number overflow or underflow during computation.
@@ -106,7 +106,7 @@ There are at least three reasons for [Feature Normalization](https://en.wikipedi
 </p>
 
 #### Prepare Training and Test Sets
-We split the dataset in two, one for adjusting the model parameters, namely, for model training, and the other for model testing. The model error on the former is called the **training error**, and the error on the latter is called the **test error**. Our goal in training a model is to find the statistical dependency between the outputs and the inputs, so that we can predict new outputs given new inputs. As a result, the test error reflects the performance of the model better than the training error does. We consider two things when deciding the ratio of the training set to the test set: 1) More training data will decrease the variance of the parameter estimation, yielding more reliable models; 2) More test data will decrease the variance of the test error, yielding more reliable test errors. One standard split ratio is $8:2$.
+We split the dataset in two, one for adjusting the model parameters, namely, for training the model, and the other for testing. The model error on the former is called the **training error**, and the error on the latter is called the **test error**. Our goal in training a model is to find the statistical dependency between the outputs and the inputs, so that we can predict outputs given new inputs. As a result, the test error reflects the performance of the model better than the training error does. We consider two things when deciding the ratio of the training set to the test set: 1) More training data will decrease the variance of the parameter estimation, yielding more reliable models; 2) More test data will decrease the variance of the test error, yielding more reliable test errors. One standard split ratio is $8:2$.
 
 
 When training complex models, we usually have one more split: the validation set. Complex models usually have [Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_optimization) that need to be set before the training process, such as the number of layers in the network. Because hyperparameters are not part of the model parameters, they cannot be trained using the same loss function. Thus we will try several sets of hyperparameters to train several models and cross-validate them on the validation set to pick the best one; finally, the selected trained model is tested on the test set. Because our model is relatively simple, we will omit this validation process.
@@ -165,7 +165,7 @@ trainer = paddle.trainer.SGD(cost=cost,
 
 PaddlePaddle provides the
 [reader mechanism](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader)
-for loadinng training data. A reader may return multiple columns, and we need a Python dictionary to specify the mapping from column index to data layers.
+for loading the training data. A reader may return multiple columns, and we need a Python dictionary to specify the mapping from column index to data layers.
 
 ```python
 feeding={'x': 0, 'y': 1}
@@ -190,7 +190,7 @@ def event_handler(event):
 ```
 
 ```python
-# event_handler to print training and testing info
+# event_handler to plot training and testing info
 from paddle.v2.plot import Ploter
 
 train_title = "Train cost"
