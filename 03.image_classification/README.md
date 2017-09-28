@@ -522,7 +522,7 @@ print "Label of image/dog.png is: %d" % lab[0][0]
 Traditional image classification methods involve multiple stages of processing, which has to utilize complex frameworks. Contrarily, CNN models can be trained end-to-end with a significant increase in classification accuracy. In this chapter, we introduced three models -- VGG, GoogleNet, ResNet and provided PaddlePaddle config files for training VGG and ResNet on CIFAR10. We also explained how to perform prediction and feature extraction using the PaddlePaddle API. For other datasets such as ImageNet, the procedure for config and training are the same and you are welcome to give it a try.
 
 
-## Reference
+## References
 
 [1] D. G. Lowe, [Distinctive image features from scale-invariant keypoints](http://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf). IJCV, 60(2):91-110, 2004.
 
