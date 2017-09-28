@@ -7,18 +7,18 @@ The source code from this tutorial is at [here](https://github.com/PaddlePaddle/
 
 The recommender system is a component of e-commerce, online videos, and online reading services.  There are several different approaches for recommender systems to learn from user behavior and product properties and to understand users' interests.
 
-- User behavior-based approach.  A well-known method of this approach is collaborative filtering, which assumes that if two users made similar purchases, they share common interests and would likely go on making the same decision. Some variants of collaborative filtering are user-based[[3](#reference)], item-based [[4](#reference)], social network based[[5](#reference)], and model-based.
+- User behavior-based approach.  A well-known method of this approach is collaborative filtering, which assumes that if two users made similar purchases, they share common interests and would likely go on making the same decision. Some variants of collaborative filtering are user-based[[3](#references)], item-based [[4](#references)], social network based[[5](#references)], and model-based.
 
-- Content-based approach[[1](#reference)].  This approach represents product properties and user interests as feature vectors of the same space so that it could measure how much a user is interested in a product by the distance between two feature vectors.
+- Content-based approach[[1](#references)].  This approach represents product properties and user interests as feature vectors of the same space so that it could measure how much a user is interested in a product by the distance between two feature vectors.
 
-- Hybrid approach[[2](#reference)]: This one combines above two to help with each other about the data sparsity problem[[6](#reference)].
+- Hybrid approach[[2](#references)]: This one combines above two to help with each other about the data sparsity problem[[6](#references)].
 
 This tutorial explains a deep learning based hybrid approach and its implement in PaddlePaddle.  We are going to train a model using a dataset that includes user information, movie information, and ratings.  Once we train the model, we will be able to get a predicted rating given a pair of user and movie IDs.
 
 
 ## Model Overview
 
-To know more about deep learning based recommendation, let us start from going over the Youtube recommender system[[7](#reference)] before introducing our hybrid model.
+To know more about deep learning based recommendation, let us start from going over the Youtube recommender system[[7](#references)] before introducing our hybrid model.
 
 
 ### YouTube's Deep Learning Recommendation Model
@@ -32,14 +32,14 @@ Figure 1. YouTube recommender system overview.
 
 #### Candidate Generation Network
 
-Youtube models candidate generation as a multiclass classification problem with a huge number of classes equal to the number of videos.  The architecture of the model is as follows:
+YouTube models candidate generation as a multi-class classification problem with a huge number of classes equal to the number of videos.  The architecture of the model is as follows:
 
 <p align="center">
 <img src="image/Deep_candidate_generation_model_architecture.en.png" width="70%" ><br/>
 Figure 2. Deep candidate generation model.
 </p>
 
-The first stage of this model maps watching history and search queries into fixed-length representative features.  Then, an MLP (multi-layer perceptron, as described in the [Recognize Digits](https://github.com/PaddlePaddle/book/blob/develop/recognize_digits/README.md) tutorial) takes the concatenation of all representative vectors.  The output of the MLP represents the user' *intrinsic interests*.  At training time, it is used together with a softmax output layer for minimizing the classification error.   At serving time, it is used to compute the relevance of the user with all movies.
+The first stage of this model maps watching history and search queries into fixed-length representative features.  Then, an MLP (multi-layer Perceptron, as described in the [Recognize Digits](https://github.com/PaddlePaddle/book/blob/develop/recognize_digits/README.md) tutorial) takes the concatenation of all representative vectors.  The output of the MLP represents the user' *intrinsic interests*.  At training time, it is used together with a softmax output layer for minimizing the classification error.   At serving time, it is used to compute the relevance of the user with all movies.
 
 For a user $U$, the predicted watching probability of video $i$ is
 
@@ -378,7 +378,7 @@ trainer.train(
 
 This tutorial goes over traditional approaches in recommender system and a deep learning based approach.  We also show that how to train and use the model with PaddlePaddle.  Deep learning has been well used in computer vision and NLP, we look forward to its new successes in recommender systems.
 
-## Reference
+## References
 
 1. [Peter Brusilovsky](https://en.wikipedia.org/wiki/Peter_Brusilovsky) (2007). *The Adaptive Web*. p. 325.
 2. Robin Burke , [Hybrid Web Recommender Systems](http://www.dcs.warwick.ac.uk/~acristea/courses/CS411/2010/Book%20-%20The%20Adaptive%20Web/HybridWebRecommenderSystems.pdf), pp. 377-408, The Adaptive Web, Peter Brusilovsky, Alfred Kobsa, Wolfgang Nejdl (Ed.), Lecture Notes in Computer Science, Springer-Verlag, Berlin, Germany, Lecture Notes in Computer Science, Vol. 4321, May 2007, 978-3-540-72078-2.

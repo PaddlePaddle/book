@@ -31,7 +31,7 @@ Fig 1. Syntax tree
 </div>
 
 
-However, a complete syntactic analysis requires identifying the relationship among all constituents. Thus, the accuracy of SRL is sensitive to the preciseness of the syntactic analysis, making SRL challenging. To reduce its complexity and obtain some information on the syntactic structures, we often use *shallow syntactic analysis* a.k.a. partial parsing or chunking. Unlike complete syntactic analysis, which requires the construction of the complete parsing tree, *Shallow Syntactic Analysis* only requires identifying some independent constituents with relatively simple structures, such as verb phrases (chunk). To avoid difficulties in constructing a syntax tree with high accuracy, some work\[[1](#Reference)\] proposed semantic chunking-based SRL methods, which reduces SRL into a sequence tagging problem. Sequence tagging tasks classify syntactic chunks using **BIO representation**. For syntactic chunks forming role A, its first chunk receives the B-A tag (Begin) and the remaining ones receive the tag I-A (Inside); in the end, the chunks left out will receive the tag O.
+However, a complete syntactic analysis requires identifying the relationship among all constituents. Thus, the accuracy of SRL is sensitive to the preciseness of the syntactic analysis, making SRL challenging. To reduce its complexity and obtain some information on the syntactic structures, we often use *shallow syntactic analysis* a.k.a. partial parsing or chunking. Unlike complete syntactic analysis, which requires the construction of the complete parsing tree, *Shallow Syntactic Analysis* only requires identifying some independent constituents with relatively simple structures, such as verb phrases (chunk). To avoid difficulties in constructing a syntax tree with high accuracy, some work\[[1](#reference)\] proposed semantic chunking-based SRL methods, which reduces SRL into a sequence tagging problem. Sequence tagging tasks classify syntactic chunks using **BIO representation**. For syntactic chunks forming role A, its first chunk receives the B-A tag (Begin) and the remaining ones receive the tag I-A (Inside); in the end, the chunks left out will receive the tag O.
 
 The BIO representation of above example is shown in Fig.1.
 
@@ -54,7 +54,7 @@ In this tutorial, our SRL system is built as an end-to-end system via a neural n
 
 ### Stacked Recurrent Neural Network
 
-*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural network. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to parameter sharing over time, LSTMs are also *shallow*; that is, the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#Reference)\].
+*Deep Neural Networks* can extract hierarchical representations. The higher layers can form relatively abstract/complex representations, based on primitive features discovered through the lower layers. Unfolding LSTMs through time results in a deep feed-forward neural network. This is because any computational path between the input at time $k < t$ to the output at time $t$ crosses several nonlinear layers. On the other hand, due to parameter sharing over time, LSTMs are also *shallow*; that is, the computation carried out at each time-step is just a linear transformation. Deep LSTM networks are typically constructed by stacking multiple LSTM layers on top of each other and taking the output from lower LSTM layer at time $t$ as the input of upper LSTM layer at time $t$. Deep, hierarchical neural networks can be efficient at representing some functions and modeling varying-length dependencies\[[2](#reference)\].
 
 
 However, in a deep LSTM network, any gradient propagated back in depth needs to traverse a large number of nonlinear steps. As a result, while LSTMs of 4 layers can be trained properly, those with 4-8 have much worse performance. Conventional LSTMs prevent back-propagated errors from vanishing or exploding by introducing shortcut connections to skip the intermediate nonlinear layers. Therefore, deep LSTMs can consider shortcut connections in depth as well.
@@ -70,7 +70,7 @@ Based on the stacked LSTMs, we add shortcut connections: take the input-to-hidde
 
 Fig.3 illustrates the final stacked recurrent neural networks.
 
-<p align="center">  
+<p align="center">
 <img src="./image/stacked_lstm_en.png" width = "40%"  align=center><br>
 Fig 3. Stacked Recurrent Neural Networks
 </p>
@@ -82,28 +82,28 @@ While LSTMs can summarize the history, they can not see the future. Because most
 To address this, we can design a bidirectional recurrent neural network by making a minor modification. A higher LSTM layer can process the sequence in reversed direction with regards to its immediate lower LSTM layer, i.e., deep LSTM layers take turns to train on input sequences from left-to-right and right-to-left. Therefore, LSTM layers at time-step $t$ can see both histories and the future, starting from the second layer. Fig. 4 illustrates the bidirectional recurrent neural networks.
 
 
-<p align="center">  
+<p align="center">
 <img src="./image/bidirectional_stacked_lstm_en.png" width = "60%" align=center><br>
 Fig 4. Bidirectional LSTMs
 </p>
 
-Note that, this bidirectional RNNs is different from the one proposed by Bengio et al. in machine translation tasks \[[3](#Reference), [4](#Reference)\]. We will introduce another bidirectional RNNs in the following chapter [machine translation](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/README.md)
+Note that, this bidirectional RNNs is different from the one proposed by Bengio et al. in machine translation tasks \[[3](#reference), [4](#reference)\]. We will introduce another bidirectional RNNs in the following chapter [machine translation](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/README.md)
 
 ### Conditional Random Field (CRF)
 
-Typically, a neural network's lower layers learn representations while its very top layer accomplishs the final task. These principles can guide our problem-solving approaches. In SRL tasks, a **Conditional Random Field** (*CRF*) is built on top of the network in order to perform the final prediction to tag sequences. It takes representations provided by the last LSTM layer as input.
+Typically, a neural network's lower layers learn representations while its very top layer accomplishes the final task. These principles can guide our problem-solving approaches. In SRL tasks, a **Conditional Random Field** (*CRF*) is built on top of the network in order to perform the final prediction to tag sequences. It takes representations provided by the last LSTM layer as input.
 
 
 The CRF is an undirected probabilistic graph with nodes denoting random variables and edges denoting dependencies between these variables. In essence, CRFs learn the conditional probability $P(Y|X)$, where $X = (x_1, x_2, ... , x_n)$ are sequences of input and $Y = (y_1, y_2, ... , y_n)$ are label sequences; to decode, simply search through $Y$ for a sequence that maximizes the conditional probability $P(Y|X)$, i.e., $Y^* = \mbox{arg max}_{Y} P(Y | X)$。
 
 Sequence tagging tasks do not assume a lot of conditional independence, because they only concern about the input and the output being linear sequences. Thus, the graph model of sequence tagging tasks is usually a simple chain or line, which results in a **Linear-Chain Conditional Random Field**, shown in Fig.5.
 
-<p align="center">  
+<p align="center">
 <img src="./image/linear_chain_crf.png" width = "35%" align=center><br>
 Fig 5. Linear Chain Conditional Random Field used in SRL tasks
 </p>
 
-By the fundamental theorem of random fields \[[5](#Reference)\], the joint distribution over the label sequence $Y$ given $X$ has the form:
+By the fundamental theorem of random fields \[[5](#reference)\], the joint distribution over the label sequence $Y$ given $X$ has the form:
 
 $$p(Y | X) = \frac{1}{Z(X)} \text{exp}\left(\sum_{i=1}^{n}\left(\sum_{j}\lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} \mu_k s_k (y_i, X, i)\right)\right)$$
 
@@ -147,7 +147,7 @@ After these modifications, the model is as follows, as illustrated in Figure 6:
 4. Take the representation from step 3 as input to CRF, label sequence as a supervisory signal, and complete sequence tagging tasks.
 
 
-<div  align="center">  
+<div  align="center">
 <img src="image/db_lstm_network_en.png" width = "60%"  align=center /><br>
 Fig 6. DB-LSTM for SRL tasks
 </div>
@@ -165,7 +165,7 @@ conll05st-release/
     └── words  # text sequence
 ```
 
-The annotation information is derived from the results of Penn TreeBank\[[7](#references)\] and PropBank \[[8](# references)\]. The labeling of the PropBank is different from the labeling methods mentioned before, but shares with it the same underlying principle. For descriptions of the labeling, please refer to the paper \[[9](#references)\].
+The annotation information is derived from the results of Penn TreeBank\[[7](#references)\] and PropBank \[[8](#references)\]. The labeling of the PropBank is different from the labeling methods mentioned before, but shares with it the same underlying principle. For descriptions of the labeling, please refer to the paper \[[9](#references)\].
 
 The raw data needs to be preprocessed into formats that PaddlePaddle can handle. The preprocessing consists of the following steps:
 
@@ -266,7 +266,7 @@ Note that `hidden_dim = 512` means a LSTM hidden vector of 128 dimension (512/4)
 
 - Transform the word sequence itself, the predicate, the predicate context, and the region mark sequence into embedded vector sequences.
 
-```python  
+```python
 
 # Since word vectorlookup table is pre-trained, we won't update it this time.
 # is_static being True prevents updating the lookup table during training.
@@ -295,7 +295,7 @@ emb_layers.append(mark_embedding)
 
 - 8 LSTM units are trained through alternating left-to-right / right-to-left order denoted by the variable `reverse`.
 
-```python  
+```python
 hidden_0 = paddle.layer.mixed(
     size=hidden_dim,
     bias_attr=std_default,
@@ -522,7 +522,7 @@ print pre_lab
 
 Semantic Role Labeling is an important intermediate step in a wide range of natural language processing tasks. In this tutorial, we use SRL as an example to illustrate using PaddlePaddle to do sequence tagging tasks. The models proposed are from our published paper\[[10](#Reference)\]. We only use test data for illustration since the training data on the CoNLL 2005 dataset is not completely public. This aims to propose an end-to-end neural network model with fewer dependencies on natural language processing tools but is comparable, or even better than traditional models in terms of performance. Please check out our paper for more information and discussions.
 
-## Reference
+## References
 1. Sun W, Sui Z, Wang M, et al. [Chinese semantic role labeling with shallow parsing](http://www.aclweb.org/anthology/D09-1#page=1513)[C]//Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 3-Volume 3. Association for Computational Linguistics, 2009: 1475-1483.
 2. Pascanu R, Gulcehre C, Cho K, et al. [How to construct deep recurrent neural networks](https://arxiv.org/abs/1312.6026)[J]. arXiv preprint arXiv:1312.6026, 2013.
 3. Cho K, Van Merriënboer B, Gulcehre C, et al. [Learning phrase representations using RNN encoder-decoder for statistical machine translation](https://arxiv.org/abs/1406.1078)[J]. arXiv preprint arXiv:1406.1078, 2014.

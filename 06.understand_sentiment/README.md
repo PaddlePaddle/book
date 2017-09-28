@@ -19,7 +19,7 @@ In natural language processing, sentiment analysis can be categorized as a **Tex
 
 The BOW model does not capture all the information in a piece of text, as it ignores syntax and grammar and just treats the text as a set of words. For example, “this movie is extremely bad“ and “boring, dull, and empty work” describe very similar semantic meaning, yet their BOW representations have very little similarity. Furthermore, “the movie is bad“ and “the movie is not bad“ have high similarity with BOW features, but they express completely opposite semantics.
 
-This chapter introduces a deep learning model that handles these issues in BOW. Our model embeds texts into a low-dimensional space and takes word order into consideration. It is an end-to-end framework and it has large performance improvement over traditional methods \[[1](#Reference)\].
+This chapter introduces a deep learning model that handles these issues in BOW. Our model embeds texts into a low-dimensional space and takes word order into consideration. It is an end-to-end framework and it has large performance improvement over traditional methods \[[1](#references)\].
 
 ## Model Overview
 
@@ -32,11 +32,11 @@ The convolutional neural network for texts is introduced in chapter [recommender
 
 CNN mainly contains convolution and pooling operation, with versatile combinations in various applications. We firstly apply the convolution operation: we apply the kernel in each window, extracting features. Convolving by the kernel at every window produces a feature map. Next, we apply *max pooling* over time to represent the whole sentence, which is the maximum element across the feature map. In real applications, we will apply multiple CNN kernels on the sentences. It can be implemented efficiently by concatenating the kernels together as a matrix. Also, we can use CNN kernels with different kernel size. Finally, concatenating the resulting features produces a fixed-length representation, which can be combined with a softmax to form the model for the sentiment analysis problem.
 
-For short texts, the aforementioned CNN model can achieve very high accuracy \[[1](#Reference)\]. If we want to extract more abstract representations, we may apply a deeper CNN model \[[2](#Reference),[3](#Reference)\].
+For short texts, the aforementioned CNN model can achieve very high accuracy \[[1](#references)\]. If we want to extract more abstract representations, we may apply a deeper CNN model \[[2](#references),[3](#references)\].
 
 ### Recurrent Neural Network (RNN)
 
-RNN is an effective model for sequential data. In terms of computability, the RNN is Turing-complete \[[4](#Reference)\]. Since NLP is a classical problem of sequential data, the RNN, especially its variant LSTM\[[5](#Reference)\]), achieves state-of-the-art performance on various NLP tasks, such as language modeling, syntax parsing, POS-tagging, image captioning, dialog, machine translation, and so forth.
+RNN is an effective model for sequential data. In terms of computability, the RNN is Turing-complete \[[4](#references)\]. Since NLP is a classical problem of sequential data, the RNN, especially its variant LSTM\[[5](#references)\]), achieves state-of-the-art performance on various NLP tasks, such as language modeling, syntax parsing, POS-tagging, image captioning, dialog, machine translation, and so forth.
 
 <p align="center">
 <img src="image/rnn.png" width = "60%" align="center"/><br/>
@@ -53,13 +53,13 @@ In NLP, words are often represented as one-hot vectors and then mapped to an emb
 
 ### Long-Short Term Memory (LSTM)
 
-Training an RNN on long sequential data sometimes leads to the gradient vanishing or exploding\[[6](#)\]. To solve this problem Hochreiter S, Schmidhuber J. (1997) proposed **Long Short Term Memory** (LSTM)\[[5](#Reference)\]).
+Training an RNN on long sequential data sometimes leads to the gradient vanishing or exploding\[[6](#references)\]. To solve this problem Hochreiter S, Schmidhuber J. (1997) proposed **Long Short Term Memory** (LSTM)\[[5](#references)\]).
 
 Compared to the structure of a simple RNN, an LSTM includes memory cell $c$, input gate $i$, forget gate $f$ and output gate $o$. These gates and memory cells dramatically improve the ability for the network to handle long sequences. We can formulate the **LSTM-RNN**, denoted as a function $F$, as follows：
 
 $$ h_t=F(x_t,h_{t-1})$$
 
-$F$ contains following formulations\[[7](#Reference)\]：
+$F$ contains following formulations\[[7](#references)\]：
 \begin{align}
 i_t & = \sigma(W_{xi}x_t+W_{hi}h_{h-1}+W_{ci}c_{t-1}+b_i)\\\\
 f_t & = \sigma(W_{xf}x_t+W_{hf}h_{h-1}+W_{cf}c_{t-1}+b_f)\\\\
@@ -82,7 +82,7 @@ where $Recrurent$ is a simple RNN, GRU or LSTM.
 
 ### Stacked Bidirectional LSTM
 
-For vanilla LSTM, $h_t$ contains input information from previous time-step $1..t-1$ context. We can also apply an RNN with reverse-direction to take successive context $t+1…n$ into consideration. Combining constructing deep RNN (deeper RNN can contain more abstract and higher level semantic), we can design structures with deep stacked bidirectional LSTM to model sequential data\[[9](#Reference)\].
+For vanilla LSTM, $h_t$ contains input information from previous time-step $1..t-1$ context. We can also apply an RNN with reverse-direction to take successive context $t+1…n$ into consideration. Combining constructing deep RNN (deeper RNN can contain more abstract and higher level semantic), we can design structures with deep stacked bidirectional LSTM to model sequential data\[[9](#references)\].
 
 As shown in Figure 3 (3-layer RNN), odd/even layers are forward/reverse LSTM. Higher layers of LSTM take lower-layers LSTM as input, and the top-layer LSTM produces a fixed length vector by max-pooling (this representation considers contexts from previous and successive words for higher-level abstractions). Finally, we concatenate the output to a softmax layer for classification.
 
@@ -331,7 +331,7 @@ trainer.train(
 
 In this chapter, we use sentiment analysis as an example to introduce applying deep learning models on end-to-end short text classification, as well as how to use PaddlePaddle to implement the model. Meanwhile, we briefly introduce two models for text processing: CNN and RNN. In following chapters, we will see how these models can be applied in other tasks.
 
-## Reference
+## References
 
 1. Kim Y. [Convolutional neural networks for sentence classification](http://arxiv.org/pdf/1408.5882)[J]. arXiv preprint arXiv:1408.5882, 2014.
 2. Kalchbrenner N, Grefenstette E, Blunsom P. [A convolutional neural network for modeling sentences](http://arxiv.org/pdf/1404.2188.pdf?utm_medium=App.net&utm_source=PourOver)[J]. arXiv preprint arXiv:1404.2188, 2014.
