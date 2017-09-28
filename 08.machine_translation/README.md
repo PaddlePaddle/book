@@ -1,12 +1,12 @@
 # Machine Translation
 
-The source codes is located at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation). Please refer to the PaddlePaddle [installation tutorial](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book) if you are a first time user.
+The source code of this tutorial is live at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation). Please refer to the [book running tutorial](https://github.com/PaddlePaddle/book#running-the-book) for getting started with Paddle.
 
 ## Background
 
 Machine translation (MT) leverages computers to translate from one language to another. The language to be translated is referred to as the source language, while the language to be translated into is referred to as the target language. Thus, Machine translation is the process of translating from the source language to the target language. It is one of the most important research topics in the field of natural language processing.
 
-Early machine translation systems are mainly rule-based i.e. they rely on a language expert to specify the translation rules between the two languages. It is quite difficult to cover all the rules used in one language. So it is quite a challenge for language experts to specify all possible rules in two or more different languages. Hence, a major challenge in conventional machine translation has been the difficulty in obtaining a complete rule set \[[1](#References)\]。
+Early machine translation systems are mainly rule-based i.e. they rely on a language expert to specify the translation rules between the two languages. It is quite difficult to cover all the rules used in one language. So it is quite a challenge for language experts to specify all possible rules in two or more different languages. Hence, a major challenge in conventional machine translation has been the difficulty in obtaining a complete rule set \[[1](#references)\].
 
 
 To address the aforementioned problems, statistical machine translation techniques have been developed. These techniques learn the translation rules from a large corpus, instead of being designed by a language expert. While these techniques overcome the bottleneck of knowledge acquisition, there are still quite a lot of challenges, for example:
@@ -182,6 +182,12 @@ The goal is to maximize the probability of the generated sequence when using bea
 4. Repeat Steps 1-3, until end-of-sentence token `<e>` is generated or the maximum length of the sentence is reached.
 
 Note: $z_{i+1}$ and $p_{i+1}$ are computed the same way as in [Decoder](#Decoder). In generation mode, each step is greedy in so there is no guarantee of a global optimum.
+
+## BLEU Score
+
+Bilingual Evaluation understudy (BLEU) is a metric widely used for automatic machine translation proposed by IBM Watson Research Center in 2002\[[5](#References)\]. The closer the translation produced by a machine is to the translation produced by a human expert, the better the performance of the translation system.
+
+To measure the closeness between machine translation and human translation, sentence precision is used. It compares the number of matched n-grams. More matches will lead to higher BLEU scores.
 
 ## Data Preparation
 
