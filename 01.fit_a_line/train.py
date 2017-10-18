@@ -41,7 +41,7 @@ def main():
         if isinstance(event, paddle.event.EndPass):
             if event.pass_id % 10 == 0:
                 with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-                    parameters.to_tar(f)
+                    trainer.save_parameter_to_tar(f)
             result = trainer.test(
                 reader=paddle.batch(uci_housing.test(), batch_size=2),
                 feeding=feeding)

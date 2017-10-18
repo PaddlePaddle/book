@@ -129,6 +129,10 @@ if __name__ == '__main__':
         regularization=paddle.optimizer.L2Regularization(rate=8e-4),
         model_average=paddle.optimizer.ModelAverage(average_window=0.5))
 
+    # create trainer
+    trainer = paddle.trainer.SGD(
+        cost=cost, parameters=parameters, update_equation=adam_optimizer)
+
     # End batch and end pass event handler
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):
@@ -140,14 +144,11 @@ if __name__ == '__main__':
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
             with open('./params_pass_%d.tar' % event.pass_id, 'w') as f:
-                parameters.to_tar(f)
+                trainer.save_parameter_to_tar(f)
 
             result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
 
-    # create trainer
-    trainer = paddle.trainer.SGD(
-        cost=cost, parameters=parameters, update_equation=adam_optimizer)
     # Save the inference topology to protobuf.
     inference_topology = paddle.topology.Topology(layers=output)
     with open("./inference_topology.pkl", 'wb') as f:

@@ -57,6 +57,10 @@ def main():
         learning_rate_decay_b=50000 * 100,
         learning_rate_schedule='discexp')
 
+    # Create trainer
+    trainer = paddle.trainer.SGD(
+        cost=cost, parameters=parameters, update_equation=momentum_optimizer)
+
     # End batch and end pass event handler
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):
@@ -69,7 +73,7 @@ def main():
         if isinstance(event, paddle.event.EndPass):
             # save parameters
             with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-                parameters.to_tar(f)
+                trainer.save_parameter_to_tar(f)
 
             result = trainer.test(
                 reader=paddle.batch(
@@ -77,10 +81,6 @@ def main():
                 feeding={'image': 0,
                          'label': 1})
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
-
-    # Create trainer
-    trainer = paddle.trainer.SGD(
-        cost=cost, parameters=parameters, update_equation=momentum_optimizer)
 
     # Save the inference topology to protobuf.
     inference_topology = paddle.topology.Topology(layers=out)
