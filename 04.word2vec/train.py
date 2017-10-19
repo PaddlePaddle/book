@@ -76,7 +76,6 @@ def main():
         bias_attr=paddle.attr.Param(learning_rate=2),
         act=paddle.activation.Softmax())
 
-
     cost = paddle.layer.classification_cost(input=predictword, label=nextword)
     parameters = paddle.parameters.create(cost)
     adagrad = paddle.optimizer.AdaGrad(
@@ -97,6 +96,7 @@ def main():
                                                    result.metrics)
             with open("model_%d.tar" % event.pass_id, 'w') as f:
                 trainer.save_parameter_to_tar(f)
+
     trainer.train(
         paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
         num_passes=100,
