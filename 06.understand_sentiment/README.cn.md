@@ -291,7 +291,7 @@ Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
                 sys.stdout.flush()
         if isinstance(event, paddle.event.EndPass):
             with open('./params_pass_%d.tar' % event.pass_id, 'w') as f:
-                parameters.to_tar(f)
+                trainer.save_parameter_to_tar(f)
 
             result = trainer.test(reader=test_reader, feeding=feeding)
             print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
