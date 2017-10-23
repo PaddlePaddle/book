@@ -87,7 +87,7 @@ def main():
         if isinstance(event, paddle.event.EndPass):
             # save parameters
             with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-                parameters.to_tar(f)
+                trainer.save_parameter_to_tar(f)
 
             result = trainer.test(reader=paddle.batch(
                 paddle.dataset.mnist.test(), batch_size=128))

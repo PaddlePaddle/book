@@ -5,9 +5,9 @@ import paddle.v2 as paddle
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 
-def save_model(parameters, save_path):
+def save_model(trainer, parameters, save_path):
     with open(save_path, 'w') as f:
-        parameters.to_tar(f)
+        trainer.save_parameter_to_tar(f)
 
 
 def seq_to_seq_net(source_dict_dim,
@@ -175,12 +175,12 @@ def main():
                 if not event.batch_id % 10:
                     save_path = 'params_pass_%05d_batch_%05d.tar' % (
                         event.pass_id, event.batch_id)
-                    save_model(parameters, save_path)
+                    save_model(trainer, parameters, save_path)
 
             if isinstance(event, paddle.event.EndPass):
                 # save parameters
                 save_path = 'params_pass_%05d.tar' % (event.pass_id)
-                save_model(parameters, save_path)
+                save_model(trainer, parameters, save_path)
 
         # start to train
         trainer.train(

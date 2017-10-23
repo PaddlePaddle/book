@@ -348,7 +348,7 @@ def event_handler(event):
                         paddle.dataset.imikolov.test(word_dict, N), 32))
         print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
         with open("model_%d.tar"%event.pass_id, 'w') as f:
-            parameters.to_tar(f)
+            trainer.save_parameter_to_tar(f)
 
 trainer.train(
     paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),

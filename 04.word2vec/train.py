@@ -76,6 +76,13 @@ def main():
         bias_attr=paddle.attr.Param(learning_rate=2),
         act=paddle.activation.Softmax())
 
+    cost = paddle.layer.classification_cost(input=predictword, label=nextword)
+    parameters = paddle.parameters.create(cost)
+    adagrad = paddle.optimizer.AdaGrad(
+        learning_rate=3e-3,
+        regularization=paddle.optimizer.L2Regularization(8e-4))
+    trainer = paddle.trainer.SGD(cost, parameters, adagrad)
+
     def event_handler(event):
         if isinstance(event, paddle.event.EndIteration):
             if event.batch_id % 100 == 0:
@@ -88,14 +95,8 @@ def main():
             print "Pass %d, Testing metrics %s" % (event.pass_id,
                                                    result.metrics)
             with open("model_%d.tar" % event.pass_id, 'w') as f:
-                parameters.to_tar(f)
+                trainer.save_parameter_to_tar(f)
 
-    cost = paddle.layer.classification_cost(input=predictword, label=nextword)
-    parameters = paddle.parameters.create(cost)
-    adagrad = paddle.optimizer.AdaGrad(
-        learning_rate=3e-3,
-        regularization=paddle.optimizer.L2Regularization(8e-4))
-    trainer = paddle.trainer.SGD(cost, parameters, adagrad)
     trainer.train(
         paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
         num_passes=100,

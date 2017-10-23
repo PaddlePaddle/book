@@ -61,12 +61,12 @@ PaddlePaddle stores the topology and parameter separately.
       inference_topology.serialize_for_inference(f)
   ```
 
-2. To save a parameter, we need to invoke `to_tar` method in Parameter
-   class.
+2. To save a parameter, we need to invoke `save_parameter_to_tar` method of
+  `trainer`.
 
   ```python
   with open('param.tar', 'w') as f:
-            params.to_tar(f)
+      trainer.save_parameter_to_tar(f)
   ```
 
  After serializing the parameter and topology into two files, we could
