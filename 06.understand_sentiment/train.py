@@ -107,10 +107,10 @@ if __name__ == '__main__':
     class_dim = 2
     train_reader = paddle.batch(
         paddle.reader.shuffle(
-            lambda: paddle.dataset.imdb.train(word_dict), buf_size=1000),
+            paddle.dataset.imdb.train(word_dict), buf_size=1000),
         batch_size=100)
     test_reader = paddle.batch(
-        lambda: paddle.dataset.imdb.test(word_dict), batch_size=100)
+        paddle.dataset.imdb.test(word_dict), batch_size=100)
 
     feeding = {'word': 0, 'label': 1}
 
