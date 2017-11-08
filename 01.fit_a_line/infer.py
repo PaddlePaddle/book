@@ -7,10 +7,8 @@ paddle.init(use_gpu=False, trainer_count=1)
 x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
 y_predict = paddle.layer.fc(input=x, size=1, act=paddle.activation.Linear())
 
-with open('fit_a_line.tar', 'r') as f:
-    parameters = paddle.parameters.Parameters.from_tar(f)
-
 # Infer using provided test data.
+parameters = paddle.dataset.uci_housing.model()
 probs = paddle.infer(
     output_layer=y_predict, parameters=parameters,
     input=[item for item in paddle.dataset.uci_housing.test()()])
