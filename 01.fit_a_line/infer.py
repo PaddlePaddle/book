@@ -8,9 +8,8 @@ x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
 y_predict = paddle.layer.fc(input=x, size=1, act=paddle.activation.Linear())
 
 # Infer using provided test data.
-parameters = paddle.dataset.uci_housing.model()
 probs = paddle.infer(
-    output_layer=y_predict, parameters=parameters,
+    output_layer=y_predict, parameters=paddle.dataset.uci_housing.model(),
     input=[item for item in paddle.dataset.uci_housing.test()()])
 
 for i in xrange(len(probs)):
