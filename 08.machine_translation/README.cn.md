@@ -323,7 +323,7 @@ is_generating = False
            name='target_language_next_word',
            type=paddle.data_type.integer_value_sequence(target_dict_dim))
        cost = paddle.layer.classification_cost(input=decoder, label=lbl)
-    ```
+   ```
 
 6. 生成模式下的解码器调用：
 
