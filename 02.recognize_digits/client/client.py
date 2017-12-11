@@ -3,6 +3,9 @@ from PIL import Image
 import numpy as np
 import os
 
+# this client is used by Paddle serve: https://github.com/PaddlePaddle/book/tree/develop/serve
+# please do not use it directly
+
 
 def load_image(file):
     im = Image.open(file).convert('L')
