@@ -363,7 +363,7 @@ def load_image(file):
     im = Image.open(file).convert('L')
     im = im.resize((28, 28), Image.ANTIALIAS)
     im = np.array(im).astype(np.float32).flatten()
-    im = im / 255.0
+    im = im / 255.0 * 2.0 - 1.0
     return im
 
 test_data = []
