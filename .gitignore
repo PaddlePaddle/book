@@ -1,2 +1,8 @@
+deprecated
+*~
 pandoc.template
 .DS_Store
+.idea
+py_env*
+*.ipynb
+build

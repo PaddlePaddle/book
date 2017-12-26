@@ -1,0 +1,5 @@
+venv
+*.pyc
+node_modules
+static/js/main.js
+index.html

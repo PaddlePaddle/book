@@ -1,16 +1,42 @@
--   repo: https://github.com/Lucas-C/pre-commit-hooks.git
-    sha: c25201a00e6b0514370501050cf2a8538ac12270
+-   repo: https://github.com/pre-commit/mirrors-yapf.git
+    sha: v0.16.0
     hooks:
-    -   id: remove-crlf
--   repo: https://github.com/reyoung/mirrors-yapf.git
-    sha: v0.13.2
-    hooks:
-    - id: yapf
-      files: (.*\.(py|bzl)|BUILD|.*\.BUILD|WORKSPACE)$  # Bazel BUILD files follow Python syntax.
+    -   id: yapf
+        files: \.py$
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    sha: 7539d8bd1a00a3c1bfd34cdb606d3a6372e83469
+    sha: a11d9314b22d8f8c7556443875b731ef05965464
     hooks:
     -   id: check-merge-conflict
     -   id: check-symlinks
     -   id: detect-private-key
+        files: (?!.*paddle)^.*$
     -   id: end-of-file-fixer
+        files: \.md$
+    -   id: trailing-whitespace
+        files: \.md$
+-   repo: https://github.com/Lucas-C/pre-commit-hooks
+    sha: v1.0.1
+    hooks:
+    -   id: forbid-crlf
+        files: \.md$
+    -   id: remove-crlf
+        files: \.md$
+    -   id: forbid-tabs
+        files: \.md$
+    -   id: remove-tabs
+        files: \.md$
+-   repo: https://github.com/reyoung/pre-commit-hooks-jinja-compile.git
+    sha: 4a369cc72a4a2b8d3813ab8cc17abb5f5b21ef6c
+    hooks:
+    -   id: convert-jinja2-into-html
+        # The argument means repleace filename from pattern `.*/([^/]*)\.tmpl` to `\1`
+        args: ['--filename_pattern=.*/([^/]*)\.tmpl', '--filename_repl=\1']
+-   repo: local
+    hooks:
+    -   id: convert-markdown-into-html
+        name: convert-markdown-into-html
+        description: Convert README.md into index.html and README.cn.md into index.cn.html
+        entry: python .pre-commit-hooks/convert_markdown_into_html.py
+        language: system
+        files: .+README(\.cn)?\.md$
+
