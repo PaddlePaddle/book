@@ -277,10 +277,10 @@ if __name__ == '__main__':
 ```python
     train_reader = paddle.batch(
         paddle.reader.shuffle(
-            lambda: paddle.dataset.imdb.train(word_dict), buf_size=1000),
+            paddle.dataset.imdb.train(word_dict), buf_size=1000),
         batch_size=100)
     test_reader = paddle.batch(
-        lambda: paddle.dataset.imdb.test(word_dict),
+            paddle.dataset.imdb.test(word_dict),
         batch_size=100)
 ```
 这里，`dataset.imdb.train()`和`dataset.imdb.test()`分别是`dataset.imdb`中的训练数据和测试数据API。`train_reader`在训练时使用，意义是将读取的训练数据进行shuffle后，组成一个batch数据。同理，`test_reader`是在测试的时候使用，将读取的测试数据组成一个batch。
