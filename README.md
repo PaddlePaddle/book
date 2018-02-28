@@ -4,14 +4,14 @@
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.cn.html)
 
-1. [Fit a Line](http://book.paddlepaddle.org/01.fit_a_line/)
-1. [Recognize Digits](http://book.paddlepaddle.org/02.recognize_digits/)
-1. [Image Classification](http://book.paddlepaddle.org/03.image_classification/)
-1. [Word to Vector](http://book.paddlepaddle.org/04.word2vec/)
-1. [Recommender System](http://book.paddlepaddle.org/05.recommender_system/)
-1. [Understand Sentiment](http://book.paddlepaddle.org/06.understand_sentiment/)
-1. [Label Semantic Roles](http://book.paddlepaddle.org/07.label_semantic_roles/)
-1. [Machine Translation](http://book.paddlepaddle.org/08.machine_translation/)
+1. [Fit a Line](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.html)
+1. [Recognize Digits](http://www.paddlepaddle.org/docs/develop/book/02.recognize_digits/index.html)
+1. [Image Classification](http://www.paddlepaddle.org/docs/develop/book/03.image_classification/index.html)
+1. [Word to Vector](http://www.paddlepaddle.org/docs/develop/book/04.word2vec/index.html)
+1. [Recommender System](http://www.paddlepaddle.org/docs/develop/book/05.recommender_system/index.html)
+1. [Understand Sentiment](http://www.paddlepaddle.org/docs/develop/book/06.understand_sentiment/index.html)
+1. [Label Semantic Roles](http://www.paddlepaddle.org/docs/develop/book/07.label_semantic_roles/index.html)
+1. [Machine Translation](http://www.paddlepaddle.org/docs/develop/book/08.machine_translation/index.html)
 
 ## Running the Book
 
