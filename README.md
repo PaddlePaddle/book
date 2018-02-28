@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/PaddlePaddle/book.svg?branch=develop)](https://travis-ci.org/PaddlePaddle/book)
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/)
-[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.cn.html)
+[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://www.paddlepaddle.org/docs/develop/book/)
 
 1. [Fit a Line](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.html)
 1. [Recognize Digits](http://www.paddlepaddle.org/docs/develop/book/02.recognize_digits/index.html)
