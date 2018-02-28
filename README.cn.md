@@ -4,7 +4,7 @@
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.cn.html)
 
-1. [新手入门](http://book.paddlepaddle.org/01.fit_a_line/index.cn.html)
+1. [线性回归](http://book.paddlepaddle.org/01.fit_a_line/index.cn.html)
 1. [识别数字](http://book.paddlepaddle.org/02.recognize_digits/index.cn.html)
 1. [图像分类](http://book.paddlepaddle.org/03.image_classification/index.cn.html)
 1. [词向量](http://book.paddlepaddle.org/04.word2vec/index.cn.html)
