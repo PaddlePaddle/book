@@ -1,7 +1,7 @@
 # 深度学习入门
 
 [![Build Status](https://travis-ci.org/PaddlePaddle/book.svg?branch=develop)](https://travis-ci.org/PaddlePaddle/book)
-[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://book.paddlepaddle.org/)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://www.paddlepaddle.org/docs/develop/book/)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.cn.html)
 
 1. [线性回归](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.cn.html)
