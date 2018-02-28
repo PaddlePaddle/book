@@ -2,7 +2,7 @@
   "is_en": false,
   "chapters": [
     {
-      "name": "新手入门",
+      "name": "线性回归",
       "link": "./01.fit_a_line/index.cn.html"
     },
     {
