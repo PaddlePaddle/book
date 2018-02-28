@@ -1,8 +1,8 @@
 # 深度学习入门
 
 [![Build Status](https://travis-ci.org/PaddlePaddle/book.svg?branch=develop)](https://travis-ci.org/PaddlePaddle/book)
-[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://www.paddlepaddle.org/docs/develop/book/)
-[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://book.paddlepaddle.org/index.cn.html)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.html)
+[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.cn.html)
 
 1. [线性回归](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.cn.html)
 1. [识别数字](http://www.paddlepaddle.org/docs/develop/book/02.recognize_digits/index.cn.html)
