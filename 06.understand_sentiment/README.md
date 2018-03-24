@@ -61,10 +61,10 @@ $$ h_t=F(x_t,h_{t-1})$$
 
 $F$ contains following formulations\[[7](#references)\]：
 \begin{align}
-i_t & = \sigma(W_{xi}x_t+W_{hi}h_{h-1}+W_{ci}c_{t-1}+b_i)\\\\
-f_t & = \sigma(W_{xf}x_t+W_{hf}h_{h-1}+W_{cf}c_{t-1}+b_f)\\\\
-c_t & = f_t\odot c_{t-1}+i_t\odot \tanh(W_{xc}x_t+W_{hc}h_{h-1}+b_c)\\\\
-o_t & = \sigma(W_{xo}x_t+W_{ho}h_{h-1}+W_{co}c_{t}+b_o)\\\\
+i_t & = \sigma(W_{xi}x_t+W_{hi}h_{t-1}+W_{ci}c_{t-1}+b_i)\\\\
+f_t & = \sigma(W_{xf}x_t+W_{hf}h_{t-1}+W_{cf}c_{t-1}+b_f)\\\\
+c_t & = f_t\odot c_{t-1}+i_t\odot \tanh(W_{xc}x_t+W_{hc}h_{t-1}+b_c)\\\\
+o_t & = \sigma(W_{xo}x_t+W_{ho}h_{t-1}+W_{co}c_{t}+b_o)\\\\
 h_t & = o_t\odot \tanh(c_t)\\\\
 \end{align}
 
