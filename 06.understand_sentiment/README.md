@@ -45,7 +45,7 @@ Figure 1. An illustration of an unfolded RNN in time.
 
 As shown in Figure 1, we unfold an RNN: at the $t$-th time step, the network takes two inputs: the $t$-th input vector $\vec{x_t}$ and the latent state from the last time-step $\vec{h_{t-1}}$. From those, it computes the latent state of the current step $\vec{h_t}$. This process is repeated until all inputs are consumed. Denoting the RNN as function $f$, it can be formulated as follows:
 
-$$\vec{h_t}=f(\vec{x_t},\vec{h_{t-1}})=\sigma(W_{xh}\vec{x_t}+W_{hh}\vec{h_{h-1}}+\vec{b_h})$$
+$$\vec{h_t}=f(\vec{x_t},\vec{h_{t-1}})=\sigma(W_{xh}\vec{x_t}+W_{hh}\vec{h_{t-1}}+\vec{b_h})$$
 
 where $W_{xh}$ is the weight matrix to feed into the latent layer; $W_{hh}$ is the latent-to-latent matrix; $b_h$ is the latent bias and $\sigma$ refers to the $sigmoid$ function.
 
@@ -61,10 +61,10 @@ $$ h_t=F(x_t,h_{t-1})$$
 
 $F$ contains following formulations\[[7](#references)\]：
 \begin{align}
-i_t & = \sigma(W_{xi}x_t+W_{hi}h_{h-1}+W_{ci}c_{t-1}+b_i)\\\\
-f_t & = \sigma(W_{xf}x_t+W_{hf}h_{h-1}+W_{cf}c_{t-1}+b_f)\\\\
-c_t & = f_t\odot c_{t-1}+i_t\odot \tanh(W_{xc}x_t+W_{hc}h_{h-1}+b_c)\\\\
-o_t & = \sigma(W_{xo}x_t+W_{ho}h_{h-1}+W_{co}c_{t}+b_o)\\\\
+i_t & = \sigma(W_{xi}x_t+W_{hi}h_{t-1}+W_{ci}c_{t-1}+b_i)\\\\
+f_t & = \sigma(W_{xf}x_t+W_{hf}h_{t-1}+W_{cf}c_{t-1}+b_f)\\\\
+c_t & = f_t\odot c_{t-1}+i_t\odot \tanh(W_{xc}x_t+W_{hc}h_{t-1}+b_c)\\\\
+o_t & = \sigma(W_{xo}x_t+W_{ho}h_{t-1}+W_{co}c_{t}+b_o)\\\\
 h_t & = o_t\odot \tanh(c_t)\\\\
 \end{align}
 
