@@ -102,13 +102,11 @@ Compared to the structure of a simple RNN, an LSTM includes memory cell $c$, inp
 $$ h_t=F(x_t,h_{t-1})$$
 
 $F$ contains following formulations\[[7](#references)\]：
-\begin{align}
-i_t & = \sigma(W_{xi}x_t+W_{hi}h_{t-1}+W_{ci}c_{t-1}+b_i)\\\\
-f_t & = \sigma(W_{xf}x_t+W_{hf}h_{t-1}+W_{cf}c_{t-1}+b_f)\\\\
-c_t & = f_t\odot c_{t-1}+i_t\odot \tanh(W_{xc}x_t+W_{hc}h_{t-1}+b_c)\\\\
-o_t & = \sigma(W_{xo}x_t+W_{ho}h_{t-1}+W_{co}c_{t}+b_o)\\\\
-h_t & = o_t\odot \tanh(c_t)\\\\
-\end{align}
+$$ i_t = \sigma{(W_{xi}x_t+W_{hi}h_{t-1}+W_{ci}c_{t-1}+b_i)} $$
+$$ f_t = \sigma(W_{xf}x_t+W_{hf}h_{t-1}+W_{cf}c_{t-1}+b_f) $$
+$$ c_t = f_t\odot c_{t-1}+i_t\odot tanh(W_{xc}x_t+W_{hc}h_{t-1}+b_c) $$
+$$ o_t = \sigma(W_{xo}x_t+W_{ho}h_{t-1}+W_{co}c_{t}+b_o) $$
+$$ h_t = o_t\odot tanh(c_t) $$
 
 In the equation，$i_t, f_t, c_t, o_t$ stand for input gate, forget gate, memory cell and output gate, respectively. $W$ and $b$ are model parameters, $\tanh$ is a hyperbolic tangent, and $\odot$ denotes an element-wise product operation. The input gate controls the magnitude of the new input into the memory cell $c$; the forget gate controls the memory propagated from the last time step; the output gate controls the magnitutde of the output. The three gates are computed similarly with different parameters, and they influence memory cell $c$ separately, as shown in Figure 2:
 
