@@ -54,8 +54,10 @@ After setting up our model, there are several major steps to go through to train
 Our program starts with importing necessary packages:
 
 ```python
-import paddle.v2 as paddle
-import paddle.v2.dataset.uci_housing as uci_housing
+import paddle
+import paddle.fluid as fluid
+import contextlib
+import numpy
 ```
 
 We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
@@ -116,49 +118,58 @@ When training complex models, we usually have one more split: the validation set
 
 `fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
 
-### Initialize PaddlePaddle
+### Datafeeder Configuration
 
 ```python
-paddle.init(use_gpu=False, trainer_count=1)
+BATCH_SIZE = 20
+
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.uci_housing.train(), buf_size=500),
+    batch_size=BATCH_SIZE)
+
+test_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.uci_housing.test(), buf_size=500),
+    batch_size=BATCH_SIZE)
 ```
 
 ### Model Configuration
 
-Linear regression is essentially a fully-connected layer with linear activation:
+### Train program configuration
+and then use the inference_program to setup the train_program
+The train_program must return the avg_loss as its first returned parameter.
 
 ```python
-x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
-y_predict = paddle.layer.fc(input=x,
-                                size=1,
-                                act=paddle.activation.Linear())
-y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
-cost = paddle.layer.square_error_cost(input=y_predict, label=y)
+def train_program():
+    y = fluid.layers.data(name='y', shape=[1], dtype='float32')
+
+    # feature vector of length 13
+    x = fluid.layers.data(name='x', shape=[13], dtype='float32')
+    y_predict = fluid.layers.fc(input=x, size=1, act=None)
+
+    loss = fluid.layers.square_error_cost(input=y_predict, label=y)
+    avg_loss = fluid.layers.mean(loss)
+
+    return avg_loss
 ```
 
-### Save Topology
+
+### Specify place
+Determine your train environment, you should specify if the training is on CPU or GPU
 
 ```python
-# Save the inference topology to protobuf.
-inference_topology = paddle.topology.Topology(layers=y_predict)
-with open("inference_topology.pkl", 'wb') as f:
-    inference_topology.serialize_for_inference(f)
-```
-
-
-### Create Parameters
-
-```python
-parameters = paddle.parameters.create(cost)
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
 ### Create Trainer
+The trainer will take the train_program.
 
 ```python
-optimizer = paddle.optimizer.Momentum(momentum=0)
-
-trainer = paddle.trainer.SGD(cost=cost,
-                             parameters=parameters,
-                             update_equation=optimizer)
+trainer = fluid.Trainer(
+    train_func=train_program,
+    place=place,
+    optimizer=fluid.optimizer.SGD(learning_rate=0.001))
 ```
 
 ### Feeding Data
@@ -168,105 +179,68 @@ PaddlePaddle provides the
 for loading the training data. A reader may return multiple columns, and we need a Python dictionary to specify the mapping from column index to data layers.
 
 ```python
-feeding={'x': 0, 'y': 1}
+feed_order=['x', 'y']
 ```
 
 Moreover, an event handler is provided to print the training progress:
 
 ```python
+# Specify the directory path to save the parameters
+save_dirname = "fit_a_line.inference.model"
+
 # event_handler to print training and testing info
 def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f" % (
-                event.pass_id, event.batch_id, event.cost)
+    if isinstance(event, fluid.EndStepEvent):
+        if event.step == 100:
+            test_metrics = trainer.test(
+                reader=test_reader, feed_order=feed_order)
+            print test_metrics
 
-    if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(
-            reader=paddle.batch(
-                uci_housing.test(), batch_size=2),
-            feeding=feeding)
-        print "Test %d, Cost %f" % (event.pass_id, result.cost)
-```
+            # Once the accuracy is good enough, we can save the trained parameters for the inferences later
+            if save_dirname is not None:
+                trainer.save_params(save_dirname)
 
-```python
-# event_handler to plot training and testing info
-from paddle.v2.plot import Ploter
-
-train_title = "Train cost"
-test_title = "Test cost"
-plot_cost = Ploter(train_title, test_title)
-
-step = 0
-
-def event_handler_plot(event):
-    global step
-    if isinstance(event, paddle.event.EndIteration):
-        if step % 10 == 0:  # every 10 batches, record a train cost
-            plot_cost.append(train_title, step, event.cost)
-
-        if step % 100 == 0: # every 100 batches, record a test cost
-            result = trainer.test(
-                reader=paddle.batch(
-                    uci_housing.test(), batch_size=2),
-                feeding=feeding)
-            plot_cost.append(test_title, step, result.cost)
-
-        if step % 100 == 0: # every 100 batches, update cost plot
-            plot_cost.plot()
-
-        step += 1
-
-    if isinstance(event, paddle.event.EndPass):
-        if event.pass_id % 10 == 0:
-            with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-                trainer.save_parameter_to_tar(f)
+            # If the accuracy is good enough, we can stop the training.
+            trainer.stop()
 ```
 
 ### Start Training
 
 ```python
 trainer.train(
-    reader=paddle.batch(
-        paddle.reader.shuffle(
-            uci_housing.train(), buf_size=500),
-        batch_size=2),
-    feeding=feeding,
-    event_handler=event_handler_plot,
-    num_passes=30)
+    reader=train_reader,
+    num_epochs=30,
+    event_handler=event_handler,
+    feed_order=feed_order)
 ```
 
 ![png](./image/train_and_test.png)
 
-### Apply model
+### Inference
 
-#### 1. generate testing data
+Initialize the Inferencer with the inference_program and the params_folder, which is where we saved our params
+
+#### Setup the Inference program.
+Similar with the trainer.train. The Inferencer needs to take an inference_program to do inferring.
+Prune the train_program to only have the y_predict.
 
 ```python
-test_data_creator = paddle.dataset.uci_housing.test()
-test_data = []
-test_label = []
-
-for item in test_data_creator():
-    test_data.append((item[0],))
-    test_label.append(item[1])
-    if len(test_data) == 5:
-        break
+def inference_program():
+    x = fluid.layers.data(name='x', shape=[13], dtype='float32')
+    y_predict = fluid.layers.fc(input=x, size=1, act=None)
+    return y_predict
 ```
 
-#### 2. inference
 
 ```python
-# load parameters from tar file.
-# users can remove the comments and change the model name
-# with open('params_pass_20.tar', 'r') as f:
-#     parameters = paddle.parameters.Parameters.from_tar(f)
+inferencer = fluid.Inferencer(
+    infer_func=inference_program, param_path=save_dirname, place=place)
 
-probs = paddle.infer(
-    output_layer=y_predict, parameters=parameters, input=test_data)
+batch_size = 10
+tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")
 
-for i in xrange(len(probs)):
-    print "label=" + str(test_label[i][0]) + ", predict=" + str(probs[i][0])
+results = inferencer.infer({'x': tensor_x})
+print("infer results: ", results[0])
 ```
 
 ## Summary
@@ -281,3 +255,4 @@ This chapter introduces *Linear Regression* and how to train and test this model
 
 <br/>
 This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+
