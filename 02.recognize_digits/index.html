@@ -171,15 +171,17 @@ PaddlePaddle provides a Python module, `paddle.dataset.mnist`, which downloads a
 A PaddlePaddle program starts from importing the API package:
 
 ```python
-import paddle.v2 as paddle
+import paddle.fluid as fluid
 ```
 
-We want to use this program to demonstrate three different classifiers, each defined as a Python function:
+We want to use this program to demonstrate three different classifiers, each defined as a Python function. We need to feed image data to the classifier.
+PaddlePaddle provides a special layer `layer.data` for reading data. Let us create a data layer for reading images and connect it to a classification network.
 
 - Softmax regression: the network has a fully-connection layer with softmax activation:
 
 ```python
-def softmax_regression(img):
+def softmax_regression():
+    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
     predict = paddle.layer.fc(input=img,
                               size=10,
                               act=paddle.activation.Softmax())
@@ -189,77 +191,67 @@ def softmax_regression(img):
 - Multi-Layer Perceptron: this network has two hidden fully-connected layers, one with ReLU and the other with softmax activation:
 
 ```python
-def multilayer_perceptron(img):
-    hidden1 = paddle.layer.fc(input=img, size=128, act=paddle.activation.Relu())
-    hidden2 = paddle.layer.fc(input=hidden1,
-                              size=64,
-                              act=paddle.activation.Relu())
-    predict = paddle.layer.fc(input=hidden2,
-                              size=10,
-                              act=paddle.activation.Softmax())
-    return predict
+def multilayer_perceptron():
+    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    hidden = fluid.layers.fc(input=img, size=200, act='relu')
+    hidden = fluid.layers.fc(input=hidden, size=200, act='relu')
+    prediction = fluid.layers.fc(input=hidden, size=10, act='softmax')
+    return prediction
 ```
 
 - Convolution network LeNet-5: the input image is fed through two convolution-pooling layers, a fully-connected layer, and the softmax output layer:
 
 ```python
-def convolutional_neural_network(img):
-
-    conv_pool_1 = paddle.networks.simple_img_conv_pool(
+def convolutional_neural_network():
+    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    conv_pool_1 = fluid.nets.simple_img_conv_pool(
         input=img,
         filter_size=5,
         num_filters=20,
-        num_channel=1,
         pool_size=2,
         pool_stride=2,
-        act=paddle.activation.Relu())
-
-    conv_pool_2 = paddle.networks.simple_img_conv_pool(
+        act="relu")
+    conv_pool_1 = fluid.layers.batch_norm(conv_pool_1)
+    conv_pool_2 = fluid.nets.simple_img_conv_pool(
         input=conv_pool_1,
         filter_size=5,
         num_filters=50,
-        num_channel=20,
         pool_size=2,
         pool_stride=2,
-        act=paddle.activation.Relu())
-
-    predict = paddle.layer.fc(input=conv_pool_2,
-                              size=10,
-                              act=paddle.activation.Softmax())
-    return predict
+        act="relu")
+    prediction = fluid.layers.fc(input=conv_pool_2, size=10, act='softmax')
+    return prediction
 ```
 
-PaddlePaddle provides a special layer `layer.data` for reading data. Let us create a data layer for reading images and connect it to a classification network created using one of above three functions.  We also need a cost layer for training the model.
+Then we need to setup the the `train_program`. It takes the prediction from the classifier first. During the training, it will calculate the `avg_loss` from the prediction.
 
 ```python
-paddle.init(use_gpu=False, trainer_count=1)
+def train_program():
+    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 
-images = paddle.layer.data(
-    name='pixel', type=paddle.data_type.dense_vector(784))
-label = paddle.layer.data(
-    name='label', type=paddle.data_type.integer_value(10))
-
-# predict = softmax_regression(images)
-# predict = multilayer_perceptron(images) # uncomment for MLP
-predict = convolutional_neural_network(images) # uncomment for LeNet5
-
-cost = paddle.layer.classification_cost(input=predict, label=label)
+    # predict = softmax_regression(images) # uncomment for Softmax
+    # predict = multilayer_perceptron() # uncomment for MLP
+    predict = convolutional_neural_network() # uncomment for LeNet5
+    cost = fluid.layers.cross_entropy(input=predict, label=label)
+    avg_cost = fluid.layers.mean(cost)
+    acc = fluid.layers.accuracy(input=predict, label=label)
+    return [avg_cost, acc]
 ```
 
-Now, it is time to specify training parameters. In the following `Momentum` optimizer, `momentum=0.9` means that 90% of the current momentum comes from that of the previous iteration. The learning rate relates to the speed at which the network training converges. Regularization is meant to prevent over-fitting; here we use the L2 regularization.
+Now, we need to setup the trainer. The trainer need to take in `train_program`, `place`, and `optimizer`.
+In the following `Momentum` optimizer, `momentum=0.9` means that 90% of the current momentum comes from that of the previous iteration. The learning rate relates to the speed at which the network training converges. Regularization is meant to prevent over-fitting; here we use the L2 regularization.
 
-```python
-parameters = paddle.parameters.create(cost)
+ ```python
+ use_cude = False # set to True if training with GPU
+ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+ optimizer = paddle.optimizer.Momentum(
+     learning_rate=0.1 / 128.0,
+     momentum=0.9,
+     regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
 
-optimizer = paddle.optimizer.Momentum(
-    learning_rate=0.1 / 128.0,
-    momentum=0.9,
-    regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
-
-trainer = paddle.trainer.SGD(cost=cost,
-                             parameters=parameters,
-                             update_equation=optimizer)
-```
+trainer = fluid.Trainer(
+    train_func=train_program, place=place, optimizer=optimizer)
+ ```
 
 Then we specify the training data `paddle.dataset.mnist.train()` and testing data `paddle.dataset.mnist.test()`. These two methods are *reader creators*. Once called, a reader creator returns a *reader*.  A reader is a Python method, which, once called, returns a Python generator, which yields instances of data.
 
@@ -267,41 +259,23 @@ Then we specify the training data `paddle.dataset.mnist.train()` and testing dat
 
 `batch` is a special decorator, which takes a reader and outputs a *batch reader*, which doesn't yield an instance, but a minibatch at a time.
 
-`event_handler_plot` is used to plot a figure like below：
-
-![png](./image/train_and_test.png)
-
 ```python
-from paddle.v2.plot import Ploter
+train_reader = paddle.batch(
+        paddle.reader.shuffle(
+            paddle.dataset.mnist.train(), buf_size=500),
+        batch_size=64)
 
-train_title = "Train cost"
-test_title = "Test cost"
-cost_ploter = Ploter(train_title, test_title)
-
-step = 0
-
-# event_handler to plot a figure
-def event_handler_plot(event):
-    global step
-    if isinstance(event, paddle.event.EndIteration):
-        if step % 100 == 0:
-            cost_ploter.append(train_title, step, event.cost)
-            cost_ploter.plot()
-        step += 1
-    if isinstance(event, paddle.event.EndPass):
-        # save parameters
-        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-            trainer.save_parameter_to_tar(f)
-
-        result = trainer.test(reader=paddle.batch(
-            paddle.dataset.mnist.test(), batch_size=128))
-        cost_ploter.append(test_title, step, result.cost)
+test_reader = paddle.batch(
+            paddle.dataset.mnist.test(), batch_size=64)
 ```
 
 `event_handler` is used to plot some text data when training.
 
 ```python
 lists = []
+
+# Save the parameter into a directory. The Inferencer can load the parameters from it to do infer
+params_dirname = "recognize_digits_network.inference.model"
 
 # event handler to print the progress
 def event_handler(event):
@@ -314,35 +288,33 @@ def event_handler(event):
         with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
             trainer.save_parameter_to_tar(f)
 
-        result = trainer.test(reader=paddle.batch(
-            paddle.dataset.mnist.test(), batch_size=128))
+        result = trainer.test(reader=train_reader)
         print "Test with Pass %d, Cost %f, %s\n" % (
             event.pass_id, result.cost, result.metrics)
         lists.append((event.pass_id, result.cost,
                       result.metrics['classification_error_evaluator']))
 ```
 
+Now that we setup the event_handler and the reader, we can start training the model. `feed_order` is used to map the data dict to the train_program
 ```python
 # Train the model now
 trainer.train(
-    reader=paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.mnist.train(), buf_size=8192),
-        batch_size=128),
-    event_handler=event_handler_plot,
-    num_passes=5)
+    num_epochs=1,
+    event_handler=event_handler,
+    reader=train_reader,
+    feed_order=['img', 'label'])
 ```
 
 During training, `trainer.train` invokes `event_handler` for certain events. This gives us a chance to print the training progress.
 
-```
-# Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
-# Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
-# Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
-# Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
-# Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
-# Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
-```
+ ```
+ # Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
+ # Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
+ # Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
+ # Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
+ # Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
+ # Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
+ ```
 
 After the training, we can check the model's prediction accuracy.
 
@@ -357,27 +329,25 @@ Usually, with MNIST data, the softmax regression model achieves an accuracy arou
 
 ## Application
 
-After training, users can use the trained model to classify images. The following code shows how to inference MNIST images through `paddle.infer` interface.
+After training, users can use the trained model to classify images. The following code shows how to inference MNIST images through `fluid.Inferencer`.
 
 ```python
-from PIL import Image
-import numpy as np
-import os
-def load_image(file):
-    im = Image.open(file).convert('L')
-    im = im.resize((28, 28), Image.ANTIALIAS)
-    im = np.array(im).astype(np.float32).flatten()
-    im = im / 255.0 * 2.0 - 1.0
-    return im
+inferencer = fluid.Inferencer(
+    # infer_func=softmax_regression, # uncomment for softmax regression
+    # infer_func=multilayer_perceptron, # uncomment for MLP
+    infer_func=convolutional_neural_network, # uncomment for LeNet5
+    param_path=params_dirname,
+    place=place)
 
-test_data = []
-cur_dir = os.getcwd()
-test_data.append((load_image(cur_dir + '/image/infer_3.png'),))
+batch_size = 1
+import numpy
+tensor_img = numpy.random.uniform(-1.0, 1.0,
+                                  [batch_size, 1, 28, 28]).astype("float32")
 
-probs = paddle.infer(
-    output_layer=predict, parameters=parameters, input=test_data)
-lab = np.argsort(-probs) # probs and lab are the results of one batch data
-print "Label of image/infer_3.png is: %d" % lab[0][0]
+results = inferencer.infer({'img': tensor_img})
+
+print("infer results: ", results[0])
+
 ```
 
 
