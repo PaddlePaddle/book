@@ -158,6 +158,7 @@ def train_program():
 Specify your training environment, you should specify if the training is on CPU or GPU.
 
 ```python
+use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
@@ -187,28 +188,52 @@ Moreover, an event handler is provided to print the training progress:
 # Specify the directory path to save the parameters
 params_folder = "fit_a_line.inference.model"
 
+# Plot data
+from paddle.v2.plot import Ploter
+train_title = "Train cost"
+test_title = "Test cost"
+plot_cost = Ploter(train_title, test_title)
+step = 0
+
 # event_handler to print training and testing info
 def event_handler(event):
+    global step
     if isinstance(event, fluid.EndStepEvent):
-        if event.step == 100:
+        if step % 100 == 0: # every 100 batches, record a test cost
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-            print test_metrics
 
-            # Once the accuracy is good enough, we can save the trained parameters for the inferences later
-            if params_folder is not None:
-                trainer.save_params(params_folder)
+            print(test_metrics[0])
 
-            # If the accuracy is good enough, we can stop the training.
-            trainer.stop()
+            plot_cost.append(test_title, step, test_metrics[0])
+            plot_cost.plot()
+
+            if test_metrics[0] < 10.0:
+                # If the accuracy is good enough, we can stop the training.
+                print('loss is less than 10.0, stop')
+                trainer.stop()
+
+            if step >= 2000:
+                # Or if it has been running for enough steps
+                print('has been running for 2000 steps, stop')
+                trainer.stop()
+
+        # We can save the trained parameters for the inferences later
+        if params_folder is not None:
+            trainer.save_params(params_folder)
+
+        step += 1
 ```
 
 ### Start Training
 
 ```python
+%matplotlib inline
+
+# The training could take up to a few minutes.
 trainer.train(
     reader=train_reader,
-    num_epochs=30,
+    num_epochs=100,
     event_handler=event_handler,
     feed_order=feed_order)
 
