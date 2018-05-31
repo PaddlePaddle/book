@@ -19,13 +19,11 @@ import numpy
 BATCH_SIZE = 20
 
 train_reader = paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.uci_housing.train(), buf_size=500),
+    paddle.reader.shuffle(paddle.dataset.uci_housing.train(), buf_size=500),
     batch_size=BATCH_SIZE)
 
 test_reader = paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.uci_housing.test(), buf_size=500),
+    paddle.reader.shuffle(paddle.dataset.uci_housing.test(), buf_size=500),
     batch_size=BATCH_SIZE)
 
 
@@ -51,8 +49,7 @@ trainer = fluid.Trainer(
     place=place,
     optimizer=fluid.optimizer.SGD(learning_rate=0.001))
 
-
-feed_order=['x', 'y']
+feed_order = ['x', 'y']
 
 # Specify the directory path to save the parameters
 params_folder = "fit_a_line.inference.model"
@@ -95,6 +92,7 @@ def event_handler(event):
 
         step += 1
 
+
 # The training could take up to a few minutes.
 trainer.train(
     reader=train_reader,
@@ -102,10 +100,12 @@ trainer.train(
     event_handler=event_handler,
     feed_order=feed_order)
 
+
 def inference_program():
     x = fluid.layers.data(name='x', shape=[13], dtype='float32')
     y_predict = fluid.layers.fc(input=x, size=1, act=None)
     return y_predict
+
 
 inferencer = fluid.Inferencer(
     infer_func=inference_program, param_path=params_folder, place=place)
