@@ -98,13 +98,13 @@ Figure 4. A hybrid recommendation model.
 
 We use the [MovieLens ml-1m](http://files.grouplens.org/datasets/movielens/ml-1m.zip) to train our model.  This dataset includes 10,000 ratings of 4,000 movies from 6,000 users to 4,000 movies.  Each rate is in the range of 1~5.  Thanks to GroupLens Research for collecting, processing and publishing the dataset.
 
-`paddle.v2.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens` and `wmt14`, etc. There's no need for us to manually download and preprocess `MovieLens` dataset.
+`paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `movielens` and `wmt14`, etc. There's no need for us to manually download and preprocess `MovieLens` dataset.
 
 The raw `MoiveLens` contains movie ratings, relevant features from both movies and users.
 For instance, one movie's feature could be:
 
 ```python
-import paddle.v2 as paddle
+import paddle
 movie_info = paddle.dataset.movielens.movie_info()
 print movie_info.values()[0]
 ```
@@ -181,197 +181,302 @@ The output shows that user 1 gave movie `1193` a rating of 5.
 
 After issuing a command `python train.py`, training will start immediately. The details will be unpacked by the following sessions to see how it works.
 
-## Model Architecture
+## Model Configuration
 
-### Initialize PaddlePaddle
-
-First, we must import and initialize PaddlePaddle (enable/disable GPU, set the number of trainers, etc).
-
+Our program starts with importing necessary packages and initializes some global variables:
 ```python
-import paddle.v2 as paddle
-paddle.init(use_gpu=False)
+import math
+import sys
+import numpy as np
+import paddle
+import paddle.fluid as fluid
+import paddle.fluid.layers as layers
+import paddle.fluid.nets as nets
+
+IS_SPARSE = True
+USE_GPU = False
+BATCH_SIZE = 256
 ```
 
-### Model Configuration
+
+Then we define the model configuration for user combined features:
 
 ```python
-uid = paddle.layer.data(
-    name='user_id',
-    type=paddle.data_type.integer_value(
-        paddle.dataset.movielens.max_user_id() + 1))
-usr_emb = paddle.layer.embedding(input=uid, size=32)
-usr_fc = paddle.layer.fc(input=usr_emb, size=32)
+def get_usr_combined_features():
 
-usr_gender_id = paddle.layer.data(
-    name='gender_id', type=paddle.data_type.integer_value(2))
-usr_gender_emb = paddle.layer.embedding(input=usr_gender_id, size=16)
-usr_gender_fc = paddle.layer.fc(input=usr_gender_emb, size=16)
+    USR_DICT_SIZE = paddle.dataset.movielens.max_user_id() + 1
 
-usr_age_id = paddle.layer.data(
-    name='age_id',
-    type=paddle.data_type.integer_value(
-        len(paddle.dataset.movielens.age_table)))
-usr_age_emb = paddle.layer.embedding(input=usr_age_id, size=16)
-usr_age_fc = paddle.layer.fc(input=usr_age_emb, size=16)
+    uid = layers.data(name='user_id', shape=[1], dtype='int64')
 
-usr_job_id = paddle.layer.data(
-    name='job_id',
-    type=paddle.data_type.integer_value(
-        paddle.dataset.movielens.max_job_id() + 1))
-usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
-usr_job_fc = paddle.layer.fc(input=usr_job_emb, size=16)
+    usr_emb = layers.embedding(
+        input=uid,
+        dtype='float32',
+        size=[USR_DICT_SIZE, 32],
+        param_attr='user_table',
+        is_sparse=IS_SPARSE)
+
+    usr_fc = layers.fc(input=usr_emb, size=32)
+
+    USR_GENDER_DICT_SIZE = 2
+
+    usr_gender_id = layers.data(name='gender_id', shape=[1], dtype='int64')
+
+    usr_gender_emb = layers.embedding(
+        input=usr_gender_id,
+        size=[USR_GENDER_DICT_SIZE, 16],
+        param_attr='gender_table',
+        is_sparse=IS_SPARSE)
+
+    usr_gender_fc = layers.fc(input=usr_gender_emb, size=16)
+
+    USR_AGE_DICT_SIZE = len(paddle.dataset.movielens.age_table)
+    usr_age_id = layers.data(name='age_id', shape=[1], dtype="int64")
+
+    usr_age_emb = layers.embedding(
+        input=usr_age_id,
+        size=[USR_AGE_DICT_SIZE, 16],
+        is_sparse=IS_SPARSE,
+        param_attr='age_table')
+
+    usr_age_fc = layers.fc(input=usr_age_emb, size=16)
+
+    USR_JOB_DICT_SIZE = paddle.dataset.movielens.max_job_id() + 1
+    usr_job_id = layers.data(name='job_id', shape=[1], dtype="int64")
+
+    usr_job_emb = layers.embedding(
+        input=usr_job_id,
+        size=[USR_JOB_DICT_SIZE, 16],
+        param_attr='job_table',
+        is_sparse=IS_SPARSE)
+
+    usr_job_fc = layers.fc(input=usr_job_emb, size=16)
+
+    concat_embed = layers.concat(
+        input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc], axis=1)
+
+    usr_combined_features = layers.fc(input=concat_embed, size=200, act="tanh")
+
+    return usr_combined_features
 ```
 
-As shown in the above code, the input is four dimension integers for each user, that is,  `user_id`,`gender_id`, `age_id` and `job_id`. In order to deal with these features conveniently, we use the language model in NLP to transform these discrete values into embedding vaules `usr_emb`, `usr_gender_emb`, `usr_age_emb` and `usr_job_emb`.
+As shown in the above code, the input is four dimension integers for each user, that is `user_id`,`gender_id`, `age_id` and `job_id`. In order to deal with these features conveniently, we use the language model in NLP to transform these discrete values into embedding vaules `usr_emb`, `usr_gender_emb`, `usr_age_emb` and `usr_job_emb`.
 
-```python
-usr_combined_features = paddle.layer.fc(
-        input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc],
-        size=200,
-        act=paddle.activation.Tanh())
-```
-
-Then, employing user features as input, directly connecting to a fully-connected layer, which is used to reduce dimension to 200.
+Then we can use user features as input, directly connecting to a fully-connected layer, which is used to reduce dimension to 200.
 
 Furthermore, we do a similar transformation for each movie feature. The model configuration is:
 
 ```python
-mov_id = paddle.layer.data(
-    name='movie_id',
-    type=paddle.data_type.integer_value(
-        paddle.dataset.movielens.max_movie_id() + 1))
-mov_emb = paddle.layer.embedding(input=mov_id, size=32)
-mov_fc = paddle.layer.fc(input=mov_emb, size=32)
+def get_mov_combined_features():
 
-mov_categories = paddle.layer.data(
-    name='category_id',
-    type=paddle.data_type.sparse_binary_vector(
-        len(paddle.dataset.movielens.movie_categories())))
-mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
+    MOV_DICT_SIZE = paddle.dataset.movielens.max_movie_id() + 1
 
-movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
-mov_title_id = paddle.layer.data(
-    name='movie_title',
-    type=paddle.data_type.integer_value_sequence(len(movie_title_dict)))
-mov_title_emb = paddle.layer.embedding(input=mov_title_id, size=32)
-mov_title_conv = paddle.networks.sequence_conv_pool(
-    input=mov_title_emb, hidden_size=32, context_len=3)
+    mov_id = layers.data(name='movie_id', shape=[1], dtype='int64')
 
-mov_combined_features = paddle.layer.fc(
-    input=[mov_fc, mov_categories_hidden, mov_title_conv],
-    size=200,
-    act=paddle.activation.Tanh())
+    mov_emb = layers.embedding(
+        input=mov_id,
+        dtype='float32',
+        size=[MOV_DICT_SIZE, 32],
+        param_attr='movie_table',
+        is_sparse=IS_SPARSE)
+
+    mov_fc = layers.fc(input=mov_emb, size=32)
+
+    CATEGORY_DICT_SIZE = len(paddle.dataset.movielens.movie_categories())
+
+    category_id = layers.data(
+        name='category_id', shape=[1], dtype='int64', lod_level=1)
+
+    mov_categories_emb = layers.embedding(
+        input=category_id, size=[CATEGORY_DICT_SIZE, 32], is_sparse=IS_SPARSE)
+
+    mov_categories_hidden = layers.sequence_pool(
+        input=mov_categories_emb, pool_type="sum")
+
+    MOV_TITLE_DICT_SIZE = len(paddle.dataset.movielens.get_movie_title_dict())
+
+    mov_title_id = layers.data(
+        name='movie_title', shape=[1], dtype='int64', lod_level=1)
+
+    mov_title_emb = layers.embedding(
+        input=mov_title_id, size=[MOV_TITLE_DICT_SIZE, 32], is_sparse=IS_SPARSE)
+
+    mov_title_conv = nets.sequence_conv_pool(
+        input=mov_title_emb,
+        num_filters=32,
+        filter_size=3,
+        act="tanh",
+        pool_type="sum")
+
+    concat_embed = layers.concat(
+        input=[mov_fc, mov_categories_hidden, mov_title_conv], axis=1)
+
+    mov_combined_features = layers.fc(input=concat_embed, size=200, act="tanh")
+
+    return mov_combined_features
 ```
 
-Movie title, a sequence of words represented by an integer word index sequence, will be feed into a `sequence_conv_pool` layer, which will apply convolution and pooling on time dimension. Because pooling is done on time dimension, the output will be a fixed-length vector regardless the length of the input sequence.
+Movie title, which is a sequence of words represented by an integer word index sequence, will be feed into a `sequence_conv_pool` layer, which will apply convolution and pooling on time dimension. Because pooling is done on time dimension, the output will be a fixed-length vector regardless the length of the input sequence.
 
-Finally, we can use cosine similarity to calculate the similarity between user characteristics and movie features.
+
+Finally, we can define a `inference_program` that use cosine similarity to calculate the similarity between user characteristics and movie features.
 
 ```python
-inference = paddle.layer.cos_sim(a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
-cost = paddle.layer.square_error_cost(
-        input=inference,
-        label=paddle.layer.data(
-        name='score', type=paddle.data_type.dense_vector(1)))
+def inference_program():
+    usr_combined_features = get_usr_combined_features()
+    mov_combined_features = get_mov_combined_features()
+
+    inference = layers.cos_sim(X=usr_combined_features, Y=mov_combined_features)
+    scale_infer = layers.scale(x=inference, scale=5.0)
+
+    return scale_infer
+```
+
+Then we define a `training_program` that uses the result from `inference_program` to compute the cost with label data
+
+```python
+def train_program():
+
+    scale_infer = inference_program()
+
+    label = layers.data(name='score', shape=[1], dtype='float32')
+    square_cost = layers.square_error_cost(input=scale_infer, label=label)
+    avg_cost = layers.mean(square_cost)
+
+    return [avg_cost, scale_infer]
 ```
 
 ## Model Training
 
-### Define Parameters
+### Specify training environment
 
-First, we define the model parameters according to the previous model configuration `cost`.
+Specify your training environment, you should specify if the training is on CPU or GPU.
 
 ```python
-# Create parameters
-parameters = paddle.parameters.create(cost)
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+```
+
+### Datafeeder Configuration
+
+Next we define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. 
+`paddle.dataset.movielens.train` will yield records during each pass, after shuffling, a batch input of `buf_size` is generated for training.
+
+```python
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.movielens.train(), buf_size=8192),
+    batch_size=BATCH_SIZE)
+
+test_reader = paddle.batch(
+    paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
 ```
 
 ### Create Trainer
 
-Before jumping into creating a training module, algorithm setting is also necessary. Here we specified Adam optimization algorithm via `paddle.optimizer`.
+Create a trainer that takes `train_program` as input and specifies optimizer.
 
 ```python
-trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
-                             update_equation=paddle.optimizer.Adam(learning_rate=1e-4))
+trainer = fluid.Trainer(
+    train_func=train_program(), place=place, optimizer=fluid.optimizer.SGD(learning_rate=0.2))
 ```
 
-```text
-[INFO 2017-03-06 17:12:13,378 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
-[INFO 2017-03-06 17:12:13,379 networks.py:1478] The output order is [__square_error_cost_0__]
+### Feeding Data
+
+`feed_order` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `movielens.train` corresponds to `user_id` feature.
+
+```python
+feed_order = [
+        'user_id', 'gender_id', 'age_id', 'job_id', 'movie_id', 'category_id',
+        'movie_title', 'score'
+    ]
+```
+
+### Event Handler
+
+Callback function `event_handler` will be called during training when a pre-defined event happens.
+For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
+
+```python
+# Specify the directory path to save the parameters
+params_dirname = "recommender_system.inference.model"
+
+def event_handler(event):
+    if isinstance(event, fluid.EndStepEvent):
+        avg_cost_set = trainer.test(
+            reader=test_reader, feed_order=feed_order)
+
+        # get avg cost
+        avg_cost = np.array(avg_cost_set).mean()
+
+        print("avg_cost: %s" % avg_cost)
+        print('BatchID {0}, Test Loss {1:0.2}'.format(event.epoch + 1,
+                                                          float(avg_cost)))
+
+        if float(avg_cost) < 4:
+            trainer.save_params(params_dirname)
+            trainer.stop()
+
 ```
 
 ### Training
 
-`paddle.dataset.movielens.train` will yield records during each pass, after shuffling, a batch input is generated for training.
-
-```python
-reader=paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.movielens.train(), buf_size=8192),
-        batch_size=256)
-```
-
-`feeding` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `movielens.train` corresponds to `user_id` feature.
-
-```python
-feeding = {
-    'user_id': 0,
-    'gender_id': 1,
-    'age_id': 2,
-    'job_id': 3,
-    'movie_id': 4,
-    'category_id': 5,
-    'movie_title': 6,
-    'score': 7
-}
-```
-
-Callback function `event_handler` and  `event_handler_plot` will be called during training when a pre-defined event happens.
-
-```python
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d Batch %d Cost %.2f" % (
-                event.pass_id, event.batch_id, event.cost)
-```
-
-```python
-from paddle.v2.plot import Ploter
-
-train_title = "Train cost"
-test_title = "Test cost"
-cost_ploter = Ploter(train_title, test_title)
-
-step = 0
-
-def event_handler_plot(event):
-    global step
-    if isinstance(event, paddle.event.EndIteration):
-        if step % 10 == 0:  # every 10 batches, record a train cost
-            cost_ploter.append(train_title, step, event.cost)
-
-        if step % 1000 == 0: # every 1000 batches, record a test cost
-            result = trainer.test(
-                reader=paddle.batch(
-                    paddle.dataset.movielens.test(), batch_size=256),
-                feeding=feeding)
-            cost_ploter.append(test_title, step, result.cost)
-
-        if step % 100 == 0: # every 100 batches, update cost plot
-            cost_ploter.plot()
-
-        step += 1
-```
-
-Finally, we can invoke `trainer.train` to start training:
+Finally, we invoke `trainer.train` to start training with `num_epochs` and other parameters.
 
 ```python
 trainer.train(
-    reader=reader,
-    event_handler=event_handler_plot,
-    feeding=feeding,
-    num_passes=2)
+    num_epochs=1,
+    event_handler=event_handler,
+    reader=train_reader,
+    feed_order=feed_order)
+```
+
+## Inference
+
+### Create Inferencer
+
+Initialize Inferencer with `inference_program` and `params_dirname` which is where we save params from training.
+
+```python
+inferencer = fluid.Inferencer(
+        inference_program(), param_path=params_dirname, place=place)     
+```
+
+### Generate input data for testing
+
+Use create_lod_tensor(data, lod, place) API to generate LoD Tensor, where `data` is a list of sequences of index numbers, `lod` is the level of detail (lod) info associated with `data`.
+For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of indexes, of length 3 and 2, respectively.
+Correspondingly, lod = [[3, 2]] contains one level of detail info, indicating that `data` consists of two sequences of length 3 and 2. 
+
+```python
+user_id = fluid.create_lod_tensor([[1]], [[1]], place)
+gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
+age_id = fluid.create_lod_tensor([[0]], [[1]], place)
+job_id = fluid.create_lod_tensor([[10]], [[1]], place)
+movie_id = fluid.create_lod_tensor([[783]], [[1]], place)
+category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place)
+movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
+                                      place)
+```
+
+### Infer
+
+Now we can infer with inputs that matched with the yield records that we provide in `feed_order` during training.
+
+```python
+results = inferencer.infer(
+    {
+        'user_id': user_id,
+        'gender_id': gender_id,
+        'age_id': age_id,
+        'job_id': job_id,
+        'movie_id': movie_id,
+        'category_id': category_id,
+        'movie_title': movie_title
+    },
+    return_numpy=False)
+
+print("infer results: ", np.array(results[0]))
+
 ```
 
 ## Conclusion
