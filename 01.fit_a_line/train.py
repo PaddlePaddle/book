@@ -62,11 +62,12 @@ plot_cost = Ploter(train_title, test_title)
 
 step = 0
 
+
 # event_handler to print training and testing info
 def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if event.step % 10 == 0: # every 10 batches, record a test cost
+        if event.step % 10 == 0:  # every 10 batches, record a test cost
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
 
