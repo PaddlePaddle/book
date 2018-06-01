@@ -155,13 +155,8 @@ We split the dataset in two, one for adjusting the model parameters, namely, for
 When training complex models, we usually have one more split: the validation set. Complex models usually have [Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_optimization) that need to be set before the training process, such as the number of layers in the network. Because hyperparameters are not part of the model parameters, they cannot be trained using the same loss function. Thus we will try several sets of hyperparameters to train several models and cross-validate them on the validation set to pick the best one; finally, the selected trained model is tested on the test set. Because our model is relatively simple, we will omit this validation process.
 
 
-## Training
-
-`fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
-
-### Datafeeder Configuration
-
-We first define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. Users can shuffle a batch out of a `buf_size` in order to make the data random.
+## Datafeeder Configuration
+We first define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. If the user wants some randomness on the data order, she can define both a `BATCH_SIZE` and a `buf_size`. That way the datafeeder will yield the first `BATCH_SIZE` data out of a shuffle of the first `buf_size` data.
 
 ```python
 BATCH_SIZE = 20
@@ -177,8 +172,12 @@ test_reader = paddle.batch(
     batch_size=BATCH_SIZE)
 ```
 
+## Training
+
+`fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
+
 ### Train Program Configuration
-The train_program must return the avg_loss as its first returned parameter and then use the inference_program to setup the train_program
+`train_program` sets up the network structure of this current training model. For linear regression, it is simply a fully connected layer from the input to the output. More complex structures like CNN and RNN will be introduced in later chapters. The `train_program` must return an avg_loss as its first returned parameter because it is needed in backpropagation.
 
 ```python
 def train_program():
@@ -204,7 +203,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
 ### Create Trainer
-The trainer will take the train_program.
+The trainer will take the `train_program` as input.
 
 ```python
 trainer = fluid.Trainer(
@@ -227,24 +226,23 @@ Moreover, an event handler is provided to print the training progress:
 
 ```python
 # Specify the directory path to save the parameters
-params_folder = "fit_a_line.inference.model"
+params_dirname = "fit_a_line.inference.model"
 
 # Plot data
 from paddle.v2.plot import Ploter
 train_title = "Train cost"
 test_title = "Test cost"
 plot_cost = Ploter(train_title, test_title)
+
 step = 0
 
 # event_handler to print training and testing info
-def event_handler(event):
+def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if step % 100 == 0: # every 100 batches, record a test cost
+        if event.step % 10 == 0: # every 10 batches, record a test cost
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-
-            print(test_metrics[0])
 
             plot_cost.append(test_title, step, test_metrics[0])
             plot_cost.plot()
@@ -254,14 +252,9 @@ def event_handler(event):
                 print('loss is less than 10.0, stop')
                 trainer.stop()
 
-            if step >= 2000:
-                # Or if it has been running for enough steps
-                print('has been running for 2000 steps, stop')
-                trainer.stop()
-
         # We can save the trained parameters for the inferences later
-        if params_folder is not None:
-            trainer.save_params(params_folder)
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 
         step += 1
 ```
@@ -275,7 +268,7 @@ def event_handler(event):
 trainer.train(
     reader=train_reader,
     num_epochs=100,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     feed_order=feed_order)
 
 ```
@@ -284,10 +277,10 @@ trainer.train(
 
 ### Inference
 
-Initialize the Inferencer with the inference_program and the params_folder, which is where we saved our params
+Initialize the Inferencer with the inference_program and the params_dirname, which is where we saved our params
 
 #### Setup the Inference Program.
-Similar to the trainer.train, the Inferencer needs to take an inference_program to do inferring.
+Similar to the trainer.train, the Inferencer needs to take an inference_program to do inference.
 Prune the train_program to only have the y_predict.
 
 ```python
@@ -299,7 +292,7 @@ def inference_program():
 
 ```python
 inferencer = fluid.Inferencer(
-    infer_func=inference_program, param_path=params_folder, place=place)
+    infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
 tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")

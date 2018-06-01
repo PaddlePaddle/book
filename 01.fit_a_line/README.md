@@ -39,7 +39,7 @@ $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 
 That is, for a dataset of size $n$, MSE is the average value of the the prediction sqaure errors.
 
-### Training
+### Training Process
 
 After setting up our model, there are several major steps to go through to train it:
 1. Initialize the parameters including the weights $\vec{\omega}$ and the bias $b$. For example, we can set their mean values as $0$s, and their standard deviations as $1$s.
@@ -48,22 +48,6 @@ After setting up our model, there are several major steps to go through to train
 4. Repeat steps 2~3, until the loss is below a predefined threshold or the maximum number of epochs is reached.
 
 ## Dataset
-
-### Python Dataset Modules
-
-Our program starts with importing necessary packages:
-
-```python
-import paddle
-import paddle.fluid as fluid
-import numpy
-```
-
-We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
-
-1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if you haven't yet, and
-2.  [preprocess](#preprocessing) the dataset.
-
 ### An Introduction of the Dataset
 
 The UCI housing dataset has 506 instances. Each instance describes the attributes of a house in surburban Boston.  The attributes are explained below:
@@ -118,8 +102,21 @@ When training complex models, we usually have one more split: the validation set
 `fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
 
 ### Datafeeder Configuration
+Our program starts with importing necessary packages:
 
-We first define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. Users can shuffle a batch out of a `buf_size` in order to make the data random.
+```python
+import paddle
+import paddle.fluid as fluid
+import numpy
+```
+
+We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
+
+1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if you haven't yet, and
+2.  [preprocess](#preprocessing) the dataset.
+
+
+We define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. If the user wants some randomness on the data order, she can define both a `BATCH_SIZE` and a `buf_size`. That way the datafeeder will yield the first `BATCH_SIZE` data out of a shuffle of the first `buf_size` data.
 
 ```python
 BATCH_SIZE = 20
@@ -136,7 +133,7 @@ test_reader = paddle.batch(
 ```
 
 ### Train Program Configuration
-The train_program must return the avg_loss as its first returned parameter and then use the inference_program to setup the train_program
+`train_program` sets up the network structure of this current training model. For linear regression, it is simply a fully connected layer from the input to the output. More complex structures like CNN and RNN will be introduced in later chapters. The `train_program` must return an avg_loss as its first returned parameter because it is needed in backpropagation.
 
 ```python
 def train_program():
@@ -162,7 +159,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
 ### Create Trainer
-The trainer will take the train_program.
+The trainer will take the `train_program` as input.
 
 ```python
 trainer = fluid.Trainer(
@@ -185,24 +182,23 @@ Moreover, an event handler is provided to print the training progress:
 
 ```python
 # Specify the directory path to save the parameters
-params_folder = "fit_a_line.inference.model"
+params_dirname = "fit_a_line.inference.model"
 
 # Plot data
 from paddle.v2.plot import Ploter
 train_title = "Train cost"
 test_title = "Test cost"
 plot_cost = Ploter(train_title, test_title)
+
 step = 0
 
 # event_handler to print training and testing info
-def event_handler(event):
+def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if step % 100 == 0: # every 100 batches, record a test cost
+        if event.step % 10 == 0: # every 10 batches, record a test cost
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-
-            print(test_metrics[0])
 
             plot_cost.append(test_title, step, test_metrics[0])
             plot_cost.plot()
@@ -212,19 +208,15 @@ def event_handler(event):
                 print('loss is less than 10.0, stop')
                 trainer.stop()
 
-            if step >= 2000:
-                # Or if it has been running for enough steps
-                print('has been running for 2000 steps, stop')
-                trainer.stop()
-
         # We can save the trained parameters for the inferences later
-        if params_folder is not None:
-            trainer.save_params(params_folder)
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 
         step += 1
 ```
 
 ### Start Training
+We now can start training by calling `trainer.train()`. 
 
 ```python
 %matplotlib inline
@@ -233,19 +225,19 @@ def event_handler(event):
 trainer.train(
     reader=train_reader,
     num_epochs=100,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     feed_order=feed_order)
 
 ```
 
 ![png](./image/train_and_test.png)
 
-### Inference
+## Inference
 
-Initialize the Inferencer with the inference_program and the params_folder, which is where we saved our params
+Initialize the Inferencer with the inference_program and the params_dirname, which is where we saved our params
 
-#### Setup the Inference Program.
-Similar to the trainer.train, the Inferencer needs to take an inference_program to do inferring.
+### Setup the Inference Program
+Similar to the trainer.train, the Inferencer needs to take an inference_program to do inference.
 Prune the train_program to only have the y_predict.
 
 ```python
@@ -255,9 +247,12 @@ def inference_program():
     return y_predict
 ```
 
+### Infer
+Inferencer will load the trained model from `params_dirname` and use it to infer the unseen data.
+
 ```python
 inferencer = fluid.Inferencer(
-    infer_func=inference_program, param_path=params_folder, place=place)
+    infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
 tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")

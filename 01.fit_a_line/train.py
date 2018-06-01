@@ -52,26 +52,24 @@ trainer = fluid.Trainer(
 feed_order = ['x', 'y']
 
 # Specify the directory path to save the parameters
-params_folder = "fit_a_line.inference.model"
+params_dirname = "fit_a_line.inference.model"
 
 # Plot data
 from paddle.v2.plot import Ploter
-
 train_title = "Train cost"
 test_title = "Test cost"
 plot_cost = Ploter(train_title, test_title)
+
 step = 0
 
 
 # event_handler to print training and testing info
-def event_handler(event):
+def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if step % 100 == 0:  # every 100 batches, record a test cost
+        if event.step % 10 == 0:  # every 10 batches, record a test cost
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-
-            print(test_metrics[0])
 
             plot_cost.append(test_title, step, test_metrics[0])
             plot_cost.plot()
@@ -81,14 +79,9 @@ def event_handler(event):
                 print('loss is less than 10.0, stop')
                 trainer.stop()
 
-            if step >= 2000:
-                # Or if it has been running for enough steps
-                print('has been running for 2000 steps, stop')
-                trainer.stop()
-
         # We can save the trained parameters for the inferences later
-        if params_folder is not None:
-            trainer.save_params(params_folder)
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 
         step += 1
 
@@ -97,7 +90,7 @@ def event_handler(event):
 trainer.train(
     reader=train_reader,
     num_epochs=100,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     feed_order=feed_order)
 
 
