@@ -340,7 +340,10 @@ def event_handler_plot(event):
         lists.append((event.epoch, avg_cost, acc))
 ```
 
+#### Start training
+
 Now that we setup the event_handler and the reader, we can start training the model. `feed_order` is used to map the data dict to the train_program
+
 ```python
 # Train the model now
 trainer.train(
@@ -381,6 +384,24 @@ Usually, with MNIST data, the softmax regression model achieves an accuracy arou
 
 After training, users can use the trained model to classify images. The following code shows how to inference MNIST images through `fluid.Inferencer`.
 
+### Create Inferencer
+
+The `Inferencer` takes an `infer_func` and `param_path` to setup the network and the trained parameters.
+We can simply plug-in the classifier defined earlier here.
+
+```python
+inferencer = fluid.Inferencer(
+    # infer_func=softmax_regression, # uncomment for softmax regression
+    # infer_func=multilayer_perceptron, # uncomment for MLP
+    infer_func=convolutional_neural_network,  # uncomment for LeNet5
+    param_path=params_dirname,
+    place=place)
+```
+
+#### Generate input data for inferring
+
+`infer_3.png` is an example image of the digit `3`. Turn it into an numpy array to match the data feeder format.
+
 ```python
 # Prepare the test image
 import os
@@ -395,15 +416,13 @@ def load_image(file):
 
 cur_dir = cur_dir = os.getcwd()
 img = load_image(cur_dir + '/image/infer_3.png')
+```
 
+### Inference
 
-inferencer = fluid.Inferencer(
-    # infer_func=softmax_regression, # uncomment for softmax regression
-    # infer_func=multilayer_perceptron, # uncomment for MLP
-    infer_func=convolutional_neural_network,  # uncomment for LeNet5
-    param_path=params_dirname,
-    place=place)
+Now we are ready to do inference.
 
+```python
 results = inferencer.infer({'img': img})
 lab = np.argsort(results)  # probs and lab are the results of one batch data
 print "Label of image/infer_3.png is: %d" % lab[0][0][-1]
