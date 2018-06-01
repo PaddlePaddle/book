@@ -7,8 +7,7 @@ import paddle.fluid as fluid
 
 def softmax_regression():
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
-    predict = paddle.layer.fc(
-        input=img, size=10, act=paddle.activation.Softmax())
+    predict = fluid.layers.fc(input=img, size=10, act='softmax')
     return predict
 
 
@@ -52,7 +51,7 @@ def train_program():
     label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 
     # Here we can build the prediction network in different ways. Please
-    # predict = softmax_regression(images) # uncomment for Softmax
+    # predict = softmax_regression() # uncomment for Softmax
     # predict = multilayer_perceptron() # uncomment for MLP
     predict = convolutional_neural_network()  # uncomment for LeNet5
 
@@ -83,6 +82,13 @@ def main():
     lists = []
 
     def event_handler(event):
+        if isinstance(event, fluid.EndStepEvent):
+            if event.step % 100 == 0:
+                # event.metrics maps with train program return arguments.
+                # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
+                print "Pass %d, Batch %d, Cost %f" % (event.step, event.epoch,
+                                                      event.metrics[0])
+
         if isinstance(event, fluid.EndEpochEvent):
             avg_cost, acc = trainer.test(
                 reader=test_reader, feed_order=['img', 'label'])

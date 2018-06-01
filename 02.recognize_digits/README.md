@@ -174,9 +174,8 @@ Let us create a data layer for reading images and connect it to the classificati
 ```python
 def softmax_regression():
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
-    predict = paddle.layer.fc(input=img,
-                              size=10,
-                              act=paddle.activation.Softmax())
+    predict = fluid.layers.fc(
+        input=img, size=10, act='softmax')
     return predict
 ```
 
@@ -233,7 +232,7 @@ Please feel free to modify the code to test different results between `softmax r
 def train_program():
     label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 
-    # predict = softmax_regression(images) # uncomment for Softmax
+    # predict = softmax_regression() # uncomment for Softmax
     # predict = multilayer_perceptron() # uncomment for MLP
     predict = convolutional_neural_network() # uncomment for LeNet5
 
@@ -319,6 +318,8 @@ train_title = "Train cost"
 test_title = "Test cost"
 cost_ploter = Ploter(train_title, test_title)
 step = 0
+lists = []
+
 # event_handler to plot a figure
 def event_handler_plot(event):
     global step
@@ -336,6 +337,7 @@ def event_handler_plot(event):
         avg_cost, acc = trainer.test(
             reader=test_reader, feed_order=['img', 'label'])
         cost_ploter.append(test_title, step, avg_cost)
+        lists.append((event.epoch, avg_cost, acc))
 ```
 
 Now that we setup the event_handler and the reader, we can start training the model. `feed_order` is used to map the data dict to the train_program
