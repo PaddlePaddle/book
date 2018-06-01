@@ -159,6 +159,7 @@ We will go though all of them and dig more on the configurations in this demo.
 A PaddlePaddle program starts from importing the API package:
 
 ```python
+import paddle
 import paddle.fluid as fluid
 ```
 
@@ -179,7 +180,7 @@ def softmax_regression():
     return predict
 ```
 
-- Multi-Layer Perceptron: this network has two hidden fully-connected layers, both are using ReLU as activation functino. The output layer is using softmax activation:
+- Multi-Layer Perceptron: this network has two hidden fully-connected layers, both are using ReLU as activation function. The output layer is using softmax activation:
 
 ```python
 def multilayer_perceptron():
@@ -259,15 +260,12 @@ test_reader = paddle.batch(
 ### Trainer Configuration
 
 Now, we need to setup the trainer. The trainer need to take in `train_program`, `place`, and `optimizer`.
-In the following `Momentum` optimizer, `momentum=0.9` means that 90% of the current momentum comes from that of the previous iteration. The learning rate relates to the speed at which the network training converges. Regularization is meant to prevent over-fitting; here we use the L2 regularization.
+In the following `Adam` optimizer, `learning_rate` means the speed at which the network training converges.
 
 ```python
- use_cude = False # set to True if training with GPU
- place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
- optimizer = paddle.optimizer.Momentum(
-     learning_rate=0.1 / 128.0,
-     momentum=0.9,
-     regularization=paddle.optimizer.L2Regularization(rate=0.0005 * 128))
+use_cuda = False # set to True if training with GPU
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+optimizer = fluid.optimizer.Adam(learning_rate=0.001)
 
 trainer = fluid.Trainer(
     train_func=train_program, place=place, optimizer=optimizer)
