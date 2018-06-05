@@ -183,7 +183,7 @@ After issuing a command `python train.py`, training will start immediately. The 
 
 ## Model Configuration
 
-Our program starts with importing necessary packages and initializes some global variables:
+Our program starts with importing necessary packages and initializing some global variables:
 ```python
 import math
 import sys
@@ -315,10 +315,10 @@ def get_mov_combined_features():
     return mov_combined_features
 ```
 
-Movie title, which is a sequence of words represented by an integer word index sequence, will be feed into a `sequence_conv_pool` layer, which will apply convolution and pooling on time dimension. Because pooling is done on time dimension, the output will be a fixed-length vector regardless the length of the input sequence.
+Movie title, which is a sequence of words represented by an integer word index sequence, will be fed into a `sequence_conv_pool` layer, which will apply convolution and pooling on time dimension. Because pooling is done on time dimension, the output will be a fixed-length vector regardless the length of the input sequence.
 
 
-Finally, we can define a `inference_program` that use cosine similarity to calculate the similarity between user characteristics and movie features.
+Finally, we can define a `inference_program` that uses cosine similarity to calculate the similarity between user characteristics and movie features.
 
 ```python
 def inference_program():
@@ -331,7 +331,8 @@ def inference_program():
     return scale_infer
 ```
 
-Then we define a `training_program` that uses the result from `inference_program` to compute the cost with label data
+Then we define a `training_program` that uses the result from `inference_program` to compute the cost with label data.
+Also define `optimizer_func` to specify the optimizer.
 
 ```python
 def train_program():
@@ -343,6 +344,10 @@ def train_program():
     avg_cost = layers.mean(square_cost)
 
     return [avg_cost, scale_infer]
+    
+    
+def optimizer_func():
+    return fluid.optimizer.SGD(learning_rate=0.2)
 ```
 
 ## Model Training
@@ -358,8 +363,8 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
 ### Datafeeder Configuration
 
-Next we define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. 
-`paddle.dataset.movielens.train` will yield records during each pass, after shuffling, a batch input of `buf_size` is generated for training.
+Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process. 
+`paddle.dataset.movielens.train` will yield records during each pass, after shuffling, a batch input of `BATCH_SIZE` is generated for training.
 
 ```python
 train_reader = paddle.batch(
@@ -373,11 +378,11 @@ test_reader = paddle.batch(
 
 ### Create Trainer
 
-Create a trainer that takes `train_program` as input and specifies optimizer.
+Create a trainer that takes `train_program` as input and specify optimizer function.
 
 ```python
 trainer = fluid.Trainer(
-    train_func=train_program(), place=place, optimizer=fluid.optimizer.SGD(learning_rate=0.2))
+    train_func=train_program, place=place, optimizer_func=optimizer_func)
 ```
 
 ### Feeding Data
@@ -438,13 +443,13 @@ Initialize Inferencer with `inference_program` and `params_dirname` which is whe
 
 ```python
 inferencer = fluid.Inferencer(
-        inference_program(), param_path=params_dirname, place=place)     
+        inference_program, param_path=params_dirname, place=place)     
 ```
 
 ### Generate input data for testing
 
 Use create_lod_tensor(data, lod, place) API to generate LoD Tensor, where `data` is a list of sequences of index numbers, `lod` is the level of detail (lod) info associated with `data`.
-For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of indexes, of length 3 and 2, respectively.
+For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of indices, of length 3 and 2, respectively.
 Correspondingly, lod = [[3, 2]] contains one level of detail info, indicating that `data` consists of two sequences of length 3 and 2. 
 
 ```python
@@ -460,7 +465,7 @@ movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
 
 ### Infer
 
-Now we can infer with inputs that matched with the yield records that we provide in `feed_order` during training.
+Now we can infer with inputs that we provide in `feed_order` during training.
 
 ```python
 results = inferencer.infer(
