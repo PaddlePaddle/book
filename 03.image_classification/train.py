@@ -56,7 +56,7 @@ def train(use_cuda, train_program, params_dirname):
     def event_handler(event):
         if isinstance(event, fluid.EndStepEvent):
             if event.step % 100 == 0:
-                print("Pass %d, Batch %d, Cost %f, Acc %f" %
+                print("\nPass %d, Batch %d, Cost %f, Acc %f" %
                       (event.step, event.epoch, event.metrics[0],
                        event.metrics[1]))
             else:
@@ -67,7 +67,8 @@ def train(use_cuda, train_program, params_dirname):
             avg_cost, accuracy = trainer.test(
                 reader=test_reader, feed_order=['pixel', 'label'])
 
-            print('Loss {0:2.2}, Acc {1:2.2}'.format(avg_cost, accuracy))
+            print('\nTest with Pass {0}, Loss {1:2.2}, Acc {2:2.2}'.format(
+                event.epoch, avg_cost, accuracy))
             if params_dirname is not None:
                 trainer.save_params(params_dirname)
 

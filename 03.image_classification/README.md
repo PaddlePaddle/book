@@ -162,109 +162,63 @@ Figure 11. CIFAR10 dataset[21]
 
 After running the command `python train.py`, training will start immediately. The following sections will describe in details.
 
-## Model Structure
+## Model Configuration
 
-### Initialize PaddlePaddle
-
-We must import and initialize PaddlePaddle (enable/disable GPU, set the number of trainers, etc).
+Let's start with importing the Paddle Fluid API package and the helper modules.
 
 ```python
+import paddle
+import paddle.fluid as fluid
+import numpy
 import sys
-import paddle.v2 as paddle
-from vgg import vgg_bn_drop
-from resnet import resnet_cifar10
-
-# PaddlePaddle init
-paddle.init(use_gpu=False, trainer_count=1)
 ```
+
 Now we are going to walk you through the implementations of the VGG and ResNet.
 
 ### VGG
 
 Let's start with the VGG model. Since the image size and amount of CIFAR10 are relatively small comparing to ImageNet, we use a small version of VGG network for CIFAR10. Convolution groups incorporate BN and dropout operations.
 
-1. Define input data and its dimension
-
-    The input to the network is defined as `paddle.layer.data`, or image pixels in the context of image classification. The images in CIFAR10 are 32x32 color images of three channels. Therefore, the size of the input data is 3072 (3x32x32), and the number of categories is 10.
-
-    ```python
-    datadim = 3 * 32 * 32
-    classdim = 10
-    image = paddle.layer.data(
-        name="image", type=paddle.data_type.dense_vector(datadim))
-    ```
-
-2. Define VGG main module
-
-    ```python
-    net = vgg_bn_drop(image)
-    ```
-    The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
-
-    ```python
-    def vgg_bn_drop(input):
-        def conv_block(ipt, num_filter, groups, dropouts, num_channels=None):
-            return paddle.networks.img_conv_group(
-                input=ipt,
-                num_channels=num_channels,
-                pool_size=2,
-                pool_stride=2,
-                conv_num_filter=[num_filter] * groups,
-                conv_filter_size=3,
-                conv_act=paddle.activation.Relu(),
-                conv_with_batchnorm=True,
-                conv_batchnorm_drop_rate=dropouts,
-                pool_type=paddle.pooling.Max())
-
-        conv1 = conv_block(input, 64, 2, [0.3, 0], 3)
-        conv2 = conv_block(conv1, 128, 2, [0.4, 0])
-        conv3 = conv_block(conv2, 256, 3, [0.4, 0.4, 0])
-        conv4 = conv_block(conv3, 512, 3, [0.4, 0.4, 0])
-        conv5 = conv_block(conv4, 512, 3, [0.4, 0.4, 0])
-
-        drop = paddle.layer.dropout(input=conv5, dropout_rate=0.5)
-        fc1 = paddle.layer.fc(input=drop, size=512, act=paddle.activation.Linear())
-        bn = paddle.layer.batch_norm(
-            input=fc1,
-            act=paddle.activation.Relu(),
-            layer_attr=paddle.attr.Extra(drop_rate=0.5))
-        fc2 = paddle.layer.fc(input=bn, size=512, act=paddle.activation.Linear())
-        return fc2
-    ```
-
-    2.1. Firstly, it defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
-
-    2.2. Five groups of convolutions. The first two groups perform two convolutions, while the last three groups perform three convolutions. The dropout rate of the last convolution in each group is set to 0, which means there is no dropout for this layer.
-
-    2.3. The last two layers are fully-connected layers of dimension 512.
-
-3. Define Classifier
-
-    The above VGG network extracts high-level features and maps them to a vector of the same size as the categories. Softmax function or classifier is then used for calculating the probability of the image belonging to each category.
-
-    ```python
-    out = paddle.layer.fc(input=net,
-                          size=classdim,
-                          act=paddle.activation.Softmax())
-    ```
-
-4. Define Loss Function and Outputs
-
-    In the context of supervised learning, labels of training images are defined in `paddle.layer.data` as well. During training, the cross-entropy loss function is used and the loss is the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
-
-    ```python
-    lbl = paddle.layer.data(
-        name="label", type=paddle.data_type.integer_value(classdim))
-    cost = paddle.layer.classification_cost(input=out, label=lbl)
-    ```
-
-### ResNet
-
-The first, third and fourth steps of a ResNet are the same as a VGG. The second step is the main module of ResNet.
+The input to VGG main module is from the data layer. `vgg_bn_drop` defines a 16-layer VGG network, with each convolutional layer followed by BN and dropout layers. Here is the definition in detail:
 
 ```python
-net = resnet_cifar10(image, depth=56)
+def vgg_bn_drop(input):
+    def conv_block(ipt, num_filter, groups, dropouts):
+        return fluid.nets.img_conv_group(
+            input=ipt,
+            pool_size=2,
+            pool_stride=2,
+            conv_num_filter=[num_filter] * groups,
+            conv_filter_size=3,
+            conv_act='relu',
+            conv_with_batchnorm=True,
+            conv_batchnorm_drop_rate=dropouts,
+            pool_type='max')
+
+    conv1 = conv_block(input, 64, 2, [0.3, 0])
+    conv2 = conv_block(conv1, 128, 2, [0.4, 0])
+    conv3 = conv_block(conv2, 256, 3, [0.4, 0.4, 0])
+    conv4 = conv_block(conv3, 512, 3, [0.4, 0.4, 0])
+    conv5 = conv_block(conv4, 512, 3, [0.4, 0.4, 0])
+
+    drop = fluid.layers.dropout(x=conv5, dropout_prob=0.5)
+    fc1 = fluid.layers.fc(input=drop, size=512, act=None)
+    bn = fluid.layers.batch_norm(input=fc1, act='relu')
+    drop2 = fluid.layers.dropout(x=bn, dropout_prob=0.5)
+    fc2 = fluid.layers.fc(input=drop2, size=512, act=None)
+    predict = fluid.layers.fc(input=fc2, size=10, act='softmax')
+    return predict
 ```
+
+  1. Firstly, it defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Dropout specifies the probability in dropout operation. Function `img_conv_group` is defined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a `Pooling`.
+
+  2. Five groups of convolutions. The first two groups perform two convolutions, while the last three groups perform three convolutions. The dropout rate of the last convolution in each group is set to 0, which means there is no dropout for this layer.
+
+  3. The last two layers are fully-connected layers of dimension 512.
+
+  4. The above VGG network extracts high-level features and maps them to a vector of the same size as the categories. Softmax function or classifier is then used for calculating the probability of the image belonging to each category.
+
+### ResNet
 
 Here are some basic functions used in `resnet_cifar10`:
 
@@ -281,37 +235,37 @@ def conv_bn_layer(input,
                   filter_size,
                   stride,
                   padding,
-                  active_type=paddle.activation.Relu(),
-                  ch_in=None):
-    tmp = paddle.layer.img_conv(
+                  act='relu',
+                  bias_attr=False):
+    tmp = fluid.layers.conv2d(
         input=input,
         filter_size=filter_size,
-        num_channels=ch_in,
         num_filters=ch_out,
         stride=stride,
         padding=padding,
-        act=paddle.activation.Linear(),
-        bias_attr=False)
-    return paddle.layer.batch_norm(input=tmp, act=active_type)
+        act=None,
+        bias_attr=bias_attr)
+    return fluid.layers.batch_norm(input=tmp, act=act)
 
-def shortcut(ipt, n_in, n_out, stride):
-    if n_in != n_out:
-        return conv_bn_layer(ipt, n_out, 1, stride, 0,
-                             paddle.activation.Linear())
+
+def shortcut(input, ch_in, ch_out, stride):
+    if ch_in != ch_out:
+        return conv_bn_layer(input, ch_out, 1, stride, 0, None)
     else:
-        return ipt
+        return input
 
-def basicblock(ipt, ch_out, stride):
-    ch_in = ch_out * 2
-    tmp = conv_bn_layer(ipt, ch_out, 3, stride, 1)
-    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, paddle.activation.Linear())
-    short = shortcut(ipt, ch_in, ch_out, stride)
-    return paddle.layer.addto(input=[tmp, short], act=paddle.activation.Relu())
 
-def layer_warp(block_func, ipt, features, count, stride):
-    tmp = block_func(ipt, features, stride)
+def basicblock(input, ch_in, ch_out, stride):
+    tmp = conv_bn_layer(input, ch_out, 3, stride, 1)
+    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, act=None, bias_attr=True)
+    short = shortcut(input, ch_in, ch_out, stride)
+    return fluid.layers.elementwise_add(x=tmp, y=short, act='relu')
+
+
+def layer_warp(block_func, input, ch_in, ch_out, count, stride):
+    tmp = block_func(input, ch_in, ch_out, stride)
     for i in range(1, count):
-        tmp = block_func(tmp, features, 1)
+        tmp = block_func(tmp, ch_out, ch_out, 1)
     return tmp
 ```
 
@@ -329,70 +283,86 @@ def resnet_cifar10(ipt, depth=32):
     assert (depth - 2) % 6 == 0
     n = (depth - 2) / 6
     nStages = {16, 64, 128}
-    conv1 = conv_bn_layer(
-        ipt, ch_in=3, ch_out=16, filter_size=3, stride=1, padding=1)
-    res1 = layer_warp(basicblock, conv1, 16, n, 1)
-    res2 = layer_warp(basicblock, res1, 32, n, 2)
-    res3 = layer_warp(basicblock, res2, 64, n, 2)
-    pool = paddle.layer.img_pool(
-        input=res3, pool_size=8, stride=1, pool_type=paddle.pooling.Avg())
-    return pool
+    conv1 = conv_bn_layer(ipt, ch_out=16, filter_size=3, stride=1, padding=1)
+    res1 = layer_warp(basicblock, conv1, 16, 16, n, 1)
+    res2 = layer_warp(basicblock, res1, 16, 32, n, 2)
+    res3 = layer_warp(basicblock, res2, 32, 64, n, 2)
+    pool = fluid.layers.pool2d(
+        input=res3, pool_size=8, pool_type='avg', pool_stride=1)
+    predict = fluid.layers.fc(input=pool, size=10, act='softmax')
+    return predict
+```
+
+## Infererence Program Configuration
+
+The input to the network is defined as `fluid.layers.data`, or image pixels in the context of image classification. The images in CIFAR10 are 32x32 color images of three channels. Therefore, the size of the input data is 3072 (3x32x32).
+
+```python
+def inference_program():
+    # The image is 32 * 32 with RGB representation.
+    data_shape = [3, 32, 32]
+    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+
+    predict = resnet_cifar10(images, 32)
+    # predict = vgg_bn_drop(images) # un-comment to use vgg net
+    return predict
+```
+
+## Train Program Configuration
+Then we need to setup the the `train_program`. It takes the prediction from the inference_program first.
+During the training, it will calculate the `avg_loss` from the prediction.
+
+In the context of supervised learning, labels of training images are defined in `fluid.layers.data` as well. During training, the cross-entropy loss function is used and the loss is the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
+
+**NOTE:** A train program should return an array and the first return argument has to be `avg_cost`.
+The trainer always implicitly use it to calculate the gradient.
+
+```python
+def train_program():
+    predict = inference_program()
+
+    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    cost = fluid.layers.cross_entropy(input=predict, label=label)
+    avg_cost = fluid.layers.mean(cost)
+    accuracy = fluid.layers.accuracy(input=predict, label=label)
+    return [avg_cost, accuracy]
 ```
 
 ## Model Training
 
-### Define Parameters
-
-Firstly, we create the model parameters according to the previous model configuration `cost`.
-
-```python
-# Create parameters
-parameters = paddle.parameters.create(cost)
-```
-
 ### Create Trainer
 
 Before creating a training module, it is necessary to set the algorithm.
-Here we specify `Momentum` optimization algorithm via `paddle.optimizer`.
+Here we specify `Adam` optimization algorithm via `fluid.optimizer`.
 
 ```python
-# Create optimizer
-momentum_optimizer = paddle.optimizer.Momentum(
-    momentum=0.9,
-    regularization=paddle.optimizer.L2Regularization(rate=0.0002 * 128),
-    learning_rate=0.1 / 128.0,
-    learning_rate_decay_a=0.1,
-    learning_rate_decay_b=50000 * 100,
-    learning_rate_schedule='discexp')
-
-# Create trainer
-trainer = paddle.trainer.SGD(cost=cost,
-                             parameters=parameters,
-                             update_equation=momentum_optimizer)
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+trainer = fluid.Trainer(
+    train_func=train_program,
+    optimizer=fluid.optimizer.Adam(learning_rate=0.001),
+    place=place)
 ```
 
-The learning rate adjustment policy can be defined with variables `learning_rate_decay_a`($a$), `learning_rate_decay_b`($b$) and `learning_rate_schedule`. In this example, discrete exponential method is used for adjusting learning rate. The formula is as follows,
-$$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
-where $n$ is the number of processed samples, $lr_{0}$ is the learning_rate.
-
-### Training
+### Data Feeders Configuration
 
 `cifar.train10()` will yield records during each pass, after shuffling, a batch input is generated for training.
 
 ```python
-reader=paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.cifar.train10(), buf_size=50000),
-        batch_size=128)
+# Each batch will yield 128 images
+BATCH_SIZE = 128
+
+# Reader for training
+train_reader = paddle.batch(
+    paddle.reader.shuffle(paddle.dataset.cifar.train10(), buf_size=50000),
+    batch_size=BATCH_SIZE)
+
+# Reader for testing. A separated data set for testing.
+test_reader = paddle.batch(
+    paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
 ```
 
-`feeding` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance,
- the first column of data generated by `cifar.train10()` corresponds to image layer's feature.
-
-```python
-feeding={'image': 0,
-         'label': 1}
-```
+### Event Handler
 
 Callback function `event_handler` will be called during training when a pre-defined event happens.
 
@@ -401,6 +371,8 @@ Callback function `event_handler` will be called during training when a pre-defi
 ![png](./image/train_and_test.png)
 
 ```python
+params_dirname = "image_classification_resnet.inference.model"
+
 from paddle.v2.plot import Ploter
 
 train_title = "Train cost"
@@ -410,65 +382,77 @@ cost_ploter = Ploter(train_title, test_title)
 step = 0
 def event_handler_plot(event):
     global step
-    if isinstance(event, paddle.event.EndIteration):
+    if isinstance(event, fluid.EndStepEvent):
         if step % 1 == 0:
-            cost_ploter.append(train_title, step, event.cost)
+            cost_ploter.append(train_title, step, event.metrics[0])
             cost_ploter.plot()
         step += 1
-    if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(
-            reader=paddle.batch(
-                paddle.dataset.cifar.test10(), batch_size=128),
-            feeding=feeding)
-        cost_ploter.append(test_title, step, result.cost)
+    if isinstance(event, fluid.EndEpochEvent):
+        avg_cost, accuracy = trainer.test(
+            reader=test_reader,
+            feed_order=['pixel', 'label'])
+        cost_ploter.append(test_title, step, avg_cost)
+
+        # save parameters
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 ```
 
 `event_handler` is used to plot some text data when training.
 
 ```python
+params_dirname = "image_classification_resnet.inference.model"
+
 # event handler to track training and testing process
 def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "\nPass %d, Batch %d, Cost %f, %s" % (
-                event.pass_id, event.batch_id, event.cost, event.metrics)
+    if isinstance(event, fluid.EndStepEvent):
+        if event.step % 100 == 0:
+            print("\nPass %d, Batch %d, Cost %f, Acc %f" %
+                  (event.step, event.epoch, event.metrics[0],
+                   event.metrics[1]))
         else:
             sys.stdout.write('.')
             sys.stdout.flush()
-    if isinstance(event, paddle.event.EndPass):
-        # save parameters
-        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-            trainer.save_parameter_to_tar(f)
 
-        result = trainer.test(
-            reader=paddle.batch(
-                paddle.dataset.cifar.test10(), batch_size=128),
-            feeding=feeding)
-        print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
+    if isinstance(event, fluid.EndEpochEvent):
+        # Test against with the test dataset to get accuracy.
+        avg_cost, accuracy = trainer.test(
+            reader=test_reader, feed_order=['pixel', 'label'])
+
+        print('\nTest with Pass {0}, Loss {1:2.2}, Acc {2:2.2}'.format(event.epoch, avg_cost, accuracy))
+
+        # save parameters
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 ```
 
-Finally, we can invoke `trainer.train` to start training:
+### Training
+
+Finally, we can invoke `trainer.train` to start training.
+
+**Note:** On CPU, each epoch will take about 15~20 minutes. This part may take a while. Please feel free to modify the code to run the test on GPU to increase the training speed.
+
 
 ```python
 trainer.train(
-    reader=reader,
-    num_passes=200,
-    event_handler=event_handler_plot,
-    feeding=feeding)
+    reader=train_reader,
+    num_epochs=2,
+    event_handler=event_handler,
+    feed_order=['pixel', 'label'])
 ```
 
-Here is an example log after training for one pass. The average error rates are 0.6875 on the training set and 0.8852 on the validation set.
+Here is an example log after training for one pass. The accuracy rates are 0.59 on the training set and 0.6 on the validation set.
 
 ```text
-Pass 0, Batch 0, Cost 2.473182, {'classification_error_evaluator': 0.9140625}
+Pass 0, Batch 0, Cost 3.869598, Acc 0.164062
 ...................................................................................................
-Pass 0, Batch 100, Cost 1.913076, {'classification_error_evaluator': 0.78125}
+Pass 100, Batch 0, Cost 1.481038, Acc 0.460938
 ...................................................................................................
-Pass 0, Batch 200, Cost 1.783041, {'classification_error_evaluator': 0.7421875}
+Pass 200, Batch 0, Cost 1.340323, Acc 0.523438
 ...................................................................................................
-Pass 0, Batch 300, Cost 1.668833, {'classification_error_evaluator': 0.6875}
+Pass 300, Batch 0, Cost 1.223424, Acc 0.593750
 ..........................................................................................
-Test with Pass 0, {'classification_error_evaluator': 0.885200023651123}
+Test with Pass 0, Loss 1.1, Acc 0.6
 ```
 
 Figure 12 shows the curve of training error rate, which indicates it converges at Pass 200 with error rate 8.54%.
@@ -478,42 +462,56 @@ Figure 12. The error rate of VGG model on CIFAR10
 </p>
 
 
-
 ## Application
 
-After training is completed, users can use the trained model to classify images. The following code shows how to infer through `paddle.infer` interface. You can uncomment some lines from below to change the model name.
+After training is completed, users can use the trained model to classify images. The following code shows how to infer through `fluid.Inferencer` interface. You can uncomment some lines from below to change the model name.
+
+### Generate input data for inferring
+
+`dog.png` is an example image of a dog. Turn it into an numpy array to match the data feeder format.
 
 ```python
+# Prepare testing data.
 from PIL import Image
 import numpy as np
 import os
+
 def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
+
     im = np.array(im).astype(np.float32)
     # The storage order of the loaded image is W(widht),
     # H(height), C(channel). PaddlePaddle requires
     # the CHW order, so transpose them.
-    im = im.transpose((2, 0, 1)) # CHW
+    im = im.transpose((2, 0, 1))  # CHW
     # In the training phase, the channel order of CIFAR
     # image is B(Blue), G(green), R(Red). But PIL open
     # image in RGB mode. It must swap the channel order.
-    im = im[(2, 1, 0),:,:] # BGR
-    im = im.flatten()
+    im = im[(2, 1, 0), :, :]  # BGR
     im = im / 255.0
+
+    # Add one dimension to mimic the list format.
+    im = numpy.expand_dims(im, axis=0)
     return im
-test_data = []
+
 cur_dir = os.getcwd()
-test_data.append((load_image(cur_dir + '/image/dog.png'),))
+img = load_image(cur_dir + '/image/dog.png')
+```
 
-# users can remove the comments and change the model name
-# with open('params_pass_50.tar', 'r') as f:
-#    parameters = paddle.parameters.Parameters.from_tar(f)
+### Inferencer Configuration and Inference
 
-probs = paddle.infer(
-    output_layer=out, parameters=parameters, input=test_data)
-lab = np.argsort(-probs) # probs and lab are the results of one batch data
-print "Label of image/dog.png is: %d" % lab[0][0]
+The `Inferencer` takes an `infer_func` and `param_path` to setup the network and the trained parameters.
+We can simply plug-in the inference_program defined earlier here.
+Now we are ready to do inference.
+
+```python
+inferencer = fluid.Inferencer(
+    infer_func=inference_program, param_path=params_dirname, place=place)
+
+# inference
+results = inferencer.infer({'pixel': img})
+print("infer results: ", results)
 ```
 
 
