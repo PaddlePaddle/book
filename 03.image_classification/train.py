@@ -24,10 +24,12 @@ from resnet import resnet_cifar10
 
 
 def inference_network():
+    # The image is 32 * 32 with RGB representation.
     data_shape = [3, 32, 32]
     images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+
     predict = resnet_cifar10(images, 32)
-    # predict = vgg_bn_drop(images)
+    # predict = vgg_bn_drop(images) # un-comment to use vgg net
     return predict
 
 
@@ -87,7 +89,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
     inferencer = fluid.Inferencer(
         infer_func=inference_program, param_path=params_dirname, place=place)
 
-    # inference
+    # Prepare testing data. 
     from PIL import Image
     import numpy as np
     import os
@@ -105,13 +107,16 @@ def infer(use_cuda, inference_program, params_dirname=None):
         # image is B(Blue), G(green), R(Red). But PIL open
         # image in RGB mode. It must swap the channel order.
         im = im[(2, 1, 0), :, :]  # BGR
-        # im = im.flatten()
         im = im / 255.0
+
+        # Add one dimension to mimic the list format.
         im = numpy.expand_dims(im, axis=0)
         return im
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     img = load_image(cur_dir + '/image/dog.png')
+
+    # inference
     results = inferencer.infer({'pixel': img})
 
     print("infer results: ", results)
@@ -134,4 +139,6 @@ def main(use_cuda):
 
 
 if __name__ == '__main__':
+    # For demo purpose, the training runs on CPU
+    # Please change accordingly.
     main(use_cuda=False)
