@@ -85,6 +85,12 @@ def train_program(is_sparse):
     return avg_cost
 
 
+def optimizer_func():
+    return fluid.optimizer.AdagradOptimizer(
+            learning_rate=3e-3,
+            regularization=fluid.regularizer.L2DecayRegularizer(8e-4)
+        )
+
 def train(use_cuda, train_program, params_dirname):
     train_reader = paddle.batch(
         paddle.dataset.imikolov.train(word_dict, N), BATCH_SIZE)
@@ -113,10 +119,7 @@ def train(use_cuda, train_program, params_dirname):
     trainer = fluid.Trainer(
         train_func=train_program,
         # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
-        optimizer=fluid.optimizer.AdagradOptimizer(
-            learning_rate=3e-3,
-            regularization=fluid.regularizer.L2DecayRegularizer(8e-4)
-        ),
+        optimizer=optimizer_func,
         place=place)
 
     trainer.train(
