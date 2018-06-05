@@ -344,8 +344,8 @@ def train_program():
     avg_cost = layers.mean(square_cost)
 
     return [avg_cost, scale_infer]
-    
-    
+
+
 def optimizer_func():
     return fluid.optimizer.SGD(learning_rate=0.2)
 ```
@@ -363,7 +363,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
 ### Datafeeder Configuration
 
-Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process. 
+Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process.
 `paddle.dataset.movielens.train` will yield records during each pass, after shuffling, a batch input of `BATCH_SIZE` is generated for training.
 
 ```python
@@ -443,14 +443,14 @@ Initialize Inferencer with `inference_program` and `params_dirname` which is whe
 
 ```python
 inferencer = fluid.Inferencer(
-        inference_program, param_path=params_dirname, place=place)     
+        inference_program, param_path=params_dirname, place=place)  
 ```
 
 ### Generate input data for testing
 
 Use create_lod_tensor(data, lod, place) API to generate LoD Tensor, where `data` is a list of sequences of index numbers, `lod` is the level of detail (lod) info associated with `data`.
 For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of indices, of length 3 and 2, respectively.
-Correspondingly, lod = [[3, 2]] contains one level of detail info, indicating that `data` consists of two sequences of length 3 and 2. 
+Correspondingly, lod = [[3, 2]] contains one level of detail info, indicating that `data` consists of two sequences of length 3 and 2.
 
 ```python
 user_id = fluid.create_lod_tensor([[1]], [[1]], place)

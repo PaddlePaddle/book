@@ -189,8 +189,7 @@ def train(use_cuda, train_program, params_dirname):
                     sys.exit("got NaN loss, training failed.")
 
     train_reader = paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.movielens.train(), buf_size=8192),
+        paddle.reader.shuffle(paddle.dataset.movielens.train(), buf_size=8192),
         batch_size=BATCH_SIZE)
 
     trainer.train(
