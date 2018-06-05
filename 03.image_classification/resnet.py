@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import paddle.v2 as paddle
+import paddle.fluid as fluid
 
 __all__ = ['resnet_cifar10']
 
@@ -22,37 +22,35 @@ def conv_bn_layer(input,
                   filter_size,
                   stride,
                   padding,
-                  active_type=paddle.activation.Relu(),
-                  ch_in=None):
-    tmp = paddle.layer.img_conv(
+                  act='relu',
+                  bias_attr=False):
+    tmp = fluid.layers.conv2d(
         input=input,
         filter_size=filter_size,
-        num_channels=ch_in,
         num_filters=ch_out,
         stride=stride,
         padding=padding,
-        act=paddle.activation.Linear(),
-        bias_attr=False)
-    return paddle.layer.batch_norm(input=tmp, act=active_type)
+        act=None,
+        bias_attr=bias_attr)
+    return fluid.layers.batch_norm(input=tmp, act=act)
 
 
-def shortcut(ipt, ch_in, ch_out, stride):
+def shortcut(input, ch_in, ch_out, stride):
     if ch_in != ch_out:
-        return conv_bn_layer(ipt, ch_out, 1, stride, 0,
-                             paddle.activation.Linear())
+        return conv_bn_layer(input, ch_out, 1, stride, 0, None)
     else:
-        return ipt
+        return input
 
 
-def basicblock(ipt, ch_in, ch_out, stride):
-    tmp = conv_bn_layer(ipt, ch_out, 3, stride, 1)
-    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, paddle.activation.Linear())
-    short = shortcut(ipt, ch_in, ch_out, stride)
-    return paddle.layer.addto(input=[tmp, short], act=paddle.activation.Relu())
+def basicblock(input, ch_in, ch_out, stride):
+    tmp = conv_bn_layer(input, ch_out, 3, stride, 1)
+    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, act=None, bias_attr=True)
+    short = shortcut(input, ch_in, ch_out, stride)
+    return fluid.layers.elementwise_add(x=tmp, y=short, act='relu')
 
 
-def layer_warp(block_func, ipt, ch_in, ch_out, count, stride):
-    tmp = block_func(ipt, ch_in, ch_out, stride)
+def layer_warp(block_func, input, ch_in, ch_out, count, stride):
+    tmp = block_func(input, ch_in, ch_out, stride)
     for i in range(1, count):
         tmp = block_func(tmp, ch_out, ch_out, 1)
     return tmp
@@ -63,11 +61,11 @@ def resnet_cifar10(ipt, depth=32):
     assert (depth - 2) % 6 == 0
     n = (depth - 2) / 6
     nStages = {16, 64, 128}
-    conv1 = conv_bn_layer(
-        ipt, ch_in=3, ch_out=16, filter_size=3, stride=1, padding=1)
+    conv1 = conv_bn_layer(ipt, ch_out=16, filter_size=3, stride=1, padding=1)
     res1 = layer_warp(basicblock, conv1, 16, 16, n, 1)
     res2 = layer_warp(basicblock, res1, 16, 32, n, 2)
     res3 = layer_warp(basicblock, res2, 32, 64, n, 2)
-    pool = paddle.layer.img_pool(
-        input=res3, pool_size=8, stride=1, pool_type=paddle.pooling.Avg())
-    return pool
+    pool = fluid.layers.pool2d(
+        input=res3, pool_size=8, pool_type='avg', pool_stride=1)
+    predict = fluid.layers.fc(input=pool, size=10, act='softmax')
+    return predict
