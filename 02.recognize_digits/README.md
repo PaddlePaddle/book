@@ -174,9 +174,8 @@ Let us create a data layer for reading images and connect it to the classificati
 ```python
 def softmax_regression():
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
-    predict = paddle.layer.fc(input=img,
-                              size=10,
-                              act=paddle.activation.Softmax())
+    predict = fluid.layers.fc(
+        input=img, size=10, act='softmax')
     return predict
 ```
 
@@ -221,14 +220,19 @@ def convolutional_neural_network():
 ```
 
 #### Train Program Configuration
-Then we need to setup the the `train_program`. It takes the prediction from the classifier first. During the training, it will calculate the `avg_loss` from the prediction.
+Then we need to setup the the `train_program`. It takes the prediction from the classifier first.
+During the training, it will calculate the `avg_loss` from the prediction.
+
+**NOTE:** A train program should return an array and the first return argument has to be `avg_cost`.
+The trainer always implicitly use it to calculate the gradient.
+
 Please feel free to modify the code to test different results between `softmax regression`, `mlp`, and `convolutional neural network` classifier.
 
 ```python
 def train_program():
     label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 
-    # predict = softmax_regression(images) # uncomment for Softmax
+    # predict = softmax_regression() # uncomment for Softmax
     # predict = multilayer_perceptron() # uncomment for MLP
     predict = convolutional_neural_network() # uncomment for LeNet5
 
@@ -236,6 +240,8 @@ def train_program():
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     avg_cost = fluid.layers.mean(cost)
     acc = fluid.layers.accuracy(input=predict, label=label)
+
+    # The first item needs to be avg_cost.
     return [avg_cost, acc]
 ```
 
@@ -273,48 +279,103 @@ trainer = fluid.Trainer(
 
 #### Event Handler
 
+Fluid API provides a hook to the callback function during training. Users are able to monitor training progress through mechanism.
+We will demonstrate two event handlers here. Please feel free to modify on the Jupyter notebook to see the differences.
+
 `event_handler` is used to plot some text data when training.
 
 ```python
 # Save the parameter into a directory. The Inferencer can load the parameters from it to do infer
 params_dirname = "recognize_digits_network.inference.model"
-
+lists = []
 def event_handler(event):
+    if isinstance(event, fluid.EndStepEvent):
+        if event.step % 100 == 0:
+            # event.metrics maps with train program return arguments.
+            # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
+            print "Pass %d, Batch %d, Cost %f" % (
+                event.step, event.epoch, event.metrics[0])
+
     if isinstance(event, fluid.EndEpochEvent):
         avg_cost, acc = trainer.test(
             reader=test_reader, feed_order=['img', 'label'])
-        print("avg_cost: %s, acc: %s" % (avg_cost, acc))
+
+        print("Test with Epoch %d, avg_cost: %s, acc: %s" % (event.epoch, avg_cost, acc))
+
+        # save parameters
         trainer.save_params(params_dirname)
+        lists.append((event.epoch, avg_cost, acc))
 ```
 
+`event_handler_plot` is used to plot a figure like below：
+
+![png](./image/train_and_test.png)
+
+```python
+from paddle.v2.plot import Ploter
+
+train_title = "Train cost"
+test_title = "Test cost"
+cost_ploter = Ploter(train_title, test_title)
+step = 0
+lists = []
+
+# event_handler to plot a figure
+def event_handler_plot(event):
+    global step
+    if isinstance(event, fluid.EndStepEvent):
+        if step % 100 == 0:
+            # event.metrics maps with train program return arguments.
+            # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
+            cost_ploter.append(train_title, step, event.metrics[0])
+            cost_ploter.plot()
+        step += 1
+    if isinstance(event, fluid.EndEpochEvent):
+        # save parameters
+        trainer.save_params(params_dirname)
+
+        avg_cost, acc = trainer.test(
+            reader=test_reader, feed_order=['img', 'label'])
+        cost_ploter.append(test_title, step, avg_cost)
+        lists.append((event.epoch, avg_cost, acc))
+```
+
+#### Start training
+
 Now that we setup the event_handler and the reader, we can start training the model. `feed_order` is used to map the data dict to the train_program
+
 ```python
 # Train the model now
 trainer.train(
-    num_epochs=1,
-    event_handler=event_handler,
+    num_epochs=5,
+    event_handler=event_handler_plot,
     reader=train_reader,
     feed_order=['img', 'label'])
 ```
 
 During training, `trainer.train` invokes `event_handler` for certain events. This gives us a chance to print the training progress.
 
- ```
- # Pass 0, Batch 0, Cost 2.780790, {'classification_error_evaluator': 0.9453125}
- # Pass 0, Batch 100, Cost 0.635356, {'classification_error_evaluator': 0.2109375}
- # Pass 0, Batch 200, Cost 0.326094, {'classification_error_evaluator': 0.1328125}
- # Pass 0, Batch 300, Cost 0.361920, {'classification_error_evaluator': 0.1015625}
- # Pass 0, Batch 400, Cost 0.410101, {'classification_error_evaluator': 0.125}
- # Test with Pass 0, Cost 0.326659, {'classification_error_evaluator': 0.09470000118017197}
- ```
+```
+Pass 0, Batch 0, Cost 0.125650
+Pass 100, Batch 0, Cost 0.161387
+Pass 200, Batch 0, Cost 0.040036
+Pass 300, Batch 0, Cost 0.023391
+Pass 400, Batch 0, Cost 0.005856
+Pass 500, Batch 0, Cost 0.003315
+Pass 600, Batch 0, Cost 0.009977
+Pass 700, Batch 0, Cost 0.020959
+Pass 800, Batch 0, Cost 0.105560
+Pass 900, Batch 0, Cost 0.239809
+Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
+```
 
 After the training, we can check the model's prediction accuracy.
 
-```
+```python
 # find the best pass
 best = sorted(lists, key=lambda list: float(list[1]))[0]
 print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
-print 'The classification accuracy is %.2f%%' % (100 - float(best[2]) * 100)
+print 'The classification accuracy is %.2f%%' % (float(best[2]) * 100)
 ```
 
 Usually, with MNIST data, the softmax regression model achieves an accuracy around 92.34%, the MLP 97.66%, and the convolution network around 99.20%. Convolution layers have been widely considered a great invention for image processing.
@@ -323,23 +384,48 @@ Usually, with MNIST data, the softmax regression model achieves an accuracy arou
 
 After training, users can use the trained model to classify images. The following code shows how to inference MNIST images through `fluid.Inferencer`.
 
+### Create Inferencer
+
+The `Inferencer` takes an `infer_func` and `param_path` to setup the network and the trained parameters.
+We can simply plug-in the classifier defined earlier here.
+
 ```python
 inferencer = fluid.Inferencer(
     # infer_func=softmax_regression, # uncomment for softmax regression
     # infer_func=multilayer_perceptron, # uncomment for MLP
-    infer_func=convolutional_neural_network, # uncomment for LeNet5
+    infer_func=convolutional_neural_network,  # uncomment for LeNet5
     param_path=params_dirname,
     place=place)
+```
 
-batch_size = 1
-import numpy
-tensor_img = numpy.random.uniform(-1.0, 1.0,
-                                  [batch_size, 1, 28, 28]).astype("float32")
+#### Generate input data for inferring
 
-results = inferencer.infer({'img': tensor_img})
+`infer_3.png` is an example image of the digit `3`. Turn it into an numpy array to match the data feeder format.
 
-print("infer results: ", results[0])
+```python
+# Prepare the test image
+import os
+import numpy as np
+from PIL import Image
+def load_image(file):
+    im = Image.open(file).convert('L')
+    im = im.resize((28, 28), Image.ANTIALIAS)
+    im = np.array(im).reshape(1, 1, 28, 28).astype(np.float32)
+    im = im / 255.0 * 2.0 - 1.0
+    return im
 
+cur_dir = cur_dir = os.getcwd()
+img = load_image(cur_dir + '/image/infer_3.png')
+```
+
+### Inference
+
+Now we are ready to do inference.
+
+```python
+results = inferencer.infer({'img': img})
+lab = np.argsort(results)  # probs and lab are the results of one batch data
+print "Label of image/infer_3.png is: %d" % lab[0][0][-1]
 ```
 
 
