@@ -41,7 +41,7 @@ def load_dict_and_embedding():
 
 
 def main():
-    paddle.init(use_gpu=with_gpu, trainer_count=3)
+    paddle.init(use_gpu=with_gpu, trainer_count=1)
     word_dict = paddle.dataset.imikolov.build_dict()
     dict_size = len(word_dict)
     # Every layer takes integer value of range [0, dict_size)

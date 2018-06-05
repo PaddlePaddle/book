@@ -129,12 +129,9 @@ def convolution_net(input_dim,
     output = paddle.layer.fc(input=[conv_3, conv_4],
                              size=class_dim,
                              act=paddle.activation.Softmax())
-    if not is_predict:
-        lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-        cost = paddle.layer.classification_cost(input=output, label=lbl)
-        return cost
-    else:
-        return output
+    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
+    cost = paddle.layer.classification_cost(input=output, label=lbl)
+    return cost, output
 ```
 网络的输入`input_dim`表示的是词典的大小，`class_dim`表示类别数。这里，我们使用[`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API实现了卷积和池化操作。
 
@@ -202,12 +199,9 @@ def stacked_lstm_net(input_dim,
                              bias_attr=bias_attr,
                              param_attr=para_attr)
 
-    if not is_predict:
-        lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-        cost = paddle.layer.classification_cost(input=output, label=lbl)
-        return cost
-    else:
-        return output
+    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
+    cost = paddle.layer.classification_cost(input=output, label=lbl)
+    return cost, output
 ```
 网络的输入`stacked_num`表示的是LSTM的层数，需要是奇数，确保最高层LSTM正向。Paddle里面是通过一个fc和一个lstmemory来实现基于LSTM的循环神经网络。
 
@@ -233,10 +227,10 @@ if __name__ == '__main__':
 ```python
     train_reader = paddle.batch(
         paddle.reader.shuffle(
-            lambda: paddle.dataset.imdb.train(word_dict), buf_size=1000),
+            paddle.dataset.imdb.train(word_dict), buf_size=1000),
         batch_size=100)
     test_reader = paddle.batch(
-        lambda: paddle.dataset.imdb.test(word_dict),
+            paddle.dataset.imdb.test(word_dict),
         batch_size=100)
 ```
 这里，`dataset.imdb.train()`和`dataset.imdb.test()`分别是`dataset.imdb`中的训练数据和测试数据API。`train_reader`在训练时使用，意义是将读取的训练数据进行shuffle后，组成一个batch数据。同理，`test_reader`是在测试的时候使用，将读取的测试数据组成一个batch。
@@ -249,9 +243,10 @@ if __name__ == '__main__':
 
 ```python
     # Please choose the way to build the network
-    # by uncommenting the corresponding line.
-    cost = convolution_net(dict_dim, class_dim=class_dim)
-    # cost = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
+    # option 1
+    [cost, output] = convolution_net(dict_dim, class_dim=class_dim)
+    # option 2
+    # [cost, output] = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
 ```
 该示例中默认使用`convolution_net`网络，如果使用`stacked_lstm_net`网络，注释相应的行即可。其中cost是网络的优化目标，同时cost包含了整个网络的拓扑信息。
 
@@ -350,10 +345,8 @@ Test with Pass 0, {'classification_error_evaluator': 0.11432000249624252}
 
     # 0 stands for positive sample, 1 stands for negative sample
     label = {0:'pos', 1:'neg'}
-    # Use the network used by trainer
-    out = convolution_net(dict_dim, class_dim=class_dim, is_predict=True)
-    # out = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3, is_predict=True)
-    probs = paddle.infer(output_layer=out, parameters=parameters, input=input)
+  
+    probs = paddle.infer(output_layer=output, parameters=parameters, input=input)
 
     labs = np.argsort(-probs)
     for idx, lab in enumerate(labs):
