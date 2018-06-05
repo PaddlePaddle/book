@@ -250,7 +250,7 @@ def wordemb(inlayer):
 - 定义输入层接受的数据类型以及名字。
 
 ```python
-paddle.init(use_gpu=False, trainer_count=3) # 初始化PaddlePaddle
+paddle.init(use_gpu=False, trainer_count=1) # 初始化PaddlePaddle
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
 # 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)

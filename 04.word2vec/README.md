@@ -266,7 +266,7 @@ def wordemb(inlayer):
 - Define name and type for input to data layer.
 
 ```python
-paddle.init(use_gpu=False, trainer_count=3)
+paddle.init(use_gpu=False, trainer_count=1)
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
 # Every layer takes integer value of range [0, dict_size)
