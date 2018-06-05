@@ -25,7 +25,7 @@ import os
 EMBED_SIZE = 32
 HIDDEN_SIZE = 256
 N = 5
-BATCH_SIZE = 32
+BATCH_SIZE = 100
 
 # can use CPU or GPU
 use_cuda = os.getenv('WITH_GPU', '0') != '0'
@@ -38,7 +38,7 @@ def inference_program(is_sparse):
     first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
     second_word = fluid.layers.data(name='secondw', shape=[1], dtype='int64')
     third_word = fluid.layers.data(name='thirdw', shape=[1], dtype='int64')
-    forth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
+    fourth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
 
     embed_first = fluid.layers.embedding(
         input=first_word,
@@ -58,15 +58,15 @@ def inference_program(is_sparse):
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_forth = fluid.layers.embedding(
-        input=forth_word,
+    embed_fourth = fluid.layers.embedding(
+        input=fourth_word,
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
 
     concat_embed = fluid.layers.concat(
-        input=[embed_first, embed_second, embed_third, embed_forth], axis=1)
+        input=[embed_first, embed_second, embed_third, embed_fourth], axis=1)
     hidden1 = fluid.layers.fc(input=concat_embed,
                               size=HIDDEN_SIZE,
                               act='sigmoid')
@@ -77,7 +77,7 @@ def inference_program(is_sparse):
 def train_program(is_sparse):
     # The declaration of 'next_word' must be after the invoking of inference_program,
     # or the data input order of train program would be [next_word, firstw, secondw,
-    # thirdw, forthw], which is not correct.
+    # thirdw, fourthw], which is not correct.
     predict_word = inference_program(is_sparse)
     next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
@@ -95,16 +95,15 @@ def train(use_cuda, train_program, params_dirname):
 
     def event_handler(event):
         if isinstance(event, fluid.EndStepEvent):
-            print('EndStepEvent')
             outs = trainer.test(
                 reader=test_reader,
                 feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
             avg_cost = outs[0]
 
-            if event.step % 100 == 0:
-                print "Step %d: Average Cost %f" % (event.step, event.cost)
+            if event.step % 10 == 0:
+                print "Step %d: Average Cost %f" % (event.step, avg_cost)
 
-            if avg_cost < 5.0:
+            if avg_cost < 5.5:
                 trainer.save_params(params_dirname)
                 trainer.stop()
 
@@ -141,14 +140,19 @@ def infer(use_cuda, inference_program, params_dirname=None):
     lod = [[1]]
     base_shape = [1]
     # The range of random integers is [low, high]
-    first_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    second_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    third_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    fourth_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
+    # first_word = fluid.create_random_int_lodtensor(
+    #     lod, base_shape, place, low=0, high=dict_size - 1)
+    # second_word = fluid.create_random_int_lodtensor(
+    #     lod, base_shape, place, low=0, high=dict_size - 1)
+    # third_word = fluid.create_random_int_lodtensor(
+    #     lod, base_shape, place, low=0, high=dict_size - 1)
+    # fourth_word = fluid.create_random_int_lodtensor(
+    #     lod, base_shape, place, low=0, high=dict_size - 1)
+
+    first_word = fluid.create_lod_tensor([[8]], [[1]], place)
+    second_word = fluid.create_lod_tensor([[0]], [[1]], place)
+    third_word = fluid.create_lod_tensor([[304]], [[1]], place)
+    fourth_word = fluid.create_lod_tensor([[1113]], [[1]], place)
 
     result = inferencer.infer(
         {
@@ -159,6 +163,14 @@ def infer(use_cuda, inference_program, params_dirname=None):
         },
         return_numpy=False)
     print(numpy.array(result[0]))
+    import pdb;pdb.set_trace()
+
+    result_list = numpy.array(result[0])
+    for idx, likelihood in enumerate(result_list):
+        if likelihood == max(result_list):
+            print(idx, likelihood)
+            break
+
 
 
 def main(use_cuda, is_sparse):
