@@ -139,7 +139,7 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 1. `train_program`：指定如何从 `inference_program` 和`标签值`中获取 `loss` 的函数。
 这是指定损失计算的地方。
 
-1. `optimizer`: 配置如何最小化损失。PaddlePaddle 支持最主要的优化方法。
+1. `optimizer_func`: 配置如何最小化损失。PaddlePaddle 支持最主要的优化方法。
 
 1. `Trainer`：PaddlePaddle Trainer 管理由 `train_program` 和 `optimizer` 指定的训练过程。
 通过 `event_handler` 回调函数，用户可以监控培训的进展。
@@ -238,6 +238,15 @@ def train_program():
 # 该模型运行在单个CPU上
 ```
 
+#### Optimizer Function 配置
+
+在下面的 `Adam optimizer`，`learning_rate` 是训练的速度，与网络的训练收敛速度有关系。
+
+```python
+def optimizer_program():
+    return fluid.optimizer.Adam(learning_rate=0.001)
+```
+
 ### 数据集 Feeders 配置
 
 下一步，我们开始训练过程。`paddle.dataset.movielens.train()`和`paddle.dataset.movielens.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python yield generator。
@@ -259,16 +268,14 @@ test_reader = paddle.batch(
 ### Trainer 配置
 
 现在，我们需要配置 `Trainer`。`Trainer` 需要接受训练程序 `train_program`, `place` 和优化器 `optimizer`。
-在下面的 `Adam optimizer`，`learning_rate` 是训练的速度，与网络的训练收敛速度有关系。
 
 ```python
 # 该模型运行在单个CPU上
 use_cuda = False # set to True if training with GPU
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-optimizer = fluid.optimizer.Adam(learning_rate=0.001)
 
 trainer = fluid.Trainer(
-    train_func=train_program, place=place, optimizer=optimizer)
+    train_func=train_program, place=place, optimizer_func=optimizer_program)
  ```
 
 #### Event Handler 配置

@@ -188,7 +188,7 @@ Here are the quick overview on the major fluid API complements.
 This is where you specify the network flow.
 1. `train_program`: A function that specify how to get avg_cost from `inference_program` and labels.
 This is where you specify the loss calculations.
-1. `optimizer`: Configure how to minimize the loss. Paddle supports most major optimization methods.
+1. `optimizer_func`: Configure how to minimize the loss. Paddle supports most major optimization methods.
 1. `Trainer`: Fluid trainer manages the training process specified by the `train_program` and `optimizer`. Users can monitor the training
 progress through the `event_handler` callback function.
 1. `Inferencer`: Fluid inferencer loads the `inference_program` and the parameters trained by the Trainer.
