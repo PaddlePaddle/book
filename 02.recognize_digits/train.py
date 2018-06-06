@@ -62,6 +62,10 @@ def train_program():
     return [avg_cost, acc]
 
 
+def optimizer_program():
+    return fluid.optimizer.Adam(learning_rate=0.001)
+
+
 def main():
     train_reader = paddle.batch(
         paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=500),
@@ -71,10 +75,9 @@ def main():
 
     use_cuda = os.getenv('WITH_GPU', '0') != '0'
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    optimizer = fluid.optimizer.Adam(learning_rate=0.001)
 
     trainer = fluid.Trainer(
-        train_func=train_program, place=place, optimizer=optimizer)
+        train_func=train_program, place=place, optimizer_func=optimizer_program)
 
     # Save the parameter into a directory. The Inferencer can load the parameters from it to do infer
     params_dirname = "recognize_digits_network.inference.model"
