@@ -143,19 +143,14 @@ def infer(use_cuda, inference_program, params_dirname=None):
     lod = [[1]]
     base_shape = [1]
     # The range of random integers is [low, high]
-    # first_word = fluid.create_random_int_lodtensor(
-    #     lod, base_shape, place, low=0, high=dict_size - 1)
-    # second_word = fluid.create_random_int_lodtensor(
-    #     lod, base_shape, place, low=0, high=dict_size - 1)
-    # third_word = fluid.create_random_int_lodtensor(
-    #     lod, base_shape, place, low=0, high=dict_size - 1)
-    # fourth_word = fluid.create_random_int_lodtensor(
-    #     lod, base_shape, place, low=0, high=dict_size - 1)
-
-    first_word = fluid.create_lod_tensor([[8]], [[1]], place)
-    second_word = fluid.create_lod_tensor([[0]], [[1]], place)
-    third_word = fluid.create_lod_tensor([[304]], [[1]], place)
-    fourth_word = fluid.create_lod_tensor([[1113]], [[1]], place)
+    first_word = fluid.create_random_int_lodtensor(
+        lod, base_shape, place, low=0, high=dict_size - 1)
+    second_word = fluid.create_random_int_lodtensor(
+        lod, base_shape, place, low=0, high=dict_size - 1)
+    third_word = fluid.create_random_int_lodtensor(
+        lod, base_shape, place, low=0, high=dict_size - 1)
+    fourth_word = fluid.create_random_int_lodtensor(
+        lod, base_shape, place, low=0, high=dict_size - 1)
 
     result = inferencer.infer(
         {
@@ -165,15 +160,8 @@ def infer(use_cuda, inference_program, params_dirname=None):
             'fourthw': fourth_word
         },
         return_numpy=False)
+
     print(numpy.array(result[0]))
-    import pdb;pdb.set_trace()
-
-    result_list = numpy.array(result[0])
-    for idx, likelihood in enumerate(result_list):
-        if likelihood == max(result_list):
-            print(idx, likelihood)
-            break
-
 
 
 def main(use_cuda, is_sparse):

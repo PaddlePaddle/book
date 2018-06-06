@@ -243,7 +243,7 @@ def inference_program(is_sparse):
     first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
     second_word = fluid.layers.data(name='secondw', shape=[1], dtype='int64')
     third_word = fluid.layers.data(name='thirdw', shape=[1], dtype='int64')
-    forth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
+    fourth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
 
     embed_first = fluid.layers.embedding(
         input=first_word,
@@ -263,15 +263,15 @@ def inference_program(is_sparse):
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_forth = fluid.layers.embedding(
-        input=forth_word,
+    embed_fourth = fluid.layers.embedding(
+        input=fourth_word,
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
 
     concat_embed = fluid.layers.concat(
-        input=[embed_first, embed_second, embed_third, embed_forth], axis=1)
+        input=[embed_first, embed_second, embed_third, embed_fourth], axis=1)
     hidden1 = fluid.layers.fc(input=concat_embed,
                               size=HIDDEN_SIZE,
                               act='sigmoid')
@@ -285,7 +285,7 @@ def inference_program(is_sparse):
 def train_program(is_sparse):
     # The declaration of 'next_word' must be after the invoking of inference_program,
     # or the data input order of train program would be [next_word, firstw, secondw,
-    # thirdw, forthw], which is not correct.
+    # thirdw, fourthw], which is not correct.
     predict_word = inference_program(is_sparse)
     next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
@@ -357,64 +357,89 @@ Step 20: Average Cost 5.766995
 
 ## Model Application
 
-After the model is trained, we can load the saved model parameters and use it for other models. We can also use the parameters in various applications.
+After the model is trained, we can load the saved model parameters and do some inference.
 
-### Viewing Word Vector
+### Predicting the next word
 
-Parameters trained by PaddlePaddle can be viewed by `parameters.get()`. For example, we can check the word vector for word `apple`.
+We can use our trained model to predict the next word given its previous N-gram. For example
+
 
 ```python
-embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
+def infer(use_cuda, inference_program, params_dirname=None):
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    inferencer = fluid.Inferencer(
+        infer_func=inference_program, param_path=params_dirname, place=place)
 
-print embeddings[word_dict['apple']]
+    # Setup inputs by creating 4 LoDTensors representing 4 words. Here each word
+    # is simply an index to look up for the corresponding word vector and hence
+    # the shape of word (base_shape) should be [1]. The length-based level of
+    # detail (lod) info of each LoDtensor should be [[1]] meaning there is only
+    # one lod_level and there is only one sequence of one word on this level.
+    # Note that lod info should be a list of lists.
+    lod1 = [[211]]  # 'among'
+    lod2 = [[6]]    # 'a'
+    lod3 = [[96]]   # 'group'
+    lod4 = [[4]]    # 'of'
+    base_shape = [1]
+
+    first_word  = fluid.create_lod_tensor(lod1, base_shape, place)
+    second_word = fluid.create_lod_tensor(lod2, base_shape, place)
+    third_word  = fluid.create_lod_tensor(lod3, base_shape, place)
+    fourth_word = fluid.create_lod_tensor(lod4, base_shape, place)
+
+    result = inferencer.infer(
+        {
+            'firstw': first_word,
+            'secondw': second_word,
+            'thirdw': third_word,
+            'fourthw': fourth_word
+        },
+        return_numpy=False)
+
+    print(numpy.array(result[0]))
+    most_possible_word_index = numpy.argmax(result[0])
+    print(most_possible_word_index)
+    print([key for key, value in word_dict.iteritems() if value == most_possible_word_index][0])
 ```
+
+When we spent 30 mins in training, the output is like below, which means the next word for `among a group of` is `unknown`. After several hours training, it gives a meaningful prediction as `workers`.
 
 ```text
-[-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
--0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
-0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
--0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
-0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
-0.19072419 -0.24286366]
+[[4.0056456e-02 5.4810006e-02 5.3107393e-05 ... 1.0061498e-04
+  8.9233123e-05 1.5757295e-01]]
+2072
+<unk>
 ```
 
-### Modifying Word Vector
-
-Word vectors (`embeddings`) that we get is a numpy array. We can modify this array and set it back to `parameters`.
-
+The main entrance of the program is fairly simple:
 
 ```python
-def modify_embedding(emb):
-    # Add your modification here.
-    pass
 
-modify_embedding(embeddings)
-parameters.set("_proj", embeddings)
-```
+def main(use_cuda, is_sparse):
+    if use_cuda and not fluid.core.is_compiled_with_cuda():
+        return
 
-### Calculating Cosine Similarity
+    params_dirname = "word2vec.inference.model"
 
-Cosine similarity is one way of quantifying the similarity between two vectors. The range of result is $[-1, 1]$. The bigger the value, the similar two vectors are:
+    train(
+        use_cuda=use_cuda,
+        train_program=partial(train_program, is_sparse),
+        params_dirname=params_dirname)
+
+    infer(
+        use_cuda=use_cuda,
+        inference_program=partial(inference_program, is_sparse),
+        params_dirname=params_dirname)
 
 
-```python
-from scipy import spatial
-
-emb_1 = embeddings[word_dict['world']]
-emb_2 = embeddings[word_dict['would']]
-
-print spatial.distance.cosine(emb_1, emb_2)
-```
-
-```text
-0.99375076448
+main(use_cuda=use_cuda, is_sparse=True)
 ```
 
 ## Conclusion
 
 This chapter introduces word embeddings, the relationship between language model and word embedding, and how to train neural networks to learn word embedding.
 
-In information retrieval, the relevance between the query and document keyword can be computed through the cosine similarity of their word embeddings. In grammar analysis and semantic analysis, a previously trained word embedding can initialize models for better performance. In document classification, clustering the word embedding can group synonyms in the documents. We hope that readers can use word embedding models in their work after reading this chapter.
+In grammar analysis and semantic analysis, a previously trained word embedding can initialize models for better performance. We hope that readers can use word embedding models in their work after reading this chapter.
 
 
 ## References
