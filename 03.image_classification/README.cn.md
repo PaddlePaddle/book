@@ -153,16 +153,13 @@ Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
 
 #### Paddle 初始化
 
-通过 `paddle.init`，初始化Paddle是否使用GPU，trainer的数目等等。
+让我们从导入 Paddle Fluid API 和辅助模块开始。
 
 ```python
+import paddle
+import paddle.fluid as fluid
+import numpy
 import sys
-import paddle.v2 as paddle
-from vgg import vgg_bn_drop
-from resnet import resnet_cifar10
-
-# PaddlePaddle init
-paddle.init(use_gpu=False, trainer_count=1)
 ```
 
 本教程中我们提供了VGG和ResNet两个模型的配置。
@@ -170,90 +167,48 @@ paddle.init(use_gpu=False, trainer_count=1)
 #### VGG
 
 首先介绍VGG模型结构，由于CIFAR10图片大小和数量相比ImageNet数据小很多，因此这里的模型针对CIFAR10数据做了一定的适配。卷积部分引入了BN和Dropout操作。
+VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
 
-1. 定义数据输入及其维度
+```python
+def vgg_bn_drop(input):
+    def conv_block(ipt, num_filter, groups, dropouts):
+        return fluid.nets.img_conv_group(
+            input=ipt,
+            pool_size=2,
+            pool_stride=2,
+            conv_num_filter=[num_filter] * groups,
+            conv_filter_size=3,
+            conv_act='relu',
+            conv_with_batchnorm=True,
+            conv_batchnorm_drop_rate=dropouts,
+            pool_type='max')
 
-    网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)，类别大小为10，即10分类。
+    conv1 = conv_block(input, 64, 2, [0.3, 0])
+    conv2 = conv_block(conv1, 128, 2, [0.4, 0])
+    conv3 = conv_block(conv2, 256, 3, [0.4, 0.4, 0])
+    conv4 = conv_block(conv3, 512, 3, [0.4, 0.4, 0])
+    conv5 = conv_block(conv4, 512, 3, [0.4, 0.4, 0])
 
-    ```python
-    datadim = 3 * 32 * 32
-    classdim = 10
+    drop = fluid.layers.dropout(x=conv5, dropout_prob=0.5)
+    fc1 = fluid.layers.fc(input=drop, size=512, act=None)
+    bn = fluid.layers.batch_norm(input=fc1, act='relu')
+    drop2 = fluid.layers.dropout(x=bn, dropout_prob=0.5)
+    fc2 = fluid.layers.fc(input=drop2, size=512, act=None)
+    predict = fluid.layers.fc(input=fc2, size=10, act='softmax')
+    return predict
+```
 
-    image = paddle.layer.data(
-        name="image", type=paddle.data_type.dense_vector(datadim))
-    ```
+    1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 Conv->BN->ReLu->Dropout 和 一组 Pooling 组成。
 
-2. 定义VGG网络核心模块
+    2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
 
-    ```python
-    net = vgg_bn_drop(image)
-    ```
-    VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：
+    3. 最后接两层512维的全连接。
 
-    ```python
-    def vgg_bn_drop(input):
-        def conv_block(ipt, num_filter, groups, dropouts, num_channels=None):
-            return paddle.networks.img_conv_group(
-                input=ipt,
-                num_channels=num_channels,
-                pool_size=2,
-                pool_stride=2,
-                conv_num_filter=[num_filter] * groups,
-                conv_filter_size=3,
-                conv_act=paddle.activation.Relu(),
-                conv_with_batchnorm=True,
-                conv_batchnorm_drop_rate=dropouts,
-                pool_type=paddle.pooling.Max())
-
-        conv1 = conv_block(input, 64, 2, [0.3, 0], 3)
-        conv2 = conv_block(conv1, 128, 2, [0.4, 0])
-        conv3 = conv_block(conv2, 256, 3, [0.4, 0.4, 0])
-        conv4 = conv_block(conv3, 512, 3, [0.4, 0.4, 0])
-        conv5 = conv_block(conv4, 512, 3, [0.4, 0.4, 0])
-
-        drop = paddle.layer.dropout(input=conv5, dropout_rate=0.5)
-        fc1 = paddle.layer.fc(input=drop, size=512, act=paddle.activation.Linear())
-        bn = paddle.layer.batch_norm(
-            input=fc1,
-            act=paddle.activation.Relu(),
-            layer_attr=paddle.attr.Extra(drop_rate=0.5))
-        fc2 = paddle.layer.fc(input=bn, size=512, act=paddle.activation.Linear())
-        return fc2
-    ```
-
-    2.1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 Conv->BN->ReLu->Dropout 和 一组 Pooling 组成。
-
-    2.2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
-
-    2.3. 最后接两层512维的全连接。
-
-3. 定义分类器
-
-    通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
-
-    ```python
-    out = paddle.layer.fc(input=net,
-                          size=classdim,
-                          act=paddle.activation.Softmax())
-    ```
-
-4. 定义损失函数和网络输出
-
-    在有监督训练中需要输入图像对应的类别信息，同样通过`paddle.layer.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
-
-    ```python
-    lbl = paddle.layer.data(
-        name="label", type=paddle.data_type.integer_value(classdim))
-    cost = paddle.layer.classification_cost(input=out, label=lbl)
-    ```
+    4. 通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
 
 ### ResNet
 
 ResNet模型的第1、3、4步和VGG模型相同，这里不再介绍。主要介绍第2步即CIFAR10数据集上ResNet核心模块。
-
-```python
-net = resnet_cifar10(image, depth=56)
-```
 
 先介绍`resnet_cifar10`中的一些基本函数，再介绍网络连接过程。
 
@@ -269,37 +224,37 @@ def conv_bn_layer(input,
                   filter_size,
                   stride,
                   padding,
-                  active_type=paddle.activation.Relu(),
-                  ch_in=None):
-    tmp = paddle.layer.img_conv(
+                  act='relu',
+                  bias_attr=False):
+    tmp = fluid.layers.conv2d(
         input=input,
         filter_size=filter_size,
-        num_channels=ch_in,
         num_filters=ch_out,
         stride=stride,
         padding=padding,
-        act=paddle.activation.Linear(),
-        bias_attr=False)
-    return paddle.layer.batch_norm(input=tmp, act=active_type)
+        act=None,
+        bias_attr=bias_attr)
+    return fluid.layers.batch_norm(input=tmp, act=act)
 
-def shortcut(ipt, n_in, n_out, stride):
-    if n_in != n_out:
-        return conv_bn_layer(ipt, n_out, 1, stride, 0,
-                             paddle.activation.Linear())
+
+def shortcut(input, ch_in, ch_out, stride):
+    if ch_in != ch_out:
+        return conv_bn_layer(input, ch_out, 1, stride, 0, None)
     else:
-        return ipt
+        return input
 
-def basicblock(ipt, ch_out, stride):
-    ch_in = ch_out * 2
-    tmp = conv_bn_layer(ipt, ch_out, 3, stride, 1)
-    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, paddle.activation.Linear())
-    short = shortcut(ipt, ch_in, ch_out, stride)
-    return paddle.layer.addto(input=[tmp, short], act=paddle.activation.Relu())
 
-def layer_warp(block_func, ipt, features, count, stride):
-    tmp = block_func(ipt, features, stride)
+def basicblock(input, ch_in, ch_out, stride):
+    tmp = conv_bn_layer(input, ch_out, 3, stride, 1)
+    tmp = conv_bn_layer(tmp, ch_out, 3, 1, 1, act=None, bias_attr=True)
+    short = shortcut(input, ch_in, ch_out, stride)
+    return fluid.layers.elementwise_add(x=tmp, y=short, act='relu')
+
+
+def layer_warp(block_func, input, ch_in, ch_out, count, stride):
+    tmp = block_func(input, ch_in, ch_out, stride)
     for i in range(1, count):
-        tmp = block_func(tmp, features, 1)
+        tmp = block_func(tmp, ch_out, ch_out, 1)
     return tmp
 ```
 
@@ -317,75 +272,93 @@ def resnet_cifar10(ipt, depth=32):
     assert (depth - 2) % 6 == 0
     n = (depth - 2) / 6
     nStages = {16, 64, 128}
-    conv1 = conv_bn_layer(
-        ipt, ch_in=3, ch_out=16, filter_size=3, stride=1, padding=1)
-    res1 = layer_warp(basicblock, conv1, 16, n, 1)
-    res2 = layer_warp(basicblock, res1, 32, n, 2)
-    res3 = layer_warp(basicblock, res2, 64, n, 2)
-    pool = paddle.layer.img_pool(
-        input=res3, pool_size=8, stride=1, pool_type=paddle.pooling.Avg())
-    return pool
+    conv1 = conv_bn_layer(ipt, ch_out=16, filter_size=3, stride=1, padding=1)
+    res1 = layer_warp(basicblock, conv1, 16, 16, n, 1)
+    res2 = layer_warp(basicblock, res1, 16, 32, n, 2)
+    res3 = layer_warp(basicblock, res2, 32, 64, n, 2)
+    pool = fluid.layers.pool2d(
+        input=res3, pool_size=8, pool_type='avg', pool_stride=1)
+    predict = fluid.layers.fc(input=pool, size=10, act='softmax')
+    return predict
+```
+
+## Infererence Program 配置
+
+网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)。
+
+```python
+def inference_program():
+    # The image is 32 * 32 with RGB representation.
+    data_shape = [3, 32, 32]
+    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+
+    predict = resnet_cifar10(images, 32)
+    # predict = vgg_bn_drop(images) # un-comment to use vgg net
+    return predict
+```
+
+## Train Program 配置
+
+然后我们需要设置训练程序 `train_program`。它首先从推理程序中进行预测。
+在训练期间，它将从预测中计算 `avg_cost`。
+在有监督训练中需要输入图像对应的类别信息，同样通过`fluid.layers.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
+
+**注意:** 训练程序应该返回一个数组，第一个返回参数必须是 `avg_cost`。训练器使用它来计算梯度。
+
+```python
+def train_program():
+    predict = inference_program()
+
+    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    cost = fluid.layers.cross_entropy(input=predict, label=label)
+    avg_cost = fluid.layers.mean(cost)
+    accuracy = fluid.layers.accuracy(input=predict, label=label)
+    return [avg_cost, accuracy]
+```
+
+## Optimizer Function 配置
+
+在下面的 `Adam optimizer`，`learning_rate` 是训练的速度，与网络的训练收敛速度有关系。
+
+```python
+def optimizer_program():
+    return fluid.optimizer.Adam(learning_rate=0.001)
 ```
 
 ## 训练模型
 
-### 定义参数
+### Trainer 配置
 
-首先依据模型配置的`cost`定义模型参数。
-
-```python
-# Create parameters
-parameters = paddle.parameters.create(cost)
-```
-
-可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
+现在，我们需要配置 `Trainer`。`Trainer` 需要接受训练程序 `train_program`, `place` 和优化器 `optimizer_func`。
 
 ```python
-print parameters.keys()
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+trainer = fluid.Trainer(
+    train_func=train_program,
+    optimizer_func=optimizer_program,
+    place=place)
 ```
 
-### 构造训练(Trainer)
+### Data Feeders 配置
 
-根据网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的Momentum方法，同时设定了学习率、正则等。
+`cifar.train10()` 每次产生一条样本，在完成shuffle和batch之后，作为训练的输入。
 
 ```python
-# Create optimizer
-momentum_optimizer = paddle.optimizer.Momentum(
-    momentum=0.9,
-    regularization=paddle.optimizer.L2Regularization(rate=0.0002 * 128),
-    learning_rate=0.1 / 128.0,
-    learning_rate_decay_a=0.1,
-    learning_rate_decay_b=50000 * 100,
-    learning_rate_schedule='discexp')
+# Each batch will yield 128 images
+BATCH_SIZE = 128
 
-# Create trainer
-trainer = paddle.trainer.SGD(cost=cost,
-                             parameters=parameters,
-                             update_equation=momentum_optimizer)
+# Reader for training
+train_reader = paddle.batch(
+    paddle.reader.shuffle(paddle.dataset.cifar.train10(), buf_size=50000),
+    batch_size=BATCH_SIZE)
+
+# Reader for testing. A separated data set for testing.
+test_reader = paddle.batch(
+    paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
 ```
 
-通过 `learning_rate_decay_a` (简写$a$） 、`learning_rate_decay_b` (简写$b$) 和 `learning_rate_schedule` 指定学习率调整策略，这里采用离散指数的方式调节学习率，计算公式如下， $n$ 代表已经处理过的累计总样本数，$lr_{0}$ 即为 `settings` 里设置的 `learning_rate`。
-
-$$  lr = lr_{0} * a^ {\lfloor \frac{n}{ b}\rfloor} $$
-
-
-### 训练
-
-cifar.train10()每次产生一条样本，在完成shuffle和batch之后，作为训练的输入。
-
-```python
-reader=paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.cifar.train10(), buf_size=50000),
-        batch_size=128)
-```
-
-通过`feeding`来指定每一个数据和`paddle.layer.data`的对应关系。例如: `cifar.train10()`产生数据的第0列对应image层的特征。
-
-```python
-feeding={'image': 0,
-         'label': 1}
-```
+### Event Handler
 
 可以使用`event_handler`回调函数来观察训练过程，或进行测试等, 该回调函数是`trainer.train`函数里设定。
 
@@ -394,6 +367,8 @@ feeding={'image': 0,
 ![png](./image/train_and_test.png)
 
 ```python
+params_dirname = "image_classification_resnet.inference.model"
+
 from paddle.v2.plot import Ploter
 
 train_title = "Train cost"
@@ -403,66 +378,76 @@ cost_ploter = Ploter(train_title, test_title)
 step = 0
 def event_handler_plot(event):
     global step
-    if isinstance(event, paddle.event.EndIteration):
+    if isinstance(event, fluid.EndStepEvent):
         if step % 1 == 0:
-            cost_ploter.append(train_title, step, event.cost)
+            cost_ploter.append(train_title, step, event.metrics[0])
             cost_ploter.plot()
         step += 1
-    if isinstance(event, paddle.event.EndPass):
+    if isinstance(event, fluid.EndEpochEvent):
+        avg_cost, accuracy = trainer.test(
+            reader=test_reader,
+            feed_order=['pixel', 'label'])
+        cost_ploter.append(test_title, step, avg_cost)
 
-        result = trainer.test(
-            reader=paddle.batch(
-                paddle.dataset.cifar.test10(), batch_size=128),
-            feeding=feeding)
-        cost_ploter.append(test_title, step, result.cost)
+        # save parameters
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 ```
 
 `event_handler` 用来在训练过程中输出文本日志
 
 ```python
-# End batch and end pass event handler
+params_dirname = "image_classification_resnet.inference.model"
+
+# event handler to track training and testing process
 def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "\nPass %d, Batch %d, Cost %f, %s" % (
-                event.pass_id, event.batch_id, event.cost, event.metrics)
+    if isinstance(event, fluid.EndStepEvent):
+        if event.step % 100 == 0:
+            print("\nPass %d, Batch %d, Cost %f, Acc %f" %
+                  (event.step, event.epoch, event.metrics[0],
+                   event.metrics[1]))
         else:
             sys.stdout.write('.')
             sys.stdout.flush()
-    if isinstance(event, paddle.event.EndPass):
-        # save parameters
-        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-            trainer.save_parameter_to_tar(f)
 
-        result = trainer.test(
-            reader=paddle.batch(
-                paddle.dataset.cifar.test10(), batch_size=128),
-            feeding=feeding)
-        print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
+    if isinstance(event, fluid.EndEpochEvent):
+        # Test against with the test dataset to get accuracy.
+        avg_cost, accuracy = trainer.test(
+            reader=test_reader, feed_order=['pixel', 'label'])
+
+        print('\nTest with Pass {0}, Loss {1:2.2}, Acc {2:2.2}'.format(event.epoch, avg_cost, accuracy))
+
+        # save parameters
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 ```
+
+### 训练
 
 通过`trainer.train`函数训练:
 
+**注意:** CPU，每个 Epoch 将花费大约15～20分钟。这部分可能需要一段时间。请随意修改代码，在GPU上运行测试，以提高培训速度。
+
 ```python
 trainer.train(
-    reader=reader,
-    num_passes=200,
-    event_handler=event_handler_plot,
-    feeding=feeding)
+    reader=train_reader,
+    num_epochs=2,
+    event_handler=event_handler,
+    feed_order=['pixel', 'label'])
 ```
 
-一轮训练log示例如下所示，经过1个pass， 训练集上平均error为0.6875 ，测试集上平均error为0.8852 。
+一轮训练log示例如下所示，经过1个pass， 训练集上平均 Accuracy 为0.59 ，测试集上平均  Accuracy 为0.6 。
 
 ```text
-Pass 0, Batch 0, Cost 2.473182, {'classification_error_evaluator': 0.9140625}
+Pass 0, Batch 0, Cost 3.869598, Acc 0.164062
 ...................................................................................................
-Pass 0, Batch 100, Cost 1.913076, {'classification_error_evaluator': 0.78125}
+Pass 100, Batch 0, Cost 1.481038, Acc 0.460938
 ...................................................................................................
-Pass 0, Batch 200, Cost 1.783041, {'classification_error_evaluator': 0.7421875}
+Pass 200, Batch 0, Cost 1.340323, Acc 0.523438
 ...................................................................................................
-Pass 0, Batch 300, Cost 1.668833, {'classification_error_evaluator': 0.6875}
+Pass 300, Batch 0, Cost 1.223424, Acc 0.593750
 ..........................................................................................
-Test with Pass 0, {'classification_error_evaluator': 0.885200023651123}
+Test with Pass 0, Loss 1.1, Acc 0.6
 ```
 
 图12是训练的分类错误率曲线图，运行到第200个pass后基本收敛，最终得到测试集上分类错误率为8.54%。
@@ -474,39 +459,55 @@ Test with Pass 0, {'classification_error_evaluator': 0.885200023651123}
 
 ## 应用模型
 
-可以使用训练好的模型对图片进行分类，下面程序展示了如何使用`paddle.infer`接口进行推断，可以打开注释，更改加载的模型。
+可以使用训练好的模型对图片进行分类，下面程序展示了如何使用 `fluid.Inferencer` 接口进行推断，可以打开注释，更改加载的模型。
+
+### 生成预测输入数据
+
+`dog.png` is an example image of a dog. Turn it into an numpy array to match the data feeder format.
 
 ```python
+# Prepare testing data.
 from PIL import Image
 import numpy as np
 import os
+
 def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
+
     im = np.array(im).astype(np.float32)
-    # PIL打开图片存储顺序为H(高度)，W(宽度)，C(通道)。
-    # PaddlePaddle要求数据顺序为CHW，所以需要转换顺序。
-    im = im.transpose((2, 0, 1)) # CHW
-    # CIFAR训练图片通道顺序为B(蓝),G(绿),R(红),
-    # 而PIL打开图片默认通道顺序为RGB,因为需要交换通道。
-    im = im[(2, 1, 0),:,:] # BGR
-    im = im.flatten()
+    # The storage order of the loaded image is W(widht),
+    # H(height), C(channel). PaddlePaddle requires
+    # the CHW order, so transpose them.
+    im = im.transpose((2, 0, 1))  # CHW
+    # In the training phase, the channel order of CIFAR
+    # image is B(Blue), G(green), R(Red). But PIL open
+    # image in RGB mode. It must swap the channel order.
+    im = im[(2, 1, 0), :, :]  # BGR
     im = im / 255.0
+
+    # Add one dimension to mimic the list format.
+    im = numpy.expand_dims(im, axis=0)
     return im
 
-test_data = []
 cur_dir = os.getcwd()
-test_data.append((load_image(cur_dir + '/image/dog.png'),))
-
-# with open('params_pass_50.tar', 'r') as f:
-#    parameters = paddle.parameters.Parameters.from_tar(f)
-
-probs = paddle.infer(
-    output_layer=out, parameters=parameters, input=test_data)
-lab = np.argsort(-probs) # probs and lab are the results of one batch data
-print "Label of image/dog.png is: %d" % lab[0][0]
+img = load_image(cur_dir + '/image/dog.png')
 ```
 
+### Inferencer 配置和预测
+
+`Inferencer` 需要一个 `infer_func` 和 `param_path` 来设置网络和经过训练的参数。
+我们可以简单地插入前面定义的推理程序。
+现在我们准备做预测。
+
+```python
+inferencer = fluid.Inferencer(
+    infer_func=inference_program, param_path=params_dirname, place=place)
+
+# inference
+results = inferencer.infer({'pixel': img})
+print("infer results: ", results)
+```
 
 ## 总结
 

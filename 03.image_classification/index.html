@@ -370,6 +370,15 @@ def train_program():
     return [avg_cost, accuracy]
 ```
 
+## Optimizer Function Configuration
+
+In the following `Adam` optimizer, `learning_rate` specifies the learning rate in the optimization procedure.
+
+```python
+def optimizer_program():
+    return fluid.optimizer.Adam(learning_rate=0.001)
+```
+
 ## Model Training
 
 ### Create Trainer
@@ -382,7 +391,7 @@ use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 trainer = fluid.Trainer(
     train_func=train_program,
-    optimizer=fluid.optimizer.Adam(learning_rate=0.001),
+    optimizer_func=optimizer_program,
     place=place)
 ```
 
