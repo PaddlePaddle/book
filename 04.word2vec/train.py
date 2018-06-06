@@ -21,7 +21,6 @@ from functools import partial
 import math
 import os
 
-
 EMBED_SIZE = 32
 HIDDEN_SIZE = 256
 N = 5
@@ -67,9 +66,8 @@ def inference_program(is_sparse):
 
     concat_embed = fluid.layers.concat(
         input=[embed_first, embed_second, embed_third, embed_fourth], axis=1)
-    hidden1 = fluid.layers.fc(input=concat_embed,
-                              size=HIDDEN_SIZE,
-                              act='sigmoid')
+    hidden1 = fluid.layers.fc(
+        input=concat_embed, size=HIDDEN_SIZE, act='sigmoid')
     predict_word = fluid.layers.fc(input=hidden1, size=dict_size, act='softmax')
     return predict_word
 
@@ -87,9 +85,9 @@ def train_program(is_sparse):
 
 def optimizer_func():
     return fluid.optimizer.AdagradOptimizer(
-            learning_rate=3e-3,
-            regularization=fluid.regularizer.L2DecayRegularizer(8e-4)
-        )
+        learning_rate=3e-3,
+        regularization=fluid.regularizer.L2DecayRegularizer(8e-4))
+
 
 def train(use_cuda, train_program, params_dirname):
     train_reader = paddle.batch(
