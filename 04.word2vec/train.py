@@ -119,7 +119,7 @@ def train(use_cuda, train_program, params_dirname):
     trainer = fluid.Trainer(
         train_func=train_program,
         # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
-        optimizer=optimizer_func,
+        optimizer_func=optimizer_func,
         place=place)
 
     trainer.train(
