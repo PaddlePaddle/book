@@ -494,15 +494,18 @@ Use create_lod_tensor(data, lod, place) API to generate LoD Tensor, where `data`
 For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of indices, of length 3 and 2, respectively.
 Correspondingly, lod = [[3, 2]] contains one level of detail info, indicating that `data` consists of two sequences of length 3 and 2.
 
+In this infer example, we try to predict rating of movie 'Hunchback of Notre Dame' from user id 1 info.
 ```python
+infer_movie_id = 783
+infer_movie_name = paddle.dataset.movielens.movie_info()[infer_movie_id].title
 user_id = fluid.create_lod_tensor([[1]], [[1]], place)
 gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
 age_id = fluid.create_lod_tensor([[0]], [[1]], place)
 job_id = fluid.create_lod_tensor([[10]], [[1]], place)
-movie_id = fluid.create_lod_tensor([[783]], [[1]], place)
-category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place)
+movie_id = fluid.create_lod_tensor([[783]], [[1]], place) # Hunchback of Notre Dame
+category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place) # Animation, Children's, Musical
 movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
-                                      place)
+                                      place) # 'hunchback','of','notre','dame','the'
 ```
 
 ### Infer
@@ -522,7 +525,9 @@ results = inferencer.infer(
     },
     return_numpy=False)
 
-print("infer results: ", np.array(results[0]))
+predict_rating = np.array(results[0])
+print("Predict Rating of user id 1 on movie \"" + infer_movie_name + "\" is " + str(predict_rating[0][0]))
+print("Actual Rating of user id 1 on movie \"" + infer_movie_name + "\" is 4.")
 
 ```
 
