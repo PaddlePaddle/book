@@ -181,7 +181,7 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 1. `train_program`：指定如何从 `inference_program` 和`标签值`中获取 `loss` 的函数。
 这是指定损失计算的地方。
 
-1. `optimizer_func`: 配置如何最小化损失。PaddlePaddle 支持最主要的优化方法。
+1. `optimizer_func`: “指定优化器配置的函数。优化器负责减少损失并驱动培训。Paddle 支持多种不同的优化器。
 
 1. `Trainer`：PaddlePaddle Trainer 管理由 `train_program` 和 `optimizer` 指定的训练过程。
 通过 `event_handler` 回调函数，用户可以监控培训的进展。
