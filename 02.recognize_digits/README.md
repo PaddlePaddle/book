@@ -146,7 +146,7 @@ Here are the quick overview on the major fluid API complements.
 This is where you specify the network flow.
 1. `train_program`: A function that specify how to get avg_cost from `inference_program` and labels.
 This is where you specify the loss calculations.
-1. `optimizer`: Configure how to minimize the loss. Paddle supports most major optimization methods.
+1. `optimizer_func`:"A function that specifies the configuration of the the optimizer. The optimizer is responsible for minimizing the loss and driving the training. Paddle supports many different optimizers."
 1. `Trainer`: Fluid trainer manages the training process specified by the `train_program` and `optimizer`. Users can monitor the training
 progress through the `event_handler` callback function.
 1. `Inferencer`: Fluid inferencer loads the `inference_program` and the parameters trained by the Trainer.
@@ -245,6 +245,15 @@ def train_program():
     return [avg_cost, acc]
 ```
 
+#### Optimizer Function Configuration
+
+In the following `Adam` optimizer, `learning_rate` specifies the learning rate in the optimization procedure.
+
+```python
+def optimizer_program():
+    return fluid.optimizer.Adam(learning_rate=0.001)
+```
+
 ### Data Feeders Configuration
 
 Then we specify the training data `paddle.dataset.mnist.train()` and testing data `paddle.dataset.mnist.test()`. These two methods are *reader creators*. Once called, a reader creator returns a *reader*.  A reader is a Python method, which, once called, returns a Python generator, which yields instances of data.
@@ -266,15 +275,13 @@ test_reader = paddle.batch(
 ### Trainer Configuration
 
 Now, we need to setup the trainer. The trainer need to take in `train_program`, `place`, and `optimizer`.
-In the following `Adam` optimizer, `learning_rate` means the speed at which the network training converges.
 
 ```python
 use_cuda = False # set to True if training with GPU
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-optimizer = fluid.optimizer.Adam(learning_rate=0.001)
 
 trainer = fluid.Trainer(
-    train_func=train_program, place=place, optimizer=optimizer)
+    train_func=train_program, place=place, optimizer_func=optimizer_program)
  ```
 
 #### Event Handler
