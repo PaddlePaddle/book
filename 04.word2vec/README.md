@@ -320,7 +320,7 @@ def train(use_cuda, train_program, params_dirname):
                 print "Step %d: Average Cost %f" % (event.step, event.cost)
 
             # If average cost is lower than 5.0, we consider the model good enough to stop.
-            if avg_cost < 5.0:
+            if avg_cost < 5.5:
                 trainer.save_params(params_dirname)
                 trainer.stop()
 
