@@ -81,7 +81,7 @@ $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 
 That is, for a dataset of size $n$, MSE is the average value of the the prediction sqaure errors.
 
-### Training Process
+### Training
 
 After setting up our model, there are several major steps to go through to train it:
 1. Initialize the parameters including the weights $\vec{\omega}$ and the bias $b$. For example, we can set their mean values as $0$s, and their standard deviations as $1$s.
@@ -90,6 +90,22 @@ After setting up our model, there are several major steps to go through to train
 4. Repeat steps 2~3, until the loss is below a predefined threshold or the maximum number of epochs is reached.
 
 ## Dataset
+
+### Python Dataset Modules
+
+Our program starts with importing necessary packages:
+
+```python
+import paddle
+import paddle.fluid as fluid
+import numpy
+```
+
+We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
+
+1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if you haven't yet, and
+2.  [preprocess](#preprocessing) the dataset.
+
 ### An Introduction of the Dataset
 
 The UCI housing dataset has 506 instances. Each instance describes the attributes of a house in surburban Boston.  The attributes are explained below:
@@ -139,26 +155,8 @@ We split the dataset in two, one for adjusting the model parameters, namely, for
 When training complex models, we usually have one more split: the validation set. Complex models usually have [Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_optimization) that need to be set before the training process, such as the number of layers in the network. Because hyperparameters are not part of the model parameters, they cannot be trained using the same loss function. Thus we will try several sets of hyperparameters to train several models and cross-validate them on the validation set to pick the best one; finally, the selected trained model is tested on the test set. Because our model is relatively simple, we will omit this validation process.
 
 
-## Training
-
-`fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
-
-### Datafeeder Configuration
-Our program starts with importing necessary packages:
-
-```python
-import paddle
-import paddle.fluid as fluid
-import numpy
-```
-
-We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
-
-1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if you haven't yet, and
-2.  [preprocess](#preprocessing) the dataset.
-
-
-We define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. If the user wants some randomness on the data order, she can define both a `BATCH_SIZE` and a `buf_size`. That way the datafeeder will yield the first `BATCH_SIZE` data out of a shuffle of the first `buf_size` data.
+## Datafeeder Configuration
+We first define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. If the user wants some randomness on the data order, she can define both a `BATCH_SIZE` and a `buf_size`. That way the datafeeder will yield the first `BATCH_SIZE` data out of a shuffle of the first `buf_size` data.
 
 ```python
 BATCH_SIZE = 20
@@ -173,6 +171,10 @@ test_reader = paddle.batch(
         paddle.dataset.uci_housing.test(), buf_size=500),
     batch_size=BATCH_SIZE)
 ```
+
+## Training
+
+`fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
 
 ### Train Program Configuration
 `train_program` sets up the network structure of this current training model. For linear regression, it is simply a fully connected layer from the input to the output. More complex structures like CNN and RNN will be introduced in later chapters. The `train_program` must return an avg_loss as its first returned parameter because it is needed in backpropagation.
@@ -258,7 +260,6 @@ def event_handler_plot(event):
 ```
 
 ### Start Training
-We now can start training by calling `trainer.train()`.
 
 ```python
 %matplotlib inline
@@ -274,11 +275,11 @@ trainer.train(
 
 ![png](./image/train_and_test.png)
 
-## Inference
+### Inference
 
 Initialize the Inferencer with the inference_program and the params_dirname, which is where we saved our params
 
-### Setup the Inference Program
+#### Setup the Inference Program.
 Similar to the trainer.train, the Inferencer needs to take an inference_program to do inference.
 Prune the train_program to only have the y_predict.
 
@@ -288,9 +289,6 @@ def inference_program():
     y_predict = fluid.layers.fc(input=x, size=1, act=None)
     return y_predict
 ```
-
-### Infer
-Inferencer will load the trained model from `params_dirname` and use it to infer the unseen data.
 
 ```python
 inferencer = fluid.Inferencer(
