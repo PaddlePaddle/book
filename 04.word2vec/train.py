@@ -160,6 +160,9 @@ def infer(use_cuda, inference_program, params_dirname=None):
         return_numpy=False)
 
     print(numpy.array(result[0]))
+    most_possible_word_index = numpy.argmax(result[0])
+    print(most_possible_word_index)
+    print([key for key, value in word_dict.iteritems() if value == most_possible_word_index][0])
 
 
 def main(use_cuda, is_sparse):
