@@ -102,14 +102,11 @@ After issuing a command `python train.py`, training will start immediately. The 
 
 ### Initialize PaddlePaddle
 
-We must import and initialize PaddlePaddle (enable/disable GPU, set the number of trainers, etc).
+We must import and initialize Paddle.
 
 ```python
-import sys
-import paddle.v2 as paddle
-
-# PaddlePaddle init
-paddle.init(use_gpu=False, trainer_count=1)
+import paddle
+import paddle.fluid as fluid
 ```
 
 As alluded to in section [Model Overview](#model-overview), here we provide the implementations of both Text CNN and Stacked-bidirectional LSTM models.
@@ -121,20 +118,26 @@ We create a neural network `convolution_net` as the following snippet code.
 Note: `paddle.networks.sequence_conv_pool` includes both convolution and pooling layer operations.
 
 ```python
-def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
-    data = paddle.layer.data("word",
-                             paddle.data_type.integer_value_sequence(input_dim))
-    emb = paddle.layer.embedding(input=data, size=emb_dim)
-    conv_3 = paddle.networks.sequence_conv_pool(
-        input=emb, context_len=3, hidden_size=hid_dim)
-    conv_4 = paddle.networks.sequence_conv_pool(
-        input=emb, context_len=4, hidden_size=hid_dim)
-    output = paddle.layer.fc(input=[conv_3, conv_4],
-                             size=class_dim,
-                             act=paddle.activation.Softmax())
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost, output
+def convolution_net(data, input_dim, class_dim=2, emb_dim=128, hid_dim=128):
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
+    conv_3 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=3,
+        act="tanh",
+        pool_type="sqrt")
+    conv_4 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=4,
+        act="tanh",
+        pool_type="sqrt")
+    prediction = fluid.layers.fc(input=[conv_3, conv_4],
+                                 size=class_dim,
+                                 act="softmax")
+    return prediction
+
 ```
 
 1. Define input data and its dimension
@@ -154,70 +157,31 @@ def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
 We create a neural network `stacked_lstm_net` as below.
 
 ```python
-def stacked_lstm_net(input_dim,
-                     class_dim=2,
-                     emb_dim=128,
-                     hid_dim=512,
-                     stacked_num=3):
-    """
-    A Wrapper for sentiment classification task.
-    This network uses a bi-directional recurrent network,
-    consisting of three LSTM layers. This configuration is
-    motivated from the following paper, but uses few layers.
-        http://www.aclweb.org/anthology/P15-1109
-    input_dim: here is word dictionary dimension.
-    class_dim: number of categories.
-    emb_dim: dimension of word embedding.
-    hid_dim: dimension of hidden layer.
-    stacked_num: number of stacked lstm-hidden layer.
-    """
+def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
     assert stacked_num % 2 == 1
 
-    fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
-    lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
-    para_attr = [fc_para_attr, lstm_para_attr]
-    bias_attr = paddle.attr.Param(initial_std=0., l2_rate=0.)
-    relu = paddle.activation.Relu()
-    linear = paddle.activation.Linear()
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
 
-    data = paddle.layer.data("word",
-                             paddle.data_type.integer_value_sequence(input_dim))
-    emb = paddle.layer.embedding(input=data, size=emb_dim)
-
-    fc1 = paddle.layer.fc(input=emb,
-                          size=hid_dim,
-                          act=linear,
-                          bias_attr=bias_attr)
-    lstm1 = paddle.layer.lstmemory(
-        input=fc1, act=relu, bias_attr=bias_attr)
+    fc1 = fluid.layers.fc(input=emb, size=hid_dim)
+    lstm1, cell1 = fluid.layers.dynamic_lstm(input=fc1, size=hid_dim)
 
     inputs = [fc1, lstm1]
+
     for i in range(2, stacked_num + 1):
-        fc = paddle.layer.fc(input=inputs,
-                             size=hid_dim,
-                             act=linear,
-                             param_attr=para_attr,
-                             bias_attr=bias_attr)
-        lstm = paddle.layer.lstmemory(
-            input=fc,
-            reverse=(i % 2) == 0,
-            act=relu,
-            bias_attr=bias_attr)
+        fc = fluid.layers.fc(input=inputs, size=hid_dim)
+        lstm, cell = fluid.layers.dynamic_lstm(
+            input=fc, size=hid_dim, is_reverse=(i % 2) == 0)
         inputs = [fc, lstm]
 
-    fc_last = paddle.layer.pooling(
-        input=inputs[0], pooling_type=paddle.pooling.Max())
-    lstm_last = paddle.layer.pooling(
-        input=inputs[1], pooling_type=paddle.pooling.Max())
-    output = paddle.layer.fc(input=[fc_last, lstm_last],
-                             size=class_dim,
-                             act=paddle.activation.Softmax(),
-                             bias_attr=bias_attr,
-                             param_attr=para_attr)
+    fc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
+    lstm_last = fluid.layers.sequence_pool(input=inputs[1], pool_type='max')
 
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost, output
+    prediction = fluid.layers.fc(input=[fc_last, lstm_last],
+                                 size=class_dim,
+                                 act='softmax')
+    return prediction
+
 ```
 
 1. Define input data and its dimension
@@ -236,14 +200,7 @@ def stacked_lstm_net(input_dim,
 To reiterate, we can either invoke `convolution_net` or `stacked_lstm_net`.
 
 ```python
-word_dict = paddle.dataset.imdb.word_dict()
-dict_dim = len(word_dict)
-class_dim = 2
-
-# option 1
-[cost, output] = convolution_net(dict_dim, class_dim=class_dim)
-# option 2
-# [cost, output] = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
+TODO
 ```
 
 ## Model Training
