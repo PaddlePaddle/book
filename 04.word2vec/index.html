@@ -260,6 +260,10 @@ Our program starts with importing necessary packages:
 import paddle
 import paddle.fluid as fluid
 import numpy
+from functools import partial
+import math
+import os
+import sys
 ```
 
 - Configure parameters and build word dictionary.
@@ -342,6 +346,12 @@ def train_program(is_sparse):
 `event_handler` can be passed into `trainer.train` so that we can do some tasks after each step or epoch. These tasks include recording current metrics or terminate current training process.
 
 ```python
+def optimizer_func():
+    return fluid.optimizer.AdagradOptimizer(
+        learning_rate=3e-3,
+        regularization=fluid.regularizer.L2DecayRegularizer(8e-4))
+
+
 def train(use_cuda, train_program, params_dirname):
     train_reader = paddle.batch(
         paddle.dataset.imikolov.train(word_dict, N), BATCH_SIZE)
@@ -359,10 +369,10 @@ def train(use_cuda, train_program, params_dirname):
 
             # We output cost every 10 steps.
             if event.step % 10 == 0:
-                print "Step %d: Average Cost %f" % (event.step, event.cost)
+                print "Step %d: Average Cost %f" % (event.step, avg_cost)
 
             # If average cost is lower than 5.0, we consider the model good enough to stop.
-            if avg_cost < 5.5:
+            if avg_cost < 5.8:
                 trainer.save_params(params_dirname)
                 trainer.stop()
 
@@ -375,10 +385,7 @@ def train(use_cuda, train_program, params_dirname):
         # such as AdaGrad with a decay rate. The normal SGD converges
         # very slowly.
         # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
-        optimizer=fluid.optimizer.AdagradOptimizer(
-            learning_rate=3e-3,
-            regularization=fluid.regularizer.L2DecayRegularizer(8e-4)
-        ),
+        optimizer_func=optimizer_func,
         place=place)
 
     trainer.train(
@@ -456,7 +463,6 @@ When we spent 30 mins in training, the output is like below, which means the nex
 The main entrance of the program is fairly simple:
 
 ```python
-
 def main(use_cuda, is_sparse):
     if use_cuda and not fluid.core.is_compiled_with_cuda():
         return
