@@ -209,234 +209,237 @@ The neural network that we will be using is illustrated in the graph below:
 
 `word2vec/train.py` demonstrates training word2vec using PaddlePaddle:
 
+### Datafeeder Configuration
+Our program starts with importing necessary packages:
+
 - Import packages.
 
 ```python
-import math
-import paddle.v2 as paddle
+import paddle
+import paddle.fluid as fluid
+import numpy
 ```
 
-- Configure parameter.
+- Configure parameters and build word dictionary.
 
 ```python
-embsize = 32 # word vector dimension
-hiddensize = 256 # hidden layer dimension
-N = 5 # train 5-gram
-```
+EMBED_SIZE = 32  # word vector dimension
+HIDDEN_SIZE = 256  # hidden layer dimension
+N = 5  # train 5-gram
+BATCH_SIZE = 32  # batch size
 
+# can use CPU or GPU
+use_cuda = os.getenv('WITH_GPU', '0') != '0'
 
-- functions used to save and load word dict and embedding table
-```python
-# save and load word dict and embedding table
-def save_dict_and_embedding(word_dict, embeddings):
-    with open("word_dict", "w") as f:
-        for key in word_dict:
-            f.write(key + " " + str(word_dict[key]) + "\n")
-    with open("embedding_table", "w") as f:
-        numpy.savetxt(f, embeddings, delimiter=',', newline='\n')
-
-
-def load_dict_and_embedding():
-    word_dict = dict()
-    with open("word_dict", "r") as f:
-        for line in f:
-            key, value = line.strip().split(" ")
-            word_dict[key] = int(value)
-
-    embeddings = numpy.loadtxt("embedding_table", delimiter=",")
-    return word_dict, embeddings
-```
-
-- Map the $n-1$ words $w_{t-n+1},...w_{t-1}$ before $w_t$ to a D-dimensional vector though matrix of dimention $|V|\times D$ (D=32 in this example).
-
-```python
-def wordemb(inlayer):
-    wordemb = paddle.layer.table_projection(
-        input=inlayer,
-        size=embsize,
-        param_attr=paddle.attr.Param(
-            name="_proj",
-            initial_std=0.001,
-            learning_rate=1,
-            l2_rate=0,
-            sparse_update=True))
-    return wordemb
-```
-
-- Define name and type for input to data layer.
-
-```python
-paddle.init(use_gpu=False, trainer_count=3)
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
-# Every layer takes integer value of range [0, dict_size)
-firstword = paddle.layer.data(
-    name="firstw", type=paddle.data_type.integer_value(dict_size))
-secondword = paddle.layer.data(
-    name="secondw", type=paddle.data_type.integer_value(dict_size))
-thirdword = paddle.layer.data(
-    name="thirdw", type=paddle.data_type.integer_value(dict_size))
-fourthword = paddle.layer.data(
-    name="fourthw", type=paddle.data_type.integer_value(dict_size))
-nextword = paddle.layer.data(
-    name="fifthw", type=paddle.data_type.integer_value(dict_size))
-
-Efirst = wordemb(firstword)
-Esecond = wordemb(secondword)
-Ethird = wordemb(thirdword)
-Efourth = wordemb(fourthword)
 ```
 
-- Concatenate n-1 word embedding vectors into a single feature vector.
+Unlike from the previous PaddlePaddle v2, in the new API (Fluid), we do not need to calculate word embedding ourselves. PaddlePaddle provides a built-in method `fluid.layers.embedding` and we can use it directly to build our N-gram neural network model.
+
+- We define our N-gram neural network structure as below. This structure will be used both in `train` and in `infer`
+```python
+def inference_program(is_sparse):
+    first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
+    second_word = fluid.layers.data(name='secondw', shape=[1], dtype='int64')
+    third_word = fluid.layers.data(name='thirdw', shape=[1], dtype='int64')
+    fourth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
+
+    embed_first = fluid.layers.embedding(
+        input=first_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+    embed_second = fluid.layers.embedding(
+        input=second_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+    embed_third = fluid.layers.embedding(
+        input=third_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+    embed_fourth = fluid.layers.embedding(
+        input=fourth_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+
+    concat_embed = fluid.layers.concat(
+        input=[embed_first, embed_second, embed_third, embed_fourth], axis=1)
+    hidden1 = fluid.layers.fc(input=concat_embed,
+                              size=HIDDEN_SIZE,
+                              act='sigmoid')
+    predict_word = fluid.layers.fc(input=hidden1, size=dict_size, act='softmax')
+    return predict_word
+```
+
+- As we already defined the N-gram neural network structure in the above, we can use it in our `train` method.
 
 ```python
-contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
+def train_program(is_sparse):
+    # The declaration of 'next_word' must be after the invoking of inference_program,
+    # or the data input order of train program would be [next_word, firstw, secondw,
+    # thirdw, fourthw], which is not correct.
+    predict_word = inference_program(is_sparse)
+    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
+    avg_cost = fluid.layers.mean(cost)
+    return avg_cost
 ```
 
-- Feature vector will go through a fully connected layer which outputs a hidden feature vector.
-
-```python
-hidden1 = paddle.layer.fc(input=contextemb,
-                          size=hiddensize,
-                          act=paddle.activation.Sigmoid(),
-                          layer_attr=paddle.attr.Extra(drop_rate=0.5),
-                          bias_attr=paddle.attr.Param(learning_rate=2),
-                          param_attr=paddle.attr.Param(
-                                initial_std=1. / math.sqrt(embsize * 8),
-                                learning_rate=1))
-```
-
-- Hidden feature vector will go through another fully conected layer, turn into a $|V|$ dimensional vector. At the same time softmax will be applied to get the probability of each word being generated.
-
-```python
-predictword = paddle.layer.fc(input=hidden1,
-                              size=dict_size,
-                              bias_attr=paddle.attr.Param(learning_rate=2),
-                              act=paddle.activation.Softmax())
-```
-
-- We will use cross-entropy cost function.
-
-```python
-cost = paddle.layer.classification_cost(input=predictword, label=nextword)
-```
-
-- Create parameter, optimizer and trainer.
-
-```python
-parameters = paddle.parameters.create(cost)
-adagrad = paddle.optimizer.AdaGrad(
-    learning_rate=3e-3,
-    regularization=paddle.optimizer.L2Regularization(8e-4))
-trainer = paddle.trainer.SGD(cost, parameters, adagrad)
-```
-
-Next, we will begin the training process. `paddle.dataset.imikolov.train()` and `paddle.dataset.imikolov.test()` is our training set and test set. Both of the function will return a **reader**: In PaddlePaddle, reader is a python function which returns a Python iterator which output a single data instance at a time.
+- Now we will begin the training process. It is relatively simple compared to the previous version.  `paddle.dataset.imikolov.train()` and `paddle.dataset.imikolov.test()` are our training and test set. Both of the functions will return a **reader**: In PaddlePaddle, reader is a python function which returns a Python iterator which output a single data instance at a time.
 
 `paddle.batch` takes reader as input, outputs a **batched reader**: In PaddlePaddle, a reader outputs a single data instance at a time but batched reader outputs a minibatch of data instances.
 
+`event_handler` can be passed into `trainer.train` so that we can do some tasks after each step or epoch. These tasks include recording current metrics or terminate current training process.
+
 ```python
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f, %s" % (
-                event.pass_id, event.batch_id, event.cost, event.metrics)
+def train(use_cuda, train_program, params_dirname):
+    train_reader = paddle.batch(
+        paddle.dataset.imikolov.train(word_dict, N), BATCH_SIZE)
+    test_reader = paddle.batch(
+        paddle.dataset.imikolov.test(word_dict, N), BATCH_SIZE)
 
-    if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(
-                    paddle.batch(
-                        paddle.dataset.imikolov.test(word_dict, N), 32))
-        print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
-        with open("model_%d.tar"%event.pass_id, 'w') as f:
-            trainer.save_parameter_to_tar(f)
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-trainer.train(
-    paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
-    num_passes=100,
-    event_handler=event_handler)
+    def event_handler(event):
+        if isinstance(event, fluid.EndStepEvent):
+            outs = trainer.test(
+                reader=test_reader,
+                feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
+            avg_cost = outs[0]
+
+            # We output cost every 10 steps.
+            if event.step % 10 == 0:
+                print "Step %d: Average Cost %f" % (event.step, event.cost)
+
+            # If average cost is lower than 5.0, we consider the model good enough to stop.
+            if avg_cost < 5.5:
+                trainer.save_params(params_dirname)
+                trainer.stop()
+
+            if math.isnan(avg_cost):
+                sys.exit("got NaN loss, training failed.")
+
+    trainer = fluid.Trainer(
+        train_func=train_program,
+        # Note here we need to choose more sophisticated optimizer
+        # such as AdaGrad with a decay rate. The normal SGD converges
+        # very slowly.
+        # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
+        optimizer=fluid.optimizer.AdagradOptimizer(
+            learning_rate=3e-3,
+            regularization=fluid.regularizer.L2DecayRegularizer(8e-4)
+        ),
+        place=place)
+
+    trainer.train(
+        reader=train_reader,
+        num_epochs=1,
+        event_handler=event_handler,
+        feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
 ```
 
 `trainer.train` will start training, the output of `event_handler` will be similar to following:
 ```text
-Pass 0, Batch 0, Cost 7.870579, {'classification_error_evaluator': 1.0}, Testing metrics {'classification_error_evaluator': 0.999591588973999}
-Pass 0, Batch 100, Cost 6.136420, {'classification_error_evaluator': 0.84375}, Testing metrics {'classification_error_evaluator': 0.8328699469566345}
-Pass 0, Batch 200, Cost 5.786797, {'classification_error_evaluator': 0.8125}, Testing metrics {'classification_error_evaluator': 0.8328542709350586}
+Step 0: Average Cost 7.337213
+Step 10: Average Cost 6.136128
+Step 20: Average Cost 5.766995
 ...
-```
-
-After 30 passes, we can get average error rate around 0.735611.
-
-## Save word dict and embedding table
-
-after training, we can save the word dict and embedding table for the future usage.
-
-```python
-# save word dict and embedding table
-embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
-save_dict_and_embedding(word_dict, embeddings)
 ```
 
 
 ## Model Application
 
-After the model is trained, we can load the  saved model parameters and use it for other models. We can also use the parameters in various applications.
+After the model is trained, we can load the saved model parameters and do some inference.
 
-### Viewing Word Vector
+### Predicting the next word
 
-Parameters trained by PaddlePaddle can be viewed by `parameters.get()`. For example, we can check the word vector for word `apple`.
+We can use our trained model to predict the next word given its previous N-gram. For example
+
 
 ```python
-embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
+def infer(use_cuda, inference_program, params_dirname=None):
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    inferencer = fluid.Inferencer(
+        infer_func=inference_program, param_path=params_dirname, place=place)
 
-print embeddings[word_dict['apple']]
+    # Setup inputs by creating 4 LoDTensors representing 4 words. Here each word
+    # is simply an index to look up for the corresponding word vector and hence
+    # the shape of word (base_shape) should be [1]. The length-based level of
+    # detail (lod) info of each LoDtensor should be [[1]] meaning there is only
+    # one lod_level and there is only one sequence of one word on this level.
+    # Note that lod info should be a list of lists.
+    lod1 = [[211]]  # 'among'
+    lod2 = [[6]]    # 'a'
+    lod3 = [[96]]   # 'group'
+    lod4 = [[4]]    # 'of'
+    base_shape = [1]
+
+    first_word  = fluid.create_lod_tensor(lod1, base_shape, place)
+    second_word = fluid.create_lod_tensor(lod2, base_shape, place)
+    third_word  = fluid.create_lod_tensor(lod3, base_shape, place)
+    fourth_word = fluid.create_lod_tensor(lod4, base_shape, place)
+
+    result = inferencer.infer(
+        {
+            'firstw': first_word,
+            'secondw': second_word,
+            'thirdw': third_word,
+            'fourthw': fourth_word
+        },
+        return_numpy=False)
+
+    print(numpy.array(result[0]))
+    most_possible_word_index = numpy.argmax(result[0])
+    print(most_possible_word_index)
+    print([key for key, value in word_dict.iteritems() if value == most_possible_word_index][0])
 ```
+
+When we spent 30 mins in training, the output is like below, which means the next word for `among a group of` is `unknown`. After several hours training, it gives a meaningful prediction as `workers`.
 
 ```text
-[-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
--0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
-0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
--0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
-0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
-0.19072419 -0.24286366]
+[[4.0056456e-02 5.4810006e-02 5.3107393e-05 ... 1.0061498e-04
+  8.9233123e-05 1.5757295e-01]]
+2072
+<unk>
 ```
 
-### Modifying Word Vector
-
-Word vectors (`embeddings`) that we get is a numpy array. We can modify this array and set it back to `parameters`.
-
+The main entrance of the program is fairly simple:
 
 ```python
-def modify_embedding(emb):
-    # Add your modification here.
-    pass
 
-modify_embedding(embeddings)
-parameters.set("_proj", embeddings)
-```
+def main(use_cuda, is_sparse):
+    if use_cuda and not fluid.core.is_compiled_with_cuda():
+        return
 
-### Calculating Cosine Similarity
+    params_dirname = "word2vec.inference.model"
 
-Cosine similarity is one way of quantifying the similarity between two vectors. The range of result is $[-1, 1]$. The bigger the value, the similar two vectors are:
+    train(
+        use_cuda=use_cuda,
+        train_program=partial(train_program, is_sparse),
+        params_dirname=params_dirname)
+
+    infer(
+        use_cuda=use_cuda,
+        inference_program=partial(inference_program, is_sparse),
+        params_dirname=params_dirname)
 
 
-```python
-from scipy import spatial
-
-emb_1 = embeddings[word_dict['world']]
-emb_2 = embeddings[word_dict['would']]
-
-print spatial.distance.cosine(emb_1, emb_2)
-```
-
-```text
-0.99375076448
+main(use_cuda=use_cuda, is_sparse=True)
 ```
 
 ## Conclusion
 
 This chapter introduces word embeddings, the relationship between language model and word embedding, and how to train neural networks to learn word embedding.
 
-In information retrieval, the relevance between the query and document keyword can be computed through the cosine similarity of their word embeddings. In grammar analysis and semantic analysis, a previously trained word embedding can initialize models for better performance. In document classification, clustering the word embedding can group synonyms in the documents. We hope that readers can use word embedding models in their work after reading this chapter.
+In grammar analysis and semantic analysis, a previously trained word embedding can initialize models for better performance. We hope that readers can use word embedding models in their work after reading this chapter.
 
 
 ## References

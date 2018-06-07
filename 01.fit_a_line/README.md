@@ -216,7 +216,7 @@ def event_handler_plot(event):
 ```
 
 ### Start Training
-We now can start training by calling `trainer.train()`. 
+We now can start training by calling `trainer.train()`.
 
 ```python
 %matplotlib inline
