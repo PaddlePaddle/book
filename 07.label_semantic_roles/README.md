@@ -209,22 +209,14 @@ We trained a language model on the English Wikipedia to get a word vector lookup
 Here we fetch the dictionary, and print its size:
 
 ```python
-import math
+import paddle
+import paddle.fluid as fluid
 import numpy as np
-import paddle.v2 as paddle
-import paddle.v2.dataset.conll05 as conll05
-import paddle.v2.evaluator as evaluator
 
-paddle.init(use_gpu=False, trainer_count=1)
-
-word_dict, verb_dict, label_dict = conll05.get_dict()
-word_dict_len = len(word_dict)
-label_dict_len = len(label_dict)
-pred_len = len(verb_dict)
-
-print word_dict_len
-print label_dict_len
-print pred_len
+WORD_DICT, VERB_DICT, LABEL_DICT = paddle.dataset.conll05.get_dict()
+WORD_DICT_LEN = len(WORD_DICT)
+LABEL_DICT_LEN = len(LABEL_DICT)
+PRED_DICT_LEN = len(VERB_DICT)
 ```
 
 ## Model Configuration
@@ -232,13 +224,6 @@ print pred_len
 - Define input data dimensions and model hyperparameters.
 
 ```python
-mark_dict_len = 2    # value range of region mark. Region mark is either 0 or 1, so range is 2
-word_dim = 32        # word vector dimension
-mark_dim = 5         # adjacent dimension
-hidden_dim = 512     # the dimension of LSTM hidden layer vector is 128 (512/4)
-depth = 8            # depth of stacked LSTM
-
-# There are 9 features per sample, so we will define 9 data layers.
 # They type for each layer is integer_value_sequence.
 def d_type(value_range):
     return paddle.data_type.integer_value_sequence(value_range)
