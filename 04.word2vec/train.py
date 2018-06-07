@@ -107,7 +107,7 @@ def train(use_cuda, train_program, params_dirname):
             if event.step % 10 == 0:
                 print "Step %d: Average Cost %f" % (event.step, avg_cost)
 
-            if avg_cost < 5.5:
+            if avg_cost < 5.8:
                 trainer.save_params(params_dirname)
                 trainer.stop()
 
