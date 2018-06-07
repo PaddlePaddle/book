@@ -173,6 +173,7 @@ $$e_{ij} = {align(z_i, h_j)}$$
 # 加载 paddle的python包
 import sys
 import paddle.v2 as paddle
+import numpy as np
 
 # 配置只使用cpu，并且使用一个cpu进行训练
 paddle.init(use_gpu=False, trainer_count=1)
@@ -273,11 +274,11 @@ is_generating = False
             output_mem=decoder_mem,
             size=decoder_size)
 
-        out = paddle.layer.mixed(
+        out = paddle.layer.fc(
             size=target_dict_dim,
             bias_attr=True,
             act=paddle.activation.Softmax(),
-            input=paddle.layer.full_matrix_projection(input=gru_step))
+            input=gru_step)
         return out
    ```
 

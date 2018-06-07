@@ -215,6 +215,7 @@ This subset has 193319 instances of training data and 6003 instances of test dat
 ```python
 import sys
 import paddle.v2 as paddle
+import numpy as np
 
 # train with a single CPU
 paddle.init(use_gpu=False, trainer_count=1)
