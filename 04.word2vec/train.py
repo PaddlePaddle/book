@@ -107,6 +107,9 @@ def train(use_cuda, train_program, params_dirname):
             if event.step % 10 == 0:
                 print "Step %d: Average Cost %f" % (event.step, avg_cost)
 
+            # If average cost is lower than 5.8, we consider the model good enough to stop.
+            # Note 5.8 is a relatively high value. In order to get a better model, one should
+            # aim for avg_cost lower than 3.5. But the training could take longer time.
             if avg_cost < 5.8:
                 trainer.save_params(params_dirname)
                 trainer.stop()

@@ -329,7 +329,9 @@ def train(use_cuda, train_program, params_dirname):
             if event.step % 10 == 0:
                 print "Step %d: Average Cost %f" % (event.step, avg_cost)
 
-            # If average cost is lower than 5.0, we consider the model good enough to stop.
+            # If average cost is lower than 5.8, we consider the model good enough to stop.
+            # Note 5.8 is a relatively high value. In order to get a better model, one should
+            # aim for avg_cost lower than 3.5. But the training could take longer time.
             if avg_cost < 5.8:
                 trainer.save_params(params_dirname)
                 trainer.stop()
@@ -409,7 +411,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
     print([key for key, value in word_dict.iteritems() if value == most_possible_word_index][0])
 ```
 
-When we spent 30 mins in training, the output is like below, which means the next word for `among a group of` is `unknown`. After several hours training, it gives a meaningful prediction as `workers`.
+When we spent 30 mins in training, the output is like below, which means the next word for `among a group of` is `unknown`. If we train the model with a longer time, it will give a meaningful prediction as `workers`.
 
 ```text
 [[4.0056456e-02 5.4810006e-02 5.3107393e-05 ... 1.0061498e-04
