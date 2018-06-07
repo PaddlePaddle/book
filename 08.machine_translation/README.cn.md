@@ -326,7 +326,7 @@ is_generating = False
 
 6. 生成模式下的解码器调用：
 
-   - 首先，在序列生成任务中，由于解码阶段的RNN总是引用上一时刻生成出的词的词向量，作为当前时刻的输入，因此，使用`GeneratedInput`来自动完成这一过程。具体说明可见[GeneratedInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
+   - 首先，在序列生成任务中，由于解码阶段的RNN总是引用上一时刻生成出的词的词向量，作为当前时刻的输入，因此，使用`GeneratedInput`来自动完成这一过程。具体说明可见[GeneratedInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/v2/howto/rnn/recurrent_group_cn.md#输入)。
    - 其次，使用`beam_search`函数循环调用`gru_decoder_with_attention`函数，生成出序列id。
 
    ```python
