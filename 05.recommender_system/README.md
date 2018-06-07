@@ -452,7 +452,7 @@ Use create_lod_tensor(data, lod, place) API to generate LoD Tensor, where `data`
 For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of indices, of length 3 and 2, respectively.
 Correspondingly, lod = [[3, 2]] contains one level of detail info, indicating that `data` consists of two sequences of length 3 and 2.
 
-In this infer example, we try to predict rating of movie 'Hunchback of Notre Dame' from user id 1 info.
+In this infer example, we try to predict rating of movie 'Hunchback of Notre Dame' from the info of user id 1.
 ```python
 infer_movie_id = 783
 infer_movie_name = paddle.dataset.movielens.movie_info()[infer_movie_id].title
