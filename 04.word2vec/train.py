@@ -107,6 +107,9 @@ def train(use_cuda, train_program, params_dirname):
             if event.step % 10 == 0:
                 print "Step %d: Average Cost %f" % (event.step, avg_cost)
 
+            # If average cost is lower than 5.8, we consider the model good enough to stop.
+            # Note 5.8 is a relatively high value. In order to get a better model, one should
+            # aim for avg_cost lower than 3.5. But the training could take longer time.
             if avg_cost < 5.8:
                 trainer.save_params(params_dirname)
                 trainer.stop()
@@ -138,17 +141,17 @@ def infer(use_cuda, inference_program, params_dirname=None):
     # detail (lod) info of each LoDtensor should be [[1]] meaning there is only
     # one lod_level and there is only one sequence of one word on this level.
     # Note that lod info should be a list of lists.
+
+    data1 = [[211]]  # 'among'
+    data2 = [[6]]  # 'a'
+    data3 = [[96]]  # 'group'
+    data4 = [[4]]  # 'of'
     lod = [[1]]
-    base_shape = [1]
-    # The range of random integers is [low, high]
-    first_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    second_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    third_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    fourth_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
+
+    first_word = fluid.create_lod_tensor(data1, lod, place)
+    second_word = fluid.create_lod_tensor(data2, lod, place)
+    third_word = fluid.create_lod_tensor(data3, lod, place)
+    fourth_word = fluid.create_lod_tensor(data4, lod, place)
 
     result = inferencer.infer(
         {
