@@ -106,10 +106,6 @@ def infer(use_cuda, inference_program, params_dirname=None):
         # H(height), C(channel). PaddlePaddle requires
         # the CHW order, so transpose them.
         im = im.transpose((2, 0, 1))  # CHW
-        # In the training phase, the channel order of CIFAR
-        # image is B(Blue), G(green), R(Red). But PIL open
-        # image in RGB mode. It must swap the channel order.
-        im = im[(2, 1, 0), :, :]  # BGR
         im = im / 255.0
 
         # Add one dimension to mimic the list format.
