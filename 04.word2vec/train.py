@@ -141,17 +141,17 @@ def infer(use_cuda, inference_program, params_dirname=None):
     # detail (lod) info of each LoDtensor should be [[1]] meaning there is only
     # one lod_level and there is only one sequence of one word on this level.
     # Note that lod info should be a list of lists.
+
+    data1 = [[211]]  # 'among'
+    data2 = [[6]]    # 'a'
+    data3 = [[96]]   # 'group'
+    data4 = [[4]]    # 'of'
     lod = [[1]]
-    base_shape = [1]
-    # The range of random integers is [low, high]
-    first_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    second_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    third_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
-    fourth_word = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=dict_size - 1)
+
+    first_word  = fluid.create_lod_tensor(data1, lod, place)
+    second_word = fluid.create_lod_tensor(data2, lod, place)
+    third_word  = fluid.create_lod_tensor(data3, lod, place)
+    fourth_word = fluid.create_lod_tensor(data4, lod, place)
 
     result = inferencer.infer(
         {

@@ -385,16 +385,17 @@ def infer(use_cuda, inference_program, params_dirname=None):
     # detail (lod) info of each LoDtensor should be [[1]] meaning there is only
     # one lod_level and there is only one sequence of one word on this level.
     # Note that lod info should be a list of lists.
-    lod1 = [[211]]  # 'among'
-    lod2 = [[6]]    # 'a'
-    lod3 = [[96]]   # 'group'
-    lod4 = [[4]]    # 'of'
-    base_shape = [1]
 
-    first_word  = fluid.create_lod_tensor(lod1, base_shape, place)
-    second_word = fluid.create_lod_tensor(lod2, base_shape, place)
-    third_word  = fluid.create_lod_tensor(lod3, base_shape, place)
-    fourth_word = fluid.create_lod_tensor(lod4, base_shape, place)
+    data1 = [[211]]  # 'among'
+    data2 = [[6]]    # 'a'
+    data3 = [[96]]   # 'group'
+    data4 = [[4]]    # 'of'
+    lod = [[1]]
+
+    first_word  = fluid.create_lod_tensor(data1, lod, place)
+    second_word = fluid.create_lod_tensor(data2, lod, place)
+    third_word  = fluid.create_lod_tensor(data3, lod, place)
+    fourth_word = fluid.create_lod_tensor(data4, lod, place)
 
     result = inferencer.infer(
         {
@@ -408,16 +409,18 @@ def infer(use_cuda, inference_program, params_dirname=None):
     print(numpy.array(result[0]))
     most_possible_word_index = numpy.argmax(result[0])
     print(most_possible_word_index)
-    print([key for key, value in word_dict.iteritems() if value == most_possible_word_index][0])
+    print([
+        key for key, value in word_dict.iteritems()
+        if value == most_possible_word_index
+    ][0])
 ```
 
-When we spent 30 mins in training, the output is like below, which means the next word for `among a group of` is `unknown`. If we train the model with a longer time, it will give a meaningful prediction as `workers`.
+When we spent 3 mins in training, the output is like below, which means the next word for `among a group of` is `board`. If we train the model with a longer time, it will give a meaningful prediction as `workers`.
 
 ```text
-[[4.0056456e-02 5.4810006e-02 5.3107393e-05 ... 1.0061498e-04
-  8.9233123e-05 1.5757295e-01]]
-2072
-<unk>
+[[0.00144043 0.00073983 0.00042264 ... 0.00061815 0.00038701 0.00099838]]
+142
+board
 ```
 
 The main entrance of the program is fairly simple:
