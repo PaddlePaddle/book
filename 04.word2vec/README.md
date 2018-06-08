@@ -415,12 +415,12 @@ def infer(use_cuda, inference_program, params_dirname=None):
     ][0])
 ```
 
-When we spent 3 mins in training, the output is like below, which means the next word for `among a group of` is `board`. If we train the model with a longer time, it will give a meaningful prediction as `workers`.
+When we spent 3 mins in training, the output is like below, which means the next word for `among a group of` is `a`. If we train the model with a longer time, it will give a meaningful prediction as `workers`.
 
 ```text
-[[0.00144043 0.00073983 0.00042264 ... 0.00061815 0.00038701 0.00099838]]
-142
-board
+[[0.00106646 0.0007907  0.00072041 ... 0.00049024 0.00041355 0.00084464]]
+6
+a
 ```
 
 The main entrance of the program is fairly simple:
