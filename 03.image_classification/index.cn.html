@@ -518,7 +518,7 @@ def load_image(file):
     im = im.resize((32, 32), Image.ANTIALIAS)
 
     im = np.array(im).astype(np.float32)
-    # The storage order of the loaded image is W(widht),
+    # The storage order of the loaded image is W(width),
     # H(height), C(channel). PaddlePaddle requires
     # the CHW order, so transpose them.
     im = im.transpose((2, 0, 1))  # CHW

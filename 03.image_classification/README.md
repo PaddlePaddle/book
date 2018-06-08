@@ -314,7 +314,7 @@ During the training, it will calculate the `avg_loss` from the prediction.
 
 In the context of supervised learning, labels of training images are defined in `fluid.layers.data` as well. During training, the cross-entropy loss function is used and the loss is the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
 
-**NOTE:** A train program should return an array and the first return argument has to be `avg_cost`.
+**NOTE:** A train program should return an array and the first returned argument has to be `avg_cost`.
 The trainer always implicitly use it to calculate the gradient.
 
 ```python
@@ -477,7 +477,7 @@ After training is completed, users can use the trained model to classify images.
 
 ### Generate input data for inferring
 
-`dog.png` is an example image of a dog. Turn it into an numpy array to match the data feeder format.
+`dog.png` is an example image of a dog. Turn it into a numpy array to match the data feeder format.
 
 ```python
 # Prepare testing data.
@@ -490,7 +490,7 @@ def load_image(file):
     im = im.resize((32, 32), Image.ANTIALIAS)
 
     im = np.array(im).astype(np.float32)
-    # The storage order of the loaded image is W(widht),
+    # The storage order of the loaded image is W(width),
     # H(height), C(channel). PaddlePaddle requires
     # the CHW order, so transpose them.
     im = im.transpose((2, 0, 1))  # CHW
