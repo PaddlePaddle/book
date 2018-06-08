@@ -143,14 +143,14 @@ def infer(use_cuda, inference_program, params_dirname=None):
     # Note that lod info should be a list of lists.
 
     data1 = [[211]]  # 'among'
-    data2 = [[6]]    # 'a'
-    data3 = [[96]]   # 'group'
-    data4 = [[4]]    # 'of'
+    data2 = [[6]]  # 'a'
+    data3 = [[96]]  # 'group'
+    data4 = [[4]]  # 'of'
     lod = [[1]]
 
-    first_word  = fluid.create_lod_tensor(data1, lod, place)
+    first_word = fluid.create_lod_tensor(data1, lod, place)
     second_word = fluid.create_lod_tensor(data2, lod, place)
-    third_word  = fluid.create_lod_tensor(data3, lod, place)
+    third_word = fluid.create_lod_tensor(data3, lod, place)
     fourth_word = fluid.create_lod_tensor(data4, lod, place)
 
     result = inferencer.infer(
