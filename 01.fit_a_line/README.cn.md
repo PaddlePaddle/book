@@ -220,11 +220,11 @@ trainer.train(
 
 ![png](./image/train_and_test.png)
 
-## 推测
-提供一个`inference_program`和一个`params_dirname`来初始化推测器。`params_dirname`用来存储我们的参数。
+## 预测
+提供一个`inference_program`和一个`params_dirname`来初始化预测器。`params_dirname`用来存储我们的参数。
 
-### 设定推测程序
-类似于`trainer.train`，推测器需要一个推测程序来做推测。我们可以稍加修改我们的训练程序来把预测值包含进来。
+### 设定预测程序
+类似于`trainer.train`，预测器需要一个预测程序来做预测。我们可以稍加修改我们的训练程序来把预测值包含进来。
 
 
 ```python
@@ -234,8 +234,8 @@ def inference_program():
     return y_predict
 ```
 
-### 推测
-推测器会从`params_dirname`中读取已经训练好的模型，来对从未遇见过的数据进行推测。
+### 预测
+预测器会从`params_dirname`中读取已经训练好的模型，来对从未遇见过的数据进行预测。
 
 ```python
 inferencer = fluid.Inferencer(
