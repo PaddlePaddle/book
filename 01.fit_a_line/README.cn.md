@@ -47,22 +47,6 @@ $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 
 ## 数据集
 
-### 数据集接口的封装
-首先加载需要的包
-
-```python
-import paddle.v2 as paddle
-import paddle.v2.dataset.uci_housing as uci_housing
-```
-
-我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)
-
-其中，在uci_housing模块中封装了：
-
-1. 数据下载的过程。下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data。
-2. [数据预处理](#数据预处理)的过程。
-
-
 ### 数据集介绍
 这份数据集共506行，每行包含了波士顿郊区的一类房屋的相关信息及该类房屋价格的中位数。其各维属性的意义如下：
 
@@ -110,157 +94,158 @@ import paddle.v2.dataset.uci_housing as uci_housing
 
 `fit_a_line/trainer.py`演示了训练的整体过程。
 
-### 初始化PaddlePaddle
-
+### 配置数据提供器(Datafeeder)
+首先我们引入必要的库：
 ```python
-paddle.init(use_gpu=False, trainer_count=1)
+import paddle
+import paddle.fluid as fluid
+import numpy
 ```
 
-### 模型配置
+我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)
 
-线性回归的模型其实就是一个采用线性激活函数（linear activation，`LinearActivation`）的全连接层（fully-connected layer，`fc_layer`）：
+其中，在uci_housing模块中封装了：
+
+1. 数据下载的过程。下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data。
+2. [数据预处理](#数据预处理)的过程。
+
+接下来我们定义了用于训练和测试的数据提供器。提供器每次读入一个大小为`BATCH_SIZE`的数据批次。如果用户希望加一些随机性，她可以同时定义一个批次大小和一个缓存大小。这样的话，每次数据提供器会从缓存中随机读取批次大小那么多的数据。
 
 ```python
-x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
-y_predict = paddle.layer.fc(input=x,
-                                size=1,
-                                act=paddle.activation.Linear())
-y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
-cost = paddle.layer.square_error_cost(input=y_predict, label=y)
+BATCH_SIZE = 20
+
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.uci_housing.train(), buf_size=500),
+    batch_size=BATCH_SIZE)
+
+test_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.uci_housing.test(), buf_size=500),
+    batch_size=BATCH_SIZE)
 ```
 
-### 保存网络拓扑
+### 配置训练程序
+训练程序的目的是定义一个训练模型的网络结构.对于线性回归来讲，它就是一个从输入到输出的简单的全连接层。更加复杂的结果，比如卷积神经网络，递归神经网络等会在随后的章节中介绍。训练程序必须返回`平均损失`作为第一个返回值，因为它会被后面反向传播算法所用到。
 
 ```python
-# Save the inference topology to protobuf.
-inference_topology = paddle.topology.Topology(layers=y_predict)
-with open("inference_topology.pkl", 'wb') as f:
-    inference_topology.serialize_for_inference(f)
+def train_program():
+    y = fluid.layers.data(name='y', shape=[1], dtype='float32')
+
+    # feature vector of length 13
+    x = fluid.layers.data(name='x', shape=[13], dtype='float32')
+    y_predict = fluid.layers.fc(input=x, size=1, act=None)
+
+    loss = fluid.layers.square_error_cost(input=y_predict, label=y)
+    avg_loss = fluid.layers.mean(loss)
+
+    return avg_loss
 ```
 
-### 创建参数
+### 定义运算场所
+我们可以定义运算是发生在CPU还是GPU
 
 ```python
-parameters = paddle.parameters.create(cost)
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
-### 创建Trainer
+### 创建训练器
+训练器会读入一个训练程序和一些必要的其他参数：
 
 ```python
-optimizer = paddle.optimizer.Momentum(momentum=0)
-
-trainer = paddle.trainer.SGD(cost=cost,
-                             parameters=parameters,
-                             update_equation=optimizer)
+trainer = fluid.Trainer(
+    train_func=train_program,
+    place=place,
+    optimizer=fluid.optimizer.SGD(learning_rate=0.001))
 ```
 
-### 读取数据且打印训练的中间信息
-
-PaddlePaddle提供一个
-[reader机制](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader)
-来读取数据。 Reader返回的数据可以包括多列，我们需要一个Python dict把列
-序号映射到网络里的数据层。
+### 开始提供数据
+PaddlePaddle提供了读取数据者发生器机制来读取训练数据。读取数据者会一次提供多列数据，因此我们需要一个Python的list来定义读取顺序。
 
 ```python
-feeding={'x': 0, 'y': 1}
+feed_order=['x', 'y']
 ```
 
-此外，我们还可以提供一个 event handler，来打印训练的进度：
+除此之外，可以定义一个事件相应器来处理类似`打印训练进程`的事件：
 
 ```python
-# event_handler to print training and testing info
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f" % (
-                event.pass_id, event.batch_id, event.cost)
+# Specify the directory path to save the parameters
+params_dirname = "fit_a_line.inference.model"
 
-    if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(
-            reader=paddle.batch(
-                uci_housing.test(), batch_size=2),
-            feeding=feeding)
-        print "Test %d, Cost %f" % (event.pass_id, result.cost)
-```
-
-```python
-# event_handler to print training and testing info
+# Plot data
 from paddle.v2.plot import Ploter
-
 train_title = "Train cost"
 test_title = "Test cost"
-cost_ploter = Ploter(train_title, test_title)
+plot_cost = Ploter(train_title, test_title)
 
 step = 0
 
+# event_handler to print training and testing info
 def event_handler_plot(event):
     global step
-    if isinstance(event, paddle.event.EndIteration):
-        if step % 10 == 0:  # every 10 batches, record a train cost
-            cost_ploter.append(train_title, step, event.cost)
+    if isinstance(event, fluid.EndStepEvent):
+        if event.step % 10 == 0: # every 10 batches, record a test cost
+            test_metrics = trainer.test(
+                reader=test_reader, feed_order=feed_order)
 
-        if step % 100 == 0: # every 100 batches, record a test cost
-            result = trainer.test(
-                reader=paddle.batch(
-                    uci_housing.test(), batch_size=2),
-                feeding=feeding)
-            cost_ploter.append(test_title, step, result.cost)
+            plot_cost.append(test_title, step, test_metrics[0])
+            plot_cost.plot()
 
-        if step % 100 == 0: # every 100 batches, update cost plot
-            cost_ploter.plot()
+            if test_metrics[0] < 10.0:
+                # If the accuracy is good enough, we can stop the training.
+                print('loss is less than 10.0, stop')
+                trainer.stop()
+
+        # We can save the trained parameters for the inferences later
+        if params_dirname is not None:
+            trainer.save_params(params_dirname)
 
         step += 1
-
-    if isinstance(event, paddle.event.EndPass):
-        if event.pass_id % 10 == 0:
-            with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-                trainer.save_parameter_to_tar(f)
 ```
 
 ### 开始训练
+我们现在可以通过调用`trainer.train()`来开始训练
 
 ```python
+%matplotlib inline
+
+# The training could take up to a few minutes.
 trainer.train(
-    reader=paddle.batch(
-        paddle.reader.shuffle(
-            uci_housing.train(), buf_size=500),
-        batch_size=2),
-    feeding=feeding,
+    reader=train_reader,
+    num_epochs=100,
     event_handler=event_handler_plot,
-    num_passes=30)
+    feed_order=feed_order)
 ```
 
 ![png](./image/train_and_test.png)
 
-### 应用模型
+## 推测
+提供一个`inference_program`和一个`params_dirname`来初始化推测器。`params_dirname`用来存储我们的参数。
 
-#### 1. 生成测试数据
+### 设定推测程序
+类似于`trainer.train`，推测器需要一个推测程序来做推测。我们可以稍加修改我们的训练程序来把预测值包含进来。
+
 
 ```python
-test_data_creator = paddle.dataset.uci_housing.test()
-test_data = []
-test_label = []
-
-for item in test_data_creator():
-    test_data.append((item[0],))
-    test_label.append(item[1])
-    if len(test_data) == 5:
-        break
+def inference_program():
+    x = fluid.layers.data(name='x', shape=[13], dtype='float32')
+    y_predict = fluid.layers.fc(input=x, size=1, act=None)
+    return y_predict
 ```
 
-#### 2. 推测 inference
+### 推测
+推测器会从`params_dirname`中读取已经训练好的模型，来对从未遇见过的数据进行推测。
 
 ```python
-# load parameters from tar file.
-# users can remove the comments and change the model name
-# with open('params_pass_20.tar', 'r') as f:
-#     parameters = paddle.parameters.Parameters.from_tar(f)
+inferencer = fluid.Inferencer(
+    infer_func=inference_program, param_path=params_dirname, place=place)
 
-probs = paddle.infer(
-    output_layer=y_predict, parameters=parameters, input=test_data)
+batch_size = 10
+tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")
 
-for i in xrange(len(probs)):
-    print "label=" + str(test_label[i][0]) + ", predict=" + str(probs[i][0])
+results = inferencer.infer({'x': tensor_x})
+print("infer results: ", results[0])
 ```
 
 ## 总结
