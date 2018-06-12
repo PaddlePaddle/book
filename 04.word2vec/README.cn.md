@@ -184,6 +184,7 @@ dream that one day <e>
 ```
 
 最后，每个输入会按其单词次在字典里的位置，转化成整数的索引序列，作为PaddlePaddle的输入。
+
 ## 编程实现
 
 本配置的模型结构如下图所示：
@@ -196,236 +197,236 @@ dream that one day <e>
 首先，加载所需要的包：
 
 ```python
+import paddle
+import paddle.fluid as fluid
+import numpy
+from functools import partial
 import math
-import paddle.v2 as paddle
+import os
+import sys
 ```
 
 然后，定义参数：
 ```python
-embsize = 32 # 词向量维度
-hiddensize = 256 # 隐层维度
-N = 5 # 训练5-Gram
-```
+EMBED_SIZE = 32  # word vector dimension
+HIDDEN_SIZE = 256  # hidden layer dimension
+N = 5  # train 5-gram
+BATCH_SIZE = 32  # batch size
 
-用于保存和加载word_dict和embedding table的函数
-```python
-# save and load word dict and embedding table
-def save_dict_and_embedding(word_dict, embeddings):
-    with open("word_dict", "w") as f:
-        for key in word_dict:
-            f.write(key + " " + str(word_dict[key]) + "\n")
-    with open("embedding_table", "w") as f:
-        numpy.savetxt(f, embeddings, delimiter=',', newline='\n')
+# can use CPU or GPU
+use_cuda = os.getenv('WITH_GPU', '0') != '0'
 
-
-def load_dict_and_embedding():
-    word_dict = dict()
-    with open("word_dict", "r") as f:
-        for line in f:
-            key, value = line.strip().split(" ")
-            word_dict[key] = int(value)
-
-    embeddings = numpy.loadtxt("embedding_table", delimiter=",")
-    return word_dict, embeddings
-```
-
-接着，定义网络结构：
-
-- 将$w_t$之前的$n-1$个词 $w_{t-n+1},...w_{t-1}$，通过$|V|\times D$的矩阵映射到D维词向量（本例中取D=32）。
-
-```python
-def wordemb(inlayer):
-    wordemb = paddle.layer.table_projection(
-        input=inlayer,
-        size=embsize,
-        param_attr=paddle.attr.Param(
-            name="_proj",
-            initial_std=0.001,
-            learning_rate=1,
-            l2_rate=0,
-            sparse_update=True))
-    return wordemb
-```
-
-- 定义输入层接受的数据类型以及名字。
-
-```python
-paddle.init(use_gpu=False, trainer_count=3) # 初始化PaddlePaddle
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
-# 每个输入层都接受整形数据，这些数据的范围是[0, dict_size)
-firstword = paddle.layer.data(
-    name="firstw", type=paddle.data_type.integer_value(dict_size))
-secondword = paddle.layer.data(
-    name="secondw", type=paddle.data_type.integer_value(dict_size))
-thirdword = paddle.layer.data(
-    name="thirdw", type=paddle.data_type.integer_value(dict_size))
-fourthword = paddle.layer.data(
-    name="fourthw", type=paddle.data_type.integer_value(dict_size))
-nextword = paddle.layer.data(
-    name="fifthw", type=paddle.data_type.integer_value(dict_size))
-
-Efirst = wordemb(firstword)
-Esecond = wordemb(secondword)
-Ethird = wordemb(thirdword)
-Efourth = wordemb(fourthword)
 ```
 
-- 将这n-1个词向量经过concat_layer连接成一个大向量作为历史文本特征。
+不同于之前的PaddlePaddle v2版本，在新的Fluid版本里，我们不必再手动计算词向量。PaddlePaddle提供了一个内置的方法`fluid.layers.embedding`，我们就可以直接用它来构造 N-gram 神经网络。
+
+- 我们来定义我们的 N-gram 神经网络结构。这个结构在训练和预测中都会使用到。因为词向量比较稀疏，我们传入参数 `is_sparse == True`, 可以加速稀疏矩阵的更新。
 
 ```python
-contextemb = paddle.layer.concat(input=[Efirst, Esecond, Ethird, Efourth])
+def inference_program(is_sparse):
+    first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
+    second_word = fluid.layers.data(name='secondw', shape=[1], dtype='int64')
+    third_word = fluid.layers.data(name='thirdw', shape=[1], dtype='int64')
+    fourth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
+
+    embed_first = fluid.layers.embedding(
+        input=first_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+    embed_second = fluid.layers.embedding(
+        input=second_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+    embed_third = fluid.layers.embedding(
+        input=third_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+    embed_fourth = fluid.layers.embedding(
+        input=fourth_word,
+        size=[dict_size, EMBED_SIZE],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr='shared_w')
+
+    concat_embed = fluid.layers.concat(
+        input=[embed_first, embed_second, embed_third, embed_fourth], axis=1)
+    hidden1 = fluid.layers.fc(input=concat_embed,
+                              size=HIDDEN_SIZE,
+                              act='sigmoid')
+    predict_word = fluid.layers.fc(input=hidden1, size=dict_size, act='softmax')
+    return predict_word
 ```
 
-- 将历史文本特征经过一个全连接得到文本隐层特征。
+- 基于以上的神经网络结构，我们可以如下定义我们的`训练`方法
 
 ```python
-hidden1 = paddle.layer.fc(input=contextemb,
-                          size=hiddensize,
-                          act=paddle.activation.Sigmoid(),
-                          layer_attr=paddle.attr.Extra(drop_rate=0.5),
-                          bias_attr=paddle.attr.Param(learning_rate=2),
-                          param_attr=paddle.attr.Param(
-                                initial_std=1. / math.sqrt(embsize * 8),
-                                learning_rate=1))
+def train_program(is_sparse):
+    # The declaration of 'next_word' must be after the invoking of inference_program,
+    # or the data input order of train program would be [next_word, firstw, secondw,
+    # thirdw, fourthw], which is not correct.
+    predict_word = inference_program(is_sparse)
+    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
+    avg_cost = fluid.layers.mean(cost)
+    return avg_cost
 ```
 
-- 将文本隐层特征，再经过一个全连接，映射成一个$|V|$维向量，同时通过softmax归一化得到这`|V|`个词的生成概率。
+- 现在我们可以开始训练啦。如今的版本较之以前就简单了许多。我们有现成的训练和测试集：`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`。两者都会返回一个读取器。在PaddlePaddle中，读取器是一个Python的函数，每次调用，会读取下一条数据。它是一个Python的generator。
+
+`paddle.batch` 会读入一个读取器，然后输出一个批次化了的读取器。`event_handler`亦可以一并传入`trainer.train`来时不时的输出每个步骤，批次的训练情况。
 
 ```python
-predictword = paddle.layer.fc(input=hidden1,
-                              size=dict_size,
-                              bias_attr=paddle.attr.Param(learning_rate=2),
-                              act=paddle.activation.Softmax())
+def optimizer_func():
+    # Note here we need to choose more sophisticated optimizers
+    # such as AdaGrad with a decay rate. The normal SGD converges
+    # very slowly.
+    # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
+    return fluid.optimizer.AdagradOptimizer(
+        learning_rate=3e-3,
+        regularization=fluid.regularizer.L2DecayRegularizer(8e-4))
+
+
+def train(use_cuda, train_program, params_dirname):
+    train_reader = paddle.batch(
+        paddle.dataset.imikolov.train(word_dict, N), BATCH_SIZE)
+    test_reader = paddle.batch(
+        paddle.dataset.imikolov.test(word_dict, N), BATCH_SIZE)
+
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+
+    def event_handler(event):
+        if isinstance(event, fluid.EndStepEvent):
+            # We output cost every 10 steps.
+            if event.step % 10 == 0:
+                outs = trainer.test(
+                    reader=test_reader,
+                    feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
+                avg_cost = outs[0]
+
+                print "Step %d: Average Cost %f" % (event.step, avg_cost)
+
+                # If average cost is lower than 5.8, we consider the model good enough to stop.
+                # Note 5.8 is a relatively high value. In order to get a better model, one should
+                # aim for avg_cost lower than 3.5. But the training could take longer time.
+                if avg_cost < 5.8:
+                    trainer.save_params(params_dirname)
+                    trainer.stop()
+
+                if math.isnan(avg_cost):
+                    sys.exit("got NaN loss, training failed.")
+
+    trainer = fluid.Trainer(
+        train_func=train_program,
+        optimizer_func=optimizer_func,
+        place=place)
+
+    trainer.train(
+        reader=train_reader,
+        num_epochs=1,
+        event_handler=event_handler,
+        feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
 ```
 
-- 网络的损失函数为多分类交叉熵，可直接调用`classification_cost`函数。
+- `trainer.train`将会开始训练。从`event_handler`返回的监控情况如下：
 
 ```python
-cost = paddle.layer.classification_cost(input=predictword, label=nextword)
-```
-
-然后，指定训练相关的参数：
-
-- 训练方法（optimizer)： 代表训练过程在更新权重时采用动量优化器，本教程使用Adam优化器。
-- 训练速度（learning_rate）： 迭代的速度，与网络的训练收敛速度有关系。
-- 正则化（regularization）： 是防止网络过拟合的一种手段，此处采用L2正则化。
-
-```python
-parameters = paddle.parameters.create(cost)
-adagrad = paddle.optimizer.AdaGrad(
-    learning_rate=3e-3,
-    regularization=paddle.optimizer.L2Regularization(8e-4))
-trainer = paddle.trainer.SGD(cost, parameters, adagrad)
-```
-
-下一步，我们开始训练过程。`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`分别做训练和测试数据集。这两个函数各自返回一个reader——PaddlePaddle中的reader是一个Python函数，每次调用的时候返回一个Python generator。
-
-`paddle.batch`的输入是一个reader，输出是一个batched reader —— 在PaddlePaddle里，一个reader每次yield一条训练数据，而一个batched reader每次yield一个minbatch。
-
-```python
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d, Batch %d, Cost %f, %s" % (
-                event.pass_id, event.batch_id, event.cost, event.metrics)
-
-    if isinstance(event, paddle.event.EndPass):
-        result = trainer.test(
-                    paddle.batch(
-                        paddle.dataset.imikolov.test(word_dict, N), 32))
-        print "Pass %d, Testing metrics %s" % (event.pass_id, result.metrics)
-        with open("model_%d.tar"%event.pass_id, 'w') as f:
-            trainer.save_parameter_to_tar(f)
-
-trainer.train(
-    paddle.batch(paddle.dataset.imikolov.train(word_dict, N), 32),
-    num_passes=100,
-    event_handler=event_handler)
-```
-
-```text
-Pass 0, Batch 0, Cost 7.870579, {'classification_error_evaluator': 1.0}, Testing metrics {'classification_error_evaluator': 0.999591588973999}
-Pass 0, Batch 100, Cost 6.136420, {'classification_error_evaluator': 0.84375}, Testing metrics {'classification_error_evaluator': 0.8328699469566345}
-Pass 0, Batch 200, Cost 5.786797, {'classification_error_evaluator': 0.8125}, Testing metrics {'classification_error_evaluator': 0.8328542709350586}
+Step 0: Average Cost 7.337213
+Step 10: Average Cost 6.136128
+Step 20: Average Cost 5.766995
 ...
 ```
 
-训练过程是完全自动的，event_handler里打印的日志类似如上所示：
+## 模型应用
+在模型训练后，我们可以用它做一些预测。
 
-经过30个pass，我们将得到平均错误率为classification_error_evaluator=0.735611。
-
-## 保存词典和embedding
-
-训练完成之后，我们可以把词典和embedding table单独保存下来，后面可以直接使用
+### 预测下一个词
+我们可以用我们训练过的模型，在得知之前的 N-gram 后，预测下一个词。
 
 ```python
-# save word dict and embedding table
-embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
-save_dict_and_embedding(word_dict, embeddings)
+def infer(use_cuda, inference_program, params_dirname=None):
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    inferencer = fluid.Inferencer(
+        infer_func=inference_program, param_path=params_dirname, place=place)
+
+    # Setup inputs by creating 4 LoDTensors representing 4 words. Here each word
+    # is simply an index to look up for the corresponding word vector and hence
+    # the shape of word (base_shape) should be [1]. The length-based level of
+    # detail (lod) info of each LoDtensor should be [[1]] meaning there is only
+    # one lod_level and there is only one sequence of one word on this level.
+    # Note that lod info should be a list of lists.
+
+    data1 = [[211]]  # 'among'
+    data2 = [[6]]    # 'a'
+    data3 = [[96]]   # 'group'
+    data4 = [[4]]    # 'of'
+    lod = [[1]]
+
+    first_word  = fluid.create_lod_tensor(data1, lod, place)
+    second_word = fluid.create_lod_tensor(data2, lod, place)
+    third_word  = fluid.create_lod_tensor(data3, lod, place)
+    fourth_word = fluid.create_lod_tensor(data4, lod, place)
+
+    result = inferencer.infer(
+        {
+            'firstw': first_word,
+            'secondw': second_word,
+            'thirdw': third_word,
+            'fourthw': fourth_word
+        },
+        return_numpy=False)
+
+    print(numpy.array(result[0]))
+    most_possible_word_index = numpy.argmax(result[0])
+    print(most_possible_word_index)
+    print([
+        key for key, value in word_dict.iteritems()
+        if value == most_possible_word_index
+    ][0])
 ```
 
-
-## 应用模型
-训练模型后，我们可以加载模型参数，用训练出来的词向量初始化其他模型，也可以将模型查看参数用来做后续应用。
-
-
-### 查看词向量
-
-PaddlePaddle训练出来的参数可以直接使用`parameters.get()`获取出来。例如查看单词`apple`的词向量，即为
-
-
-```python
-embeddings = parameters.get("_proj").reshape(len(word_dict), embsize)
-
-print embeddings[word_dict['apple']]
-```
-
-```text
-[-0.38961065 -0.02392169 -0.00093231  0.36301503  0.13538605  0.16076435
--0.0678709   0.1090285   0.42014077 -0.24119169 -0.31847557  0.20410083
-0.04910378  0.19021918 -0.0122014  -0.04099389 -0.16924137  0.1911236
--0.10917275  0.13068172 -0.23079982  0.42699069 -0.27679482 -0.01472992
-0.2069038   0.09005053 -0.3282454   0.12717034 -0.24218646  0.25304323
-0.19072419 -0.24286366]
-```
-
-
-### 修改词向量
-
-获得到的embedding为一个标准的numpy矩阵。我们可以对这个numpy矩阵进行修改，然后赋值回去。
-
-
-```python
-def modify_embedding(emb):
-    # Add your modification here.
-    pass
-
-modify_embedding(embeddings)
-parameters.set("_proj", embeddings)
-```
-
-### 计算词语之间的余弦距离
-
-两个向量之间的距离可以用余弦值来表示，余弦值在$[-1,1]$的区间内，向量间余弦值越大，其距离越近。这里我们在`calculate_dis.py`中实现不同词语的距离度量。
-用法如下：
+在经历3分钟的短暂训练后，我们得到如下的预测。我们的模型预测 `among a group of` 的下一个词是`a`。这比较符合文法规律。如果我们训练时间更长，比如几个小时，那么我们会得到的下一个预测是 `workers`。
 
 
 ```python
-from scipy import spatial
-
-emb_1 = embeddings[word_dict['world']]
-emb_2 = embeddings[word_dict['would']]
-
-print spatial.distance.cosine(emb_1, emb_2)
+[[0.00106646 0.0007907  0.00072041 ... 0.00049024 0.00041355 0.00084464]]
+6
+a
 ```
 
-```text
-0.99375076448
+整个程序的入口很简单：
+
+```python
+def main(use_cuda, is_sparse):
+    if use_cuda and not fluid.core.is_compiled_with_cuda():
+        return
+
+    params_dirname = "word2vec.inference.model"
+
+    train(
+        use_cuda=use_cuda,
+        train_program=partial(train_program, is_sparse),
+        params_dirname=params_dirname)
+
+    infer(
+        use_cuda=use_cuda,
+        inference_program=partial(inference_program, is_sparse),
+        params_dirname=params_dirname)
+
+
+main(use_cuda=use_cuda, is_sparse=True)
 ```
+
 
 ## 总结
-本章中，我们介绍了词向量、语言模型和词向量的关系、以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据向量间的余弦夹角，来判断query和文档关键词这二者间的相关性。在句法分析和语义分析中，训练好的词向量可以用来初始化模型，以得到更好的效果。在文档分类中，有了词向量之后，可以用聚类的方法将文档中同义词进行分组。希望大家在本章后能够自行运用词向量进行相关领域的研究。
+本章中，我们介绍了词向量、语言模型和词向量的关系、以及如何通过训练神经网络模型获得词向量。在信息检索中，我们可以根据向量间的余弦夹角，来判断query和文档关键词这二者间的相关性。在句法分析和语义分析中，训练好的词向量可以用来初始化模型，以得到更好的效果。在文档分类中，有了词向量之后，可以用聚类的方法将文档中同义词进行分组，也可以用 N-gram 来预测下一个词。希望大家在本章后能够自行运用词向量进行相关领域的研究。
 
 
 ## 参考文献
