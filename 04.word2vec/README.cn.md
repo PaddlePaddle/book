@@ -222,7 +222,7 @@ dict_size = len(word_dict)
 
 不同于之前的PaddlePaddle v2版本，在新的Fluid版本里，我们不必再手动计算词向量。PaddlePaddle提供了一个内置的方法`fluid.layers.embedding`，我们就可以直接用它来构造 N-gram 神经网络。
 
-- 我们来定义我们的 N-gram 神经网络结构。这个结构在训练和预测中都会使用到。
+- 我们来定义我们的 N-gram 神经网络结构。这个结构在训练和预测中都会使用到。因为词向量比较稀疏，我们传入参数 `is_sparse == True`, 可以加速稀疏矩阵的更新。
 
 ```python
 def inference_program(is_sparse):
@@ -279,12 +279,16 @@ def train_program(is_sparse):
     return avg_cost
 ```
 
-- 现在我可以开始训练啦。如今的版本较之以前就简单了许多。我们有现成的训练和测试集：`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`。两者都会返回一个读取器。在PaddlePaddle中，读取器是一个Python的函数，每次调用，会读取下一条数据。它是一个Python的generator。
+- 现在我们可以开始训练啦。如今的版本较之以前就简单了许多。我们有现成的训练和测试集：`paddle.dataset.imikolov.train()`和`paddle.dataset.imikolov.test()`。两者都会返回一个读取器。在PaddlePaddle中，读取器是一个Python的函数，每次调用，会读取下一条数据。它是一个Python的generator。
 
 `paddle.batch` 会读入一个读取器，然后输出一个批次化了的读取器。`event_handler`亦可以一并传入`trainer.train`来时不时的输出每个步骤，批次的训练情况。
 
 ```python
 def optimizer_func():
+    # Note here we need to choose more sophisticated optimizers
+    # such as AdaGrad with a decay rate. The normal SGD converges
+    # very slowly.
+    # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
     return fluid.optimizer.AdagradOptimizer(
         learning_rate=3e-3,
         regularization=fluid.regularizer.L2DecayRegularizer(8e-4))
@@ -300,31 +304,27 @@ def train(use_cuda, train_program, params_dirname):
 
     def event_handler(event):
         if isinstance(event, fluid.EndStepEvent):
-            outs = trainer.test(
-                reader=test_reader,
-                feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
-            avg_cost = outs[0]
-
             # We output cost every 10 steps.
             if event.step % 10 == 0:
+                outs = trainer.test(
+                    reader=test_reader,
+                    feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
+                avg_cost = outs[0]
+
                 print "Step %d: Average Cost %f" % (event.step, avg_cost)
 
-            # If average cost is lower than 5.8, we consider the model good enough to stop.
-            # Note 5.8 is a relatively high value. In order to get a better model, one should
-            # aim for avg_cost lower than 3.5. But the training could take longer time.
-            if avg_cost < 5.8:
-                trainer.save_params(params_dirname)
-                trainer.stop()
+                # If average cost is lower than 5.8, we consider the model good enough to stop.
+                # Note 5.8 is a relatively high value. In order to get a better model, one should
+                # aim for avg_cost lower than 3.5. But the training could take longer time.
+                if avg_cost < 5.8:
+                    trainer.save_params(params_dirname)
+                    trainer.stop()
 
-            if math.isnan(avg_cost):
-                sys.exit("got NaN loss, training failed.")
+                if math.isnan(avg_cost):
+                    sys.exit("got NaN loss, training failed.")
 
     trainer = fluid.Trainer(
         train_func=train_program,
-        # Note here we need to choose more sophisticated optimizer
-        # such as AdaGrad with a decay rate. The normal SGD converges
-        # very slowly.
-        # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
         optimizer_func=optimizer_func,
         place=place)
 

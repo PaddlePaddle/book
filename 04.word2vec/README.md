@@ -241,7 +241,8 @@ dict_size = len(word_dict)
 
 Unlike from the previous PaddlePaddle v2, in the new API (Fluid), we do not need to calculate word embedding ourselves. PaddlePaddle provides a built-in method `fluid.layers.embedding` and we can use it directly to build our N-gram neural network model.
 
-- We define our N-gram neural network structure as below. This structure will be used both in `train` and in `infer`
+- We define our N-gram neural network structure as below. This structure will be used both in `train` and in `infer`. We can specify `is_sparse = True` to accelerate sparse matrix update for word embedding.
+
 ```python
 def inference_program(is_sparse):
     first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
