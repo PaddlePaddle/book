@@ -25,6 +25,7 @@ EMB_DIM = 128
 HID_DIM = 512
 STACKED_NUM = 3
 BATCH_SIZE = 128
+USE_GPU = False
 
 
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):

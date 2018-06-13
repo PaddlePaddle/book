@@ -24,6 +24,7 @@ CLASS_DIM = 2
 EMB_DIM = 128
 BATCH_SIZE = 128
 LSTM_SIZE = 128
+USE_GPU = False
 
 
 def dynamic_rnn_lstm(data, input_dim, class_dim, emb_dim, lstm_size):
