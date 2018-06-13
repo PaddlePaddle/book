@@ -14,6 +14,7 @@
 
 from __future__ import print_function
 
+import os
 import paddle
 import paddle.fluid as fluid
 from functools import partial
@@ -68,50 +69,50 @@ def optimizer_func():
 
 
 def train(use_cuda, train_program, params_dirname):
+    import time
+
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-
+    print("Loading IMDB word dict....")
     word_dict = paddle.dataset.imdb.word_dict()
-    trainer = fluid.Trainer(
-        train_func=partial(train_program, word_dict),
-        place=place,
-        optimizer_func=optimizer_func)
 
-    def event_handler(event):
-        if isinstance(event, fluid.EndEpochEvent):
-            test_reader = paddle.batch(
-                paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
-            avg_cost, acc = trainer.test(
-                reader=test_reader, feed_order=['words', 'label'])
-
-            print("avg_cost: %s" % avg_cost)
-            print("acc     : %s" % acc)
-
-            if acc > 0.2:  # Smaller value to increase CI speed
-                trainer.save_params(params_dirname)
-                trainer.stop()
-
-            else:
-                print('BatchID {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
-                    event.epoch + 1, avg_cost, acc))
-                if math.isnan(avg_cost):
-                    sys.exit("got NaN loss, training failed.")
-        elif isinstance(event, fluid.EndStepEvent):
-            print("Step {0}, Epoch {1} Metrics {2}".format(
-                event.step, event.epoch, map(np.array, event.metrics)))
-            if event.step == 1:  # Run 2 iterations to speed CI
-                trainer.save_params(params_dirname)
-                trainer.stop()
+    print("Reading training data....")
 
     train_reader = paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.imdb.train(word_dict), buf_size=25000),
         batch_size=BATCH_SIZE)
 
+    print("Reading testing data....")
+    test_reader = paddle.batch(
+        paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
+
+    trainer = fluid.Trainer(
+        train_func=partial(train_program, word_dict),
+        place=place,
+        optimizer_func=optimizer_func)
+
+    feed_order = ['words', 'label']
+
+    def event_handler(event):
+        if isinstance(event, fluid.EndStepEvent):
+            avg_cost, acc = trainer.test(
+                reader=test_reader, feed_order=feed_order)
+
+            print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
+                event.step, avg_cost, acc))
+
+            print("Step {0}, Epoch {1} Metrics {2}".format(
+                event.step, event.epoch, map(np.array, event.metrics)))
+
+            if event.step == 10:  # Adjust this number for accuracy
+                trainer.save_params(params_dirname)
+                trainer.stop()
+
     trainer.train(
         num_epochs=1,
         event_handler=event_handler,
         reader=train_reader,
-        feed_order=['words', 'label'])
+        feed_order=feed_order)
 
 
 def infer(use_cuda, inference_program, params_dirname=None):
@@ -151,5 +152,5 @@ def main(use_cuda):
 
 
 if __name__ == '__main__':
-    for use_cuda in (False, True):
-        main(use_cuda=use_cuda)
+    use_cuda = os.getenv('WITH_GPU', '0') != '0'
+    main(use_cuda)

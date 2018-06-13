@@ -14,6 +14,7 @@
 
 from __future__ import print_function
 
+import os
 import paddle
 import paddle.fluid as fluid
 from functools import partial
@@ -167,5 +168,5 @@ def main(use_cuda):
 
 
 if __name__ == '__main__':
-    for use_cuda in (False, True):
-        main(use_cuda=use_cuda)
+    use_cuda = os.getenv('WITH_GPU', '0') != '0'
+    main(use_cuda)
