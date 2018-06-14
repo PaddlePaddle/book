@@ -87,49 +87,46 @@ def optimizer_func():
 
 def train(use_cuda, train_program, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-
+    print("Loading IMDB word dict....")
     word_dict = paddle.dataset.imdb.word_dict()
-    trainer = fluid.Trainer(
-        train_func=partial(train_program, word_dict),
-        place=place,
-        optimizer_func=optimizer_func)
 
-    def event_handler(event):
-        if isinstance(event, fluid.EndEpochEvent):
-            test_reader = paddle.batch(
-                paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
-            avg_cost, acc = trainer.test(
-                reader=test_reader, feed_order=['words', 'label'])
-
-            print("avg_cost: %s" % avg_cost)
-            print("acc     : %s" % acc)
-
-            if acc > 0.2:  # Smaller value to increase CI speed
-                trainer.save_params(params_dirname)
-                trainer.stop()
-
-            else:
-                print('BatchID {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
-                    event.epoch + 1, avg_cost, acc))
-                if math.isnan(avg_cost):
-                    sys.exit("got NaN loss, training failed.")
-        elif isinstance(event, fluid.EndStepEvent):
-            print("Step {0}, Epoch {1} Metrics {2}".format(
-                event.step, event.epoch, map(np.array, event.metrics)))
-            if event.step == 1:  # Run 2 iterations to speed CI
-                trainer.save_params(params_dirname)
-                trainer.stop()
-
+    print("Reading training data....")
     train_reader = paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.imdb.train(word_dict), buf_size=25000),
         batch_size=BATCH_SIZE)
 
+    print("Reading testing data....")
+    test_reader = paddle.batch(
+        paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
+
+    trainer = fluid.Trainer(
+        train_func=partial(train_program, word_dict),
+        place=place,
+        optimizer_func=optimizer_func)
+
+    feed_order = ['words', 'label']
+
+    def event_handler(event):
+        if isinstance(event, fluid.EndStepEvent):
+            if event.step % 10 == 0:
+                avg_cost, acc = trainer.test(
+                    reader=test_reader, feed_order=feed_order)
+
+                print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
+                    event.step, avg_cost, acc))
+
+                print("Step {0}, Epoch {1} Metrics {2}".format(
+                    event.step, event.epoch, map(np.array, event.metrics)))
+
+        elif isinstance(event, fluid.EndEpochEvent):
+            trainer.save_params(params_dirname)
+
     trainer.train(
         num_epochs=1,
         event_handler=event_handler,
         reader=train_reader,
-        feed_order=['words', 'label'])
+        feed_order=feed_order)
 
 
 def infer(use_cuda, inference_program, params_dirname=None):
@@ -151,13 +148,26 @@ def infer(use_cuda, inference_program, params_dirname=None):
     # element (word). Hence the LoDTensor will hold data for three sentences of 
     # length 3, 4 and 2, respectively. 
     # Note that lod info should be a list of lists.
-    lod = [[3, 4, 2]]
-    base_shape = [1]
-    # The range of random integers is [low, high]
-    tensor_words = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=len(word_dict) - 1)
+
+    reviews_str = [
+        'read the book forget the movie', 'this is a great movie',
+        'this is very bad'
+    ]
+    reviews = [c.split() for c in reviews_str]
+
+    UNK = word_dict['<unk>']
+    lod = []
+    for c in reviews:
+        lod.append([word_dict.get(words, UNK) for words in c])
+
+    base_shape = [[len(c) for c in lod]]
+
+    tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
     results = inferencer.infer({'words': tensor_words})
-    print("infer results: ", results)
+
+    for i, r in enumerate(results[0]):
+        print("Predict probability of ", r[0], " to be positive and ", r[1],
+              " to be negative for review \'", reviews_str[i], "\'")
 
 
 def main(use_cuda):

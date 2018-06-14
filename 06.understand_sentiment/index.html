@@ -225,7 +225,7 @@ The above stacked bidirectional LSTM network extracts high-level features and ma
 
 To reiterate, we can either invoke `convolution_net` or `stacked_lstm_net`. In below steps, we will go with `convolution_net`.
 
-Next we define a `inference_program` that simply uses `convolution_net` to predict output with the input from `fluid.layer.data`.
+Next we define an `inference_program` that simply uses `convolution_net` to predict output with the input from `fluid.layer.data`.
 
 ```python
 def inference_program(word_dict):
@@ -242,6 +242,7 @@ Also define `optimizer_func` to specify the optimizer.
 
 
 In the context of supervised learning, labels of the training set are defined in `paddle.layer.data` too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
+First result that returns from the list must be cost.
 
 ```python
 def train_program(word_dict):
@@ -351,18 +352,38 @@ inferencer = fluid.Inferencer(
         place=place)
 ```
 
-### Infer
+### Create Lod Tensor with test data
 
-Now we can infer with inputs that we provide in `feed_order` during training.
+To do inference, we pick 3 potential reviews out of our mind as testing data. Feel free to modify any of them.
+We map each word in the reviews to id from `word_dict`, replaced by 'unknown' if the word is not in `word_dict`.
+Then we create lod data with the id list and use `create_lod_tensor` to create lod tensor.
 
 ```python
-lod = [[3, 4, 2]]
-base_shape = [1]
-# The range of random integers is [low, high]
-tensor_words = fluid.create_random_int_lodtensor(
-    lod, base_shape, place, low=0, high=len(word_dict) - 1)
+reviews_str = [
+    'read the book forget the movie', 'this is a great movie', 'this is very bad'
+]
+reviews = [c.split() for c in reviews_str]
+
+UNK = word_dict['<unk>']
+lod = []
+for c in reviews:
+    lod.append([word_dict.get(words, UNK) for words in c])
+
+base_shape = [[len(c) for c in lod]]
+
+tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
+```
+
+### Infer
+
+Now we can infer and predict probability of positive or negative from each review above.
+
+```python
 results = inferencer.infer({'words': tensor_words})
-print("infer results: ", results)
+
+for i, r in enumerate(results[0]):
+    print("Predict probability of ", r[0], " to be positive and ", r[1], " to be negative for review \'", reviews_str[i], "\'")
+
 
 ```
 

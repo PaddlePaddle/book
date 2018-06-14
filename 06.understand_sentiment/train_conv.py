@@ -69,14 +69,11 @@ def optimizer_func():
 
 
 def train(use_cuda, train_program, params_dirname):
-    import time
-
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
     print("Loading IMDB word dict....")
     word_dict = paddle.dataset.imdb.word_dict()
 
     print("Reading training data....")
-
     train_reader = paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.imdb.train(word_dict), buf_size=25000),
@@ -95,18 +92,18 @@ def train(use_cuda, train_program, params_dirname):
 
     def event_handler(event):
         if isinstance(event, fluid.EndStepEvent):
-            avg_cost, acc = trainer.test(
-                reader=test_reader, feed_order=feed_order)
+            if event.step % 10 == 0:
+                avg_cost, acc = trainer.test(
+                    reader=test_reader, feed_order=feed_order)
 
-            print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
-                event.step, avg_cost, acc))
+                print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
+                    event.step, avg_cost, acc))
 
-            print("Step {0}, Epoch {1} Metrics {2}".format(
-                event.step, event.epoch, map(np.array, event.metrics)))
+                print("Step {0}, Epoch {1} Metrics {2}".format(
+                    event.step, event.epoch, map(np.array, event.metrics)))
 
-            if event.step == 10:  # Adjust this number for accuracy
-                trainer.save_params(params_dirname)
-                trainer.stop()
+        elif isinstance(event, fluid.EndEpochEvent):
+            trainer.save_params(params_dirname)
 
     trainer.train(
         num_epochs=1,
@@ -134,13 +131,26 @@ def infer(use_cuda, inference_program, params_dirname=None):
     # element (word). Hence the LoDTensor will hold data for three sentences of 
     # length 3, 4 and 2, respectively. 
     # Note that lod info should be a list of lists.
-    lod = [[3, 4, 2]]
-    base_shape = [1]
-    # The range of random integers is [low, high]
-    tensor_words = fluid.create_random_int_lodtensor(
-        lod, base_shape, place, low=0, high=len(word_dict) - 1)
+
+    reviews_str = [
+        'read the book forget the movie', 'this is a great movie',
+        'this is very bad'
+    ]
+    reviews = [c.split() for c in reviews_str]
+
+    UNK = word_dict['<unk>']
+    lod = []
+    for c in reviews:
+        lod.append([word_dict.get(words, UNK) for words in c])
+
+    base_shape = [[len(c) for c in lod]]
+
+    tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
     results = inferencer.infer({'words': tensor_words})
-    print("infer results: ", results)
+
+    for i, r in enumerate(results[0]):
+        print("Predict probability of ", r[0], " to be positive and ", r[1],
+              " to be negative for review \'", reviews_str[i], "\'")
 
 
 def main(use_cuda):
