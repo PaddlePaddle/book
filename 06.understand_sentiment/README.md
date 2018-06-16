@@ -98,18 +98,21 @@ We use [IMDB](http://ai.stanford.edu/%7Eamaas/data/sentiment/) dataset for senti
 After issuing a command `python train.py`, training will start immediately. The details will be unpacked by the following sessions to see how it works.
 
 
-## Model Structure
+## Model Configuration
 
-### Initialize PaddlePaddle
-
-We must import and initialize PaddlePaddle (enable/disable GPU, set the number of trainers, etc).
+Our program starts with importing necessary packages and initializing some global variables:
 
 ```python
-import sys
-import paddle.v2 as paddle
+import paddle
+import paddle.fluid as fluid
+from functools import partial
+import numpy as np
 
-# PaddlePaddle init
-paddle.init(use_gpu=False, trainer_count=1)
+CLASS_DIM = 2
+EMB_DIM = 128
+HID_DIM = 512
+BATCH_SIZE = 128
+USE_GPU = False
 ```
 
 As alluded to in section [Model Overview](#model-overview), here we provide the implementations of both Text CNN and Stacked-bidirectional LSTM models.
@@ -118,212 +121,229 @@ As alluded to in section [Model Overview](#model-overview), here we provide the 
 
 We create a neural network `convolution_net` as the following snippet code.
 
-Note: `paddle.networks.sequence_conv_pool` includes both convolution and pooling layer operations.
+Note: `fluid.nets.sequence_conv_pool` includes both convolution and pooling layer operations.
 
 ```python
-def convolution_net(input_dim, class_dim=2, emb_dim=128, hid_dim=128):
-    data = paddle.layer.data("word",
-                             paddle.data_type.integer_value_sequence(input_dim))
-    emb = paddle.layer.embedding(input=data, size=emb_dim)
-    conv_3 = paddle.networks.sequence_conv_pool(
-        input=emb, context_len=3, hidden_size=hid_dim)
-    conv_4 = paddle.networks.sequence_conv_pool(
-        input=emb, context_len=4, hidden_size=hid_dim)
-    output = paddle.layer.fc(input=[conv_3, conv_4],
-                             size=class_dim,
-                             act=paddle.activation.Softmax())
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost, output
+def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
+    conv_3 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=3,
+        act="tanh",
+        pool_type="sqrt")
+    conv_4 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=4,
+        act="tanh",
+        pool_type="sqrt")
+    prediction = fluid.layers.fc(
+        input=[conv_3, conv_4], size=class_dim, act="softmax")
+    return prediction
+
 ```
+Parameter `input_dim` denotes the dictionary size, and `class_dim` is the number of categories.
 
-1. Define input data and its dimension
+The above Text CNN network extracts high-level features and maps them to a vector of the same size as the categories. `paddle.activation.Softmax` function or classifier is then used for calculating the probability of the sentence belonging to each category.
 
-    Parameter `input_dim` denotes the dictionary size, and `class_dim` is the number of categories. In `convolution_net`, the input to the network is defined in `paddle.layer.data`.
 
-1. Define Classifier
-
-    The above Text CNN network extracts high-level features and maps them to a vector of the same size as the categories. `paddle.activation.Softmax` function or classifier is then used for calculating the probability of the sentence belonging to each category.
-
-1. Define Loss Function
-
-    In the context of supervised learning, labels of the training set are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
-
-#### Stacked bidirectional LSTM
+### Stacked bidirectional LSTM
 
 We create a neural network `stacked_lstm_net` as below.
 
 ```python
-def stacked_lstm_net(input_dim,
-                     class_dim=2,
-                     emb_dim=128,
-                     hid_dim=512,
-                     stacked_num=3):
-    """
-    A Wrapper for sentiment classification task.
-    This network uses a bi-directional recurrent network,
-    consisting of three LSTM layers. This configuration is
-    motivated from the following paper, but uses few layers.
-        http://www.aclweb.org/anthology/P15-1109
-    input_dim: here is word dictionary dimension.
-    class_dim: number of categories.
-    emb_dim: dimension of word embedding.
-    hid_dim: dimension of hidden layer.
-    stacked_num: number of stacked lstm-hidden layer.
-    """
-    assert stacked_num % 2 == 1
+def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
-    fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
-    lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
-    para_attr = [fc_para_attr, lstm_para_attr]
-    bias_attr = paddle.attr.Param(initial_std=0., l2_rate=0.)
-    relu = paddle.activation.Relu()
-    linear = paddle.activation.Linear()
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
 
-    data = paddle.layer.data("word",
-                             paddle.data_type.integer_value_sequence(input_dim))
-    emb = paddle.layer.embedding(input=data, size=emb_dim)
-
-    fc1 = paddle.layer.fc(input=emb,
-                          size=hid_dim,
-                          act=linear,
-                          bias_attr=bias_attr)
-    lstm1 = paddle.layer.lstmemory(
-        input=fc1, act=relu, bias_attr=bias_attr)
+    fc1 = fluid.layers.fc(input=emb, size=hid_dim)
+    lstm1, cell1 = fluid.layers.dynamic_lstm(input=fc1, size=hid_dim)
 
     inputs = [fc1, lstm1]
+
     for i in range(2, stacked_num + 1):
-        fc = paddle.layer.fc(input=inputs,
-                             size=hid_dim,
-                             act=linear,
-                             param_attr=para_attr,
-                             bias_attr=bias_attr)
-        lstm = paddle.layer.lstmemory(
-            input=fc,
-            reverse=(i % 2) == 0,
-            act=relu,
-            bias_attr=bias_attr)
+        fc = fluid.layers.fc(input=inputs, size=hid_dim)
+        lstm, cell = fluid.layers.dynamic_lstm(
+            input=fc, size=hid_dim, is_reverse=(i % 2) == 0)
         inputs = [fc, lstm]
 
-    fc_last = paddle.layer.pooling(
-        input=inputs[0], pooling_type=paddle.pooling.Max())
-    lstm_last = paddle.layer.pooling(
-        input=inputs[1], pooling_type=paddle.pooling.Max())
-    output = paddle.layer.fc(input=[fc_last, lstm_last],
-                             size=class_dim,
-                             act=paddle.activation.Softmax(),
-                             bias_attr=bias_attr,
-                             param_attr=para_attr)
+    fc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
+    lstm_last = fluid.layers.sequence_pool(input=inputs[1], pool_type='max')
 
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost, output
+    prediction = fluid.layers.fc(input=[fc_last, lstm_last],
+                                 size=class_dim,
+                                 act='softmax')
+    return prediction
+
 ```
+The above stacked bidirectional LSTM network extracts high-level features and maps them to a vector of the same size as the categories. `paddle.activation.Softmax` function or classifier is then used for calculating the probability of the sentence belonging to each category.
 
-1. Define input data and its dimension
+To reiterate, we can either invoke `convolution_net` or `stacked_lstm_net`. In below steps, we will go with `convolution_net`.
 
-    Parameter `input_dim` denotes the dictionary size, and `class_dim` is the number of categories. In `stacked_lstm_net`, the input to the network is defined in `paddle.layer.data`.
-
-1. Define Classifier
-
-    The above stacked bidirectional LSTM network extracts high-level features and maps them to a vector of the same size as the categories. `paddle.activation.Softmax` function or classifier is then used for calculating the probability of the sentence belonging to each category.
-
-1. Define Loss Function
-
-    In the context of supervised learning, labels of the training set are defined in `paddle.layer.data`, too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
-
-
-To reiterate, we can either invoke `convolution_net` or `stacked_lstm_net`.
+Next we define an `inference_program` that simply uses `convolution_net` to predict output with the input from `fluid.layer.data`.
 
 ```python
-word_dict = paddle.dataset.imdb.word_dict()
-dict_dim = len(word_dict)
-class_dim = 2
+def inference_program(word_dict):
+    data = fluid.layers.data(
+        name="words", shape=[1], dtype="int64", lod_level=1)
 
-# option 1
-[cost, output] = convolution_net(dict_dim, class_dim=class_dim)
-# option 2
-# [cost, output] = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
+    dict_dim = len(word_dict)
+    net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
+    return net
+```
+
+Then we define a `training_program` that uses the result from `inference_program` to compute the cost with label data.
+Also define `optimizer_func` to specify the optimizer.
+
+
+In the context of supervised learning, labels of the training set are defined in `paddle.layer.data` too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
+First result that returns from the list must be cost.
+
+```python
+def train_program(word_dict):
+    prediction = inference_program(word_dict)
+    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
+    cost = fluid.layers.cross_entropy(input=prediction, label=label)
+    avg_cost = fluid.layers.mean(cost)
+    accuracy = fluid.layers.accuracy(input=prediction, label=label)
+    return [avg_cost, accuracy]
+
+
+def optimizer_func():
+    return fluid.optimizer.Adagrad(learning_rate=0.002)
 ```
 
 ## Model Training
 
-### Define Parameters
+### Specify training environment
 
-First, we create the model parameters according to the previous model configuration `cost`.
+Specify your training environment, you should specify if the training is on CPU or GPU.
 
 ```python
-# create parameters
-parameters = paddle.parameters.create(cost)
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
+
+### Datafeeder Configuration
+
+Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process.
+`paddle.dataset.imdb.train` will yield records during each pass, after shuffling, a batch input of `BATCH_SIZE` is generated for training.
+
+Notice for loading and reading IMDB data, it could take up to 1 minute. Please be patient.
+
+```python
+
+print("Loading IMDB word dict....")
+word_dict = paddle.dataset.imdb.word_dict()
+
+print ("Reading training data....")
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.imdb.train(word_dict), buf_size=25000),
+    batch_size=BATCH_SIZE)
+```
+
 
 ### Create Trainer
 
-Before jumping into creating a training module, algorithm setting is also necessary.
-Here we specified `Adam` optimization algorithm via `paddle.optimizer`.
+Create a trainer that takes `train_program` as input and specify optimizer function.
 
 ```python
-# create optimizer
-adam_optimizer = paddle.optimizer.Adam(
-    learning_rate=2e-3,
-    regularization=paddle.optimizer.L2Regularization(rate=8e-4),
-    model_average=paddle.optimizer.ModelAverage(average_window=0.5))
+trainer = fluid.Trainer(
+    train_func=partial(train_program, word_dict),
+    place=place,
+    optimizer_func=optimizer_func)
+```
 
-# create trainer
-trainer = paddle.trainer.SGD(cost=cost,
-                                parameters=parameters,
-                                update_equation=adam_optimizer)
+### Feeding Data
+
+`feed_order` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `imdb.train` corresponds to `words`.
+
+```python
+feed_order = ['words', 'label']
+```
+
+### Event Handler
+
+Callback function `event_handler` will be called during training when a pre-defined event happens.
+For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
+
+```python
+# Specify the directory path to save the parameters
+params_dirname = "understand_sentiment_conv.inference.model"
+
+def event_handler(event):
+    if isinstance(event, fluid.EndStepEvent):
+        print("Step {0}, Epoch {1} Metrics {2}".format(
+                event.step, event.epoch, map(np.array, event.metrics)))
+
+        if event.step == 10:
+            trainer.save_params(params_dirname)
+            trainer.stop()
 ```
 
 ### Training
 
-`paddle.dataset.imdb.train()` will yield records during each pass, after shuffling, a batch input is generated for training.
-
-```python
-train_reader = paddle.batch(
-    paddle.reader.shuffle(
-        lambda: paddle.dataset.imdb.train(word_dict), buf_size=1000),
-    batch_size=100)
-
-test_reader = paddle.batch(
-    lambda: paddle.dataset.imdb.test(word_dict), batch_size=100)
-```
-
-`feeding` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `paddle.dataset.imdb.train()` corresponds to `word` feature.
-
-```python
-feeding = {'word': 0, 'label': 1}
-```
-
-Callback function `event_handler` will be invoked to track training progress when a pre-defined event happens.
-
-```python
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "\nPass %d, Batch %d, Cost %f, %s" % (
-                event.pass_id, event.batch_id, event.cost, event.metrics)
-        else:
-            sys.stdout.write('.')
-            sys.stdout.flush()
-    if isinstance(event, paddle.event.EndPass):
-        with open('./params_pass_%d.tar' % event.pass_id, 'w') as f:
-            trainer.save_parameter_to_tar(f)
-
-        result = trainer.test(reader=test_reader, feeding=feeding)
-        print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
-```
-
-Finally, we can invoke `trainer.train` to start training:
+Finally, we invoke `trainer.train` to start training with `num_epochs` and other parameters.
 
 ```python
 trainer.train(
-    reader=train_reader,
+    num_epochs=1,
     event_handler=event_handler,
-    feeding=feeding,
-    num_passes=10)
+    reader=train_reader,
+    feed_order=feed_order)
 ```
 
+## Inference
+
+### Create Inferencer
+
+Initialize Inferencer with `inference_program` and `params_dirname` which is where we save params from training.
+
+```python
+inferencer = fluid.Inferencer(
+        infer_func=partial(inference_program, word_dict),
+        param_path=params_dirname,
+        place=place)
+```
+
+### Create Lod Tensor with test data
+
+To do inference, we pick 3 potential reviews out of our mind as testing data. Feel free to modify any of them.
+We map each word in the reviews to id from `word_dict`, replaced by 'unknown' if the word is not in `word_dict`.
+Then we create lod data with the id list and use `create_lod_tensor` to create lod tensor.
+
+```python
+reviews_str = [
+    'read the book forget the movie', 'this is a great movie', 'this is very bad'
+]
+reviews = [c.split() for c in reviews_str]
+
+UNK = word_dict['<unk>']
+lod = []
+for c in reviews:
+    lod.append([word_dict.get(words, UNK) for words in c])
+
+base_shape = [[len(c) for c in lod]]
+
+tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
+```
+
+### Infer
+
+Now we can infer and predict probability of positive or negative from each review above.
+
+```python
+results = inferencer.infer({'words': tensor_words})
+
+for i, r in enumerate(results[0]):
+    print("Predict probability of ", r[0], " to be positive and ", r[1], " to be negative for review \'", reviews_str[i], "\'")
+
+
+```
 
 ## Conclusion
 
