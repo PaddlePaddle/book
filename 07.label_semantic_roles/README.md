@@ -461,7 +461,7 @@ def train(use_cuda, save_dirname=None, is_local=True):
 ```
 
 
-### Application
+## Application
 
 - When training is completed, we need to select an optimal model based one performance index to do inference. In this task, one can simply select the model with the least number of marks on the test set. We demonstrate doing an inference using the trained model.
 
