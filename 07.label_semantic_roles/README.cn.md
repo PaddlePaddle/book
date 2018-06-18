@@ -211,11 +211,11 @@ print pred_dict_len
 - 定义输入数据维度及模型超参数。
 
 ```python
-mark_dict_len = 2
-word_dim = 32
-mark_dim = 5
-hidden_dim = 512
-depth = 8
+mark_dict_len = 2   # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
+word_dim = 32       # 词向量维度
+mark_dim = 5        # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
+hidden_dim = 512    # LSTM隐层向量的维度 ： 512 / 4
+depth = 8           # 栈式LSTM的深度
 mix_hidden_lr = 1e-3
 
 IS_SPARSE = True
@@ -229,7 +229,8 @@ embedding_name = 'emb'
 
 - 如上文提到，我们用基于英文维基百科训练好的词向量来初始化序列输入、谓词上下文总共6个特征的embedding层参数，在训练中不更新。
 
-```python  
+```python
+# 这里加载PaddlePaddle上版保存的二进制模型
 def load_parameter(file_name, h, w):
     with open(file_name, 'rb') as f:
         f.read(16)  # skip header.
@@ -313,6 +314,8 @@ def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
 
         input_tmp = [mix_hidden, lstm]
 
+    # 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，
+    # 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
     feature_out = fluid.layers.sums(input=[
         fluid.layers.fc(input=input_tmp[0], size=label_dict_len, act='tanh'),
         fluid.layers.fc(input=input_tmp[1], size=label_dict_len, act='tanh')
@@ -336,10 +339,16 @@ def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
 ```python
 def train(use_cuda, save_dirname=None, is_local=True):
     # define network topology
+
+    # 句子序列
     word = fluid.layers.data(
         name='word_data', shape=[1], dtype='int64', lod_level=1)
+
+    # 谓词
     predicate = fluid.layers.data(
         name='verb_data', shape=[1], dtype='int64', lod_level=1)
+
+    # 谓词上下文5个特征
     ctx_n2 = fluid.layers.data(
         name='ctx_n2_data', shape=[1], dtype='int64', lod_level=1)
     ctx_n1 = fluid.layers.data(
@@ -350,13 +359,19 @@ def train(use_cuda, save_dirname=None, is_local=True):
         name='ctx_p1_data', shape=[1], dtype='int64', lod_level=1)
     ctx_p2 = fluid.layers.data(
         name='ctx_p2_data', shape=[1], dtype='int64', lod_level=1)
+
+    # 谓词上下区域标志
     mark = fluid.layers.data(
         name='mark_data', shape=[1], dtype='int64', lod_level=1)
 
     # define network topology
     feature_out = db_lstm(**locals())
+
+    # 标注序列
     target = fluid.layers.data(
         name='target', shape=[1], dtype='int64', lod_level=1)
+
+    # 学习 CRF 的转移特征
     crf_cost = fluid.layers.linear_chain_crf(
         input=feature_out,
         label=target,
