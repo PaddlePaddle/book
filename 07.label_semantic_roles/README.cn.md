@@ -438,7 +438,6 @@ def train(use_cuda, save_dirname=None, is_local=True):
                     # Set the threshold low to speed up the CI test
                     if float(cost) < 60.0:
                         if save_dirname is not None:
-                            # TODO(liuyiqun): Change the target to crf_decode
                             fluid.io.save_inference_model(save_dirname, [
                                 'word_data', 'verb_data', 'ctx_n2_data',
                                 'ctx_n1_data', 'ctx_0_data', 'ctx_p1_data',
