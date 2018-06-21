@@ -95,24 +95,6 @@ After training and with a beam-search size of 3, the generated translations are 
 
 This section will introduce Gated Recurrent Unit (GRU), Bi-directional Recurrent Neural Network, the Encoder-Decoder framework used in NMT, attention mechanism, as well as the beam search algorithm.
 
-### Gated Recurrent Unit (GRU)
-
-We already introduced RNN and LSTM in the [Sentiment Analysis](https://github.com/PaddlePaddle/book/blob/develop/understand_sentiment/README.md) chapter.
-Compared to a simple RNN, the LSTM added memory cell, input gate, forget gate and output gate. These gates combined with the memory cell greatly improve the ability to handle long-term dependencies.
-
-GRU\[[2](#references)\] proposed by Cho et al is a simplified LSTM and an extension of a simple RNN. It is shown in the figure below.
-A GRU unit has only two gates:
-- reset gate: when this gate is closed, the history information is discarded, i.e., the irrelevant historical information has no effect on the future output.
-- update gate: it combines the input gate and the forget gate and is used to control the impact of historical information on the hidden output. The historical information is passed over when the update gate is close to 1.
-
-<p align="center">
-<img src="image/gru_en.png" width=700><br/>
-Figure 2. A GRU Gate
-</p>
-
-Generally speaking, sequences with short distance dependencies will have an active reset gate while sequences with long distance dependency will have an active update date.
-In addition, Chung et al.\[[3](#references)\] have empirically shown that although GRU has less parameters, it has similar performance to LSTM on several different tasks.
-
 ### Bi-directional Recurrent Neural Network
 
 We already introduced an instance of bi-directional RNN in the [Semantic Role Labeling](https://github.com/PaddlePaddle/book/blob/develop/label_semantic_roles/README.md) chapter. Here we present another bi-directional RNN model with a different architecture proposed by Bengio et al. in \[[2](#references),[4](#references)\]. This model takes a sequence as input and outputs a fixed dimensional feature vector at each step, encoding the context information at the corresponding time step.
@@ -183,32 +165,6 @@ The goal of the decoder is to maximize the probability of the next correct word 
 
 The generation process of machine translation is to translate the source sentence into a sentence in the target language according to a pre-trained model. There are some differences between the decoding step in generation and training. Please refer to [Beam Search Algorithm](#Beam Search Algorithm) for details.
 
-### Attention Mechanism
-
-There are a few problems with the fixed dimensional vector representation from the encoding stage:
-  * It is very challenging to encode both the semantic and syntactic information a sentence with a fixed dimensional vector regardless of the length of the sentence.
-  * Intuitively, when translating a sentence, we typically pay more attention to the parts in the source sentence more relevant to the current translation. Moreover, the focus changes along the process of the translation. With a fixed dimensional vector, all the information from the source sentence is treated equally in terms of attention. This is not reasonable. Therefore, Bahdanau et al. \[[4](#references)\] introduced attention mechanism, which can decode based on different fragments of the context sequence in order to address the difficulty of feature learning for long sentences. Decoder with attention will be explained in the following.
-
-Different from the simple decoder, $z_i$ is computed as:
-
-$$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$$
-
-It is observed that for each word $u_i$ in the target language sentence, there is a corresponding context vector $c_i$ as the encoding of the source sentence, which is computed as:
-
-$$c_i=\sum _{j=1}^{T}a_{ij}h_j, a_i=\left[ a_{i1},a_{i2},...,a_{iT}\right ]$$
-
-It is noted that the attention mechanism is achieved by a weighted average over the RNN hidden states $h_j$. The weight $a_{ij}$ denotes the strength of attention of the $i$-th word in the target language sentence to the $j$-th word in the source sentence and is calculated as
-
-$$a_{ij} = {exp(e_{ij}) \over {\sum_{k=1}^T exp(e_{ik})}}$$
-$$e_{ij} = {align(z_i, h_j)}$$
-
-where $align$ is an alignment model that measures the fitness between the $i$-th word in the target language sentence and the $j$-th word in the source sentence. More concretely, the fitness is computed with the $i$-th hidden state $z_i$ of the decoder RNN and the $j$-th context vector $h_j$ of the source sentence. Hard alignment is used in the conventional alignment model, which means each word in the target language explicitly corresponds to one or more words from the target language sentence. In an attention model, soft alignment is used, where any word in source sentence is related to any word in the target language sentence, where the strength of the relation is a real number computed via the model, thus can be incorporated into the NMT framework and can be trained via back-propagation.
-
-<p align="center">
-<img src="image/decoder_attention_en.png" width=500><br/>
-Figure 6. Decoder with Attention Mechanism
-</p>
-
 ### Beam Search Algorithm
 
 [Beam Search](http://en.wikipedia.org/wiki/Beam_search) is a heuristic search algorithm that explores a graph by expanding the most promising node in a limited set. It is typically used when the solution space is huge  (e.g., for machine translation, speech recognition), and there is not enough memory for all the possible solutions. For example, if we want to translate “`<s>你好<e>`” into English, even if there are only three words in the dictionary (`<s>`, `<e>`, `hello`), it is still possible to generate an infinite number of sentences, where the word `hello` can appear different number of times. Beam search could be used to find a good translation among them.
@@ -250,338 +206,323 @@ Because the full dataset is very big, to reduce the time for downloading the ful
 
 This subset has 193319 instances of training data and 6003 instances of test data. Dictionary size is 30000. Because of the limitation of size of the subset, the effectiveness of trained model from this subset is not guaranteed.
 
-## Training Instructions
+## Model Configuration
 
-### Initialize PaddlePaddle
+Our program starts with importing necessary packages and initializing some global variables:
 
 ```python
-import sys
-import paddle.v2 as paddle
+import contextlib
 
-# train with a single CPU
-paddle.init(use_gpu=False, trainer_count=1)
-# False: training, True: generating
-is_generating = False
+import numpy as np
+import paddle
+import paddle.fluid as fluid
+import paddle.fluid.framework as framework
+import paddle.fluid.layers as pd
+from paddle.fluid.executor import Executor
+from functools import partial
+import os
+
+dict_size = 30000
+source_dict_dim = target_dict_dim = dict_size
+hidden_dim = 32
+word_dim = 16
+batch_size = 2
+max_length = 8
+topk_size = 50
+beam_size = 2
+
+decoder_size = hidden_dim
 ```
 
-### Model Configuration
-
-1. Define some global variables
+Then we implement encoder as follows:
 
    ```python
-   dict_size = 30000 # dict dim
-   source_dict_dim = dict_size # source language dictionary size
-   target_dict_dim = dict_size # destination language dictionary size
-   word_vector_dim = 512 # word embedding dimension
-   encoder_size = 512 # hidden layer size of GRU in encoder
-   decoder_size = 512 # hidden layer size of GRU in decoder
-   beam_size = 3 # expand width in beam search
-   max_length = 250 # a stop condition of sequence generation
+   def encoder(is_sparse):
+    # encoder
+    src_word_id = pd.data(
+        name="src_word_id", shape=[1], dtype='int64', lod_level=1)
+    src_embedding = pd.embedding(
+        input=src_word_id,
+        size=[dict_size, word_dim],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr=fluid.ParamAttr(name='vemb'))
+
+    fc1 = pd.fc(input=src_embedding, size=hidden_dim * 4, act='tanh')
+    lstm_hidden0, lstm_0 = pd.dynamic_lstm(input=fc1, size=hidden_dim * 4)
+    encoder_out = pd.sequence_last_step(input=lstm_hidden0)
+    return encoder_out
    ```
 
-2. Implement Encoder as follows:
-   - Input is a sequence of words represented by an integer word index sequence. So we define data layer of data type `integer_value_sequence`. The value range of each element in the sequence is `[0, source_dict_dim)`
+Implement the decoder for training as follows:
 
-   ```python
-   src_word_id = paddle.layer.data(
-       name='source_language_word',
-       type=paddle.data_type.integer_value_sequence(source_dict_dim))
-   ```
+```python
+   def train_decoder(context, is_sparse):
+    # decoder
+    trg_language_word = pd.data(
+        name="target_language_word", shape=[1], dtype='int64', lod_level=1)
+    trg_embedding = pd.embedding(
+        input=trg_language_word,
+        size=[dict_size, word_dim],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr=fluid.ParamAttr(name='vemb'))
 
-   - Map the one-hot vector (represented by word index) into a word vector $\mathbf{s}$ in a low-dimensional semantic space
+    rnn = pd.DynamicRNN()
+    with rnn.block():
+        current_word = rnn.step_input(trg_embedding)
+        pre_state = rnn.memory(init=context)
+        current_state = pd.fc(input=[current_word, pre_state],
+                              size=decoder_size,
+                              act='tanh')
 
-   ```python
-   src_embedding = paddle.layer.embedding(
-       input=src_word_id, size=word_vector_dim)
-   ```
+        current_score = pd.fc(input=current_state,
+                              size=target_dict_dim,
+                              act='softmax')
+        rnn.update_memory(pre_state, current_state)
+        rnn.output(current_score)
 
-   - Use bi-direcitonal GRU to encode the source language sequence, and concatenate the encoding outputs from the two GRUs to get $\mathbf{h}$
+    return rnn()
+```
 
-   ```python
-   src_forward = paddle.networks.simple_gru(
-       input=src_embedding, size=encoder_size)
-   src_backward = paddle.networks.simple_gru(
-       input=src_embedding, size=encoder_size, reverse=True)
-   encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
-   ```
+Implement the decoder for prediction as follows:
 
-3. Implement Attention-based Decoder as follows:
+```python
+def decode(context, is_sparse):
+    init_state = context
+    array_len = pd.fill_constant(shape=[1], dtype='int64', value=max_length)
+    counter = pd.zeros(shape=[1], dtype='int64', force_cpu=True)
 
-   - Get a projection of the encoding (c.f. 2.3) of the source language sequence by passing it into a feed forward neural network
+    # fill the first element with init_state
+    state_array = pd.create_array('float32')
+    pd.array_write(init_state, array=state_array, i=counter)
 
-   ```python
-   encoded_proj = paddle.layer.fc(
-         act=paddle.activation.Linear(),
-         size=decoder_size,
-         bias_attr=False,
-         input=encoded_vector)
-   ```
+    # ids, scores as memory
+    ids_array = pd.create_array('int64')
+    scores_array = pd.create_array('float32')
 
-   - Use a non-linear transformation of the last hidden state of the backward GRU on the source language sentence as the initial state of the decoder RNN $c_0=h_T$
+    init_ids = pd.data(name="init_ids", shape=[1], dtype="int64", lod_level=2)
+    init_scores = pd.data(
+        name="init_scores", shape=[1], dtype="float32", lod_level=2)
 
-   ```python
-   backward_first = paddle.layer.first_seq(input=src_backward)
-   decoder_boot = paddle.layer.fc(
-         size=decoder_size,
-         act=paddle.activation.Tanh(),
-         bias_attr=False,
-         input=backward_first)
-   ```
+    pd.array_write(init_ids, array=ids_array, i=counter)
+    pd.array_write(init_scores, array=scores_array, i=counter)
 
-   - Define the computation in each time step for the decoder RNN, i.e., according to the current context vector $c_i$, hidden state for the decoder $z_i$ and the $i$-th word $u_i$ in the target language to predict the probability $p_{i+1}$ for the $i+1$-th word.
+    cond = pd.less_than(x=counter, y=array_len)
 
-      - decoder_mem records the hidden state $z_i$ from the previous time step, with an initial state as decoder_boot.
-      - context is computed via `simple_attention` as $c_i=\sum {j=1}^{T}a_{ij}h_j$, where enc_vec is the projection of $h_j$ and enc_proj is the projection of $h_j$ (c.f. 3.1). $a_{ij}$ is calculated within `simple_attention`.
-      - decoder_inputs fuse $c_i$ with the representation of the current_word (i.e., $u_i$).
-      - gru_step uses `gru_step_layer` function to compute $z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$.
-      - Softmax normalization is used in the end to computed the probability of words, i.e., $p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$. The output is returned.
+    while_op = pd.While(cond=cond)
+    with while_op.block():
+        pre_ids = pd.array_read(array=ids_array, i=counter)
+        pre_state = pd.array_read(array=state_array, i=counter)
+        pre_score = pd.array_read(array=scores_array, i=counter)
 
-   ```python
-   def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
-        decoder_mem = paddle.layer.memory(
-            name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
+        # expand the lod of pre_state to be the same with pre_score
+        pre_state_expanded = pd.sequence_expand(pre_state, pre_score)
 
-        context = paddle.networks.simple_attention(
-            encoded_sequence=enc_vec,
-            encoded_proj=enc_proj,
-            decoder_state=decoder_mem)
+        pre_ids_emb = pd.embedding(
+            input=pre_ids,
+            size=[dict_size, word_dim],
+            dtype='float32',
+            is_sparse=is_sparse)
 
-        decoder_inputs = paddle.layer.fc(
-            act=paddle.activation.Linear(),
-            size=decoder_size * 3,
-            bias_attr=False,
-            input=[context, current_word],
-            layer_attr=paddle.attr.ExtraLayerAttribute(
-            error_clipping_threshold=100.0))
+        # use rnn unit to update rnn
+        current_state = pd.fc(input=[pre_state_expanded, pre_ids_emb],
+                              size=decoder_size,
+                              act='tanh')
+        current_state_with_lod = pd.lod_reset(x=current_state, y=pre_score)
+        # use score to do beam search
+        current_score = pd.fc(input=current_state_with_lod,
+                              size=target_dict_dim,
+                              act='softmax')
+        topk_scores, topk_indices = pd.topk(current_score, k=topk_size)
+        selected_ids, selected_scores = pd.beam_search(
+            pre_ids, topk_indices, topk_scores, beam_size, end_id=10, level=0)
 
-        gru_step = paddle.layer.gru_step(
-            name='gru_decoder',
-            input=decoder_inputs,
-            output_mem=decoder_mem,
-            size=decoder_size)
+        pd.increment(x=counter, value=1, in_place=True)
 
-        out = paddle.layer.fc(
-            size=target_dict_dim,
-            bias_attr=True,
-            act=paddle.activation.Softmax(),
-            input=gru_step)
-        return out
-   ```
+        # update the memories
+        pd.array_write(current_state, array=state_array, i=counter)
+        pd.array_write(selected_ids, array=ids_array, i=counter)
+        pd.array_write(selected_scores, array=scores_array, i=counter)
 
-4. Define the name for the decoder and the first two input for `gru_decoder_with_attention`. Note that `StaticInput` is used for the two inputs. Please refer to [StaticInput Document](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/v2/howto/rnn/recurrent_group_en.md#input) for more details.
+        pd.less_than(x=counter, y=array_len, cond=cond)
 
-    ```python
-    decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInput(input=encoded_vector)
-    group_input2 = paddle.layer.StaticInput(input=encoded_proj)
-    group_inputs = [group_input1, group_input2]
-    ```
+    translation_ids, translation_scores = pd.beam_search_decode(
+        ids=ids_array, scores=scores_array)
 
-5. Training mode:
+    return translation_ids, translation_scores
+```
 
-   - Word embedding from the target language trg_embedding is passed to `gru_decoder_with_attention` as current_word.
-   - `recurrent_group` calls `gru_decoder_with_attention` in a recurrent way
-   - The sequence of next words from the target language is used as label (lbl)
-   - Multi-class cross-entropy (`classification_cost`) is used to calculate the cost
 
-   ```python
-   if not is_generating:
-       trg_embedding = paddle.layer.embedding(
-           input=paddle.layer.data(
-               name='target_language_word',
-               type=paddle.data_type.integer_value_sequence(target_dict_dim)),
-           size=word_vector_dim,
-           param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
-       group_inputs.append(trg_embedding)
+Then we define a `training_program` that uses the result from `encoder` and `train_decoder` to compute the cost with label data.
+Also define `optimizer_func` to specify the optimizer.
 
-       # For decoder equipped with attention mechanism, in training,
-       # target embeding (the groudtruth) is the data input,
-       # while encoded source sequence is accessed to as an unbounded memory.
-       # Here, the StaticInput defines a read-only memory
-       # for the recurrent_group.
-       decoder = paddle.layer.recurrent_group(
-           name=decoder_group_name,
-           step=gru_decoder_with_attention,
-           input=group_inputs)
+```python
+def train_program(is_sparse):
+    context = encoder(is_sparse)
+    rnn_out = train_decoder(context, is_sparse)
+    label = pd.data(
+        name="target_language_next_word", shape=[1], dtype='int64', lod_level=1)
+    cost = pd.cross_entropy(input=rnn_out, label=label)
+    avg_cost = pd.mean(cost)
+    return avg_cost
 
-       lbl = paddle.layer.data(
-           name='target_language_next_word',
-           type=paddle.data_type.integer_value_sequence(target_dict_dim))
-       cost = paddle.layer.classification_cost(input=decoder, label=lbl)
-   ```
 
-6. Generating mode:
-
-   - The decoder predicts a next target word based on the the last generated target word. Embedding of the last generated word is automatically gotten by GeneratedInputs.
-   - `beam_search` calls `gru_decoder_with_attention` in a recurrent way, to predict sequence id.
-
-   ```python
-   if is_generating:
-       # In generation, the decoder predicts a next target word based on
-       # the encoded source sequence and the previous generated target word.
-
-       # The encoded source sequence (encoder's output) must be specified by
-       # StaticInput, which is a read-only memory.
-       # Embedding of the previous generated word is automatically retrieved
-       # by GeneratedInputs initialized by a start mark <s>.
-
-       trg_embedding = paddle.layer.GeneratedInput(
-           size=target_dict_dim,
-           embedding_name='_target_language_embedding',
-           embedding_size=word_vector_dim)
-       group_inputs.append(trg_embedding)
-
-       beam_gen = paddle.layer.beam_search(
-           name=decoder_group_name,
-           step=gru_decoder_with_attention,
-           input=group_inputs,
-           bos_id=0,
-           eos_id=1,
-           beam_size=beam_size,
-           max_length=max_length)
-   ```
-
-Note: Our configuration is based on Bahdanau et al. \[[4](#references)\] but with a few simplifications. Please refer to [issue #1133](https://github.com/PaddlePaddle/Paddle/issues/1133) for more details.
+def optimizer_func():
+    return fluid.optimizer.Adagrad(
+        learning_rate=1e-4,
+        regularization=fluid.regularizer.L2DecayRegularizer(
+            regularization_coeff=0.1))
+```
 
 ## Model Training
 
-1. Create Parameters
+### Specify training environment
 
-    Create every parameter that `cost` layer needs. And we can get parameter names. If the parameter name is not specified during model configuration, it will be generated.
+Specify your training environment, you should specify if the training is on CPU or GPU.
 
-    ```python
-    if not is_generating:
-        parameters = paddle.parameters.create(cost)
-        for param in parameters.keys():
-            print param
-    ```
+```python
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+```
 
-2. Define DataSet
+### Datafeeder Configuration
 
-    Create [**data reader**](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader#python-data-reader-design-doc) for WMT-14 dataset.
+Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process.
+`paddle.dataset.wmt14.train` will yield records during each pass, after shuffling, a batch input of `BATCH_SIZE` is generated for training.
 
-    ```python
-    if not is_generating:
-        wmt14_reader = paddle.batch(
-            paddle.reader.shuffle(
-                paddle.dataset.wmt14.train(dict_size=dict_size), buf_size=8192),
-            batch_size=5)
-    ```
-3. Create trainer
+```python
+train_reader = paddle.batch(
+        paddle.reader.shuffle(
+            paddle.dataset.wmt14.train(dict_size), buf_size=1000),
+        batch_size=batch_size)
+```
 
-    We need to tell trainer what to optimize, and how to optimize. Here trainer will optimize `cost` layer using stochastic gradient descent (SDG).
+### Create Trainer
 
-    ```python
-    if not is_generating:
-        optimizer = paddle.optimizer.Adam(
-            learning_rate=5e-5,
-            regularization=paddle.optimizer.L2Regularization(rate=8e-4))
-        trainer = paddle.trainer.SGD(cost=cost,
-                                     parameters=parameters,
-                                     update_equation=optimizer)
-    ```
+Create a trainer that takes `train_program` as input and specify optimizer function.
 
-4. Define event handler
+```python
+is_sparse = False
+trainer = fluid.Trainer(
+        train_func=partial(train_program, is_sparse),
+        place=place,
+        optimizer_func=optimizer_func)
+```
 
-    The event handler is a callback function invoked by trainer when an event happens. Here we will print log in event handler.
+### Feeding Data
 
-    ```python
-    if not is_generating:
-        def event_handler(event):
-            if isinstance(event, paddle.event.EndIteration):
-                if event.batch_id % 2 == 0:
-                    print "\nPass %d, Batch %d, Cost %f, %s" % (
-                        event.pass_id, event.batch_id, event.cost, event.metrics)
-    ```
+`feed_order` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `wmt14.train` corresponds to `src_word_id`.
 
-5. Start training
+```python
+feed_order = [
+        'src_word_id', 'target_language_word', 'target_language_next_word'
+    ]
+```
 
-    ```python
-    if not is_generating:
-        trainer.train(
-                reader=wmt14_reader, event_handler=event_handler, num_passes=2)
-    ```
+### Event Handler
 
-  The training log is as follows:
-  ```text
-  Pass 0, Batch 0, Cost 247.408008, {'classification_error_evaluator': 1.0}
-  Pass 0, Batch 10, Cost 212.058789, {'classification_error_evaluator': 0.8737863898277283}
-  ...
-  ```
+Callback function `event_handler` will be called during training when a pre-defined event happens.
+For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
 
-## Model Usage
+```python
+def event_handler(event):
+    if isinstance(event, fluid.EndStepEvent):
+        if event.step % 10 == 0:
+            print('pass_id=' + str(event.epoch) + ' batch=' + str(event.step))
 
-1. Download Pre-trained Model
+        if event.step == 20:
+            trainer.stop()
+```
 
-    As the training of an NMT model is very time consuming, we provide a pre-trained model. The model is trained with a cluster of 50 physical nodes (each node has two 6-core CPU) over 5 days. The provided model has the [BLEU Score](#BLEU Score) of 26.92, and the size of 205M.
 
-    ```python
-    if is_generating:
-        parameters = paddle.dataset.wmt14.model()
-    ```
-2. Define DataSet
+### Training
 
-    Get the first 3 samples of wmt14 generating set as the source language sequences.
+Finally, we invoke `trainer.train` to start training with `num_epochs` and other parameters.
 
-   ```python
-   if is_generating:
-        gen_creator = paddle.dataset.wmt14.gen(dict_size)
-        gen_data = []
-        gen_num = 3
-        for item in gen_creator():
-            gen_data.append((item[0], ))
-            if len(gen_data) == gen_num:
-                break
-   ```
+```python
+EPOCH_NUM = 1
 
-3. Create infer
+trainer.train(
+        reader=train_reader,
+        num_epochs=EPOCH_NUM,
+        event_handler=event_handler,
+        feed_order=feed_order)
+```
 
-    Use inference interface `paddle.infer` return the prediction probability (see field `prob`) and labels (see field `id`) of each generated sequence.
+## Inference
 
-   ```python
-   if is_generating:
-        beam_result = paddle.infer(
-            output_layer=beam_gen,
-            parameters=parameters,
-            input=gen_data,
-            field=['prob', 'id'])
-   ```
-4. Print generated translation
+### Define the decode part
 
-    Print sequence and its `beam_size` generated translation results based on the dictionary.
+Use the `encoder` and `decoder` function we defined above to predict translation ids and scores.
 
-   ```python
-   if is_generating:
-       # load the dictionary
-       src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
+```python
+context = encoder(is_sparse)
+translation_ids, translation_scores = decode(context, is_sparse)
+```
 
-       gen_sen_idx = np.where(beam_result[1] == -1)[0]
-       assert len(gen_sen_idx) == len(gen_data) * beam_size
+### Define DataSet
 
-       # -1 is the delimiter of generated sequences.
-       # the first element of each generated sequence its length.
-       start_pos, end_pos = 1, 0
-       for i, sample in enumerate(gen_data):
-           print(" ".join([src_dict[w] for w in sample[0][1:-1]]))
-           for j in xrange(beam_size):
-               end_pos = gen_sen_idx[i * beam_size + j]
-               print("%.4f\t%s" % (beam_result[0][i][j], " ".join(
-                     trg_dict[w] for w in beam_result[1][start_pos:end_pos])))
-               start_pos = end_pos + 2
-           print("\n")
-   ```
+We initialize ids and scores and create tensors for input. This test we are using first record data from `wmt14.test` for inference. At the end we get src dict and target dict for printing out results later.
 
-  The generating log is as follows:
-  ```text
-  Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu
-  -19.0196        The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
-  -19.1131        The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
-  -19.5129        The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
-  ```
+```python
+init_ids_data = np.array([1 for _ in range(batch_size)], dtype='int64')
+init_scores_data = np.array(
+    [1. for _ in range(batch_size)], dtype='float32')
+init_ids_data = init_ids_data.reshape((batch_size, 1))
+init_scores_data = init_scores_data.reshape((batch_size, 1))
+init_lod = [1] * batch_size
+init_lod = [init_lod, init_lod]
 
-## Summary
+init_ids = fluid.create_lod_tensor(init_ids_data, init_lod, place)
+init_scores = fluid.create_lod_tensor(init_scores_data, init_lod, place)
 
-End-to-end neural machine translation is a recently developed way to perform machine translations. In this chapter, we introduced the typical "Encoder-Decoder" framework and "attention" mechanism. Since NMT is a typical Sequence-to-Sequence (Seq2Seq) learning problem, tasks such as query rewriting, abstraction generation, and single-turn dialogues can all be solved with the model presented in this chapter.
+test_data = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.wmt14.test(dict_size), buf_size=1000),
+    batch_size=batch_size)
+
+feed_order = ['src_word_id']
+feed_list = [
+    framework.default_main_program().global_block().var(var_name)
+    for var_name in feed_order
+]
+feeder = fluid.DataFeeder(feed_list, place)
+
+src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
+```
+
+### Infer
+
+We create `feed_dict` with all the inputs we need and run with `executor` to get predicted results id and corresponding scores.
+
+```python
+exe = Executor(place)
+exe.run(framework.default_startup_program())
+
+for data in test_data():
+    feed_data = map(lambda x: [x[0]], data)
+    feed_dict = feeder.feed(feed_data)
+    feed_dict['init_ids'] = init_ids
+    feed_dict['init_scores'] = init_scores
+
+    results = exe.run(
+        framework.default_main_program(),
+        feed=feed_dict,
+        fetch_list=[translation_ids, translation_scores],
+        return_numpy=False)
+
+    result_ids = np.array(results[0])
+    result_scores = np.array(results[1])
+
+    print("Original sentence:")
+    print(" ".join([src_dict[w] for w in feed_data[0][0]]))
+    print("Translated sentence:")
+    print(" ".join([trg_dict[w] for w in result_ids]))
+    print("Corresponding score: ", result_scores)
+
+    break
+```
 
 ## References
 
