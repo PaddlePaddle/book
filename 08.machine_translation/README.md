@@ -421,7 +421,7 @@ translation_ids, translation_scores = decode(context, is_sparse)
 
 ### Define DataSet
 
-We initialize ids and scores and create tensors for input. This test we are using first record data from `wmt14.test` for inference. At the end we get src dict and target dict for printing out results later.
+We initialize ids and scores and create tensors for input. In this test we are using first record data from `wmt14.test` for inference. At the end we get src dict and target dict for printing out results later.
 
 ```python
 init_ids_data = np.array([1 for _ in range(batch_size)], dtype='int64')
