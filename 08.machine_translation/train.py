@@ -11,31 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
-
-import numpy as np
 import paddle
 import paddle.fluid as fluid
-import paddle.fluid.framework as framework
 import paddle.fluid.layers as pd
-from paddle.fluid.executor import Executor
-from functools import partial
 import os
 
 dict_size = 30000
 source_dict_dim = target_dict_dim = dict_size
 hidden_dim = 32
-word_dim = 16
+word_dim = 32
 batch_size = 2
 max_length = 8
 topk_size = 50
 beam_size = 2
 
+is_sparse = True
 decoder_size = hidden_dim
+model_save_dir = "machine_translation.inference.model"
 
 
-def encoder(is_sparse):
-    # encoder
+def encoder():
     src_word_id = pd.data(
         name="src_word_id", shape=[1], dtype='int64', lod_level=1)
     src_embedding = pd.embedding(
@@ -51,8 +46,7 @@ def encoder(is_sparse):
     return encoder_out
 
 
-def train_decoder(context, is_sparse):
-    # decoder
+def train_decoder(context):
     trg_language_word = pd.data(
         name="target_language_word", shape=[1], dtype='int64', lod_level=1)
     trg_embedding = pd.embedding(
@@ -65,7 +59,7 @@ def train_decoder(context, is_sparse):
     rnn = pd.DynamicRNN()
     with rnn.block():
         current_word = rnn.step_input(trg_embedding)
-        pre_state = rnn.memory(init=context)
+        pre_state = rnn.memory(init=context, need_reorder=True)
         current_state = pd.fc(
             input=[current_word, pre_state], size=decoder_size, act='tanh')
 
@@ -77,74 +71,9 @@ def train_decoder(context, is_sparse):
     return rnn()
 
 
-def decode(context, is_sparse):
-    init_state = context
-    array_len = pd.fill_constant(shape=[1], dtype='int64', value=max_length)
-    counter = pd.zeros(shape=[1], dtype='int64', force_cpu=True)
-
-    # fill the first element with init_state
-    state_array = pd.create_array('float32')
-    pd.array_write(init_state, array=state_array, i=counter)
-
-    # ids, scores as memory
-    ids_array = pd.create_array('int64')
-    scores_array = pd.create_array('float32')
-
-    init_ids = pd.data(name="init_ids", shape=[1], dtype="int64", lod_level=2)
-    init_scores = pd.data(
-        name="init_scores", shape=[1], dtype="float32", lod_level=2)
-
-    pd.array_write(init_ids, array=ids_array, i=counter)
-    pd.array_write(init_scores, array=scores_array, i=counter)
-
-    cond = pd.less_than(x=counter, y=array_len)
-
-    while_op = pd.While(cond=cond)
-    with while_op.block():
-        pre_ids = pd.array_read(array=ids_array, i=counter)
-        pre_state = pd.array_read(array=state_array, i=counter)
-        pre_score = pd.array_read(array=scores_array, i=counter)
-
-        # expand the lod of pre_state to be the same with pre_score
-        pre_state_expanded = pd.sequence_expand(pre_state, pre_score)
-
-        pre_ids_emb = pd.embedding(
-            input=pre_ids,
-            size=[dict_size, word_dim],
-            dtype='float32',
-            is_sparse=is_sparse)
-
-        # use rnn unit to update rnn
-        current_state = pd.fc(
-            input=[pre_state_expanded, pre_ids_emb],
-            size=decoder_size,
-            act='tanh')
-        current_state_with_lod = pd.lod_reset(x=current_state, y=pre_score)
-        # use score to do beam search
-        current_score = pd.fc(
-            input=current_state_with_lod, size=target_dict_dim, act='softmax')
-        topk_scores, topk_indices = pd.topk(current_score, k=topk_size)
-        selected_ids, selected_scores = pd.beam_search(
-            pre_ids, topk_indices, topk_scores, beam_size, end_id=10, level=0)
-
-        pd.increment(x=counter, value=1, in_place=True)
-
-        # update the memories
-        pd.array_write(current_state, array=state_array, i=counter)
-        pd.array_write(selected_ids, array=ids_array, i=counter)
-        pd.array_write(selected_scores, array=scores_array, i=counter)
-
-        pd.less_than(x=counter, y=array_len, cond=cond)
-
-    translation_ids, translation_scores = pd.beam_search_decode(
-        ids=ids_array, scores=scores_array)
-
-    return translation_ids, translation_scores
-
-
-def train_program(is_sparse):
-    context = encoder(is_sparse)
-    rnn_out = train_decoder(context, is_sparse)
+def train_program():
+    context = encoder()
+    rnn_out = train_decoder(context)
     label = pd.data(
         name="target_language_next_word", shape=[1], dtype='int64', lod_level=1)
     cost = pd.cross_entropy(input=rnn_out, label=label)
@@ -159,7 +88,7 @@ def optimizer_func():
             regularization_coeff=0.1))
 
 
-def train(use_cuda, is_sparse, is_local=True):
+def train(use_cuda):
     EPOCH_NUM = 1
 
     if use_cuda and not fluid.core.is_compiled_with_cuda():
@@ -181,13 +110,11 @@ def train(use_cuda, is_sparse, is_local=True):
                 print('pass_id=' + str(event.epoch) + ' batch=' + str(
                     event.step))
 
-            if event.step == 20:
-                trainer.stop()
+        if isinstance(event, fluid.EndEpochEvent):
+            trainer.save_params(model_save_dir)
 
     trainer = fluid.Trainer(
-        train_func=partial(train_program, is_sparse),
-        place=place,
-        optimizer_func=optimizer_func)
+        train_func=train_program, place=place, optimizer_func=optimizer_func)
 
     trainer.train(
         reader=train_reader,
@@ -196,76 +123,8 @@ def train(use_cuda, is_sparse, is_local=True):
         feed_order=feed_order)
 
 
-def decode_main(use_cuda, is_sparse):
-    if use_cuda and not fluid.core.is_compiled_with_cuda():
-        return
-    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-
-    context = encoder(is_sparse)
-    translation_ids, translation_scores = decode(context, is_sparse)
-
-    exe = Executor(place)
-    exe.run(framework.default_startup_program())
-
-    init_ids_data = np.array([1 for _ in range(batch_size)], dtype='int64')
-    init_scores_data = np.array(
-        [1. for _ in range(batch_size)], dtype='float32')
-    init_ids_data = init_ids_data.reshape((batch_size, 1))
-    init_scores_data = init_scores_data.reshape((batch_size, 1))
-    init_lod = [1] * batch_size
-    init_lod = [init_lod, init_lod]
-
-    init_ids = fluid.create_lod_tensor(init_ids_data, init_lod, place)
-    init_scores = fluid.create_lod_tensor(init_scores_data, init_lod, place)
-
-    test_data = paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.wmt14.test(dict_size), buf_size=1000),
-        batch_size=batch_size)
-
-    feed_order = ['src_word_id']
-    feed_list = [
-        framework.default_main_program().global_block().var(var_name)
-        for var_name in feed_order
-    ]
-    feeder = fluid.DataFeeder(feed_list, place)
-
-    src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
-
-    for data in test_data():
-        feed_data = map(lambda x: [x[0]], data)
-        feed_dict = feeder.feed(feed_data)
-        feed_dict['init_ids'] = init_ids
-        feed_dict['init_scores'] = init_scores
-
-        results = exe.run(
-            framework.default_main_program(),
-            feed=feed_dict,
-            fetch_list=[translation_ids, translation_scores],
-            return_numpy=False)
-
-        result_ids = np.array(results[0])
-        result_scores = np.array(results[1])
-
-        print("Original sentence:")
-        print(" ".join([src_dict[w] for w in feed_data[0][0]]))
-        print("Translated sentence:")
-        print(" ".join([trg_dict[w] for w in result_ids]))
-        print("Corresponding score: ", result_scores)
-
-        break
-
-
-def inference_program():
-    is_sparse = False
-    context = encoder(is_sparse)
-    translation_ids, translation_scores = decode(context, is_sparse)
-    return translation_ids, translation_scores
-
-
 def main(use_cuda):
-    train(use_cuda, False)
-    decode_main(False, False)  # Beam Search does not support CUDA
+    train(use_cuda)
 
 
 if __name__ == '__main__':
