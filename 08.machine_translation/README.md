@@ -51,7 +51,7 @@ After training and with a beam-search size of 3, the generated translations are 
 
 ## Overview of the Model
 
-This section will introduce Gated Recurrent Unit (GRU), Bi-directional Recurrent Neural Network, the Encoder-Decoder framework used in NMT, attention mechanism, as well as the beam search algorithm.
+This section will introduce Bi-directional Recurrent Neural Network, the Encoder-Decoder framework used in NMT, as well as the beam search algorithm.
 
 ### Bi-directional Recurrent Neural Network
 

@@ -35,21 +35,7 @@
 
 ## 模型概览
 
-本节依次介绍GRU（Gated Recurrent Unit，门控循环单元），双向循环神经网络（Bi-directional Recurrent Neural Network），NMT模型中典型的编码器-解码器（Encoder-Decoder）框架和注意力（Attention）机制，以及柱搜索（beam search）算法。
-
-### GRU
-
-我们已经在[情感分析](https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/README.cn.md)一章中介绍了循环神经网络（RNN）及长短时间记忆网络（LSTM）。相比于简单的RNN，LSTM增加了记忆单元（memory cell）、输入门（input gate）、遗忘门（forget gate）及输出门（output gate），这些门及记忆单元组合起来大大提升了RNN处理远距离依赖问题的能力。
-
-GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN的一种扩展，如下图所示。GRU单元只有两个门：
-- 重置门（reset gate）：如果重置门关闭，会忽略掉历史信息，即历史不相干的信息不会影响未来的输出。
-- 更新门（update gate）：将LSTM的输入门和遗忘门合并，用于控制历史信息对当前时刻隐层输出的影响。如果更新门接近1，会把历史信息传递下去。
-<p align="center">
-<img src="image/gru.png" width=700><br/>
-图2. GRU（门控循环单元）
-</p>
-
-一般来说，具有短距离依赖属性的序列，其重置门比较活跃；相反，具有长距离依赖属性的序列，其更新门比较活跃。另外，Chung等人\[[3](#参考文献)\]通过多组实验表明，GRU虽然参数更少，但是在多个任务上都和LSTM有相近的表现。
+本节依次介绍双向循环神经网络（Bi-directional Recurrent Neural Network），NMT模型中典型的编码器-解码器（Encoder-Decoder）框架以及柱搜索（beam search）算法。
 
 ### 双向循环神经网络
 
@@ -108,30 +94,6 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 机器翻译任务的生成过程，通俗来讲就是根据预先训练的模型来翻译源语言句子。生成过程中的解码阶段和上述训练过程的有所差异，具体介绍请见[柱搜索算法](#柱搜索算法)。
 
-### 注意力机制
-
-如果编码阶段的输出是一个固定维度的向量，会带来以下两个问题：1）不论源语言序列的长度是5个词还是50个词，如果都用固定维度的向量去编码其中的语义和句法结构信息，对模型来说是一个非常高的要求，特别是对长句子序列而言；2）直觉上，当人类翻译一句话时，会对与当前译文更相关的源语言片段上给予更多关注，且关注点会随着翻译的进行而改变。而固定维度的向量则相当于，任何时刻都对源语言所有信息给予了同等程度的关注，这是不合理的。因此，Bahdanau等人\[[4](#参考文献)\]引入注意力（attention）机制，可以对编码后的上下文片段进行解码，以此来解决长句子的特征学习问题。下面介绍在注意力机制下的解码器结构。
-
-与简单的解码器不同，这里$z_i$的计算公式为：
-
-$$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$$
-
-可见，源语言句子的编码向量表示为第$i$个词的上下文片段$c_i$，即针对每一个目标语言中的词$u_i$，都有一个特定的$c_i$与之对应。$c_i$的计算公式如下：
-
-$$c_i=\sum _{j=1}^{T}a_{ij}h_j, a_i=\left[ a_{i1},a_{i2},...,a_{iT}\right ]$$
-
-从公式中可以看出，注意力机制是通过对编码器中各时刻的RNN状态$h_j$进行加权平均实现的。权重$a_{ij}$表示目标语言中第$i$个词对源语言中第$j$个词的注意力大小，$a_{ij}$的计算公式如下：
-
-$$a_{ij} = {exp(e_{ij}) \over {\sum_{k=1}^T exp(e_{ik})}}$$
-$$e_{ij} = {align(z_i, h_j)}$$
-
-其中，$align$可以看作是一个对齐模型，用来衡量目标语言中第$i$个词和源语言中第$j$个词的匹配程度。具体而言，这个程度是通过解码RNN的第$i$个隐层状态$z_i$和源语言句子的第$j$个上下文片段$h_j$计算得到的。传统的对齐模型中，目标语言的每个词明确对应源语言的一个或多个词（hard alignment）；而在注意力模型中采用的是soft alignment，即任何两个目标语言和源语言词间均存在一定的关联，且这个关联强度是由模型计算得到的实数，因此可以融入整个NMT框架，并通过反向传播算法进行训练。
-
-<p align="center">
-<img src="image/decoder_attention.png" width=500><br/>
-图6. 基于注意力机制的解码器
-</p>
-
 ### 柱搜索算法
 
 柱搜索（[beam search](http://en.wikipedia.org/wiki/Beam_search)）是一种启发式图搜索算法，用于在图或树中搜索有限集合中的最优扩展节点，通常用在解空间非常大的系统（如机器翻译、语音识别）中，原因是内存无法装下图或树中所有展开的解。如在机器翻译任务中希望翻译“`<s>你好<e>`”，就算目标语言字典中只有3个词（`<s>`, `<e>`, `hello`），也可能生成无限句话（`hello`循环出现的次数不定），为了找到其中较好的翻译结果，我们可采用柱搜索算法。
@@ -165,338 +127,316 @@ $$e_{ij} = {align(z_i, h_j)}$$
 
 该数据集有193319条训练数据，6003条测试数据，词典长度为30000。因为数据规模限制，使用该数据集训练出来的模型效果无法保证。
 
-## 流程说明
+## 模型配置说明
 
-### paddle初始化
+下面我们开始根据输入数据的形式配置模型。首先引入所需的库函数以及定义全局变量。
 
 ```python
-# 加载 paddle的python包
-import sys
-import paddle.v2 as paddle
+import contextlib
 
-# 配置只使用cpu，并且使用一个cpu进行训练
-paddle.init(use_gpu=False, trainer_count=1)
-# 训练模式False，生成模式True
-is_generating = False
+import numpy as np
+import paddle
+import paddle.fluid as fluid
+import paddle.fluid.framework as framework
+import paddle.fluid.layers as pd
+from paddle.fluid.executor import Executor
+from functools import partial
+import os
+
+dict_size = 30000
+source_dict_dim = target_dict_dim = dict_size
+hidden_dim = 32
+word_dim = 16
+batch_size = 2
+max_length = 8
+topk_size = 50
+beam_size = 2
+
+decoder_size = hidden_dim
 ```
 
-### 模型结构
-1. 首先，定义了一些全局变量。
-
-    ```python
-    dict_size = 30000 # 字典维度
-    source_dict_dim = dict_size # 源语言字典维度
-    target_dict_dim = dict_size # 目标语言字典维度
-    word_vector_dim = 512 # 词向量维度
-    encoder_size = 512 # 编码器中的GRU隐层大小
-    decoder_size = 512 # 解码器中的GRU隐层大小
-    beam_size = 3 # 柱宽度
-    max_length = 250 # 生成句子的最大长度
-    ```
-
-2. 其次，实现编码器框架。分为三步：
-
-   - 输入是一个文字序列，被表示成整型的序列。序列中每个元素是文字在字典中的索引。所以，我们定义数据层的数据类型为`integer_value_sequence`（整型序列），序列中每个元素的范围是`[0, source_dict_dim)`。
+然后如下实现编码器框架：
 
    ```python
-    src_word_id = paddle.layer.data(
-        name='source_language_word',
-        type=paddle.data_type.integer_value_sequence(source_dict_dim))
-   ```
-   - 将上述编码映射到低维语言空间的词向量$\mathbf{s}$。
+   def encoder(is_sparse):
+    # encoder
+    src_word_id = pd.data(
+        name="src_word_id", shape=[1], dtype='int64', lod_level=1)
+    src_embedding = pd.embedding(
+        input=src_word_id,
+        size=[dict_size, word_dim],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr=fluid.ParamAttr(name='vemb'))
 
-   ```python
-    src_embedding = paddle.layer.embedding(
-        input=src_word_id, size=word_vector_dim)
-   ```
-   - 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到$\mathbf{h}$。
-
-   ```python
-    src_forward = paddle.networks.simple_gru(
-        input=src_embedding, size=encoder_size)
-    src_backward = paddle.networks.simple_gru(
-        input=src_embedding, size=encoder_size, reverse=True)
-    encoded_vector = paddle.layer.concat(input=[src_forward, src_backward])
+    fc1 = pd.fc(input=src_embedding, size=hidden_dim * 4, act='tanh')
+    lstm_hidden0, lstm_0 = pd.dynamic_lstm(input=fc1, size=hidden_dim * 4)
+    encoder_out = pd.sequence_last_step(input=lstm_hidden0)
+    return encoder_out
    ```
 
-3. 接着，定义基于注意力机制的解码器框架。分为三步：
+再实现训练模式下的解码器：
 
-   - 对源语言序列编码后的结果（见2的最后一步），过一个前馈神经网络（Feed Forward Neural Network），得到其映射。
+```python
+   def train_decoder(context, is_sparse):
+    # decoder
+    trg_language_word = pd.data(
+        name="target_language_word", shape=[1], dtype='int64', lod_level=1)
+    trg_embedding = pd.embedding(
+        input=trg_language_word,
+        size=[dict_size, word_dim],
+        dtype='float32',
+        is_sparse=is_sparse,
+        param_attr=fluid.ParamAttr(name='vemb'))
 
-   ```python
-   encoded_proj = paddle.layer.fc(
-         act=paddle.activation.Linear(),
-         size=decoder_size,
-         bias_attr=False,
-         input=encoded_vector)
-   ```
+    rnn = pd.DynamicRNN()
+    with rnn.block():
+        current_word = rnn.step_input(trg_embedding)
+        pre_state = rnn.memory(init=context)
+        current_state = pd.fc(input=[current_word, pre_state],
+                              size=decoder_size,
+                              act='tanh')
 
-   - 构造解码器RNN的初始状态。由于解码器需要预测时序目标序列，但在0时刻并没有初始值，所以我们希望对其进行初始化。这里采用的是将源语言序列逆序编码后的最后一个状态进行非线性映射，作为该初始值，即$c_0=h_T$。
+        current_score = pd.fc(input=current_state,
+                              size=target_dict_dim,
+                              act='softmax')
+        rnn.update_memory(pre_state, current_state)
+        rnn.output(current_score)
 
-   ```python
-   backward_first = paddle.layer.first_seq(input=src_backward)
-   decoder_boot = paddle.layer.fc(
-         size=decoder_size,
-         act=paddle.activation.Tanh(),
-         bias_attr=False,
-         input=backward_first)
-   ```
+    return rnn()
+```
 
-   - 定义解码阶段每一个时间步的RNN行为，即根据当前时刻的源语言上下文向量$c_i$、解码器隐层状态$z_i$和目标语言中第$i$个词$u_i$，来预测第$i+1$个词的概率$p_{i+1}$。
-      - decoder_mem记录了前一个时间步的隐层状态$z_i$，其初始状态是decoder_boot。
-      - context通过调用`simple_attention`函数，实现公式$c_i=\sum {j=1}^{T}a_{ij}h_j$。其中，enc_vec是$h_j$，enc_proj是$h_j$的映射（见3.1），权重$a_{ij}$的计算已经封装在`simple_attention`函数中。
-      - decoder_inputs融合了$c_i$和当前目标词current_word（即$u_i$）的表示。
-      - gru_step通过调用`gru_step_layer`函数，在decoder_inputs和decoder_mem上做了激活操作，即实现公式$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$。
-      - 最后，使用softmax归一化计算单词的概率，将out结果返回，即实现公式$p\left ( u_i|u_{&lt;i},\mathbf{x} \right )=softmax(W_sz_i+b_z)$。
+实现推测模式下的解码器：
 
-   ```python
-   def gru_decoder_with_attention(enc_vec, enc_proj, current_word):
-        decoder_mem = paddle.layer.memory(
-            name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
+```python
+def decode(context, is_sparse):
+    init_state = context
+    array_len = pd.fill_constant(shape=[1], dtype='int64', value=max_length)
+    counter = pd.zeros(shape=[1], dtype='int64', force_cpu=True)
 
-        context = paddle.networks.simple_attention(
-            encoded_sequence=enc_vec,
-            encoded_proj=enc_proj,
-            decoder_state=decoder_mem)
+    # fill the first element with init_state
+    state_array = pd.create_array('float32')
+    pd.array_write(init_state, array=state_array, i=counter)
 
-        decoder_inputs = paddle.layer.fc(
-            act=paddle.activation.Linear(),
-            size=decoder_size * 3,
-            bias_attr=False,
-            input=[context, current_word],
-            layer_attr=paddle.attr.ExtraLayerAttribute(
-                error_clipping_threshold=100.0))
+    # ids, scores as memory
+    ids_array = pd.create_array('int64')
+    scores_array = pd.create_array('float32')
 
-        gru_step = paddle.layer.gru_step(
-            name='gru_decoder',
-            input=decoder_inputs,
-            output_mem=decoder_mem,
-            size=decoder_size)
+    init_ids = pd.data(name="init_ids", shape=[1], dtype="int64", lod_level=2)
+    init_scores = pd.data(
+        name="init_scores", shape=[1], dtype="float32", lod_level=2)
 
-        out = paddle.layer.mixed(
-            size=target_dict_dim,
-            bias_attr=True,
-            act=paddle.activation.Softmax(),
-            input=paddle.layer.full_matrix_projection(input=gru_step))
-        return out
-   ```
+    pd.array_write(init_ids, array=ids_array, i=counter)
+    pd.array_write(init_scores, array=scores_array, i=counter)
 
-4. 定义解码器框架名字，和`gru_decoder_with_attention`函数的前两个输入。注意：这两个输入使用`StaticInput`，具体说明可见[StaticInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/v2/howto/rnn/recurrent_group_cn.md#输入)。
+    cond = pd.less_than(x=counter, y=array_len)
 
-    ```python
-    decoder_group_name = "decoder_group"
-    group_input1 = paddle.layer.StaticInput(input=encoded_vector)
-    group_input2 = paddle.layer.StaticInput(input=encoded_proj)
-    group_inputs = [group_input1, group_input2]
-    ```
+    while_op = pd.While(cond=cond)
+    with while_op.block():
+        pre_ids = pd.array_read(array=ids_array, i=counter)
+        pre_state = pd.array_read(array=state_array, i=counter)
+        pre_score = pd.array_read(array=scores_array, i=counter)
 
-5. 训练模式下的解码器调用：
+        # expand the lod of pre_state to be the same with pre_score
+        pre_state_expanded = pd.sequence_expand(pre_state, pre_score)
 
-   - 首先，将目标语言序列的词向量trg_embedding，直接作为训练模式下的current_word传给`gru_decoder_with_attention`函数。
-   - 其次，使用`recurrent_group`函数循环调用`gru_decoder_with_attention`函数。
-   - 接着，使用目标语言的下一个词序列作为标签层lbl，即预测目标词。
-   - 最后，用多类交叉熵损失函数`classification_cost`来计算损失值。
+        pre_ids_emb = pd.embedding(
+            input=pre_ids,
+            size=[dict_size, word_dim],
+            dtype='float32',
+            is_sparse=is_sparse)
 
-   ```python
-   if not is_generating:
-       trg_embedding = paddle.layer.embedding(
-           input=paddle.layer.data(
-               name='target_language_word',
-               type=paddle.data_type.integer_value_sequence(target_dict_dim)),
-           size=word_vector_dim,
-           param_attr=paddle.attr.ParamAttr(name='_target_language_embedding'))
-       group_inputs.append(trg_embedding)
+        # use rnn unit to update rnn
+        current_state = pd.fc(input=[pre_state_expanded, pre_ids_emb],
+                              size=decoder_size,
+                              act='tanh')
+        current_state_with_lod = pd.lod_reset(x=current_state, y=pre_score)
+        # use score to do beam search
+        current_score = pd.fc(input=current_state_with_lod,
+                              size=target_dict_dim,
+                              act='softmax')
+        topk_scores, topk_indices = pd.topk(current_score, k=topk_size)
+        selected_ids, selected_scores = pd.beam_search(
+            pre_ids, topk_indices, topk_scores, beam_size, end_id=10, level=0)
 
-       # For decoder equipped with attention mechanism, in training,
-       # target embeding (the groudtruth) is the data input,
-       # while encoded source sequence is accessed to as an unbounded memory.
-       # Here, the StaticInput defines a read-only memory
-       # for the recurrent_group.
-       decoder = paddle.layer.recurrent_group(
-           name=decoder_group_name,
-           step=gru_decoder_with_attention,
-           input=group_inputs)
+        pd.increment(x=counter, value=1, in_place=True)
 
-       lbl = paddle.layer.data(
-           name='target_language_next_word',
-           type=paddle.data_type.integer_value_sequence(target_dict_dim))
-       cost = paddle.layer.classification_cost(input=decoder, label=lbl)
-   ```
+        # update the memories
+        pd.array_write(current_state, array=state_array, i=counter)
+        pd.array_write(selected_ids, array=ids_array, i=counter)
+        pd.array_write(selected_scores, array=scores_array, i=counter)
 
-6. 生成模式下的解码器调用：
+        pd.less_than(x=counter, y=array_len, cond=cond)
 
-   - 首先，在序列生成任务中，由于解码阶段的RNN总是引用上一时刻生成出的词的词向量，作为当前时刻的输入，因此，使用`GeneratedInput`来自动完成这一过程。具体说明可见[GeneratedInput文档](https://github.com/PaddlePaddle/Paddle/blob/develop/doc/howto/deep_model/rnn/recurrent_group_cn.md#输入)。
-   - 其次，使用`beam_search`函数循环调用`gru_decoder_with_attention`函数，生成出序列id。
+    translation_ids, translation_scores = pd.beam_search_decode(
+        ids=ids_array, scores=scores_array)
 
-   ```python
-   if is_generating:
-      # In generation, the decoder predicts a next target word based on
-      # the encoded source sequence and the previous generated target word.
+    return translation_ids, translation_scores
+```
 
-      # The encoded source sequence (encoder's output) must be specified by
-      # StaticInput, which is a read-only memory.
-      # Embedding of the previous generated word is automatically retrieved
-      # by GeneratedInputs initialized by a start mark <s>.
+进而，我们定义一个`train_program`来使用`inference_program`计算出的结果，在标记数据的帮助下来计算误差。我们还定义了一个`optimizer_func`来定义优化器。
 
-       trg_embedding = paddle.layer.GeneratedInput(
-           size=target_dict_dim,
-           embedding_name='_target_language_embedding',
-           embedding_size=word_vector_dim)
-       group_inputs.append(trg_embedding)
+```python
+def train_program(is_sparse):
+    context = encoder(is_sparse)
+    rnn_out = train_decoder(context, is_sparse)
+    label = pd.data(
+        name="target_language_next_word", shape=[1], dtype='int64', lod_level=1)
+    cost = pd.cross_entropy(input=rnn_out, label=label)
+    avg_cost = pd.mean(cost)
+    return avg_cost
 
-       beam_gen = paddle.layer.beam_search(
-           name=decoder_group_name,
-           step=gru_decoder_with_attention,
-           input=group_inputs,
-           bos_id=0,
-           eos_id=1,
-           beam_size=beam_size,
-           max_length=max_length)
-   ```
 
-注意：我们提供的配置在Bahdanau的论文\[[4](#参考文献)\]上做了一些简化，可参考[issue #1133](https://github.com/PaddlePaddle/Paddle/issues/1133)。
+def optimizer_func():
+    return fluid.optimizer.Adagrad(
+        learning_rate=1e-4,
+        regularization=fluid.regularizer.L2DecayRegularizer(
+            regularization_coeff=0.1))
+```
 
-### 训练模型
+## 训练模型
 
-1. 参数定义
+### 定义训练环境
+定义您的训练环境，可以指定训练是发生在CPU还是GPU上。
 
-    依据模型配置的`cost`定义模型参数。可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
+```python
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+```
 
-    ```python
-    if not is_generating:
-        parameters = paddle.parameters.create(cost)
-        for param in parameters.keys():
-            print param
-    ```
+### 定义数据提供器
+下一步是为训练和测试定义数据提供器。提供器读入一个大小为 `BATCH_SIZE`的数据。`paddle.dataset.wmt.train` 每次会在乱序化后提供一个大小为`BATCH_SIZE`的数据，乱序化的大小为缓存大小`buf_size`。
 
-2. 数据定义
+```python
+train_reader = paddle.batch(
+        paddle.reader.shuffle(
+            paddle.dataset.wmt14.train(dict_size), buf_size=1000),
+        batch_size=batch_size)
+```
 
-    获取wmt14的dataset reader。
+### 构造训练器(trainer)
+训练器需要一个训练程序和一个训练优化函数。
 
-    ```python
-    if not is_generating:
-        wmt14_reader = paddle.batch(
-            paddle.reader.shuffle(
-                paddle.dataset.wmt14.train(dict_size=dict_size), buf_size=8192),
-            batch_size=5)
-    ```
+```python
+is_sparse = False
+trainer = fluid.Trainer(
+        train_func=partial(train_program, is_sparse),
+        place=place,
+        optimizer_func=optimizer_func)
+```
 
-3. 构造trainer
+### 提供数据
 
-    根据优化目标cost,网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法。
+`feed_order`用来定义每条产生的数据和`paddle.layer.data`之间的映射关系。比如，`wmt14.train`产生的第一列的数据对应的是`src_word_id`这个特征。
 
-    ```python
-    if not is_generating:
-        optimizer = paddle.optimizer.Adam(
-            learning_rate=5e-5,
-            regularization=paddle.optimizer.L2Regularization(rate=8e-4))
-        trainer = paddle.trainer.SGD(cost=cost,
-                                     parameters=parameters,
-                                     update_equation=optimizer)
-    ```
+```python
+feed_order = [
+        'src_word_id', 'target_language_word', 'target_language_next_word'
+    ]
+```
 
-4. 构造event_handler
+### 事件处理器
+回调函数`event_handler`在一个之前定义好的事件发生后会被调用。例如，我们可以在每步训练结束后查看误差。
 
-    可以通过自定义回调函数来评估训练过程中的各种状态，比如错误率等。下面的代码通过event.batch_id % 2 == 0 指定每2个batch打印一次日志，包含cost等信息。
+```python
+def event_handler(event):
+    if isinstance(event, fluid.EndStepEvent):
+        if event.step % 10 == 0:
+            print('pass_id=' + str(event.epoch) + ' batch=' + str(event.step))
 
-    ```python
-    if not is_generating:
-        def event_handler(event):
-            if isinstance(event, paddle.event.EndIteration):
-                if event.batch_id % 2 == 0:
-                    print "\nPass %d, Batch %d, Cost %f, %s" % (
-                        event.pass_id, event.batch_id, event.cost, event.metrics)
-    ```
+        if event.step == 20:
+            trainer.stop()
+```
 
-5. 启动训练
+### 开始训练
+最后，我们传入训练循环数（`num_epoch`）和一些别的参数，调用 `trainer.train` 来开始训练。
 
-    ```python
-    if not is_generating:
-        trainer.train(
-                reader=wmt14_reader, event_handler=event_handler, num_passes=2)
-    ```
+```python
+EPOCH_NUM = 1
 
- 训练开始后，可以观察到event_handler输出的日志如下：
- ```text
- Pass 0, Batch 0, Cost 148.444983, {'classification_error_evaluator': 1.0}
- .........
- Pass 0, Batch 10, Cost 335.896802, {'classification_error_evaluator': 0.9325153231620789}
- .........
- ```
+trainer.train(
+        reader=train_reader,
+        num_epochs=EPOCH_NUM,
+        event_handler=event_handler,
+        feed_order=feed_order)
+```
 
-### 生成模型
+## 应用模型
 
-1. 加载预训练的模型
+### 定义解码部分
 
-    由于NMT模型的训练非常耗时，我们在50个物理节点（每节点含有2颗6核CPU）的集群中，花了5天时间训练了一个模型供大家直接下载使用。该模型大小为205MB，[BLEU评估](#BLEU评估)值为26.92。
+使用上面定义的 `encoder` 和 `decoder` 函数来推测翻译后的对应id和分数.
 
-    ```python
-    if is_generating:
-        parameters = paddle.dataset.wmt14.model()
-    ```
-2. 数据定义
+```python
+context = encoder(is_sparse)
+translation_ids, translation_scores = decode(context, is_sparse)
+```
 
-    从wmt14的生成集中读取前3个样本作为源语言句子。
+### 定义数据
 
-    ```python
-    if is_generating:
-        gen_creator = paddle.dataset.wmt14.gen(dict_size)
-        gen_data = []
-        gen_num = 3
-        for item in gen_creator():
-            gen_data.append((item[0], ))
-            if len(gen_data) == gen_num:
-                break
-    ```
-3. 构造infer
+我们先初始化id和分数来生成tensors来作为输入数据。在这个预测例子中，我们用`wmt14.test`数据中的第一个记录来做推测，最后我们用"源字典"和"目标字典"来列印对应的句子结果。
 
-    根据网络拓扑结构和模型参数构造出infer用来生成，在预测时还需要指定输出域`field`，这里使用生成句子的概率`prob`和句子中每个词的`id`。
+```python
+init_ids_data = np.array([1 for _ in range(batch_size)], dtype='int64')
+init_scores_data = np.array(
+    [1. for _ in range(batch_size)], dtype='float32')
+init_ids_data = init_ids_data.reshape((batch_size, 1))
+init_scores_data = init_scores_data.reshape((batch_size, 1))
+init_lod = [1] * batch_size
+init_lod = [init_lod, init_lod]
 
-    ```python
-    if is_generating:
-        beam_result = paddle.infer(
-            output_layer=beam_gen,
-            parameters=parameters,
-            input=gen_data,
-            field=['prob', 'id'])
-    ```
+init_ids = fluid.create_lod_tensor(init_ids_data, init_lod, place)
+init_scores = fluid.create_lod_tensor(init_scores_data, init_lod, place)
 
-4. 打印生成结果
+test_data = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.wmt14.test(dict_size), buf_size=1000),
+    batch_size=batch_size)
 
-    根据源/目标语言字典，将源语言句子和`beam_size`个生成句子打印输出。
+feed_order = ['src_word_id']
+feed_list = [
+    framework.default_main_program().global_block().var(var_name)
+    for var_name in feed_order
+]
+feeder = fluid.DataFeeder(feed_list, place)
 
-    ```python
-    if is_generating:
-        # load the dictionary
-        src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
+src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
+```
 
-        gen_sen_idx = np.where(beam_result[1] == -1)[0]
-        assert len(gen_sen_idx) == len(gen_data) * beam_size
+### 测试
+现在我们可以进行预测了。我们要在`feed_order`提供对应参数，放在`executor`上运行以取得id和分数结果
 
-        # -1 is the delimiter of generated sequences.
-        # the first element of each generated sequence its length.
-        start_pos, end_pos = 1, 0
-        for i, sample in enumerate(gen_data):
-            print(" ".join([src_dict[w] for w in sample[0][1:-1]]))
-            for j in xrange(beam_size):
-                end_pos = gen_sen_idx[i * beam_size + j]
-                print("%.4f\t%s" % (beam_result[0][i][j], " ".join(
-                    trg_dict[w] for w in beam_result[1][start_pos:end_pos])))
-                start_pos = end_pos + 2
-            print("\n")
-    ```
+```python
+exe = Executor(place)
+exe.run(framework.default_startup_program())
 
-  生成开始后，可以观察到输出的日志如下：
-  ```text
-  Les <unk> se <unk> au sujet de la largeur des sièges alors que de grosses commandes sont en jeu
-  -19.0196        The <unk> will be rotated about the width of the seats , while large orders are at stake . <e>
-  -19.1131        The <unk> will be rotated about the width of the seats , while large commands are at stake . <e>
-  -19.5129        The <unk> will be rotated about the width of the seats , while large commands are at play . <e>
-  ```
+for data in test_data():
+    feed_data = map(lambda x: [x[0]], data)
+    feed_dict = feeder.feed(feed_data)
+    feed_dict['init_ids'] = init_ids
+    feed_dict['init_scores'] = init_scores
+
+    results = exe.run(
+        framework.default_main_program(),
+        feed=feed_dict,
+        fetch_list=[translation_ids, translation_scores],
+        return_numpy=False)
+
+    result_ids = np.array(results[0])
+    result_scores = np.array(results[1])
+
+    print("Original sentence:")
+    print(" ".join([src_dict[w] for w in feed_data[0][0]]))
+    print("Translated sentence:")
+    print(" ".join([trg_dict[w] for w in result_ids]))
+    print("Corresponding score: ", result_scores)
+
+    break
+```
 
 ## 总结
 
-端到端的神经网络机器翻译是近几年兴起的一种全新的机器翻译方法。本章中，我们介绍了NMT中典型的“编码器-解码器”框架和“注意力”机制。由于NMT是一个典型的Seq2Seq（Sequence to Sequence，序列到序列）学习问题，因此，Seq2Seq中的query改写（query rewriting）、摘要、单轮对话等问题都可以用本教程的模型来解决。
+端到端的神经网络机器翻译是近几年兴起的一种全新的机器翻译方法。本章中，我们介绍了NMT中典型的“编码器-解码器”框架。由于NMT是一个典型的Seq2Seq（Sequence to Sequence，序列到序列）学习问题，因此，Seq2Seq中的query改写（query rewriting）、摘要、单轮对话等问题都可以用本教程的模型来解决。
 
 ## 参考文献
 
