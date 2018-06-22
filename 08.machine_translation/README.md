@@ -196,7 +196,6 @@ Then we implement encoder as follows:
 
    ```python
    def encoder(is_sparse):
-    # encoder
     src_word_id = pd.data(
         name="src_word_id", shape=[1], dtype='int64', lod_level=1)
     src_embedding = pd.embedding(
@@ -216,7 +215,6 @@ Implement the decoder for training as follows:
 
 ```python
    def train_decoder(context, is_sparse):
-    # decoder
     trg_language_word = pd.data(
         name="target_language_word", shape=[1], dtype='int64', lod_level=1)
     trg_embedding = pd.embedding(
