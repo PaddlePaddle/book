@@ -51,7 +51,7 @@ After training and with a beam-search size of 3, the generated translations are 
 
 ## Overview of the Model
 
-This section will introduce Gated Recurrent Unit (GRU), Bi-directional Recurrent Neural Network, the Encoder-Decoder framework used in NMT, attention mechanism, as well as the beam search algorithm.
+This section will introduce Bi-directional Recurrent Neural Network, the Encoder-Decoder framework used in NMT, as well as the beam search algorithm.
 
 ### Bi-directional Recurrent Neural Network
 
@@ -196,7 +196,6 @@ Then we implement encoder as follows:
 
    ```python
    def encoder(is_sparse):
-    # encoder
     src_word_id = pd.data(
         name="src_word_id", shape=[1], dtype='int64', lod_level=1)
     src_embedding = pd.embedding(
@@ -216,7 +215,6 @@ Implement the decoder for training as follows:
 
 ```python
    def train_decoder(context, is_sparse):
-    # decoder
     trg_language_word = pd.data(
         name="target_language_word", shape=[1], dtype='int64', lod_level=1)
     trg_embedding = pd.embedding(
