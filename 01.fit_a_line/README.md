@@ -1,5 +1,5 @@
 # Linear Regression
-Let us begin the tutorial with a classical problem called Linear Regression \[[1](#References)\]. In this chapter, we will train a model from a realistic dataset to predict home prices. Some important concepts in Machine Learning will be covered through this example.
+Let us begin the tutorial with a classical problem called Linear Regression \[[1](#references)\]. In this chapter, we will train a model from a realistic dataset to predict home prices. Some important concepts in Machine Learning will be covered through this example.
 
 The source code for this tutorial lives on [book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line). For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
@@ -12,7 +12,7 @@ In our problem setup, the attribute $x_{i,j}$ denotes the $j$th characteristic o
 
 $$y_i = \omega_1x_{i,1} + \omega_2x_{i,2} + \ldots + \omega_dx_{i,d} + b,  i=1,\ldots,n$$
 
-where $\vec{\omega}$ and $b$ are the model parameters we want to estimate. Once they are learned, we will be able to predict the price of a home, given the attributes associated with it. We call this model **Linear Regression**. In other words, we want to regress a value against several values linearly. In practice, a linear model is often too simplistic to capture the real relationships between the variables. Yet, because Linear Regression is easy to train and analyze, it has been applied to a large number of real problems. As a result, it is an important topic in many classic Statistical Learning and Machine Learning textbooks \[[2,3,4](#References)\].
+where $\vec{\omega}$ and $b$ are the model parameters we want to estimate. Once they are learned, we will be able to predict the price of a home, given the attributes associated with it. We call this model **Linear Regression**. In other words, we want to regress a value against several values linearly. In practice, a linear model is often too simplistic to capture the real relationships between the variables. Yet, because Linear Regression is easy to train and analyze, it has been applied to a large number of real problems. As a result, it is an important topic in many classic Statistical Learning and Machine Learning textbooks \[[2,3,4](#references)\].
 
 ## Results Demonstration
 We first show the result of our model. The dataset [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) is used to train a linear model to predict the home prices in Boston. The figure below shows the predictions the model makes for some home prices. The $X$-axis represents the median value of the prices of similar homes within a bin, while the $Y$-axis represents the home value our linear model predicts. The dotted line represents points where $X=Y$. When reading the diagram, the closer the point is to the dotted line, better the model's prediction.
@@ -72,16 +72,16 @@ The UCI housing dataset has 506 instances. Each instance describes the attribute
 | CRIM | per capita crime rate by town | Continuous|
 | ZN | proportion of residential land zoned for lots over 25,000 sq.ft. | Continuous |
 | INDUS | proportion of non-retail business acres per town | Continuous |
-| CHAS | Charles River dummy variable | Discrete, 1 if tract bounds river; 0 otherwise|
-| NOX | nitric oxides concentration (parts per 10 million) | Continuous |
+| CHAS | whether the property is close to Charles River | Discrete|
+| NOX | nitric oxide concentration (parts per 10 million) | Continuous |
 | RM | average number of rooms per dwelling | Continuous |
 | AGE | proportion of owner-occupied units built prior to 1940 | Continuous |
 | DIS | weighted distances to five Boston employment centres | Continuous |
 | RAD | index of accessibility to radial highways | Continuous |
-| TAX | full-value property-tax rate per $10,000 | Continuous |
+| TAX | full-value property-tax rate per \$10,000 | Continuous |
 | PTRATIO | pupil-teacher ratio by town | Continuous |
 | B | 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town | Continuous |
-| LSTAT | % lower status of the population | Continuous |
+| LSTAT | percentage lower status of the population | Continuous |
 | MEDV | Median value of owner-occupied homes in $1000's | Continuous |
 
 The last entry is the median home price.
@@ -129,16 +129,16 @@ Linear regression is essentially a fully-connected layer with linear activation:
 ```python
 x = paddle.layer.data(name='x', type=paddle.data_type.dense_vector(13))
 y_predict = paddle.layer.fc(input=x,
-                                size=1,
-                                act=paddle.activation.Linear())
+                            size=1,
+                            act=paddle.activation.Linear())
 y = paddle.layer.data(name='y', type=paddle.data_type.dense_vector(1))
 cost = paddle.layer.square_error_cost(input=y_predict, label=y)
 ```
 
-### Save Topology
+### Save The Model Topology
 
 ```python
-# Save the inference topology to protobuf.
+# Save the inference topology to protobuf and write to a file.
 inference_topology = paddle.topology.Topology(layers=y_predict)
 with open("inference_topology.pkl", 'wb') as f:
     inference_topology.serialize_for_inference(f)
