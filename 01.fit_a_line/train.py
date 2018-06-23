@@ -40,6 +40,10 @@ def train_program():
     return avg_loss
 
 
+def optimizer_program():
+    return fluid.optimizer.SGD(learning_rate=0.001)
+
+
 # can use CPU or GPU
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
@@ -47,7 +51,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 trainer = fluid.Trainer(
     train_func=train_program,
     place=place,
-    optimizer_func=fluid.optimizer.SGD(learning_rate=0.001))
+    optimizer_func=optimizer_program)
 
 feed_order = ['x', 'y']
 
@@ -101,7 +105,7 @@ def inference_program():
 
 
 inferencer = fluid.Inferencer(
-    infer_func=inference_program, param_path=params_folder, place=place)
+    infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
 tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")
