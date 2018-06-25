@@ -1,0 +1,93 @@
+{
+   "sections":[
+        {
+           "title":{
+              "en":"Deep Learning 101",
+              "zh":"Deep Learning 101"
+           },
+
+           "sections":[
+               {
+                  "title":{
+                     "en":"Linear Regression",
+                     "zh":"新手入门"
+                  },
+                  "link":{
+                     "en":"01.fit_a_line/README.md",
+                     "zh":"01.fit_a_line/README.cn.md"
+                  }
+               },
+               {
+                  "title":{
+                     "en":"Recognize Digits",
+                     "zh":"识别数字"
+                  },
+                  "link":{
+                     "en":"02.recognize_digits/README.md",
+                     "zh":"02.recognize_digits/README.cn.md"
+                  }
+               },
+               {
+                  "title":{
+                     "en":"Image Classification",
+                     "zh":"图像分类"
+                  },
+                  "link":{
+                     "en":"03.image_classification/README.md",
+                     "zh":"03.image_classification/README.cn.md"
+                  }
+              },
+              {
+                 "title":{
+                    "en":"Word2Vec",
+                    "zh":"词向量"
+                 },
+                 "link":{
+                    "en":"04.word2vec/README.md",
+                    "zh":"04.word2vec/README.cn.md"
+                 }
+              },
+              {
+                 "title":{
+                    "en":"Personalized Recommendation",
+                    "zh":"个性化推荐"
+                 },
+                 "link":{
+                    "en":"05.recommender_system/README.md",
+                    "zh":"05.recommender_system/README.cn.md"
+                 }
+              },
+              {
+                 "title":{
+                    "en":"Sentiment Analysis",
+                    "zh":"情感分析"
+                 },
+                 "link":{
+                    "en":"06.understand_sentiment/README.md",
+                    "zh":"06.understand_sentiment/README.cn.md"
+                 }
+              },
+              {
+                 "title":{
+                    "en":"Semantic Role Labeling",
+                    "zh":"语义角色标注"
+                 },
+                 "link":{
+                    "en":"07.label_semantic_roles/README.md",
+                    "zh":"07.label_semantic_roles/README.cn.md"
+                 }
+              },
+              {
+                 "title":{
+                    "en":"Machine Translation",
+                    "zh":"机器翻译"
+                 },
+                 "link":{
+                    "en":"08.machine_translation/README.md",
+                    "zh":"08.machine_translation/README.cn.md"
+                 }
+              }
+           ]
+        }
+   ]
+}
