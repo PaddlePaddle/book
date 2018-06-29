@@ -168,13 +168,17 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
             input=fc, size=hid_dim, is_reverse=(i % 2) == 0)
         inputs = [fc, lstm]
 
-    fc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
-    lstm_last = fluid.layers.sequence_pool(input=inputs[1], pool_type='max')
+    fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=paddle.pooling.Max())
+    lstm_last = paddle.layer.pooling(input=inputs[1], pooling_type=paddle.pooling.Max())
+    output = paddle.layer.fc(input=[fc_last, lstm_last],
+                             size=class_dim,
+                             act=paddle.activation.Softmax(),
+                             bias_attr=bias_attr,
+                             param_attr=para_attr)
 
-    prediction = fluid.layers.fc(input=[fc_last, lstm_last],
-                                 size=class_dim,
-                                 act='softmax')
-    return prediction
+    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
+    cost = paddle.layer.classification_cost(input=output, label=lbl)
+    return cost, output
 ```
 以上的栈式双向LSTM抽象出了高级特征并把其映射到和分类类别数同样大小的向量上。`paddle.activation.Softmax`函数用来计算分类属于某个类别的概率。
 
