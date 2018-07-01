@@ -121,8 +121,9 @@ Paddle在API中提供了自动加载数据的模块。数据模块为 `paddle.da
 
 
 ```python
-import paddle.v2 as paddle
-paddle.init(use_gpu=False)
+import paddle
+movie_info = paddle.dataset.movielens.movie_info()
+print movie_info.values()[0]
 ```
 
 
@@ -210,46 +211,84 @@ print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id]
 
 ## 模型配置说明
 
-下面我们开始根据输入数据的形式配置模型。
+下面我们开始根据输入数据的形式配置模型。首先引入所需的库函数以及定义全局变量。
 
 
 ```python
-uid = paddle.layer.data(
-    name='user_id',
-    type=paddle.data_type.integer_value(
-        paddle.dataset.movielens.max_user_id() + 1))
-usr_emb = paddle.layer.embedding(input=uid, size=32)
-usr_fc = paddle.layer.fc(input=usr_emb, size=32)
+import math
+import sys
+import numpy as np
+import paddle
+import paddle.fluid as fluid
+import paddle.fluid.layers as layers
+import paddle.fluid.nets as nets
 
-usr_gender_id = paddle.layer.data(
-    name='gender_id', type=paddle.data_type.integer_value(2))
-usr_gender_emb = paddle.layer.embedding(input=usr_gender_id, size=16)
-usr_gender_fc = paddle.layer.fc(input=usr_gender_emb, size=16)
-
-usr_age_id = paddle.layer.data(
-    name='age_id',
-    type=paddle.data_type.integer_value(
-        len(paddle.dataset.movielens.age_table)))
-usr_age_emb = paddle.layer.embedding(input=usr_age_id, size=16)
-usr_age_fc = paddle.layer.fc(input=usr_age_emb, size=16)
-
-usr_job_id = paddle.layer.data(
-    name='job_id',
-    type=paddle.data_type.integer_value(
-        paddle.dataset.movielens.max_job_id() + 1))
-usr_job_emb = paddle.layer.embedding(input=usr_job_id, size=16)
-usr_job_fc = paddle.layer.fc(input=usr_job_emb, size=16)
+IS_SPARSE = True
+USE_GPU = False
+BATCH_SIZE = 256
 ```
 
-如上述代码所示，对于每个用户，我们输入4维特征。其中包括`user_id`,`gender_id`,`age_id`,`job_id`。这几维特征均是简单的整数值。为了后续神经网络处理这些特征方便，我们借鉴NLP中的语言模型，将这几维离散的整数值，变换成embedding取出。分别形成`usr_emb`, `usr_gender_emb`, `usr_age_emb`, `usr_job_emb`。
-
+然后为我们的用户特征综合模型定义模型配置
 
 ```python
-usr_combined_features = paddle.layer.fc(
-        input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc],
-        size=200,
-        act=paddle.activation.Tanh())
+def get_usr_combined_features():
+
+    USR_DICT_SIZE = paddle.dataset.movielens.max_user_id() + 1
+
+    uid = layers.data(name='user_id', shape=[1], dtype='int64')
+
+    usr_emb = layers.embedding(
+        input=uid,
+        dtype='float32',
+        size=[USR_DICT_SIZE, 32],
+        param_attr='user_table',
+        is_sparse=IS_SPARSE)
+
+    usr_fc = layers.fc(input=usr_emb, size=32)
+
+    USR_GENDER_DICT_SIZE = 2
+
+    usr_gender_id = layers.data(name='gender_id', shape=[1], dtype='int64')
+
+    usr_gender_emb = layers.embedding(
+        input=usr_gender_id,
+        size=[USR_GENDER_DICT_SIZE, 16],
+        param_attr='gender_table',
+        is_sparse=IS_SPARSE)
+
+    usr_gender_fc = layers.fc(input=usr_gender_emb, size=16)
+
+    USR_AGE_DICT_SIZE = len(paddle.dataset.movielens.age_table)
+    usr_age_id = layers.data(name='age_id', shape=[1], dtype="int64")
+
+    usr_age_emb = layers.embedding(
+        input=usr_age_id,
+        size=[USR_AGE_DICT_SIZE, 16],
+        is_sparse=IS_SPARSE,
+        param_attr='age_table')
+
+    usr_age_fc = layers.fc(input=usr_age_emb, size=16)
+
+    USR_JOB_DICT_SIZE = paddle.dataset.movielens.max_job_id() + 1
+    usr_job_id = layers.data(name='job_id', shape=[1], dtype="int64")
+
+    usr_job_emb = layers.embedding(
+        input=usr_job_id,
+        size=[USR_JOB_DICT_SIZE, 16],
+        param_attr='job_table',
+        is_sparse=IS_SPARSE)
+
+    usr_job_fc = layers.fc(input=usr_job_emb, size=16)
+
+    concat_embed = layers.concat(
+        input=[usr_fc, usr_gender_fc, usr_age_fc, usr_job_fc], axis=1)
+
+    usr_combined_features = layers.fc(input=concat_embed, size=200, act="tanh")
+
+    return usr_combined_features
 ```
+
+如上述代码所示，对于每个用户，我们输入4维特征。其中包括user_id,gender_id,age_id,job_id。这几维特征均是简单的整数值。为了后续神经网络处理这些特征方便，我们借鉴NLP中的语言模型，将这几维离散的整数值，变换成embedding取出。分别形成usr_emb, usr_gender_emb, usr_age_emb, usr_job_emb。
 
 然后，我们对于所有的用户特征，均输入到一个全连接层(fc)中。将所有特征融合为一个200维度的特征。
 
@@ -257,194 +296,219 @@ usr_combined_features = paddle.layer.fc(
 
 
 ```python
-mov_id = paddle.layer.data(
-    name='movie_id',
-    type=paddle.data_type.integer_value(
-        paddle.dataset.movielens.max_movie_id() + 1))
-mov_emb = paddle.layer.embedding(input=mov_id, size=32)
-mov_fc = paddle.layer.fc(input=mov_emb, size=32)
+def get_mov_combined_features():
 
-mov_categories = paddle.layer.data(
-    name='category_id',
-    type=paddle.data_type.sparse_binary_vector(
-        len(paddle.dataset.movielens.movie_categories())))
-mov_categories_hidden = paddle.layer.fc(input=mov_categories, size=32)
+    MOV_DICT_SIZE = paddle.dataset.movielens.max_movie_id() + 1
 
-movie_title_dict = paddle.dataset.movielens.get_movie_title_dict()
-mov_title_id = paddle.layer.data(
-    name='movie_title',
-    type=paddle.data_type.integer_value_sequence(len(movie_title_dict)))
-mov_title_emb = paddle.layer.embedding(input=mov_title_id, size=32)
-mov_title_conv = paddle.networks.sequence_conv_pool(
-    input=mov_title_emb, hidden_size=32, context_len=3)
+    mov_id = layers.data(name='movie_id', shape=[1], dtype='int64')
 
-mov_combined_features = paddle.layer.fc(
-    input=[mov_fc, mov_categories_hidden, mov_title_conv],
-    size=200,
-    act=paddle.activation.Tanh())
+    mov_emb = layers.embedding(
+        input=mov_id,
+        dtype='float32',
+        size=[MOV_DICT_SIZE, 32],
+        param_attr='movie_table',
+        is_sparse=IS_SPARSE)
+
+    mov_fc = layers.fc(input=mov_emb, size=32)
+
+    CATEGORY_DICT_SIZE = len(paddle.dataset.movielens.movie_categories())
+
+    category_id = layers.data(
+        name='category_id', shape=[1], dtype='int64', lod_level=1)
+
+    mov_categories_emb = layers.embedding(
+        input=category_id, size=[CATEGORY_DICT_SIZE, 32], is_sparse=IS_SPARSE)
+
+    mov_categories_hidden = layers.sequence_pool(
+        input=mov_categories_emb, pool_type="sum")
+
+    MOV_TITLE_DICT_SIZE = len(paddle.dataset.movielens.get_movie_title_dict())
+
+    mov_title_id = layers.data(
+        name='movie_title', shape=[1], dtype='int64', lod_level=1)
+
+    mov_title_emb = layers.embedding(
+        input=mov_title_id, size=[MOV_TITLE_DICT_SIZE, 32], is_sparse=IS_SPARSE)
+
+    mov_title_conv = nets.sequence_conv_pool(
+        input=mov_title_emb,
+        num_filters=32,
+        filter_size=3,
+        act="tanh",
+        pool_type="sum")
+
+    concat_embed = layers.concat(
+        input=[mov_fc, mov_categories_hidden, mov_title_conv], axis=1)
+
+    mov_combined_features = layers.fc(input=concat_embed, size=200, act="tanh")
+
+    return mov_combined_features
 ```
 
-电影ID和电影类型分别映射到其对应的特征隐层。对于电影标题名称(title)，一个ID序列表示的词语序列，在输入卷积层后，将得到每个时间窗口的特征（序列特征），然后通过在时间维度降采样得到固定维度的特征，整个过程在sequence_conv_pool实现。
+电影标题名称(title)是一个序列的整数，整数代表的是这个词在索引序列中的下标。这个序列会被送入 `sequence_conv_pool` 层，这个层会在时间维度上使用卷积和池化。因为如此，所以输出会是固定长度，尽管输入的序列长度各不相同。
 
-最后再将电影的特征融合进`mov_combined_features`中。
-
+最后，我们定义一个`inference_program`来使用余弦相似度计算用户特征与电影特征的相似性。
 
 ```python
-inference = paddle.layer.cos_sim(a=usr_combined_features, b=mov_combined_features, size=1, scale=5)
+def inference_program():
+    usr_combined_features = get_usr_combined_features()
+    mov_combined_features = get_mov_combined_features()
+
+    inference = layers.cos_sim(X=usr_combined_features, Y=mov_combined_features)
+    scale_infer = layers.scale(x=inference, scale=5.0)
+
+    return scale_infer
 ```
 
-进而，我们使用余弦相似度计算用户特征与电影特征的相似性。并将这个相似性拟合(回归)到用户评分上。
-
+进而，我们定义一个`train_program`来使用`inference_program`计算出的结果，在标记数据的帮助下来计算误差。我们还定义了一个`optimizer_func`来定义优化器。
 
 ```python
-cost = paddle.layer.square_error_cost(
-        input=inference,
-        label=paddle.layer.data(
-            name='score', type=paddle.data_type.dense_vector(1)))
+def train_program():
+
+    scale_infer = inference_program()
+
+    label = layers.data(name='score', shape=[1], dtype='float32')
+    square_cost = layers.square_error_cost(input=scale_infer, label=label)
+    avg_cost = layers.mean(square_cost)
+
+    return [avg_cost, scale_infer]
+
+
+def optimizer_func():
+    return fluid.optimizer.SGD(learning_rate=0.2)
 ```
 
-至此，我们的优化目标就是这个网络配置中的`cost`了。
 
 ## 训练模型
 
-### 定义参数
-神经网络的模型，我们可以简单的理解为网络拓朴结构+参数。之前一节，我们定义出了优化目标`cost`。这个`cost`即为网络模型的拓扑结构。我们开始训练模型，需要先定义出参数。定义方法为:
-
+### 定义训练环境
+定义您的训练环境，可以指定训练是发生在CPU还是GPU上。
 
 ```python
-parameters = paddle.parameters.create(cost)
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
-    [INFO 2017-03-06 17:12:13,284 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
-    [INFO 2017-03-06 17:12:13,287 networks.py:1478] The output order is [__square_error_cost_0__]
-
-
-`parameters`是模型的所有参数集合。他是一个python的dict。我们可以查看到这个网络中的所有参数名称。因为之前定义模型的时候，我们没有指定参数名称，这里参数名称是自动生成的。当然，我们也可以指定每一个参数名称，方便日后维护。
-
+### 定义数据提供器
+下一步是为训练和测试定义数据提供器。提供器读入一个大小为 `BATCH_SIZE`的数据。`paddle.dataset.movielens.train` 每次会在乱序化后提供一个大小为`BATCH_SIZE`的数据，乱序化的大小为缓存大小`buf_size`。
 
 ```python
-print parameters.keys()
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.movielens.train(), buf_size=8192),
+    batch_size=BATCH_SIZE)
+
+test_reader = paddle.batch(
+    paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
 ```
 
-    [u'___fc_layer_2__.wbias', u'___fc_layer_2__.w2', u'___embedding_layer_3__.w0', u'___embedding_layer_5__.w0', u'___embedding_layer_2__.w0', u'___embedding_layer_1__.w0', u'___fc_layer_1__.wbias', u'___fc_layer_0__.wbias', u'___fc_layer_1__.w0', u'___fc_layer_0__.w2', u'___fc_layer_0__.w3', u'___fc_layer_0__.w0', u'___fc_layer_0__.w1', u'___fc_layer_2__.w1', u'___fc_layer_2__.w0', u'___embedding_layer_4__.w0', u'___sequence_conv_pool_0___conv_fc.w0', u'___embedding_layer_0__.w0', u'___sequence_conv_pool_0___conv_fc.wbias']
-
-
-### 构造训练(trainer)
-
-下面，我们根据网络拓扑结构和模型参数来构造出一个本地训练(trainer)。在构造本地训练的时候，我们还需要指定这个训练的优化方法。这里我们使用Adam来作为优化算法。
-
+### 构造训练器(trainer)
+训练器需要一个训练程序和一个训练优化函数。
 
 ```python
-trainer = paddle.trainer.SGD(cost=cost, parameters=parameters,
-                            update_equation=paddle.optimizer.Adam(learning_rate=1e-4))
+trainer = fluid.Trainer(
+    train_func=train_program, place=place, optimizer_func=optimizer_func)
 ```
 
-    [INFO 2017-03-06 17:12:13,378 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title, score]
-    [INFO 2017-03-06 17:12:13,379 networks.py:1478] The output order is [__square_error_cost_0__]
+### 提供数据
 
-
-### 训练
-
-下面我们开始训练过程。
-
-我们直接使用Paddle提供的数据集读取程序。`paddle.dataset.movielens.train()`和`paddle.dataset.movielens.test()`分别做训练和预测数据集。并且通过`feeding`来指定每一个数据和data_layer的对应关系。
-
-例如，这里的feeding表示的是，对于数据层 `user_id`，使用了reader中每一条数据的第0个元素。`gender_id`数据层使用了第1个元素。以此类推。
+`feed_order`用来定义每条产生的数据和`paddle.layer.data`之间的映射关系。比如，`movielens.train`产生的第一列的数据对应的是`user_id`这个特征。
 
 ```python
-feeding = {
-    'user_id': 0,
-    'gender_id': 1,
-    'age_id': 2,
-    'job_id': 3,
-    'movie_id': 4,
-    'category_id': 5,
-    'movie_title': 6,
-    'score': 7
-}
+feed_order = [
+    'user_id', 'gender_id', 'age_id', 'job_id', 'movie_id', 'category_id',
+    'movie_title', 'score'
+]
 ```
 
-训练过程是完全自动的。我们可以使用event_handler与event_handler_plot来观察训练过程，或进行测试等。这里我们在event_handler_plot里面绘制了训练误差曲线和测试误差曲线。并且保存了模型。
+### 事件处理器
+回调函数`event_handler`在一个之前定义好的事件发生后会被调用。例如，我们可以在每步训练结束后查看误差。
 
 ```python
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id % 100 == 0:
-            print "Pass %d Batch %d Cost %.2f" % (
-                event.pass_id, event.batch_id, event.cost)
-```
+# Specify the directory path to save the parameters
+params_dirname = "recommender_system.inference.model"
 
-```python
 from paddle.v2.plot import Ploter
-
-train_title = "Train cost"
 test_title = "Test cost"
-cost_ploter = Ploter(train_title, test_title)
+plot_cost = Ploter(test_title)
 
-step = 0
 
-def event_handler_plot(event):
-    global step
-    if isinstance(event, paddle.event.EndIteration):
-        if step % 10 == 0:  # every 10 batches, record a train cost
-            cost_ploter.append(train_title, step, event.cost)
+def event_handler(event):
+    if isinstance(event, fluid.EndStepEvent):
+        avg_cost_set = trainer.test(
+            reader=test_reader, feed_order=feed_order)
 
-        if step % 1000 == 0: # every 1000 batches, record a test cost
-            result = trainer.test(
-                reader=paddle.batch(
-                    paddle.dataset.movielens.test(), batch_size=256),
-                feeding=feeding)
-            cost_ploter.append(test_title, step, result.cost)
+        # get avg cost
+        avg_cost = np.array(avg_cost_set).mean()
 
-        if step % 100 == 0: # every 100 batches, update cost plot
-            cost_ploter.plot()
+        plot_cost.append(test_title, event.step, avg_cost_set[0])
+        plot_cost.plot()
 
-        step += 1
+        print("avg_cost: %s" % avg_cost)
+        print('BatchID {0}, Test Loss {1:0.2}'.format(event.epoch + 1,
+                                                          float(avg_cost)))
+
+        if event.step == 20: # Adjust this number for accuracy
+            trainer.save_params(params_dirname)
+            trainer.stop()
 ```
+
+### 开始训练
+最后，我们传入训练循环数（`num_epoch`）和一些别的参数，调用 `trainer.train` 来开始训练。
 
 ```python
 trainer.train(
-    reader=paddle.batch(
-            paddle.reader.shuffle(
-            paddle.dataset.movielens.train(), buf_size=8192),
-                            batch_size=256),
-    event_handler=event_handler_plot,
-    feeding=feeding,
-    num_passes=2)
+    num_epochs=1,
+    event_handler=event_handler,
+    reader=train_reader,
+    feed_order=feed_order)
 ```
-
-
-![png](./image/output_32_0.png)
 
 ## 应用模型
 
-在训练了几轮以后，您可以对模型进行推断。我们可以使用任意一个用户ID和电影ID，来预测该用户对该电影的评分。示例程序为:
+### 构建预测器
+传入`inference_program`和`params_dirname`来初始化一个预测器, `params_dirname`用来存放训练过程中的各个参数。
+
+```python
+inferencer = fluid.Inferencer(
+        inference_program, param_path=params_dirname, place=place)
+```
+
+### 生成测试用输入数据
+使用 create_lod_tensor(data, lod, place) 的API来生成细节层次的张量。`data`是一个序列，每个元素是一个索引号的序列。`lod`是细节层次的信息，对应于`data`。比如，data = [[10, 2, 3], [2, 3]] 意味着它包含两个序列，长度分别是3和2。于是相应地 lod = [[3, 2]]，它表明其包含一层细节信息，意味着 `data` 有两个序列，长度分别是3和2。
+
+在这个预测例子中，我们试着预测用户ID为1的用户对于电影'Hunchback of Notre Dame'的评分
+
+```python
+infer_movie_id = 783
+infer_movie_name = paddle.dataset.movielens.movie_info()[infer_movie_id].title
+user_id = fluid.create_lod_tensor([[1]], [[1]], place)
+gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
+age_id = fluid.create_lod_tensor([[0]], [[1]], place)
+job_id = fluid.create_lod_tensor([[10]], [[1]], place)
+movie_id = fluid.create_lod_tensor([[783]], [[1]], place) # Hunchback of Notre Dame
+category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place) # Animation, Children's, Musical
+movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
+                                      place) # 'hunchback','of','notre','dame','the'
+```
+
+### 测试
+现在我们可以进行预测了。我们要提供的`feed_order`应该和训练过程一致。
 
 
 ```python
-import copy
-user_id = 234
-movie_id = 345
-
-user = user_info[user_id]
-movie = movie_info[movie_id]
-
-feature = user.value() + movie.value()
-
-infer_dict = copy.copy(feeding)
-del infer_dict['score']
-
-prediction = paddle.infer(inference, parameters=parameters, input=[feature], feeding=infer_dict)
-score = (prediction[0][0] + 5.0) / 2
-print "[Predict] User %d Rating Movie %d With Score %.2f"%(user_id, movie_id, score)
+results = inferencer.infer(
+    {
+        'user_id': user_id,
+        'gender_id': gender_id,
+        'age_id': age_id,
+        'job_id': job_id,
+        'movie_id': movie_id,
+        'category_id': category_id,
+        'movie_title': movie_title
+    },
+    return_numpy=False)
 ```
-
-    [INFO 2017-03-06 17:17:08,132 networks.py:1472] The input order is [user_id, gender_id, age_id, job_id, movie_id, category_id, movie_title]
-    [INFO 2017-03-06 17:17:08,134 networks.py:1478] The output order is [__cos_sim_0__]
-
-
-    [Predict] User 234 Rating Movie 345 With Score 4.16
-
 
 ## 总结
 

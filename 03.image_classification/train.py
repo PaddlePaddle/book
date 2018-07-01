@@ -12,92 +12,87 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import sys, os
+from __future__ import print_function
 
-import paddle.v2 as paddle
+import paddle
+import paddle.fluid as fluid
+import numpy
+import sys
 
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
 
-with_gpu = os.getenv('WITH_GPU', '0') != '0'
+
+def inference_network():
+    # The image is 32 * 32 with RGB representation.
+    data_shape = [3, 32, 32]
+    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+
+    predict = resnet_cifar10(images, 32)
+    # predict = vgg_bn_drop(images) # un-comment to use vgg net
+    return predict
 
 
-def main():
-    datadim = 3 * 32 * 32
-    classdim = 10
+def train_network():
+    predict = inference_network()
+    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    cost = fluid.layers.cross_entropy(input=predict, label=label)
+    avg_cost = fluid.layers.mean(cost)
+    accuracy = fluid.layers.accuracy(input=predict, label=label)
+    return [avg_cost, accuracy]
 
-    # PaddlePaddle init
-    paddle.init(use_gpu=with_gpu, trainer_count=1)
 
-    image = paddle.layer.data(
-        name="image", type=paddle.data_type.dense_vector(datadim))
+def optimizer_program():
+    return fluid.optimizer.Adam(learning_rate=0.001)
 
-    # Add neural network config
-    # option 1. resnet
-    # net = resnet_cifar10(image, depth=32)
-    # option 2. vgg
-    net = vgg_bn_drop(image)
 
-    out = paddle.layer.fc(
-        input=net, size=classdim, act=paddle.activation.Softmax())
+def train(use_cuda, train_program, params_dirname):
+    BATCH_SIZE = 128
+    EPOCH_NUM = 2
 
-    lbl = paddle.layer.data(
-        name="label", type=paddle.data_type.integer_value(classdim))
-    cost = paddle.layer.classification_cost(input=out, label=lbl)
+    train_reader = paddle.batch(
+        paddle.reader.shuffle(paddle.dataset.cifar.train10(), buf_size=50000),
+        batch_size=BATCH_SIZE)
 
-    # Create parameters
-    parameters = paddle.parameters.create(cost)
+    test_reader = paddle.batch(
+        paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
 
-    # Create optimizer
-    momentum_optimizer = paddle.optimizer.Momentum(
-        momentum=0.9,
-        regularization=paddle.optimizer.L2Regularization(rate=0.0002 * 128),
-        learning_rate=0.1 / 128.0,
-        learning_rate_decay_a=0.1,
-        learning_rate_decay_b=50000 * 100,
-        learning_rate_schedule='discexp')
-
-    # Create trainer
-    trainer = paddle.trainer.SGD(
-        cost=cost, parameters=parameters, update_equation=momentum_optimizer)
-
-    # End batch and end pass event handler
     def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 100 == 0:
-                print "\nPass %d, Batch %d, Cost %f, %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics)
+        if isinstance(event, fluid.EndStepEvent):
+            if event.step % 100 == 0:
+                print("\nPass %d, Batch %d, Cost %f, Acc %f" %
+                      (event.step, event.epoch, event.metrics[0],
+                       event.metrics[1]))
             else:
                 sys.stdout.write('.')
                 sys.stdout.flush()
-        if isinstance(event, paddle.event.EndPass):
-            # save parameters
-            with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-                trainer.save_parameter_to_tar(f)
 
-            result = trainer.test(
-                reader=paddle.batch(
-                    paddle.dataset.cifar.test10(), batch_size=128),
-                feeding={'image': 0,
-                         'label': 1})
-            print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
+        if isinstance(event, fluid.EndEpochEvent):
+            avg_cost, accuracy = trainer.test(
+                reader=test_reader, feed_order=['pixel', 'label'])
 
-    # Save the inference topology to protobuf.
-    inference_topology = paddle.topology.Topology(layers=out)
-    with open("inference_topology.pkl", 'wb') as f:
-        inference_topology.serialize_for_inference(f)
+            print('\nTest with Pass {0}, Loss {1:2.2}, Acc {2:2.2}'.format(
+                event.epoch, avg_cost, accuracy))
+            if params_dirname is not None:
+                trainer.save_params(params_dirname)
+
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    trainer = fluid.Trainer(
+        train_func=train_program, optimizer_func=optimizer_program, place=place)
 
     trainer.train(
-        reader=paddle.batch(
-            paddle.reader.shuffle(
-                paddle.dataset.cifar.train10(), buf_size=50000),
-            batch_size=128),
-        num_passes=200,
+        reader=train_reader,
+        num_epochs=EPOCH_NUM,
         event_handler=event_handler,
-        feeding={'image': 0,
-                 'label': 1})
+        feed_order=['pixel', 'label'])
 
-    # inference
+
+def infer(use_cuda, inference_program, params_dirname=None):
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    inferencer = fluid.Inferencer(
+        infer_func=inference_program, param_path=params_dirname, place=place)
+
+    # Prepare testing data. 
     from PIL import Image
     import numpy as np
     import os
@@ -105,32 +100,44 @@ def main():
     def load_image(file):
         im = Image.open(file)
         im = im.resize((32, 32), Image.ANTIALIAS)
+
         im = np.array(im).astype(np.float32)
-        # The storage order of the loaded image is W(widht),
+        # The storage order of the loaded image is W(width),
         # H(height), C(channel). PaddlePaddle requires
         # the CHW order, so transpose them.
         im = im.transpose((2, 0, 1))  # CHW
-        # In the training phase, the channel order of CIFAR
-        # image is B(Blue), G(green), R(Red). But PIL open
-        # image in RGB mode. It must swap the channel order.
-        im = im[(2, 1, 0), :, :]  # BGR
-        im = im.flatten()
         im = im / 255.0
+
+        # Add one dimension to mimic the list format.
+        im = numpy.expand_dims(im, axis=0)
         return im
 
-    test_data = []
     cur_dir = os.path.dirname(os.path.realpath(__file__))
-    test_data.append((load_image(cur_dir + '/image/dog.png'), ))
+    img = load_image(cur_dir + '/image/dog.png')
 
-    # users can remove the comments and change the model name
-    # with open('params_pass_50.tar', 'r') as f:
-    #    parameters = paddle.parameters.Parameters.from_tar(f)
+    # inference
+    results = inferencer.infer({'pixel': img})
 
-    probs = paddle.infer(
-        output_layer=out, parameters=parameters, input=test_data)
-    lab = np.argsort(-probs)  # probs and lab are the results of one batch data
-    print "Label of image/dog.png is: %d" % lab[0][0]
+    print("infer results: ", results)
+
+
+def main(use_cuda):
+    if use_cuda and not fluid.core.is_compiled_with_cuda():
+        return
+    save_path = "image_classification_resnet.inference.model"
+
+    train(
+        use_cuda=use_cuda,
+        train_program=train_network,
+        params_dirname=save_path)
+
+    infer(
+        use_cuda=use_cuda,
+        inference_program=inference_network,
+        params_dirname=save_path)
 
 
 if __name__ == '__main__':
-    main()
+    # For demo purpose, the training runs on CPU
+    # Please change accordingly.
+    main(use_cuda=False)

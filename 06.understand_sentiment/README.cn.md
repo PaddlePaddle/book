@@ -87,9 +87,8 @@ $$ h_t=Recrurent(x_t,h_{t-1})$$
 图3. 栈式双向LSTM用于文本分类
 </p>
 
-## 示例程序
 
-### 数据集介绍
+## 数据集介绍
 
 我们以[IMDB情感分析数据集](http://ai.stanford.edu/%7Eamaas/data/sentiment/)为例进行介绍。IMDB数据集的训练集和测试集分别包含25000个已标注过的电影评论。其中，负面评论的得分小于等于4，正面评论的得分大于等于7，满分10分。
 ```text
@@ -103,92 +102,70 @@ aclImdb
 ```
 Paddle在`dataset/imdb.py`中提实现了imdb数据集的自动下载和读取，并提供了读取字典、训练数据、测试数据等API。
 
-```python
-import sys
-import paddle.v2 as paddle
-```
 ## 配置模型
 
-在该示例中，我们实现了两种文本分类算法，分别基于[推荐系统](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system)一节介绍过的文本卷积神经网络，以及[栈式双向LSTM](#栈式双向LSTM（Stacked Bidirectional LSTM）)。
-
-### 文本卷积神经网络
+在该示例中，我们实现了两种文本分类算法，分别基于[推荐系统](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system)一节介绍过的文本卷积神经网络，以及[栈式双向LSTM](#栈式双向LSTM（Stacked Bidirectional LSTM）)。我们首先引入要用到的库和定义全局变量：
 
 ```python
-def convolution_net(input_dim,
-                    class_dim=2,
-                    emb_dim=128,
-                    hid_dim=128,
-                    is_predict=False):
-    data = paddle.layer.data("word",
-                             paddle.data_type.integer_value_sequence(input_dim))
-    emb = paddle.layer.embedding(input=data, size=emb_dim)
-    conv_3 = paddle.networks.sequence_conv_pool(
-        input=emb, context_len=3, hidden_size=hid_dim)
-    conv_4 = paddle.networks.sequence_conv_pool(
-        input=emb, context_len=4, hidden_size=hid_dim)
-    output = paddle.layer.fc(input=[conv_3, conv_4],
-                             size=class_dim,
-                             act=paddle.activation.Softmax())
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost, output
+import paddle
+import paddle.fluid as fluid
+from functools import partial
+import numpy as np
+
+CLASS_DIM = 2
+EMB_DIM = 128
+HID_DIM = 512
+BATCH_SIZE = 128
+USE_GPU = False
 ```
+
+
+### 文本卷积神经网络
+我们构建神经网络`convolution_net`，示例代码如下。
+需要注意的是：`fluid.nets.sequence_conv_pool` 包含卷积和池化层两个操作。
+
+```python
+def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
+    conv_3 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=3,
+        act="tanh",
+        pool_type="sqrt")
+    conv_4 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=4,
+        act="tanh",
+        pool_type="sqrt")
+    prediction = fluid.layers.fc(
+        input=[conv_3, conv_4], size=class_dim, act="softmax")
+    return prediction
+```
+
 网络的输入`input_dim`表示的是词典的大小，`class_dim`表示类别数。这里，我们使用[`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API实现了卷积和池化操作。
 
 ### 栈式双向LSTM
 
+栈式双向神经网络`stacked_lstm_net`的代码片段如下：
+
 ```python
-def stacked_lstm_net(input_dim,
-                     class_dim=2,
-                     emb_dim=128,
-                     hid_dim=512,
-                     stacked_num=3,
-                     is_predict=False):
-    """
-    A Wrapper for sentiment classification task.
-    This network uses bi-directional recurrent network,
-    consisting three LSTM layers. This configure is referred to
-    the paper as following url, but use fewer layrs.
-        http://www.aclweb.org/anthology/P15-1109
+def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
-    input_dim: here is word dictionary dimension.
-    class_dim: number of categories.
-    emb_dim: dimension of word embedding.
-    hid_dim: dimension of hidden layer.
-    stacked_num: number of stacked lstm-hidden layer.
-    """
-    assert stacked_num % 2 == 1
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
 
-    fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
-    lstm_para_attr = paddle.attr.Param(initial_std=0., learning_rate=1.)
-    para_attr = [fc_para_attr, lstm_para_attr]
-    bias_attr = paddle.attr.Param(initial_std=0., l2_rate=0.)
-    relu = paddle.activation.Relu()
-    linear = paddle.activation.Linear()
-
-    data = paddle.layer.data("word",
-                             paddle.data_type.integer_value_sequence(input_dim))
-    emb = paddle.layer.embedding(input=data, size=emb_dim)
-
-    fc1 = paddle.layer.fc(input=emb,
-                          size=hid_dim,
-                          act=linear,
-                          bias_attr=bias_attr)
-    lstm1 = paddle.layer.lstmemory(
-        input=fc1, act=relu, bias_attr=bias_attr)
+    fc1 = fluid.layers.fc(input=emb, size=hid_dim)
+    lstm1, cell1 = fluid.layers.dynamic_lstm(input=fc1, size=hid_dim)
 
     inputs = [fc1, lstm1]
+
     for i in range(2, stacked_num + 1):
-        fc = paddle.layer.fc(input=inputs,
-                             size=hid_dim,
-                             act=linear,
-                             param_attr=para_attr,
-                             bias_attr=bias_attr)
-        lstm = paddle.layer.lstmemory(
-            input=fc,
-            reverse=(i % 2) == 0,
-            act=relu,
-            bias_attr=bias_attr)
+        fc = fluid.layers.fc(input=inputs, size=hid_dim)
+        lstm, cell = fluid.layers.dynamic_lstm(
+            input=fc, size=hid_dim, is_reverse=(i % 2) == 0)
         inputs = [fc, lstm]
 
     fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=paddle.pooling.Max())
@@ -203,154 +180,161 @@ def stacked_lstm_net(input_dim,
     cost = paddle.layer.classification_cost(input=output, label=lbl)
     return cost, output
 ```
-网络的输入`stacked_num`表示的是LSTM的层数，需要是奇数，确保最高层LSTM正向。Paddle里面是通过一个fc和一个lstmemory来实现基于LSTM的循环神经网络。
+以上的栈式双向LSTM抽象出了高级特征并把其映射到和分类类别数同样大小的向量上。`paddle.activation.Softmax`函数用来计算分类属于某个类别的概率。
+
+重申一下，此处我们可以调用`convolution_net`或`stacked_lstm_net`的任何一个。我们以`convolution_net`为例。
+
+接下来我们定义预测程序（`inference_program`）。预测程序使用`convolution_net`来对`fluid.layer.data`的输入进行预测。
+
+```python
+def inference_program(word_dict):
+    data = fluid.layers.data(
+        name="words", shape=[1], dtype="int64", lod_level=1)
+
+    dict_dim = len(word_dict)
+    net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
+    return net
+```
+
+我们这里定义了`training_program`。它使用了从`inference_program`返回的结果来计算误差。我们同时定义了优化函数`optimizer_func`。
+
+因为是有监督的学习，训练集的标签也在`paddle.layer.data`中定义了。在训练过程中，交叉熵用来在`paddle.layer.classification_cost`中作为损失函数。
+
+在测试过程中，分类器会计算各个输出的概率。第一个返回的数值规定为 损耗(cost)。
+
+```python
+def train_program(word_dict):
+    prediction = inference_program(word_dict)
+    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
+    cost = fluid.layers.cross_entropy(input=prediction, label=label)
+    avg_cost = fluid.layers.mean(cost)
+    accuracy = fluid.layers.accuracy(input=prediction, label=label)
+    return [avg_cost, accuracy]
+
+
+def optimizer_func():
+    return fluid.optimizer.Adagrad(learning_rate=0.002)
+```
 
 ## 训练模型
 
-```python
-if __name__ == '__main__':
-    # init
-    paddle.init(use_gpu=False)
-```
-启动paddle程序，use_gpu=False表示用CPU训练，如果系统支持GPU也可以修改成True使用GPU训练。
+### 定义训练环境
 
-### 训练数据
+定义您的训练是在CPU上还是在GPU上：
 
-使用Paddle提供的数据集`dataset.imdb`中的API来读取训练数据。
-```python
-    print 'load dictionary...'
-    word_dict = paddle.dataset.imdb.word_dict()
-    dict_dim = len(word_dict)
-    class_dim = 2
-```
-加载数据字典，这里通过`word_dict()`API可以直接构造字典。`class_dim`是指样本类别数，该示例中样本只有正负两类。
-```python
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.imdb.train(word_dict), buf_size=1000),
-        batch_size=100)
-    test_reader = paddle.batch(
-            paddle.dataset.imdb.test(word_dict),
-        batch_size=100)
-```
-这里，`dataset.imdb.train()`和`dataset.imdb.test()`分别是`dataset.imdb`中的训练数据和测试数据API。`train_reader`在训练时使用，意义是将读取的训练数据进行shuffle后，组成一个batch数据。同理，`test_reader`是在测试的时候使用，将读取的测试数据组成一个batch。
-```python
-    feeding={'word': 0, 'label': 1}
-```
-`feeding`用来指定`train_reader`和`test_reader`返回的数据与模型配置中data_layer的对应关系。这里表示reader返回的第0列数据对应`word`层，第1列数据对应`label`层。
-
-### 构造模型
 
 ```python
-    # Please choose the way to build the network
-    # option 1
-    [cost, output] = convolution_net(dict_dim, class_dim=class_dim)
-    # option 2
-    # [cost, output] = stacked_lstm_net(dict_dim, class_dim=class_dim, stacked_num=3)
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
-该示例中默认使用`convolution_net`网络，如果使用`stacked_lstm_net`网络，注释相应的行即可。其中cost是网络的优化目标，同时cost包含了整个网络的拓扑信息。
 
-### 网络参数
+### 定义数据提供器
+
+下一步是为训练和测试定义数据提供器。提供器读入一个大小为 BATCH_SIZE的数据。paddle.dataset.imdb.train 每次会在乱序化后提供一个大小为BATCH_SIZE的数据，乱序化的大小为缓存大小buf_size。
+
+注意：读取IMDB的数据可能会花费几分钟的时间，请耐心等待。
 
 ```python
-    # create parameters
-    parameters = paddle.parameters.create(cost)
-```
-根据网络的拓扑构造网络参数。这里parameters是整个网络的参数集。
+print("Loading IMDB word dict....")
+word_dict = paddle.dataset.imdb.word_dict()
 
-### 优化算法
+print ("Reading training data....")
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.imdb.train(word_dict), buf_size=25000),
+    batch_size=BATCH_SIZE)
+```
+
+### 构造训练器(trainer)
+训练器需要一个训练程序和一个训练优化函数。
 
 ```python
-    # create optimizer
-    adam_optimizer = paddle.optimizer.Adam(
-        learning_rate=2e-3,
-        regularization=paddle.optimizer.L2Regularization(rate=8e-4),
-        model_average=paddle.optimizer.ModelAverage(average_window=0.5))
+trainer = fluid.Trainer(
+    train_func=partial(train_program, word_dict),
+    place=place,
+    optimizer_func=optimizer_func)
 ```
-Paddle中提供了一系列优化算法的API，这里使用Adam优化算法。
 
-### 训练
+### 提供数据
 
-可以通过`paddle.trainer.SGD`构造一个sgd trainer，并调用`trainer.train`来训练模型。另外，通过给train函数传递一个`event_handler`来获取每个batch和每个pass结束的状态。
+`feed_order`用来定义每条产生的数据和`paddle.layer.data`之间的映射关系。比如，`imdb.train`产生的第一列的数据对应的是`words`这个特征。
+
 ```python
-    # End batch and end pass event handler
-    def event_handler(event):
-        if isinstance(event, paddle.event.EndIteration):
-            if event.batch_id % 100 == 0:
-                print "\nPass %d, Batch %d, Cost %f, %s" % (
-                    event.pass_id, event.batch_id, event.cost, event.metrics)
-            else:
-                sys.stdout.write('.')
-                sys.stdout.flush()
-        if isinstance(event, paddle.event.EndPass):
-            with open('./params_pass_%d.tar' % event.pass_id, 'w') as f:
-                trainer.save_parameter_to_tar(f)
-
-            result = trainer.test(reader=test_reader, feeding=feeding)
-            print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
+feed_order = ['words', 'label']
 ```
-比如，构造如下一个`event_handler`可以在每100个batch结束后输出cost和error；在每个pass结束后调用`trainer.test`计算一遍测试集并获得当前模型在测试集上的error。
+
+### 事件处理器
+
+回调函数event_handler在一个之前定义好的事件发生后会被调用。例如，我们可以在每步训练结束后查看误差。
+
 ```python
-    from paddle.v2.plot import Ploter
+# Specify the directory path to save the parameters
+params_dirname = "understand_sentiment_conv.inference.model"
 
-    train_title = "Train cost"
-    cost_ploter = Ploter(train_title)
-    step = 0
-    def event_handler_plot(event):
-        global step
-        if isinstance(event, paddle.event.EndIteration):
-            cost_ploter.append(train_title, step, event.cost)
-            cost_ploter.plot()
-            step += 1
+def event_handler(event):
+    if isinstance(event, fluid.EndStepEvent):
+        print("Step {0}, Epoch {1} Metrics {2}".format(
+                event.step, event.epoch, map(np.array, event.metrics)))
+
+        if event.step == 10:
+            trainer.save_params(params_dirname)
+            trainer.stop()
 ```
-或者构造一个`event_handler_plot`画出cost曲线。
+
+### 开始训练
+
+最后，我们传入训练循环数（num_epoch）和一些别的参数，调用 trainer.train 来开始训练。
+
 ```python
-    # create trainer
-    trainer = paddle.trainer.SGD(cost=cost,
-                                 parameters=parameters,
-                                 update_equation=adam_optimizer)
-
-    trainer.train(
-        reader=train_reader,
-        event_handler=event_handler,
-        feeding=feeding,
-        num_passes=2)
-```
-程序运行之后的输出如下。
-```text
-Pass 0, Batch 0, Cost 0.693721, {'classification_error_evaluator': 0.5546875}
-...................................................................................................
-Pass 0, Batch 100, Cost 0.294321, {'classification_error_evaluator': 0.1015625}
-...............................................................................................
-Test with Pass 0, {'classification_error_evaluator': 0.11432000249624252}
+trainer.train(
+    num_epochs=1,
+    event_handler=event_handler,
+    reader=train_reader,
+    feed_order=feed_order)
 ```
 
 ## 应用模型
 
-可以使用训练好的模型对电影评论进行分类，下面程序展示了如何使用`paddle.infer`接口进行推断。
+### 构建预测器
+
+传入`inference_program`和`params_dirname`来初始化一个预测器, `params_dirname`用来存放训练过程中的各个参数。
+
 ```python
-    import numpy as np
+inferencer = fluid.Inferencer(
+        inference_program, param_path=params_dirname, place=place)
+```
 
-    # Movie Reviews, from imdb test
-    reviews = [
-        'Read the book, forget the movie!',
-        'This is a great movie.'
-    ]
-    reviews = [c.split() for c in reviews]
+### 生成测试用输入数据
 
-    UNK = word_dict['<unk>']
-    input = []
-    for c in reviews:
-        input.append([[word_dict.get(words, UNK) for words in c]])
+为了进行预测，我们任意选取3个评论。请随意选取您看好的3个。我们把评论中的每个词对应到`word_dict`中的id。如果词典中没有这个词，则设为`unknown`。
+然后我们用`create_lod_tensor`来创建细节层次的张量。
 
-    # 0 stands for positive sample, 1 stands for negative sample
-    label = {0:'pos', 1:'neg'}
-  
-    probs = paddle.infer(output_layer=output, parameters=parameters, input=input)
+```python
+reviews_str = [
+    'read the book forget the movie', 'this is a great movie', 'this is very bad'
+]
+reviews = [c.split() for c in reviews_str]
 
-    labs = np.argsort(-probs)
-    for idx, lab in enumerate(labs):
-        print idx, "predicting probability is", probs[idx], "label is", label[lab[0]]
+UNK = word_dict['<unk>']
+lod = []
+for c in reviews:
+    lod.append([word_dict.get(words, UNK) for words in c])
+
+base_shape = [[len(c) for c in lod]]
+
+tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
+```
+
+## 应用模型
+
+现在我们可以对每一条评论进行正面或者负面的预测啦。
+
+```python
+results = inferencer.infer({'words': tensor_words})
+
+for i, r in enumerate(results[0]):
+    print("Predict probability of ", r[0], " to be positive and ", r[1], " to be negative for review \'", reviews_str[i], "\'")
+
 ```
 
 

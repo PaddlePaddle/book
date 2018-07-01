@@ -187,22 +187,23 @@ conll05st-release/
 获取词典，打印词典大小：
 
 ```python
-import math
+import math, os
 import numpy as np
-import paddle.v2 as paddle
+import paddle
 import paddle.v2.dataset.conll05 as conll05
-import paddle.v2.evaluator as evaluator
+import paddle.fluid as fluid
+import time
 
-paddle.init(use_gpu=False, trainer_count=1)
+with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
 word_dict, verb_dict, label_dict = conll05.get_dict()
 word_dict_len = len(word_dict)
 label_dict_len = len(label_dict)
-pred_len = len(verb_dict)
+pred_dict_len = len(verb_dict)
 
 print word_dict_len
 print label_dict_len
-print pred_len
+print pred_dict_len
 ```
 
 ## 模型配置说明
@@ -210,293 +211,341 @@ print pred_len
 - 定义输入数据维度及模型超参数。
 
 ```python
-mark_dict_len = 2    # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
-word_dim = 32        # 词向量维度
-mark_dim = 5         # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
-hidden_dim = 512     # LSTM隐层向量的维度 ： 512 / 4
-depth = 8            # 栈式LSTM的深度
+mark_dict_len = 2   # 谓上下文区域标志的维度，是一个0-1 2值特征，因此维度为2
+word_dim = 32       # 词向量维度
+mark_dim = 5        # 谓词上下文区域通过词表被映射为一个实向量，这个是相邻的维度
+hidden_dim = 512    # LSTM隐层向量的维度 ： 512 / 4
+depth = 8           # 栈式LSTM的深度
+mix_hidden_lr = 1e-3
 
-# 一条样本总共9个特征，下面定义了9个data层，每个层类型为integer_value_sequence，表示整数ID的序列类型.
-def d_type(size):
-    return paddle.data_type.integer_value_sequence(size)
+IS_SPARSE = True
+PASS_NUM = 10
+BATCH_SIZE = 10
 
-# 句子序列
-word = paddle.layer.data(name='word_data', type=d_type(word_dict_len))
-# 谓词
-predicate = paddle.layer.data(name='verb_data', type=d_type(pred_len))
-
-# 谓词上下文5个特征
-ctx_n2 = paddle.layer.data(name='ctx_n2_data', type=d_type(word_dict_len))
-ctx_n1 = paddle.layer.data(name='ctx_n1_data', type=d_type(word_dict_len))
-ctx_0 = paddle.layer.data(name='ctx_0_data', type=d_type(word_dict_len))
-ctx_p1 = paddle.layer.data(name='ctx_p1_data', type=d_type(word_dict_len))
-ctx_p2 = paddle.layer.data(name='ctx_p2_data', type=d_type(word_dict_len))
-
-# 谓词上下区域标志
-mark = paddle.layer.data(name='mark_data', type=d_type(mark_dict_len))
-
-# 标注序列
-target = paddle.layer.data(name='target', type=d_type(label_dict_len))
+embedding_name = 'emb'
 ```
 
 这里需要特别说明的是hidden_dim = 512指定了LSTM隐层向量的维度为128维，关于这一点请参考PaddlePaddle官方文档中[lstmemory](http://www.paddlepaddle.org/doc/ui/api/trainer_config_helpers/layers.html#lstmemory)的说明。
 
-- 将句子序列、谓词、谓词上下文、谓词上下文区域标记通过词表，转换为实向量表示的词向量序列。
-
-```python  
-
-# 在本教程中，我们加载了预训练的词向量，这里设置了：is_static=True
-# is_static 为 True 时保证了在训练 SRL 模型过程中，词表不再更新
-emb_para = paddle.attr.Param(name='emb', initial_std=0., is_static=True)
-# 设置超参数
-default_std = 1 / math.sqrt(hidden_dim) / 3.0
-std_default = paddle.attr.Param(initial_std=default_std)
-std_0 = paddle.attr.Param(initial_std=0.)
-
-predicate_embedding = paddle.layer.embedding(
-    size=word_dim,
-    input=predicate,
-    param_attr=paddle.attr.Param(
-        name='vemb', initial_std=default_std))
-mark_embedding = paddle.layer.embedding(
-    size=mark_dim, input=mark, param_attr=std_0)
-
-word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
-emb_layers = [
-    paddle.layer.embedding(
-        size=word_dim, input=x, param_attr=emb_para) for x in word_input
-]
-emb_layers.append(predicate_embedding)
-emb_layers.append(mark_embedding)
-```
-
-- 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
-
-```python  
-hidden_0 = paddle.layer.mixed(
-    size=hidden_dim,
-    bias_attr=std_default,
-    input=[
-        paddle.layer.full_matrix_projection(
-            input=emb, param_attr=std_default) for emb in emb_layers
-    ])
-
-mix_hidden_lr = 1e-3
-lstm_para_attr = paddle.attr.Param(initial_std=0.0, learning_rate=1.0)
-hidden_para_attr = paddle.attr.Param(
-    initial_std=default_std, learning_rate=mix_hidden_lr)
-
-lstm_0 = paddle.layer.lstmemory(
-    input=hidden_0,
-    act=paddle.activation.Relu(),
-    gate_act=paddle.activation.Sigmoid(),
-    state_act=paddle.activation.Sigmoid(),
-    bias_attr=std_0,
-    param_attr=lstm_para_attr)
-
-#stack L-LSTM and R-LSTM with direct edges
-input_tmp = [hidden_0, lstm_0]
-
-for i in range(1, depth):
-    mix_hidden = paddle.layer.mixed(
-        size=hidden_dim,
-        bias_attr=std_default,
-        input=[
-            paddle.layer.full_matrix_projection(
-                input=input_tmp[0], param_attr=hidden_para_attr),
-            paddle.layer.full_matrix_projection(
-                input=input_tmp[1], param_attr=lstm_para_attr)
-        ])
-
-    lstm = paddle.layer.lstmemory(
-        input=mix_hidden,
-        act=paddle.activation.Relu(),
-        gate_act=paddle.activation.Sigmoid(),
-        state_act=paddle.activation.Sigmoid(),
-        reverse=((i % 2) == 1),
-        bias_attr=std_0,
-        param_attr=lstm_para_attr)
-
-    input_tmp = [mix_hidden, lstm]
-```
-
-- 在PaddlePaddle中，CRF的状态特征和转移特征分别由一个全连接层和一个PaddlePaddle中的CRF层分别学习。在这个例子中，我们用线性激活的paddle.layer.mixed 来学习CRF的状态特征（也可以使用paddle.layer.fc），而 paddle.layer.crf只学习转移特征。paddle.layer.crf层是一个 cost 层，处于整个网络的末端，输出给定输入序列下，标记序列的log probability作为代价。训练阶段，该层需要输入正确的标记序列作为学习目标。
-
-```python
-
-# 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，
-# 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
-
-feature_out = paddle.layer.mixed(
-    size=label_dict_len,
-    bias_attr=std_default,
-    input=[
-        paddle.layer.full_matrix_projection(
-            input=input_tmp[0], param_attr=hidden_para_attr),
-        paddle.layer.full_matrix_projection(
-            input=input_tmp[1], param_attr=lstm_para_attr)
-    ], )
-
-# 学习 CRF 的转移特征
-crf_cost = paddle.layer.crf(
-    size=label_dict_len,
-    input=feature_out,
-    label=target,
-    param_attr=paddle.attr.Param(
-        name='crfw',
-        initial_std=default_std,
-        learning_rate=mix_hidden_lr))
-```
-
-- CRF解码和CRF层参数名字相同，即：加载了`paddle.layer.crf`层学习到的参数。在训练阶段，为`paddle.layer.crf_decoding` 输入了正确的标记序列(target)，这一层会输出是否正确标记，`evaluator.sum` 用来计算序列上的标记错误率，可以用来评估模型。解码阶段，没有输入正确的数据标签，该层通过寻找概率最高的标记序列，解码出标记结果。
-
-```python
-crf_dec = paddle.layer.crf_decoding(
-   size=label_dict_len,
-   input=feature_out,
-   label=target,
-   param_attr=paddle.attr.Param(name='crfw'))
-evaluator.sum(input=crf_dec)
-```
-
-## 训练模型
-
-### 定义参数
-
-首先依据模型配置的`crf_cost`定义模型参数。
-
-```python
-# create parameters
-parameters = paddle.parameters.create(crf_cost)
-```
-
-可以打印参数名字，如果在网络配置中没有指定名字，则默认生成。
-
-```python
-print parameters.keys()
-```
-
-如上文提到，我们用基于英文维基百科训练好的词向量来初始化序列输入、谓词上下文总共6个特征的embedding层参数，在训练中不更新。
+- 如上文提到，我们用基于英文维基百科训练好的词向量来初始化序列输入、谓词上下文总共6个特征的embedding层参数，在训练中不更新。
 
 ```python
 # 这里加载PaddlePaddle上版保存的二进制模型
 def load_parameter(file_name, h, w):
     with open(file_name, 'rb') as f:
-        f.read(16)
+        f.read(16)  # skip header.
         return np.fromfile(f, dtype=np.float32).reshape(h, w)
-parameters.set('emb', load_parameter(conll05.get_embedding(), 44068, 32))
 ```
 
-### 构造训练(Trainer)
+- 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
 
-然后根据网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法(momentum设置为0)，同时设定了学习率、正则等。
+```python  
+def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
+            **ignored):
+    # 8 features
+    predicate_embedding = fluid.layers.embedding(
+        input=predicate,
+        size=[pred_dict_len, word_dim],
+        dtype='float32',
+        is_sparse=IS_SPARSE,
+        param_attr='vemb')
 
-```python
-# create optimizer
-optimizer = paddle.optimizer.Momentum(
-    momentum=0,
-    learning_rate=1e-3,
-    regularization=paddle.optimizer.L2Regularization(rate=8e-4),
-    model_average=paddle.optimizer.ModelAverage(
-        average_window=0.5, max_average_window=10000), )
+    mark_embedding = fluid.layers.embedding(
+        input=mark,
+        size=[mark_dict_len, mark_dim],
+        dtype='float32',
+        is_sparse=IS_SPARSE)
 
-trainer = paddle.trainer.SGD(cost=crf_cost,
-                             parameters=parameters,
-                             update_equation=optimizer,
-                             extra_layers=crf_dec)
+    word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
+    # Since word vector lookup table is pre-trained, we won't update it this time.
+    # trainable being False prevents updating the lookup table during training.
+    emb_layers = [
+        fluid.layers.embedding(
+            size=[word_dict_len, word_dim],
+            input=x,
+            param_attr=fluid.ParamAttr(
+                name=embedding_name, trainable=False)) for x in word_input
+    ]
+    emb_layers.append(predicate_embedding)
+    emb_layers.append(mark_embedding)
+
+    # 8 LSTM units are trained through alternating left-to-right / right-to-left order
+    # denoted by the variable `reverse`.
+    hidden_0_layers = [
+        fluid.layers.fc(input=emb, size=hidden_dim, act='tanh')
+        for emb in emb_layers
+    ]
+
+    hidden_0 = fluid.layers.sums(input=hidden_0_layers)
+
+    lstm_0 = fluid.layers.dynamic_lstm(
+        input=hidden_0,
+        size=hidden_dim,
+        candidate_activation='relu',
+        gate_activation='sigmoid',
+        cell_activation='sigmoid')
+
+    # stack L-LSTM and R-LSTM with direct edges
+    input_tmp = [hidden_0, lstm_0]
+
+    # In PaddlePaddle, state features and transition features of a CRF are implemented
+    # by a fully connected layer and a CRF layer seperately. The fully connected layer
+    # with linear activation learns the state features, here we use fluid.layers.sums
+    # (fluid.layers.fc can be uesed as well), and the CRF layer in PaddlePaddle:
+    # fluid.layers.linear_chain_crf only
+    # learns the transition features, which is a cost layer and is the last layer of the network.
+    # fluid.layers.linear_chain_crf outputs the log probability of true tag sequence
+    # as the cost by given the input sequence and it requires the true tag sequence
+    # as target in the learning process.
+
+    for i in range(1, depth):
+        mix_hidden = fluid.layers.sums(input=[
+            fluid.layers.fc(input=input_tmp[0], size=hidden_dim, act='tanh'),
+            fluid.layers.fc(input=input_tmp[1], size=hidden_dim, act='tanh')
+        ])
+
+        lstm = fluid.layers.dynamic_lstm(
+            input=mix_hidden,
+            size=hidden_dim,
+            candidate_activation='relu',
+            gate_activation='sigmoid',
+            cell_activation='sigmoid',
+            is_reverse=((i % 2) == 1))
+
+        input_tmp = [mix_hidden, lstm]
+
+    # 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，
+    # 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
+    feature_out = fluid.layers.sums(input=[
+        fluid.layers.fc(input=input_tmp[0], size=label_dict_len, act='tanh'),
+        fluid.layers.fc(input=input_tmp[1], size=label_dict_len, act='tanh')
+    ])
+
+    return feature_out
 ```
 
-### 训练
+## 训练模型
 
-数据介绍部分提到CoNLL 2005训练集付费，这里我们使用测试集训练供大家学习。`conll05.test()`每次产生一条样本，包含9个特征，shuffle和组完batch后作为训练的输入。
+- 我们根据网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法(momentum设置为0)，同时设定了学习率、正则等。
+
+- 数据介绍部分提到CoNLL 2005训练集付费，这里我们使用测试集训练供大家学习。conll05.test()每次产生一条样本，包含9个特征，shuffle和组完batch后作为训练的输入。
+
+- 通过feeding来指定每一个数据和data_layer的对应关系。 例如 下面feeding表示: conll05.test()产生数据的第0列对应word_data层的特征。
+
+- 可以使用event_handler回调函数来观察训练过程，或进行测试等。这里我们打印了训练过程的cost，该回调函数是trainer.train函数里设定。
+
+- 通过trainer.train函数训练
 
 ```python
-reader = paddle.batch(
-    paddle.reader.shuffle(
-        conll05.test(), buf_size=8192), batch_size=2)
+def train(use_cuda, save_dirname=None, is_local=True):
+    # define network topology
+
+    # 句子序列
+    word = fluid.layers.data(
+        name='word_data', shape=[1], dtype='int64', lod_level=1)
+
+    # 谓词
+    predicate = fluid.layers.data(
+        name='verb_data', shape=[1], dtype='int64', lod_level=1)
+
+    # 谓词上下文5个特征
+    ctx_n2 = fluid.layers.data(
+        name='ctx_n2_data', shape=[1], dtype='int64', lod_level=1)
+    ctx_n1 = fluid.layers.data(
+        name='ctx_n1_data', shape=[1], dtype='int64', lod_level=1)
+    ctx_0 = fluid.layers.data(
+        name='ctx_0_data', shape=[1], dtype='int64', lod_level=1)
+    ctx_p1 = fluid.layers.data(
+        name='ctx_p1_data', shape=[1], dtype='int64', lod_level=1)
+    ctx_p2 = fluid.layers.data(
+        name='ctx_p2_data', shape=[1], dtype='int64', lod_level=1)
+
+    # 谓词上下区域标志
+    mark = fluid.layers.data(
+        name='mark_data', shape=[1], dtype='int64', lod_level=1)
+
+    # define network topology
+    feature_out = db_lstm(**locals())
+
+    # 标注序列
+    target = fluid.layers.data(
+        name='target', shape=[1], dtype='int64', lod_level=1)
+
+    # 学习 CRF 的转移特征
+    crf_cost = fluid.layers.linear_chain_crf(
+        input=feature_out,
+        label=target,
+        param_attr=fluid.ParamAttr(
+            name='crfw', learning_rate=mix_hidden_lr))
+
+    avg_cost = fluid.layers.mean(crf_cost)
+
+    sgd_optimizer = fluid.optimizer.SGD(
+        learning_rate=fluid.layers.exponential_decay(
+            learning_rate=0.01,
+            decay_steps=100000,
+            decay_rate=0.5,
+            staircase=True))
+
+    sgd_optimizer.minimize(avg_cost)
+
+    # The CRF decoding layer is used for evaluation and inference.
+    # It shares weights with CRF layer.  The sharing of parameters among multiple layers
+    # is specified by using the same parameter name in these layers. If true tag sequence
+    # is provided in training process, `fluid.layers.crf_decoding` calculates labelling error
+    # for each input token and sums the error over the entire sequence.
+    # Otherwise, `fluid.layers.crf_decoding`  generates the labelling tags.
+    crf_decode = fluid.layers.crf_decoding(
+        input=feature_out, param_attr=fluid.ParamAttr(name='crfw'))
+
+    train_data = paddle.batch(
+        paddle.reader.shuffle(
+            paddle.dataset.conll05.test(), buf_size=8192),
+        batch_size=BATCH_SIZE)
+
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+
+
+    feeder = fluid.DataFeeder(
+        feed_list=[
+            word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, predicate, mark, target
+        ],
+        place=place)
+    exe = fluid.Executor(place)
+
+    def train_loop(main_program):
+        exe.run(fluid.default_startup_program())
+        embedding_param = fluid.global_scope().find_var(
+            embedding_name).get_tensor()
+        embedding_param.set(
+            load_parameter(conll05.get_embedding(), word_dict_len, word_dim),
+            place)
+
+        start_time = time.time()
+        batch_id = 0
+        for pass_id in xrange(PASS_NUM):
+            for data in train_data():
+                cost = exe.run(main_program,
+                               feed=feeder.feed(data),
+                               fetch_list=[avg_cost])
+                cost = cost[0]
+
+                if batch_id % 10 == 0:
+                    print("avg_cost:" + str(cost))
+                    if batch_id != 0:
+                        print("second per batch: " + str((time.time(
+                        ) - start_time) / batch_id))
+                    # Set the threshold low to speed up the CI test
+                    if float(cost) < 60.0:
+                        if save_dirname is not None:
+                            fluid.io.save_inference_model(save_dirname, [
+                                'word_data', 'verb_data', 'ctx_n2_data',
+                                'ctx_n1_data', 'ctx_0_data', 'ctx_p1_data',
+                                'ctx_p2_data', 'mark_data'
+                            ], [feature_out], exe)
+                        return
+
+                batch_id = batch_id + 1
+
+    train_loop(fluid.default_main_program())
 ```
 
-通过`feeding`来指定每一个数据和data_layer的对应关系。 例如 下面`feeding`表示: `conll05.test()`产生数据的第0列对应`word_data`层的特征。
 
+## 应用模型
+
+训练完成之后，需要依据某个我们关心的性能指标选择最优的模型进行预测，可以简单的选择测试集上标记错误最少的那个模型。以下我们给出一个使用训练后的模型进行预测的示例。
 
 ```python
-feeding = {
-    'word_data': 0,
-    'ctx_n2_data': 1,
-    'ctx_n1_data': 2,
-    'ctx_0_data': 3,
-    'ctx_p1_data': 4,
-    'ctx_p2_data': 5,
-    'verb_data': 6,
-    'mark_data': 7,
-    'target': 8
-}
+def infer(use_cuda, save_dirname=None):
+    if save_dirname is None:
+        return
+
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    exe = fluid.Executor(place)
+
+    inference_scope = fluid.core.Scope()
+    with fluid.scope_guard(inference_scope):
+        # Use fluid.io.load_inference_model to obtain the inference program desc,
+        # the feed_target_names (the names of variables that will be fed
+        # data using feed operators), and the fetch_targets (variables that
+        # we want to obtain data from using fetch operators).
+        [inference_program, feed_target_names,
+         fetch_targets] = fluid.io.load_inference_model(save_dirname, exe)
+
+        # Setup inputs by creating LoDTensors to represent sequences of words.
+        # Here each word is the basic element of these LoDTensors and the shape of
+        # each word (base_shape) should be [1] since it is simply an index to
+        # look up for the corresponding word vector.
+        # Suppose the length_based level of detail (lod) info is set to [[3, 4, 2]],
+        # which has only one lod level. Then the created LoDTensors will have only
+        # one higher level structure (sequence of words, or sentence) than the basic
+        # element (word). Hence the LoDTensor will hold data for three sentences of
+        # length 3, 4 and 2, respectively.
+        # Note that lod info should be a list of lists.
+        lod = [[3, 4, 2]]
+        base_shape = [1]
+        # The range of random integers is [low, high]
+        word = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=word_dict_len - 1)
+        pred = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=pred_dict_len - 1)
+        ctx_n2 = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=word_dict_len - 1)
+        ctx_n1 = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=word_dict_len - 1)
+        ctx_0 = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=word_dict_len - 1)
+        ctx_p1 = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=word_dict_len - 1)
+        ctx_p2 = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=word_dict_len - 1)
+        mark = fluid.create_random_int_lodtensor(
+            lod, base_shape, place, low=0, high=mark_dict_len - 1)
+
+        # Construct feed as a dictionary of {feed_target_name: feed_target_data}
+        # and results will contain a list of data corresponding to fetch_targets.
+        assert feed_target_names[0] == 'word_data'
+        assert feed_target_names[1] == 'verb_data'
+        assert feed_target_names[2] == 'ctx_n2_data'
+        assert feed_target_names[3] == 'ctx_n1_data'
+        assert feed_target_names[4] == 'ctx_0_data'
+        assert feed_target_names[5] == 'ctx_p1_data'
+        assert feed_target_names[6] == 'ctx_p2_data'
+        assert feed_target_names[7] == 'mark_data'
+
+        results = exe.run(inference_program,
+                          feed={
+                              feed_target_names[0]: word,
+                              feed_target_names[1]: pred,
+                              feed_target_names[2]: ctx_n2,
+                              feed_target_names[3]: ctx_n1,
+                              feed_target_names[4]: ctx_0,
+                              feed_target_names[5]: ctx_p1,
+                              feed_target_names[6]: ctx_p2,
+                              feed_target_names[7]: mark
+                          },
+                          fetch_list=fetch_targets,
+                          return_numpy=False)
+        print(results[0].lod())
+        np_data = np.array(results[0])
+        print("Inference Shape: ", np_data.shape)
 ```
 
-可以使用`event_handler`回调函数来观察训练过程，或进行测试等。这里我们打印了训练过程的cost，该回调函数是`trainer.train`函数里设定。
+整个程序的入口如下：
 
 ```python
-def event_handler(event):
-    if isinstance(event, paddle.event.EndIteration):
-        if event.batch_id and event.batch_id % 10 == 0:
-            print "Pass %d, Batch %d, Cost %f, %s" % (
-                event.pass_id, event.batch_id, event.cost, event.metrics)
-        if event.batch_id % 400 == 0:
-            result = trainer.test(reader=reader, feeding=feeding)
-            print "\nTest with Pass %d, Batch %d, %s" % (event.pass_id, event.batch_id, result.metrics)
+def main(use_cuda, is_local=True):
+    if use_cuda and not fluid.core.is_compiled_with_cuda():
+        return
 
-    if isinstance(event, paddle.event.EndPass):
-        # save parameters
-        with open('params_pass_%d.tar' % event.pass_id, 'w') as f:
-            trainer.save_parameter_to_tar(f)
+    # Directory for saving the trained model
+    save_dirname = "label_semantic_roles.inference.model"
 
-        result = trainer.test(reader=reader, feeding=feeding)
-        print "\nTest with Pass %d, %s" % (event.pass_id, result.metrics)
-```
+    train(use_cuda, save_dirname, is_local)
+    infer(use_cuda, save_dirname)
 
-通过`trainer.train`函数训练：
 
-```python
-trainer.train(
-    reader=reader,
-    event_handler=event_handler,
-    num_passes=1,
-    feeding=feeding)
-```
-
-### 应用模型
-
-训练完成之后，需要依据某个我们关心的性能指标选择最优的模型进行预测，可以简单的选择测试集上标记错误最少的那个模型。预测时使用 `paddle.layer.crf_decoding`，和训练不同的是，该层没有正确的标签层作为输入。如下所示：
-
-```python
-predict = paddle.layer.crf_decoding(
-    size=label_dict_len,
-    input=feature_out,
-    param_attr=paddle.attr.Param(name='crfw'))
-```
-
-这里选用测试集的一条数据作为示例。
-
-```python
-test_creator = paddle.dataset.conll05.test()
-test_data = []
-for item in test_creator():
-    test_data.append(item[0:8])
-    if len(test_data) == 1:
-        break
-```
-
-推断接口`paddle.infer`返回标签的索引，并查询词典`labels_reverse`，打印出标记的结果。
-
-```python
-labs = paddle.infer(
-    output_layer=predict, parameters=parameters, input=test_data, field='id')
-assert len(labs) == len(test_data[0][0])
-labels_reverse={}
-for (k,v) in label_dict.items():
-    labels_reverse[v]=k
-pre_lab = [labels_reverse[i] for i in labs]
-print pre_lab
+main(use_cuda=False)
 ```
 
 ## 总结
