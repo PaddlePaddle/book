@@ -25,6 +25,7 @@ BATCH_SIZE = 10
 
 embedding_name = 'emb'
 
+
 def load_parameter(file_name, h, w):
     with open(file_name, 'rb') as f:
         f.read(16)  # skip header.
@@ -52,8 +53,8 @@ def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
         fluid.layers.embedding(
             size=[word_dict_len, word_dim],
             input=x,
-            param_attr=fluid.ParamAttr(
-                name=embedding_name, trainable=False)) for x in word_input
+            param_attr=fluid.ParamAttr(name=embedding_name, trainable=False))
+        for x in word_input
     ]
     emb_layers.append(predicate_embedding)
     emb_layers.append(mark_embedding)
@@ -125,8 +126,7 @@ def train(use_cuda, save_dirname=None, is_local=True):
     crf_cost = fluid.layers.linear_chain_crf(
         input=feature_out,
         label=target,
-        param_attr=fluid.ParamAttr(
-            name='crfw', learning_rate=mix_hidden_lr))
+        param_attr=fluid.ParamAttr(name='crfw', learning_rate=mix_hidden_lr))
 
     avg_cost = fluid.layers.mean(crf_cost)
 
@@ -143,12 +143,10 @@ def train(use_cuda, save_dirname=None, is_local=True):
         input=feature_out, param_attr=fluid.ParamAttr(name='crfw'))
 
     train_data = paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.conll05.test(), buf_size=8192),
+        paddle.reader.shuffle(paddle.dataset.conll05.test(), buf_size=8192),
         batch_size=BATCH_SIZE)
 
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-
 
     feeder = fluid.DataFeeder(
         feed_list=[
@@ -169,16 +167,15 @@ def train(use_cuda, save_dirname=None, is_local=True):
         batch_id = 0
         for pass_id in xrange(PASS_NUM):
             for data in train_data():
-                cost = exe.run(main_program,
-                               feed=feeder.feed(data),
-                               fetch_list=[avg_cost])
+                cost = exe.run(
+                    main_program, feed=feeder.feed(data), fetch_list=[avg_cost])
                 cost = cost[0]
 
                 if batch_id % 10 == 0:
                     print("avg_cost:" + str(cost))
                     if batch_id != 0:
-                        print("second per batch: " + str((time.time(
-                        ) - start_time) / batch_id))
+                        print("second per batch: " + str((
+                            time.time() - start_time) / batch_id))
                     # Set the threshold low to speed up the CI test
                     if float(cost) < 60.0:
                         if save_dirname is not None:
@@ -252,19 +249,20 @@ def infer(use_cuda, save_dirname=None):
         assert feed_target_names[6] == 'ctx_p2_data'
         assert feed_target_names[7] == 'mark_data'
 
-        results = exe.run(inference_program,
-                          feed={
-                              feed_target_names[0]: word,
-                              feed_target_names[1]: pred,
-                              feed_target_names[2]: ctx_n2,
-                              feed_target_names[3]: ctx_n1,
-                              feed_target_names[4]: ctx_0,
-                              feed_target_names[5]: ctx_p1,
-                              feed_target_names[6]: ctx_p2,
-                              feed_target_names[7]: mark
-                          },
-                          fetch_list=fetch_targets,
-                          return_numpy=False)
+        results = exe.run(
+            inference_program,
+            feed={
+                feed_target_names[0]: word,
+                feed_target_names[1]: pred,
+                feed_target_names[2]: ctx_n2,
+                feed_target_names[3]: ctx_n1,
+                feed_target_names[4]: ctx_0,
+                feed_target_names[5]: ctx_p1,
+                feed_target_names[6]: ctx_p2,
+                feed_target_names[7]: mark
+            },
+            fetch_list=fetch_targets,
+            return_numpy=False)
         print(results[0].lod())
         np_data = np.array(results[0])
         print("Inference Shape: ", np_data.shape)
@@ -282,4 +280,3 @@ def main(use_cuda, is_local=True):
 
 
 main(use_cuda=False)
-

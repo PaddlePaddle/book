@@ -417,7 +417,7 @@ def event_handler(event):
 
         # get avg cost
         avg_cost = np.array(avg_cost_set).mean()
-        
+
         plot_cost.append(test_title, event.step, avg_cost_set[0])
         plot_cost.plot()
 
