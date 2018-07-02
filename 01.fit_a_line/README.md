@@ -165,7 +165,7 @@ The trainer will take the `train_program` as input.
 trainer = fluid.Trainer(
     train_func=train_program,
     place=place,
-    optimizer_func=fluid.optimizer.SGD(learning_rate=0.001))
+    optimizer_func=lambda : fluid.optimizer.SGD(learning_rate=0.001))
 ```
 
 ### Feeding Data

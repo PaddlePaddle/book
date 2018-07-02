@@ -157,7 +157,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 trainer = fluid.Trainer(
     train_func=train_program,
     place=place,
-    optimizer_func=fluid.optimizer.SGD(learning_rate=0.001))
+    optimizer_func=lambda : fluid.optimizer.SGD(learning_rate=0.001))
 ```
 
 ### 开始提供数据
