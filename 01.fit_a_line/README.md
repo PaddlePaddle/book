@@ -149,6 +149,14 @@ def train_program():
     return avg_loss
 ```
 
+### Optimizer Function Configuration
+
+In the following `SGD` optimizer, `learning_rate` specifies the learning rate in the optimization procedure.
+
+```python
+def optimizer_program():
+    return fluid.optimizer.SGD(learning_rate=0.001)
+```
 
 ### Specify Place
 Specify your training environment, you should specify if the training is on CPU or GPU.
@@ -165,7 +173,7 @@ The trainer will take the `train_program` as input.
 trainer = fluid.Trainer(
     train_func=train_program,
     place=place,
-    optimizer_func=fluid.optimizer.SGD(learning_rate=0.001))
+    optimizer_func=optimizer_program)
 ```
 
 ### Feeding Data
