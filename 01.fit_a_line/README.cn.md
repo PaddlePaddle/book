@@ -142,6 +142,15 @@ def train_program():
     return avg_loss
 ```
 
+### Optimizer Function 配置
+
+在下面的 `SGD optimizer`，`learning_rate` 是训练的速度，与网络的训练收敛速度有关系。
+
+```python
+def optimizer_program():
+    return fluid.optimizer.SGD(learning_rate=0.001)
+```
+
 ### 定义运算场所
 我们可以定义运算是发生在CPU还是GPU
 
@@ -157,7 +166,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 trainer = fluid.Trainer(
     train_func=train_program,
     place=place,
-    optimizer_func=lambda : fluid.optimizer.SGD(learning_rate=0.001))
+    optimizer_func=optimizer_program)
 ```
 
 ### 开始提供数据

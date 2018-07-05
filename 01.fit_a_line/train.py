@@ -49,9 +49,7 @@ use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
 trainer = fluid.Trainer(
-    train_func=train_program,
-    place=place,
-    optimizer_func=optimizer_program)
+    train_func=train_program, place=place, optimizer_func=optimizer_program)
 
 feed_order = ['x', 'y']
 
