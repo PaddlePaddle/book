@@ -73,7 +73,7 @@ def main():
 
     test_reader = paddle.batch(paddle.dataset.mnist.test(), batch_size=64)
 
-    use_cuda = os.getenv('WITH_GPU', '0') != '0'
+    use_cuda = False # set to True if training with GPU
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
     trainer = fluid.Trainer(

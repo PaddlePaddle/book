@@ -170,5 +170,5 @@ def main(use_cuda):
 
 
 if __name__ == '__main__':
-    use_cuda = os.getenv('WITH_GPU', '0') != '0'
+    use_cuda = False # set to True if training with GPU
     main(use_cuda)
