@@ -293,12 +293,20 @@ inferencer = fluid.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
-tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")
+test_reader = paddle.batch(paddle.dataset.uci_housing.test(),batch_size=batch_size)
+test_data = test_reader().next()
+test_feat = numpy.array([data[0] for data in test_data]).astype("float32")
+test_label = numpy.array([data[1] for data in test_data]).astype("float32")
 
-results = inferencer.infer({'x': tensor_x})
+results = inferencer.infer({'x': test_feat})
+
 print("infer results: (House Price)")
 for k in range(0, batch_size-1):
     print("%d. %f" % (k, results[0][k]))
+
+print("\nground truth:")
+for k in range(0, batch_size-1):
+    print("%d. %f" % (k, test_label[k]))
 ```
 
 ## 总结
