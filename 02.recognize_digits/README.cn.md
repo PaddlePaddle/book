@@ -38,9 +38,9 @@ $$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
 对于有 $N$ 个类别的多分类问题，指定 $N$ 个输出节点，$N$ 维结果向量经过softmax将归一化为 $N$ 个[0,1]范围内的实数值，分别表示该样本属于这 $N$ 个类别的概率。此处的 $y_i$ 即对应该图片为数字 $i$ 的预测概率。
 
-在分类问题中，我们一般采用交叉熵代价损失函数（cross entropy），公式如下：
+在分类问题中，我们一般采用交叉熵代价损失函数（cross entropy loss），公式如下：
 
-$$  \text{crossentropy}(label, y) = -\sum_i label_ilog(y_i) $$
+$$  \text{_L_<sub>cross-entropy</sub>}(label, y) = -\sum_i label_ilog(y_i) $$
 
 图2为softmax回归的网络图，图中权重用蓝线表示、偏置用红线表示、+1代表偏置参数的系数为1。
 
@@ -419,7 +419,7 @@ img = load_image(cur_dir + '/image/infer_3.png')
 ```python
 results = inferencer.infer({'img': img})
 lab = np.argsort(results)  # probs and lab are the results of one batch data
-print "Label of image/infer_3.png is: %d" % lab[0][0][-1]
+print "Inference result of image/infer_3.png is: %d" % lab[0][0][-1]
 ```
 
 ## 总结
