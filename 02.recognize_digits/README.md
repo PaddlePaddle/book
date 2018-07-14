@@ -50,7 +50,7 @@ For an $N$-class classification problem with $N$ output nodes, Softmax normalize
 
 In such a classification problem, we usually use the cross entropy loss function:
 
-$$  \text{crossentropy}(label, y) = -\sum_i label_ilog(y_i) $$
+$$  \text{_L_<sub>cross-entropy</sub>}(label, y) = -\sum_i label_ilog(y_i) $$
 
 Fig. 2 illustrates a softmax regression network, with the weights in blue, and the bias in red. `+1` indicates that the bias is $1$.
 
@@ -432,7 +432,7 @@ Now we are ready to do inference.
 ```python
 results = inferencer.infer({'img': img})
 lab = np.argsort(results)  # probs and lab are the results of one batch data
-print "Label of image/infer_3.png is: %d" % lab[0][0][-1]
+print "Inference result of image/infer_3.png is: %d" % lab[0][0][-1]
 ```
 
 
