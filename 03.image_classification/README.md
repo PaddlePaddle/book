@@ -171,6 +171,7 @@ import paddle
 import paddle.fluid as fluid
 import numpy
 import sys
+from __future__ import print_function
 ```
 
 Now we are going to walk you through the implementations of the VGG and ResNet.
@@ -514,9 +515,10 @@ Now we are ready to do inference.
 inferencer = fluid.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
+label_list = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
 # inference
 results = inferencer.infer({'pixel': img})
-print("infer results: ", results)
+print("infer results: %s" % label_list[np.argmax(results[0])])
 ```
 
 
