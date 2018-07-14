@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import math
 import sys
 import numpy as np
@@ -233,7 +234,11 @@ def infer(use_cuda, inference_program, params_dirname):
         },
         return_numpy=False)
 
-    print("infer results: ", np.array(results[0]))
+    predict_rating = np.array(results[0])
+    print("Predict Rating of user id 1 on movie \"" + infer_movie_name +
+          "\" is " + str(predict_rating[0][0]))
+    print("Actual Rating of user id 1 on movie \"" + infer_movie_name +
+          "\" is 4.")
 
 
 def main(use_cuda):

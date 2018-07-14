@@ -142,6 +142,7 @@ $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 import paddle
 import paddle.fluid as fluid
 import numpy
+from __future__ import print_function
 ```
 
 我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)
@@ -293,10 +294,20 @@ inferencer = fluid.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
-tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")
+test_reader = paddle.batch(paddle.dataset.uci_housing.test(),batch_size=batch_size)
+test_data = test_reader().next()
+test_feat = numpy.array([data[0] for data in test_data]).astype("float32")
+test_label = numpy.array([data[1] for data in test_data]).astype("float32")
 
-results = inferencer.infer({'x': tensor_x})
-print("infer results: ", results[0])
+results = inferencer.infer({'x': test_feat})
+
+print("infer results: (House Price)")
+for k in range(0, batch_size-1):
+    print("%d. %f" % (k, results[0][k]))
+
+print("\nground truth:")
+for k in range(0, batch_size-1):
+    print("%d. %f" % (k, test_label[k]))
 ```
 
 ## 总结

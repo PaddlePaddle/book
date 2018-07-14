@@ -160,6 +160,7 @@ import paddle
 import paddle.fluid as fluid
 import numpy
 import sys
+from __future__ import print_function
 ```
 
 本教程中我们提供了VGG和ResNet两个模型的配置。
@@ -426,7 +427,7 @@ def event_handler(event):
 
 通过`trainer.train`函数训练:
 
-**注意:** CPU，每个 Epoch 将花费大约15～20分钟。这部分可能需要一段时间。请随意修改代码，在GPU上运行测试，以提高培训速度。
+**注意:** CPU，每个 Epoch 将花费大约15～20分钟。这部分可能需要一段时间。请随意修改代码，在GPU上运行测试，以提高训练速度。
 
 ```python
 trainer.train(
@@ -499,10 +500,10 @@ img = load_image(cur_dir + '/image/dog.png')
 ```python
 inferencer = fluid.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
-
+label_list = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
 # inference
 results = inferencer.infer({'pixel': img})
-print("infer results: ", results)
+print("infer results: %s" % label_list[np.argmax(results[0])])
 ```
 
 ## 总结
