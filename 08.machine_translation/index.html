@@ -156,7 +156,7 @@ The goal of the decoder is to maximize the probability of the next correct word 
 
 2. Calculate the probability $p_{i+1}$ for the $i+1$-th word in the target language sequence by normalizing $z_{i+1}$ using `softmax` as follows
 
-   $$p\left ( u_{i+1}|u_{&lt;i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
+   $$p\left ( u_{i+1}|u_{<i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
 
    where $W_sz_{i+1}+b_z$ scores each possible words and is then normalized via softmax to produce the probability $p_{i+1}$ for the $i+1$-th word.
 
@@ -211,6 +211,7 @@ This subset has 193319 instances of training data and 6003 instances of test dat
 Our program starts with importing necessary packages and initializing some global variables:
 
 ```python
+from __future__ import print_function
 import contextlib
 
 import numpy as np
@@ -527,10 +528,13 @@ for data in test_data():
     result_scores = np.array(results[1])
 
     print("Original sentence:")
-    print(" ".join([src_dict[w] for w in feed_data[0][0]]))
-    print("Translated sentence:")
-    print(" ".join([trg_dict[w] for w in result_ids]))
-    print("Corresponding score: ", result_scores)
+    print(" ".join([src_dict[w] for w in feed_data[0][0][1:-1]]))
+    print("Translated score and sentence:")
+    for i in xrange(beam_size):
+        start_pos = result_ids_lod[1][i] + 1
+        end_pos = result_ids_lod[1][i+1]
+        print("%d\t%.4f\t%s\n" % (i+1, result_scores[end_pos-1],
+                " ".join([trg_dict[w] for w in result_ids[start_pos:end_pos]])))
 
     break
 ```
