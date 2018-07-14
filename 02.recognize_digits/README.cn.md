@@ -155,6 +155,7 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 ```python
 import paddle
 import paddle.fluid as fluid
+from __future__ import print_function
 ```
 
 ### Program Functions 配置
@@ -294,8 +295,8 @@ def event_handler(event):
         if event.step % 100 == 0:
             # event.metrics maps with train program return arguments.
             # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
-            print "Pass %d, Batch %d, Cost %f" % (
-                event.step, event.epoch, event.metrics[0])
+            print("Pass %d, Batch %d, Cost %f" % (
+                event.step, event.epoch, event.metrics[0]))
 
     if isinstance(event, fluid.EndEpochEvent):
         avg_cost, acc = trainer.test(
@@ -419,7 +420,7 @@ img = load_image(cur_dir + '/image/infer_3.png')
 ```python
 results = inferencer.infer({'img': img})
 lab = np.argsort(results)  # probs and lab are the results of one batch data
-print "Inference result of image/infer_3.png is: %d" % lab[0][0][-1]
+print ("Inference result of image/infer_3.png is: %d" % lab[0][0][-1])
 ```
 
 ## 总结
