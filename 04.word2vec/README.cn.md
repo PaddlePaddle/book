@@ -204,6 +204,7 @@ from functools import partial
 import math
 import os
 import sys
+from __future__ import print_function
 ```
 
 然后，定义参数：
@@ -311,7 +312,7 @@ def train(use_cuda, train_program, params_dirname):
                     feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
                 avg_cost = outs[0]
 
-                print "Step %d: Average Cost %f" % (event.step, avg_cost)
+                print("Step %d: Average Cost %f" % (event.step, avg_cost))
 
                 # If average cost is lower than 5.8, we consider the model good enough to stop.
                 # Note 5.8 is a relatively high value. In order to get a better model, one should
