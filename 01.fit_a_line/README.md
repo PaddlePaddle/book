@@ -108,6 +108,7 @@ Our program starts with importing necessary packages:
 import paddle
 import paddle.fluid as fluid
 import numpy
+from __future__ import print_function
 ```
 
 We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
