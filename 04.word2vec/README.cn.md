@@ -337,7 +337,12 @@ def train(use_cuda, train_program, params_dirname):
 
 - `trainer.train`将会开始训练。从`event_handler`返回的监控情况如下：
 
-<img src="image/train_rlt.png"><br/>
+```text
+Step 0: Average Cost 7.337213
+Step 10: Average Cost 6.136128
+Step 20: Average Cost 5.766995
+...
+```
 
 ## 模型应用
 在模型训练后，我们可以用它做一些预测。
@@ -389,7 +394,11 @@ def infer(use_cuda, inference_program, params_dirname=None):
 
 在经历3分钟的短暂训练后，我们得到如下的预测。我们的模型预测 `among a group of` 的下一个词是`a`。这比较符合文法规律。如果我们训练时间更长，比如几个小时，那么我们会得到的下一个预测是 `workers`。
 
-<img src="image/inference_rlt.png"><br/>
+```text
+[[0.00106646 0.0007907  0.00072041 ... 0.00049024 0.00041355 0.00084464]]
+6
+a
+```
 
 整个程序的入口很简单：
 
