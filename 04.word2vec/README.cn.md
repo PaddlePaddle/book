@@ -204,6 +204,7 @@ from functools import partial
 import math
 import os
 import sys
+from __future__ import print_function
 ```
 
 然后，定义参数：
@@ -311,7 +312,7 @@ def train(use_cuda, train_program, params_dirname):
                     feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
                 avg_cost = outs[0]
 
-                print "Step %d: Average Cost %f" % (event.step, avg_cost)
+                print("Step %d: Average Cost %f" % (event.step, avg_cost))
 
                 # If average cost is lower than 5.8, we consider the model good enough to stop.
                 # Note 5.8 is a relatively high value. In order to get a better model, one should
@@ -337,7 +338,7 @@ def train(use_cuda, train_program, params_dirname):
 
 - `trainer.train`将会开始训练。从`event_handler`返回的监控情况如下：
 
-```python
+```text
 Step 0: Average Cost 7.337213
 Step 10: Average Cost 6.136128
 Step 20: Average Cost 5.766995
@@ -394,8 +395,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
 
 在经历3分钟的短暂训练后，我们得到如下的预测。我们的模型预测 `among a group of` 的下一个词是`a`。这比较符合文法规律。如果我们训练时间更长，比如几个小时，那么我们会得到的下一个预测是 `workers`。
 
-
-```python
+```text
 [[0.00106646 0.0007907  0.00072041 ... 0.00049024 0.00041355 0.00084464]]
 6
 a
