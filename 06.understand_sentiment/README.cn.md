@@ -107,6 +107,7 @@ Paddle在`dataset/imdb.py`中提实现了imdb数据集的自动下载和读取�
 在该示例中，我们实现了两种文本分类算法，分别基于[推荐系统](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system)一节介绍过的文本卷积神经网络，以及[栈式双向LSTM](#栈式双向LSTM（Stacked Bidirectional LSTM）)。我们首先引入要用到的库和定义全局变量：
 
 ```python
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 from functools import partial
@@ -115,6 +116,7 @@ import numpy as np
 CLASS_DIM = 2
 EMB_DIM = 128
 HID_DIM = 512
+STACKED_NUM = 3
 BATCH_SIZE = 128
 USE_GPU = False
 ```
@@ -168,17 +170,12 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
             input=fc, size=hid_dim, is_reverse=(i % 2) == 0)
         inputs = [fc, lstm]
 
-    fc_last = paddle.layer.pooling(input=inputs[0], pooling_type=paddle.pooling.Max())
-    lstm_last = paddle.layer.pooling(input=inputs[1], pooling_type=paddle.pooling.Max())
-    output = paddle.layer.fc(input=[fc_last, lstm_last],
-                             size=class_dim,
-                             act=paddle.activation.Softmax(),
-                             bias_attr=bias_attr,
-                             param_attr=para_attr)
+    fc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
+    lstm_last = fluid.layers.sequence_pool(input=inputs[1], pool_type='max')
 
-    lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
-    cost = paddle.layer.classification_cost(input=output, label=lbl)
-    return cost, output
+    prediction = fluid.layers.fc(
+        input=[fc_last, lstm_last], size=class_dim, act='softmax')
+    return prediction
 ```
 以上的栈式双向LSTM抽象出了高级特征并把其映射到和分类类别数同样大小的向量上。`paddle.activation.Softmax`函数用来计算分类属于某个类别的概率。
 
@@ -193,6 +190,7 @@ def inference_program(word_dict):
 
     dict_dim = len(word_dict)
     net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
+    # net = stacked_lstm_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM, STACKED_NUM)
     return net
 ```
 
@@ -301,7 +299,7 @@ trainer.train(
 
 ```python
 inferencer = fluid.Inferencer(
-        inference_program, param_path=params_dirname, place=place)
+        infer_func=partial(inference_program, word_dict), param_path=params_dirname, place=place)
 ```
 
 ### 生成测试用输入数据
