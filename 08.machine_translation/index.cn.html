@@ -127,7 +127,7 @@
 
 2. 将$z_{i+1}$通过`softmax`归一化，得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。概率分布公式如下：
 
-   $$p\left ( u_{i+1}|u_{&lt;i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
+   $$p\left ( u_{i+1}|u_{<i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
 
    其中$W_sz_{i+1}+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到第$i+1$个词的概率$p_{i+1}$。
 
@@ -174,6 +174,7 @@
 下面我们开始根据输入数据的形式配置模型。首先引入所需的库函数以及定义全局变量。
 
 ```python
+from __future__ import print_function
 import contextlib
 
 import numpy as np
@@ -479,10 +480,13 @@ for data in test_data():
     result_scores = np.array(results[1])
 
     print("Original sentence:")
-    print(" ".join([src_dict[w] for w in feed_data[0][0]]))
-    print("Translated sentence:")
-    print(" ".join([trg_dict[w] for w in result_ids]))
-    print("Corresponding score: ", result_scores)
+    print(" ".join([src_dict[w] for w in feed_data[0][0][1:-1]]))
+    print("Translated score and sentence:")
+    for i in xrange(beam_size):
+        start_pos = result_ids_lod[1][i] + 1
+        end_pos = result_ids_lod[1][i+1]
+        print("%d\t%.4f\t%s\n" % (i+1, result_scores[end_pos-1],
+                " ".join([trg_dict[w] for w in result_ids[start_pos:end_pos]])))
 
     break
 ```

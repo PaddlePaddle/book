@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import numpy as np
 import paddle
 import paddle.fluid as fluid
@@ -187,10 +188,14 @@ def decode_main(use_cuda):
         result_scores = np.array(results[1])
 
         print("Original sentence:")
-        print(" ".join([src_dict[w] for w in feed_data[0][0]]))
-        print("Translated sentence:")
-        print(" ".join([trg_dict[w] for w in result_ids]))
-        print("Corresponding score: ", result_scores)
+        print(" ".join([src_dict[w] for w in feed_data[0][0][1:-1]]))
+        print("Translated score and sentence:")
+        for i in xrange(beam_size):
+            start_pos = result_ids_lod[1][i] + 1
+            end_pos = result_ids_lod[1][i + 1]
+            print("%d\t%.4f\t%s\n" % (
+                i + 1, result_scores[end_pos - 1],
+                " ".join([trg_dict[w] for w in result_ids[start_pos:end_pos]])))
 
         break
 
