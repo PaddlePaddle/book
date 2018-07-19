@@ -25,7 +25,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 图1. 依存句法分析句法树示例
 </div>
 
-然而，完全句法分析需要确定句子所包含的全部句法信息，并确定句子各成分之间的关系，是一个非常困难的任务，目前技术下的句法分析准确率并不高，句法分析的细微错误都会导致SRL的错误。为了降低问题的复杂度，同时获得一定的句法结构信息，“浅层句法分析”的思想应运而生。浅层句法分析也称为部分句法分析（partial parsing）或语块划分（chunking）。和完全句法分析得到一颗完整的句法树不同，浅层句法分析只需要识别句子中某些结构相对简单的独立成分，例如：动词短语，这些被识别出来的结构称为语块。为了回避 “无法获得准确率较高的句法树” 所带来的困难，一些研究\[[1](#参考文献)\]也提出了基于语块（chunk）的SRL方法。基于语块的SRL方法将SRL作为一个序列标注问题来解决。序列标注任务一般都会采用BIO表示方式来定义序列标注的标签集，我们先来介绍这种表示方法。在BIO表示法中，B代表语块的开始，I代表语块的中间，O代表语块结束。通过B、I、O 三种标记将不同的语块赋予不同的标签，例如：对于一个角色为A的论元，将它所包含的第一个语块赋予标签B-A，将它所包含的其它语块赋予标签I-A，不属于任何论元的语块赋予标签O。
+然而，完全句法分析需要确定句子所包含的全部句法信息，并确定句子各成分之间的关系，是一个非常困难的任务，目前技术下的句法分析准确率并不高，句法分析的细微错误都会导致SRL的错误。为了降低问题的复杂度，同时获得一定的句法结构信息，“浅层句法分析”的思想应运而生。浅层句法分析也称为部分句法分析（partial parsing）或语块划分（chunking）。和完全句法分析得到一颗完整的句法树不同，浅层句法分析只需要识别句子中某些结构相对简单的独立成分，例如：动词短语，这些被识别出来的结构称为语块。为了回避 “无法获得准确率较高的句法树” 所带来的困难，一些研究\[[1](#参考文献)\]也提出了基于语块（chunk）的SRL方法。基于语块的SRL方法将SRL作为一个序列标注问题来解决。序列标注任务一般都会采用BIO表示方式来定义序列标注的标签集，我们先来介绍这种表示方法。在BIO表示法中，B代表语块的开始，I代表语块的中间，O代表语块结束。通过B、I、O 三种标记将不同的语块赋予不同的标签，例如：对于一个由角色A拓展得到的语块组，将它所包含的第一个语块赋予标签B-A，将它所包含的其它语块赋予标签I-A，不属于任何论元的语块赋予标签O。
 
 我们继续以上面的这句话为例，图1展示了BIO表示方法。
 
@@ -151,14 +151,6 @@ conll05st-release/
 4. 构造以BIO法表示的标记；
 5. 依据词典获取词对应的整数索引。
 
-
-```python
-# import paddle.v2.dataset.conll05 as conll05
-# conll05.corpus_reader函数完成上面第1步和第2步.
-# conll05.reader_creator函数完成上面第3步到第5步.
-# conll05.test函数可以获取处理之后的每条样本来供PaddlePaddle训练.
-```
-
 预处理完成之后一条训练样本包含9个特征，分别是：句子序列、谓词、谓词上下文（占 5 列）、谓词上下区域标志、标注序列。下表是一条训练样本的示例。
 
 | 句子序列 | 谓词 | 谓词上下文（窗口 = 5） | 谓词上下文区域标记 | 标注序列 |
@@ -187,6 +179,8 @@ conll05st-release/
 获取词典，打印词典大小：
 
 ```python
+from __future__ import print_function
+
 import math, os
 import numpy as np
 import paddle
@@ -201,9 +195,9 @@ word_dict_len = len(word_dict)
 label_dict_len = len(label_dict)
 pred_dict_len = len(verb_dict)
 
-print word_dict_len
-print label_dict_len
-print pred_dict_len
+print('word_dict_len: ', word_dict_len)
+print('label_dict_len: ', label_dict_len)
+print('pred_dict_len: ', pred_dict_len)
 ```
 
 ## 模型配置说明
@@ -431,7 +425,7 @@ def train(use_cuda, save_dirname=None, is_local=True):
                 cost = cost[0]
 
                 if batch_id % 10 == 0:
-                    print("avg_cost:" + str(cost))
+                    print("avg_cost: " + str(cost))
                     if batch_id != 0:
                         print("second per batch: " + str((time.time(
                         ) - start_time) / batch_id))

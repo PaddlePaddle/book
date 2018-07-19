@@ -175,13 +175,6 @@ The raw data needs to be preprocessed into formats that PaddlePaddle can handle.
 4. Construct the markings in BIO format;
 5. Obtain the integer index corresponding to the word according to the dictionary.
 
-```python
-# import paddle.v2.dataset.conll05 as conll05
-# conll05.corpus_reader does step 1 and 2 as mentioned above.
-# conll05.reader_creator does step 3 to 5.
-# conll05.test gets preprocessed training instances.
-```
-
 After preprocessing, a training sample contains nine features, namely: word sequence, predicate, predicate context (5 columns), region mark sequence, label sequence. The following table is an example of a training sample.
 
 | word sequence | predicate | predicate context（5 columns） | region mark sequence | label sequence|
@@ -209,6 +202,8 @@ We trained a language model on the English Wikipedia to get a word vector lookup
 Here we fetch the dictionary, and print its size:
 
 ```python
+from __future__ import print_function
+
 import math, os
 import numpy as np
 import paddle
@@ -223,9 +218,9 @@ word_dict_len = len(word_dict)
 label_dict_len = len(label_dict)
 pred_dict_len = len(verb_dict)
 
-print word_dict_len
-print label_dict_len
-print pred_dict_len
+print('word_dict_len: ', word_dict_len)
+print('label_dict_len: ', label_dict_len)
+print('pred_dict_len: ', pred_dict_len)
 ```
 
 ## Model Configuration
@@ -440,7 +435,7 @@ def train(use_cuda, save_dirname=None, is_local=True):
                 cost = cost[0]
 
                 if batch_id % 10 == 0:
-                    print("avg_cost:" + str(cost))
+                    print("avg_cost: " + str(cost))
                     if batch_id != 0:
                         print("second per batch: " + str((time.time(
                         ) - start_time) / batch_id))
