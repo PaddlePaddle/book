@@ -145,6 +145,7 @@ After issuing a command `python train.py`, training will start immediately. The 
 Our program starts with importing necessary packages and initializing some global variables:
 
 ```python
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 from functools import partial
@@ -153,6 +154,7 @@ import numpy as np
 CLASS_DIM = 2
 EMB_DIM = 128
 HID_DIM = 512
+STACKED_NUM = 3
 BATCH_SIZE = 128
 USE_GPU = False
 ```
@@ -234,6 +236,7 @@ def inference_program(word_dict):
 
     dict_dim = len(word_dict)
     net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
+    # net = stacked_lstm_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM, STACKED_NUM)
     return net
 ```
 

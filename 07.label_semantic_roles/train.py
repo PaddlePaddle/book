@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import math, os
 import numpy as np
 import paddle

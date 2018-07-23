@@ -257,6 +257,7 @@ print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id]
 
 
 ```python
+from __future__ import print_function
 import math
 import sys
 import numpy as np
@@ -550,6 +551,11 @@ results = inferencer.infer(
         'movie_title': movie_title
     },
     return_numpy=False)
+
+predict_rating = np.array(results[0])
+print("Predict Rating of user id 1 on movie \"" + infer_movie_name + "\" is " + str(predict_rating[0][0]))
+print("Actual Rating of user id 1 on movie \"" + infer_movie_name + "\" is 4.")
+
 ```
 
 ## 总结
