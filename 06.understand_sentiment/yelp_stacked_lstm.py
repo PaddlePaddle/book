@@ -17,7 +17,6 @@ from __future__ import print_function
 import time
 start = time.time()
 
-
 import os
 import paddle
 import paddle.fluid as fluid
@@ -27,31 +26,37 @@ import numpy as np
 CLASS_DIM = 2
 EMB_DIM = 128
 HID_DIM = 512
-BATCH_SIZE = 256
-
+STACKED_NUM = 3
+BATCH_SIZE = 128
+USE_GPU = True
 
 TRAIN_FILE = '/paddle/daming_paddle_lab/book/06.understand_sentiment/yelp_review_100000.json'
 # TEST_FILE =  '/paddle/daming_paddle_lab/book/06.understand_sentiment/10_reviews.json'
 TEST_FILE =  '/paddle/daming_paddle_lab/book/06.understand_sentiment/yelp_review_4100000.json'
 
 
-def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
+def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
+    assert stacked_num % 2 == 1
+
     emb = fluid.layers.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
-    conv_3 = fluid.nets.sequence_conv_pool(
-        input=emb,
-        num_filters=hid_dim,
-        filter_size=3,
-        act="tanh",
-        pool_type="sqrt")
-    conv_4 = fluid.nets.sequence_conv_pool(
-        input=emb,
-        num_filters=hid_dim,
-        filter_size=4,
-        act="tanh",
-        pool_type="sqrt")
+
+    fc1 = fluid.layers.fc(input=emb, size=hid_dim)
+    lstm1, cell1 = fluid.layers.dynamic_lstm(input=fc1, size=hid_dim)
+
+    inputs = [fc1, lstm1]
+
+    for i in range(2, stacked_num + 1):
+        fc = fluid.layers.fc(input=inputs, size=hid_dim)
+        lstm, cell = fluid.layers.dynamic_lstm(
+            input=fc, size=hid_dim, is_reverse=(i % 2) == 0)
+        inputs = [fc, lstm]
+
+    fc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
+    lstm_last = fluid.layers.sequence_pool(input=inputs[1], pool_type='max')
+
     prediction = fluid.layers.fc(
-        input=[conv_3, conv_4], size=class_dim, act="softmax")
+        input=[fc_last, lstm_last], size=class_dim, act='softmax')
     return prediction
 
 
@@ -60,7 +65,8 @@ def inference_program(word_dict):
         name="words", shape=[1], dtype="int64", lod_level=1)
 
     dict_dim = len(word_dict)
-    net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
+    net = stacked_lstm_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM,
+                           STACKED_NUM)
     return net
 
 
@@ -80,7 +86,6 @@ def optimizer_func():
 def train(use_cuda, train_program, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
     print("Loading YELP word dict....")
-    
     word_dict = paddle.dataset.yelp.word_dict(TRAIN_FILE)
 
     print("Reading YELP training data....")
@@ -90,6 +95,7 @@ def train(use_cuda, train_program, params_dirname):
     print("Reading YELP testing data....")
     test_reader = paddle.batch(
         paddle.dataset.yelp.test(word_dict, TEST_FILE), batch_size=BATCH_SIZE)
+
 
     trainer = fluid.Trainer(
         train_func=partial(train_program, word_dict),
@@ -101,7 +107,6 @@ def train(use_cuda, train_program, params_dirname):
     def event_handler(event):
         if isinstance(event, fluid.EndStepEvent):
             if event.step % 10 == 0:
-                # import pdb;pdb.set_trace()
                 avg_cost, acc = trainer.test(
                     reader=test_reader, feed_order=feed_order)
 
@@ -131,14 +136,14 @@ def infer(use_cuda, inference_program, params_dirname=None):
         place=place)
 
     # Setup input by creating LoDTensor to represent sequence of words.
-    # Here each word is the basic element of the LoDTensor and the shape of 
-    # each word (base_shape) should be [1] since it is simply an index to 
+    # Here each word is the basic element of the LoDTensor and the shape of
+    # each word (base_shape) should be [1] since it is simply an index to
     # look up for the corresponding word vector.
     # Suppose the length_based level of detail (lod) info is set to [[3, 4, 2]],
-    # which has only one lod level. Then the created LoDTensor will have only 
-    # one higher level structure (sequence of words, or sentence) than the basic 
-    # element (word). Hence the LoDTensor will hold data for three sentences of 
-    # length 3, 4 and 2, respectively. 
+    # which has only one lod level. Then the created LoDTensor will have only
+    # one higher level structure (sequence of words, or sentence) than the basic
+    # element (word). Hence the LoDTensor will hold data for three sentences of
+    # length 3, 4 and 2, respectively.
     # Note that lod info should be a list of lists.
 
     reviews_str = [
@@ -153,6 +158,8 @@ def infer(use_cuda, inference_program, params_dirname=None):
         "Terrible service and not so great drinks.\n\nWe happen to be in the plaza and saw this place for bubble tea, so we decided to grab a few to go.\n\nFirst of all, the two menus is located in a very awkward place (one very high up on the wall and one in the corner also by the wall), set up is not really friendly neither can it accommodate a large group of people to look at the menu at the same time.\n\nThe menu items itself had different options than your typically bubble tea place. Their specialty are mousse drinks - which we had no idea what exactly it was. So when we asked the staff, they said it was some sort of cheese. \n\nFor a Sunday afternoon, they were also out of grass jelly and pudding, which are ingredients in quite a few of their drinks (so not sure how that works).\n\nThe service is really bad, they don't understand English so when you asked them about the menu items, they can't really explain what they are.\n\nWe had ordered the following:\n- slush mango (came with tapioca and mousse)\n- peach ice tea\n- roasted oolong milk tea\n- supernova kumquat lemonade\n\nAnd when we asked what the difference between a supernova kumquat lemonade under the galaxy drinks section (which are supposed to be layered drinks), and the kumquat lemonade, they said it had a layer of blue mousse - so we were like ok we will try it then. But what came was just a bigger cup size of the kumquat lemonade. When we asked them again, they said it was just a size difference, that's what makes it supernova - which is pretty dumb to me as on the menu both items had the same two size choices of regular or large. \n\nThe mango slush and the roasted oolong milk tea wasn't bad. But the other two was not that great. The tea had a big floral taste that overpowered everything. There was no peach taste in the peach ice tea. The kumquat one had no kumquat taste and was just bitter from the lime and it tasted like it had no sugar in it at all.\n\nI guess if you need a non-busy place to use WIFI and work, then this is the place, no one wants to come here.\n\nAlso - their gimmick also seems to be the lightbulb drinks, which were intriguing to us, but you are not allowed to take the lightbulb home...\n\nWe will definitely not be returning...",  # 1
         "worse customer service ever. \nManager on duty was rude. She didn't care that I had negative feelings about this place when I said that I would never come back again!\nRestaurant has gone downhill since they renovated!!",  # 1
     ]
+    # import pdb;pdb.set_trace()
+
     reviews = [c.split() for c in reviews_str]
 
     UNK = word_dict['<unk>']
@@ -173,7 +180,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
 def main(use_cuda):
     if use_cuda and not fluid.core.is_compiled_with_cuda():
         return
-    params_dirname = "understand_sentiment_conv.inference.model"
+    params_dirname = "understand_sentiment_stacked_lstm.inference.model"
     train(use_cuda, train_program, params_dirname)
     infer(use_cuda, inference_program, params_dirname)
 
@@ -181,10 +188,6 @@ def main(use_cuda):
     elapsed = finish - start
     print(elapsed)
 
-
 if __name__ == '__main__':
     use_cuda = False # set to True if training with GPU
-    use_cuda = True # set to True if training with GPU
     main(use_cuda)
-
-
