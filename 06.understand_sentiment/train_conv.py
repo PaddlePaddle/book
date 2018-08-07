@@ -162,5 +162,5 @@ def main(use_cuda):
 
 
 if __name__ == '__main__':
-    use_cuda = False # set to True if training with GPU
+    use_cuda = True  # set to True if training with GPU
     main(use_cuda)
