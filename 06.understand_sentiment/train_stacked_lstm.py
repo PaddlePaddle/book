@@ -161,14 +161,60 @@ def infer(use_cuda, inference_program, params_dirname=None):
               " to be negative for review \'", reviews_str[i], "\'")
 
 
+def eval(use_cuda, inference_program, params_dirname):
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    exe = fluid.Executor(place)
+
+    word_dict = paddle.dataset.imdb.word_dict()
+    test_reader = paddle.batch(
+        paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
+
+    prediction = inference_program(word_dict)
+    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
+    cost = fluid.layers.cross_entropy(input=prediction, label=label)
+    avg_cost = fluid.layers.mean(cost)
+    accuracy = fluid.layers.accuracy(input=prediction, label=label)
+
+    exe.run(fluid.default_startup_program())
+    fluid.io.load_persistables(exe, params_dirname)
+
+    total_acc = []
+    for index, batch_data in enumerate(test_reader()):
+        print(index)
+        sent = map(lambda x: x[0], batch_data)
+        label = np.array(map(lambda x: [x[1]], batch_data)).astype("int64")
+        seq_lens = [[len(seq) for seq in sent]]
+        words = fluid.create_lod_tensor(sent, seq_lens, place)
+        predict, acc = exe.run(
+            fluid.default_main_program(),
+            feed={'words': words,
+                  'label': label},
+            fetch_list=[prediction, accuracy])
+        total_acc.append(acc)
+
+        print(predict)
+        num_right = 0
+        for n, data in enumerate(batch_data):
+            predicted = predict[n][1] >= 0.5
+            labeled = label[n][0]
+            print("%d, predicted: %d, labeled: %d, right: %d" %
+                  (n, predicted, labeled, (predicted == labeled)))
+            num_right += (predicted == labeled)
+
+        print("exe acc %f, manual acc %f\n" %
+              (acc, float(num_right) / len(batch_data)))
+    print("total mean acc = %f" % np.mean(total_acc))
+
+
 def main(use_cuda):
     if use_cuda and not fluid.core.is_compiled_with_cuda():
         return
     params_dirname = "understand_sentiment_stacked_lstm.inference.model"
     train(use_cuda, train_program, params_dirname)
     infer(use_cuda, inference_program, params_dirname)
+    eval(use_cuda, inference_program, params_dirname)
 
 
 if __name__ == '__main__':
-    use_cuda = False # set to True if training with GPU
+    use_cuda = True  # set to True if training with GPU
     main(use_cuda)
