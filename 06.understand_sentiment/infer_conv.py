@@ -1,0 +1,116 @@
+# Copyright (c) 2018 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from __future__ import print_function
+
+import os
+import paddle
+import paddle.fluid as fluid
+from functools import partial
+import numpy as np
+
+
+CLASS_DIM = 2
+EMB_DIM = 128
+HID_DIM = 512
+BATCH_SIZE = 128
+
+
+def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
+    conv_3 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=3,
+        act="tanh",
+        pool_type="sqrt")
+    conv_4 = fluid.nets.sequence_conv_pool(
+        input=emb,
+        num_filters=hid_dim,
+        filter_size=4,
+        act="tanh",
+        pool_type="sqrt")
+    prediction = fluid.layers.fc(
+        input=[conv_3, conv_4], size=class_dim, act="softmax")
+    return prediction
+
+
+def inference_program(word_dict):
+    data = fluid.layers.data(
+        name="words", shape=[1], dtype="int64", lod_level=1)
+
+    dict_dim = len(word_dict)
+    net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
+    return net
+
+
+def load_str_from_txt(file_path):
+    if not os.path.isfile(file_path):
+        raise TypeError(file_path + " dose not exist")
+
+    comment = open(file_path).read()
+    return comment
+
+
+def infer(use_cuda, inference_program, params_dirname=None):
+    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+    word_dict = paddle.dataset.imdb.word_dict()
+
+    inferencer = fluid.Inferencer(
+        infer_func=partial(inference_program, word_dict),
+        param_path=params_dirname,
+        place=place)
+
+    dir_path = "./test_samples/"
+    test_samples_name = [
+        '10897_10.txt',
+        '11837_9.txt',
+        '153_8.txt',
+        '1547_9.txt',
+        '5305_7.txt',
+        '5674_1.txt',
+        '6530_4.txt',
+        '6539_2.txt',
+        '7393_3.txt',
+        '7403_2.txt' 
+    ]
+    reviews_str = [load_str_from_txt(dir_path + name) 
+            for name in test_samples_name]
+    reviews = [c.split() for c in reviews_str]
+
+    UNK = word_dict['<unk>']
+    lod = []
+    for c in reviews:
+        lod.append([word_dict.get(words, UNK) for words in c])
+
+    base_shape = [[len(c) for c in lod]]
+
+    tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
+    results = inferencer.infer({'words': tensor_words})
+
+    for i, r in enumerate(results[0]):
+        print(test_samples_name[i], "positive: ", r[0], "negative: ", r[1])
+
+
+def main(use_cuda):
+    if use_cuda and not fluid.core.is_compiled_with_cuda():
+        return
+    params_dirname = "understand_sentiment_conv.inference.model"
+    infer(use_cuda, inference_program, params_dirname)
+
+
+if __name__ == '__main__':
+    use_cuda = True # set to True if training with GPU
+    main(use_cuda)
