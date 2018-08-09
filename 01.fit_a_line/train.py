@@ -65,14 +65,16 @@ plot_cost = Ploter(train_title, test_title)
 step = 0
 
 
-# event_handler to print training and testing info
+# event_handler prints training and testing info
 def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if event.step % 10 == 0:  # every 10 batches, record a test cost
+        if step % 10 == 0:  #record a test cost every 10 batches
+            plot_cost.append(train_title, step, event.metrics[0])
+
+        if step % 100 == 0:
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-
             plot_cost.append(test_title, step, test_metrics[0])
             plot_cost.plot()
 
@@ -80,12 +82,13 @@ def event_handler_plot(event):
                 # If the accuracy is good enough, we can stop the training.
                 print('loss is less than 10.0, stop')
                 trainer.stop()
-
-        # We can save the trained parameters for the inferences later
-        if params_dirname is not None:
-            trainer.save_params(params_dirname)
-
         step += 1
+
+    if isinstance(event, fluid.EndEpochEvent):
+        if event.epoch % 10 == 0:
+            # We can save the trained parameters for the inferences later
+            if params_dirname is not None:
+                trainer.save_params(params_dirname)
 
 
 # The training could take up to a few minutes.
