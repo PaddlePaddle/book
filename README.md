@@ -55,12 +55,12 @@ nvidia-docker run -d -p 8888:8888 docker.paddlepaddlehub.com/book:latest-gpu
 
 Change the code in the chapter that you are reading from
 ```python
-paddle.init(use_gpu=False, trainer_count=1)
+use_cuda = False
 ```
 
 to:
 ```python
-paddle.init(use_gpu=True, trainer_count=1)
+use_cuda = True
 ```
 
 
