@@ -22,12 +22,7 @@ before_install:
 script:
   -  PATH=/tmp/go/bin:$PATH .travis/precommit.sh
   - |
-    if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then exit 0; fi;
-    if [[ "$TRAVIS_BRANCH" != "develop"  && ! "$TRAVIS_BRANCH" =~ ^v[[:digit:]]+\.[[:digit:]]+(\.[[:digit:]]+)?(-\S*)?$ ]]; then echo "not develop branch, no deploy"; exit 0; fi;
-    export DEPLOY_DOCS_SH=https://raw.githubusercontent.com/PaddlePaddle/PaddlePaddle.org/master/scripts/deploy/deploy_docs.sh
-    export BOOK_DIR=`pwd`
-    cd ..
-    curl $DEPLOY_DOCS_SH | bash -s $CONTENT_DEC_PASSWD $TRAVIS_BRANCH $BOOK_DIR
+     .travis/deploy_docs.sh
 notifications:
   email:
     on_success: change
