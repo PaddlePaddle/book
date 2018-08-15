@@ -1,9 +1,5 @@
 exit_code=0
 
-TRAVIS_PULL_REQUEST=false
-TRAVIS_BRANCH=develop_doc
-CONTENT_DEC_PASSWD=12345
-
 if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then exit $exit_code; fi;
     
 # Deploy to the the content server if its a "develop" or "release/version" branch
@@ -29,8 +25,5 @@ docker run -it \
     -v "$PWD:/book" \
     -w /book \
     paddlepaddle/paddle:latest-dev \
-    /bin/bash
-
-
--c 'curl $DEPLOY_DOCS_SH | bash -s $CONTENT_DEC_PASSWD $TRAVIS_BRANCH /book /book/build/doc/ $PPO_SCRIPT_BRANCH' || exit_code=$(( exit_code | $? ))
+    /bin/bash -c 'curl $DEPLOY_DOCS_SH | bash -s $CONTENT_DEC_PASSWD $TRAVIS_BRANCH /book /book/build/doc/ $PPO_SCRIPT_BRANCH' || exit_code=$(( exit_code | $? ))
 
