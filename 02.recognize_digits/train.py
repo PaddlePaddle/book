@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 from PIL import Image
 import numpy as np
@@ -89,8 +90,8 @@ def main():
             if event.step % 100 == 0:
                 # event.metrics maps with train program return arguments.
                 # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
-                print "Pass %d, Batch %d, Cost %f" % (event.step, event.epoch,
-                                                      event.metrics[0])
+                print("Pass %d, Batch %d, Cost %f" % (event.step, event.epoch,
+                                                      event.metrics[0]))
 
         if isinstance(event, fluid.EndEpochEvent):
             avg_cost, acc = trainer.test(
@@ -112,8 +113,8 @@ def main():
 
     # find the best pass
     best = sorted(lists, key=lambda list: float(list[1]))[0]
-    print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
-    print 'The classification accuracy is %.2f%%' % (float(best[2]) * 100)
+    print('Best pass is %s, testing Avgcost is %s' % (best[0], best[1]))
+    print('The classification accuracy is %.2f%%' % (float(best[2]) * 100))
 
     def load_image(file):
         im = Image.open(file).convert('L')
@@ -133,7 +134,7 @@ def main():
 
     results = inferencer.infer({'img': img})
     lab = np.argsort(results)  # probs and lab are the results of one batch data
-    print "Label of image/infer_3.png is: %d" % lab[0][0][-1]
+    print("Inference result of image/infer_3.png is: %d" % lab[0][0][-1])
 
 
 if __name__ == '__main__':
