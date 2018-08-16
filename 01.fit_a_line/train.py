@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
@@ -53,7 +54,7 @@ trainer = fluid.Trainer(
 
 feed_order = ['x', 'y']
 
-# Specify the directory path to save the parameters
+# Specify the directory to save the parameters
 params_dirname = "fit_a_line.inference.model"
 
 # Plot data
@@ -65,11 +66,11 @@ plot_cost = Ploter(train_title, test_title)
 step = 0
 
 
-# event_handler to print training and testing info
+#event_handler prints training and testing info
 def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if event.step % 10 == 0:  # every 10 batches, record a test cost
+        if event.step % 10 == 0:  # record the test cost every 10 seconds
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
 
@@ -106,7 +107,18 @@ inferencer = fluid.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
-tensor_x = numpy.random.uniform(0, 10, [batch_size, 13]).astype("float32")
+test_reader = paddle.batch(
+    paddle.dataset.uci_housing.test(), batch_size=batch_size)
+test_data = test_reader().next()
+test_feat = numpy.array([data[0] for data in test_data]).astype("float32")
+test_label = numpy.array([data[1] for data in test_data]).astype("float32")
 
-results = inferencer.infer({'x': tensor_x})
-print("infer results: ", results[0])
+results = inferencer.infer({'x': test_feat})
+
+print("infer results: (House Price)")
+for k in range(0, batch_size - 1):
+    print("%d. %f" % (k, results[0][k]))
+
+print("\nground truth:")
+for k in range(0, batch_size - 1):
+    print("%d. %f" % (k, test_label[k]))
