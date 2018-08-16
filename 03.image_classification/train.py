@@ -116,6 +116,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
     img = load_image(cur_dir + '/image/dog.png')
 
     # inference
+    results = inferencer.infer({'pixel': img})
 
     label_list = [
         "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse",
