@@ -116,9 +116,12 @@ def infer(use_cuda, inference_program, params_dirname=None):
     img = load_image(cur_dir + '/image/dog.png')
 
     # inference
-    results = inferencer.infer({'pixel': img})
 
-    print("infer results: ", results)
+    label_list = [
+        "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse",
+        "ship", "truck"
+    ]
+    print("infer results: %s" % label_list[np.argmax(results[0])])
 
 
 def main(use_cuda):
