@@ -239,7 +239,7 @@ trainer.train(
 
 ```
 
-![png](./image/test_cost.png)
+![png](./image/train_and_test.png)
 
 ## Inference
 
