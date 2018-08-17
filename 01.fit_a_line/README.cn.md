@@ -228,7 +228,7 @@ trainer.train(
     feed_order=feed_order)
 ```
 
-![png](./image/train_and_test.png)
+![png](./image/test_cost.png)
 
 ## 预测
 提供一个`inference_program`和一个`params_dirname`来初始化预测器。`params_dirname`用来存储我们的参数。
