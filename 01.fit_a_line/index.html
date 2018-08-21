@@ -256,10 +256,10 @@ step = 0
 def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if step % 10 == 0: #record a test cost every 10 batches
+        if step % 10 == 0:   # record a train cost every 10 batches
             plot_cost.append(train_title, step, event.metrics[0])
 
-        if step % 100 == 0:
+        if step % 100 == 0:  # record a test cost every 100 batches
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
             plot_cost.append(test_title, step, test_metrics[0])
