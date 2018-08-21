@@ -79,6 +79,13 @@ $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 - 不同的数值范围会导致不同属性对模型的重要性不同（至少在训练的初始阶段如此），而这个隐含的假设常常是不合理的。这会对优化的过程造成困难，使训练时间大大的加长。
 - 很多的机器学习技巧/模型（例如L1，L2正则项，向量空间模型-Vector Space Model）都基于这样的假设：所有的属性取值都差不多是以0为均值且取值范围相近的。
 
+test!
+
+![BostonHousePricePredictions](./image/predictions.png)
+
+test!
+
+<img src = "image/ranges.png" width=550><br/>
 <p align="center">
     <img src = "image/ranges.png" width=550><br/>
     图2. 各维属性的取值范围
