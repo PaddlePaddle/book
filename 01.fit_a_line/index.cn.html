@@ -237,10 +237,12 @@ step = 0
 def event_handler_plot(event):
     global step
     if isinstance(event, fluid.EndStepEvent):
-        if event.step % 10 == 0: # record the test cost every 10 seconds
+        if step % 10 == 0:   # record a train cost every 10 batches
+            plot_cost.append(train_title, step, event.metrics[0])
+
+        if step % 100 == 0:  # record a test cost every 100 batches
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-
             plot_cost.append(test_title, step, test_metrics[0])
             plot_cost.plot()
 
@@ -248,12 +250,13 @@ def event_handler_plot(event):
                 # If the accuracy is good enough, we can stop the training.
                 print('loss is less than 10.0, stop')
                 trainer.stop()
-
-        # We can save the trained parameters for the inferences later
-        if params_dirname is not None:
-            trainer.save_params(params_dirname)
-
         step += 1
+
+    if isinstance(event, fluid.EndEpochEvent):
+        if event.epoch % 10 == 0:
+            # We can save the trained parameters for the inferences later
+            if params_dirname is not None:
+                trainer.save_params(params_dirname)
 ```
 
 ### 开始训练
@@ -296,18 +299,18 @@ inferencer = fluid.Inferencer(
 batch_size = 10
 test_reader = paddle.batch(paddle.dataset.uci_housing.test(),batch_size=batch_size)
 test_data = test_reader().next()
-test_feat = numpy.array([data[0] for data in test_data]).astype("float32")
-test_label = numpy.array([data[1] for data in test_data]).astype("float32")
+test_x = numpy.array([data[0] for data in test_data]).astype("float32")
+test_y = numpy.array([data[1] for data in test_data]).astype("float32")
 
-results = inferencer.infer({'x': test_feat})
+results = inferencer.infer({'x': test_x})
 
 print("infer results: (House Price)")
-for k in range(0, batch_size-1):
-    print("%d. %f" % (k, results[0][k]))
+for idx, val in enumerate(results[0]):
+    print("%d: %.2f" % (idx, val))
 
 print("\nground truth:")
-for k in range(0, batch_size-1):
-    print("%d. %f" % (k, test_label[k]))
+for idx, val in enumerate(test_label):
+    print("%d: %.2f" % (idx, val))
 ```
 
 ## 总结
