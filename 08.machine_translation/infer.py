@@ -185,6 +185,7 @@ def decode_main(use_cuda):
             return_numpy=False)
 
         result_ids = np.array(results[0])
+        result_ids_lod = results[0].lod()
         result_scores = np.array(results[1])
 
         print("Original sentence:")

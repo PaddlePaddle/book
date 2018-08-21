@@ -51,12 +51,12 @@ nvidia-docker run -d -p 8888:8888 docker.paddlepaddlehub.com/book:latest-gpu
 
 还需要将以下代码
 ```python
-paddle.init(use_gpu=False, trainer_count=1)
+use_cuda = False
 ```
 
 改成：
 ```python
-paddle.init(use_gpu=True, trainer_count=1)
+use_cuda = True
 ```
 
 

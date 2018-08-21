@@ -41,11 +41,13 @@
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
 # Linear Regression
+
 Let us begin the tutorial with a classical problem called Linear Regression \[[1](#References)\]. In this chapter, we will train a model from a realistic dataset to predict home prices. Some important concepts in Machine Learning will be covered through this example.
 
 The source code for this tutorial lives on [book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line). For instructions on getting started with PaddlePaddle, see [PaddlePaddle installation guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Problem Setup
+
 Suppose we have a dataset of $n$ real estate properties. Each real estate property will be referred to as **homes** in this chapter for clarity.
 
 Each home is associated with $d$ attributes. The attributes describe characteristics such as the number of rooms in the home, the number of schools or hospitals in the neighborhood, and the traffic condition nearby.
@@ -90,6 +92,7 @@ After setting up our model, there are several major steps to go through to train
 4. Repeat steps 2~3, until the loss is below a predefined threshold or the maximum number of epochs is reached.
 
 ## Dataset
+
 ### An Introduction of the Dataset
 
 The UCI housing dataset has 506 instances. Each instance describes the attributes of a house in surburban Boston.  The attributes are explained below:
@@ -105,7 +108,7 @@ The UCI housing dataset has 506 instances. Each instance describes the attribute
 | AGE | proportion of owner-occupied units built prior to 1940 | Continuous |
 | DIS | weighted distances to five Boston employment centres | Continuous |
 | RAD | index of accessibility to radial highways | Continuous |
-| TAX | full-value property-tax rate per $10,000 | Continuous |
+| TAX | full-value property-tax rate per \$10,000 | Continuous |
 | PTRATIO | pupil-teacher ratio by town | Continuous |
 | B | 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town | Continuous |
 | LSTAT | % lower status of the population | Continuous |
@@ -114,12 +117,15 @@ The UCI housing dataset has 506 instances. Each instance describes the attribute
 The last entry is the median home price.
 
 ### Preprocessing
+
 #### Continuous and Discrete Data
+
 We define a feature vector of length 13 for each home, where each entry corresponds to an attribute. Our first observation is that, among the 13 dimensions, there are 12 continuous dimensions and 1 discrete dimension.
 
 Note that although a discrete value is also written as numeric values such as 0, 1, or 2, its meaning differs from a continuous value drastically.  The linear difference between two discrete values has no meaning. For example, suppose $0$, $1$, and $2$ are used to represent colors *Red*, *Green*, and *Blue* respectively. Judging from the numeric representation of these colors, *Red* differs more from *Blue* than it does from *Green*. Yet in actuality, it is not true that extent to which the color *Blue* is different from *Red* is greater than the extent to which *Green* is different from *Red*. Therefore, when handling a discrete feature that has $d$ possible values, we usually convert it to $d$ new features where each feature takes a binary value, $0$ or $1$, indicating whether the original value is absent or present. Alternatively, the discrete features can be mapped onto a continuous multi-dimensional vector through an embedding table. For our problem here, because CHAS itself is a binary discrete value, we do not need to do any preprocessing.
 
 #### Feature Normalization
+
 We also observe a huge difference among the value ranges of the 13 features (Figure 2). For instance, the values of feature *B* fall in $[0.32, 396.90]$, whereas those of feature *NOX* has a range of $[0.3850, 0.8170]$. An effective optimization would require data normalization. The goal of data normalization is to scale the values of each feature into roughly the same range, perhaps $[-0.5, 0.5]$. Here, we adopt a popular normalization technique where we subtract the mean value from the feature value and divide the result by the width of the original range.
 
 There are at least three reasons for [Feature Normalization](https://en.wikipedia.org/wiki/Feature_scaling) (Feature Scaling):
@@ -133,17 +139,17 @@ There are at least three reasons for [Feature Normalization](https://en.wikipedi
 </p>
 
 #### Prepare Training and Test Sets
+
 We split the dataset in two, one for adjusting the model parameters, namely, for training the model, and the other for testing. The model error on the former is called the **training error**, and the error on the latter is called the **test error**. Our goal in training a model is to find the statistical dependency between the outputs and the inputs, so that we can predict outputs given new inputs. As a result, the test error reflects the performance of the model better than the training error does. We consider two things when deciding the ratio of the training set to the test set: 1) More training data will decrease the variance of the parameter estimation, yielding more reliable models; 2) More test data will decrease the variance of the test error, yielding more reliable test errors. One standard split ratio is $8:2$.
 
-
 When training complex models, we usually have one more split: the validation set. Complex models usually have [Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_optimization) that need to be set before the training process, such as the number of layers in the network. Because hyperparameters are not part of the model parameters, they cannot be trained using the same loss function. Thus we will try several sets of hyperparameters to train several models and cross-validate them on the validation set to pick the best one; finally, the selected trained model is tested on the test set. Because our model is relatively simple, we will omit this validation process.
-
 
 ## Training
 
 `fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
 
 ### Datafeeder Configuration
+
 Our program starts with importing necessary packages:
 
 ```python
@@ -176,6 +182,7 @@ test_reader = paddle.batch(
 ```
 
 ### Train Program Configuration
+
 `train_program` sets up the network structure of this current training model. For linear regression, it is simply a fully connected layer from the input to the output. More complex structures like CNN and RNN will be introduced in later chapters. The `train_program` must return an avg_loss as its first returned parameter because it is needed in backpropagation.
 
 ```python
@@ -202,6 +209,7 @@ def optimizer_program():
 ```
 
 ### Specify Place
+
 Specify your training environment, you should specify if the training is on CPU or GPU.
 
 ```python
@@ -210,6 +218,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
 ### Create Trainer
+
 The trainer will take the `train_program` as input.
 
 ```python
@@ -271,6 +280,7 @@ def event_handler_plot(event):
 ```
 
 ### Start Training
+
 We now can start training by calling `trainer.train()`.
 
 ```python
@@ -292,6 +302,7 @@ trainer.train(
 Initialize the Inferencer with the inference_program and the params_dirname, which is where we saved our params
 
 ### Setup the Inference Program
+
 Similar to the trainer.train, the Inferencer needs to take an inference_program to do inference.
 Prune the train_program to only have the y_predict.
 
@@ -303,6 +314,7 @@ def inference_program():
 ```
 
 ### Infer
+
 Inferencer will load the trained model from `params_dirname` and use it to infer the unseen data.
 
 ```python
@@ -322,15 +334,16 @@ for idx, val in enumerate(results[0]):
     print("%d: %.2f" % (idx, val))
 
 print("\nground truth:")
-for idx, val in enumerate(test_label):
+for idx, val in enumerate(test_y):
     print("%d: %.2f" % (idx, val))
 ```
 
 ## Summary
+
 This chapter introduces *Linear Regression* and how to train and test this model with PaddlePaddle, using the UCI Housing Data Set. Because a large number of more complex models and techniques are derived from linear regression, it is important to understand its underlying theory and limitation.
 
-
 ## References
+
 1. https://en.wikipedia.org/wiki/Linear_regression
 2. Friedman J, Hastie T, Tibshirani R. The elements of statistical learning[M]. Springer, Berlin: Springer series in statistics, 2001.
 3. Murphy K P. Machine learning: a probabilistic perspective[M]. MIT press, 2012.

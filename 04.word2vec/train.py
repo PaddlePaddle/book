@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from __future__ import print_function
 import paddle.v2 as paddle
 import paddle.fluid as fluid
 import numpy
@@ -26,8 +26,7 @@ HIDDEN_SIZE = 256
 N = 5
 BATCH_SIZE = 100
 
-
-use_cuda = False # set to True if training with GPU
+use_cuda = False  # set to True if training with GPU
 
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
@@ -105,7 +104,7 @@ def train(use_cuda, train_program, params_dirname):
             avg_cost = outs[0]
 
             if event.step % 10 == 0:
-                print "Step %d: Average Cost %f" % (event.step, avg_cost)
+                print("Step %d: Average Cost %f" % (event.step, avg_cost))
 
             # If average cost is lower than 5.8, we consider the model good enough to stop.
             # Note 5.8 is a relatively high value. In order to get a better model, one should
