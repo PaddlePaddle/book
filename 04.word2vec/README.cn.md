@@ -39,8 +39,8 @@ $$X = USV^T$$
 另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
 
 ```
-similarity: 0.899180685161
 please input two words: big huge
+similarity: 0.899180685161
 
 please input two words: from company
 similarity: -0.0997506977351
