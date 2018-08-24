@@ -4,14 +4,14 @@
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.html)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.cn.html)
 
-1. [Fit a Line](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.html)
-1. [Recognize Digits](http://www.paddlepaddle.org/docs/develop/book/02.recognize_digits/index.html)
-1. [Image Classification](http://www.paddlepaddle.org/docs/develop/book/03.image_classification/index.html)
-1. [Word to Vector](http://www.paddlepaddle.org/docs/develop/book/04.word2vec/index.html)
-1. [Recommender System](http://www.paddlepaddle.org/docs/develop/book/05.recommender_system/index.html)
-1. [Understand Sentiment](http://www.paddlepaddle.org/docs/develop/book/06.understand_sentiment/index.html)
-1. [Label Semantic Roles](http://www.paddlepaddle.org/docs/develop/book/07.label_semantic_roles/index.html)
-1. [Machine Translation](http://www.paddlepaddle.org/docs/develop/book/08.machine_translation/index.html)
+1. [Fit a Line](http://www.paddlepaddle.org/documentation/book/en/develop/01.fit_a_line/index.html)
+1. [Recognize Digits](http://www.paddlepaddle.org/documentation/book/en/develop/02.recognize_digits/index.html)
+1. [Image Classification](http://www.paddlepaddle.org/documentation/book/en/develop/03.image_classification/index.html)
+1. [Word to Vector](http://www.paddlepaddle.org/documentation/book/en/develop/04.word2vec/index.html)
+1. [Recommender System](http://www.paddlepaddle.org/documentation/book/en/develop/05.recommender_system/index.html)
+1. [Understand Sentiment](http://www.paddlepaddle.org/documentation/book/en/develop/06.understand_sentiment/index.html)
+1. [Label Semantic Roles](http://www.paddlepaddle.org/documentation/book/en/develop/07.label_semantic_roles/index.html)
+1. [Machine Translation](http://www.paddlepaddle.org/documentation/book/en/develop/08.machine_translation/index.html)
 
 ## Running the Book
 
