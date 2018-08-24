@@ -4,14 +4,14 @@
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.html)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.cn.html)
 
-1. [线性回归](http://www.paddlepaddle.org/docs/develop/book/01.fit_a_line/index.cn.html)
-1. [识别数字](http://www.paddlepaddle.org/docs/develop/book/02.recognize_digits/index.cn.html)
-1. [图像分类](http://www.paddlepaddle.org/docs/develop/book/03.image_classification/index.cn.html)
-1. [词向量](http://www.paddlepaddle.org/docs/develop/book/04.word2vec/index.cn.html)
-1. [个性化推荐](http://www.paddlepaddle.org/docs/develop/book/05.recommender_system/index.cn.html)
-1. [情感分析](http://www.paddlepaddle.org/docs/develop/book/06.understand_sentiment/index.cn.html)
-1. [语义角色标注](http://www.paddlepaddle.org/docs/develop/book/07.label_semantic_roles/index.cn.html)
-1. [机器翻译](http://www.paddlepaddle.org/docs/develop/book/08.machine_translation/index.cn.html)
+1. [线性回归](http://www.paddlepaddle.org/documentation/book/zh/develop/01.fit_a_line/index.cn.html)
+1. [识别数字](http://www.paddlepaddle.org/documentation/book/zh/develop/02.recognize_digits/index.cn.html)
+1. [图像分类](http://www.paddlepaddle.org/documentation/book/zh/develop/03.image_classification/index.cn.html)
+1. [词向量](http://www.paddlepaddle.org/documentation/book/zh/develop/04.word2vec/index.cn.html)
+1. [个性化推荐](http://www.paddlepaddle.org/documentation/book/zh/develop/05.recommender_system/index.cn.html)
+1. [情感分析](http://www.paddlepaddle.org/documentation/book/zh/develop/06.understand_sentiment/index.cn.html)
+1. [语义角色标注](http://www.paddlepaddle.org/documentation/book/zh/develop/07.label_semantic_roles/index.cn.html)
+1. [机器翻译](http://www.paddlepaddle.org/documentation/book/zh/develop/08.machine_translation/index.cn.html)
 
 更多学习内容请访问PaddlePaddle[视频课堂](http://bit.baidu.com/Course/datalist/column/117.html)。
 
