@@ -116,7 +116,7 @@ test_data = test_reader().next()
 test_x = numpy.array([data[0] for data in test_data]).astype("float32")
 test_y = numpy.array([data[1] for data in test_data]).astype("float32")
 
-results = inferencer.infer({'x': test_feat})
+results = inferencer.infer({'x': test_x})
 
 print("infer results: (House Price)")
 for idx, val in enumerate(results[0]):
