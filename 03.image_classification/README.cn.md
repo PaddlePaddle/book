@@ -21,7 +21,7 @@
 图像分类包括通用图像分类、细粒度图像分类等。图1展示了通用图像分类效果，即模型可以正确识别图像上的主要物体。
 
 <p align="center">
-<img src="image/dog_cat.png "  width="350" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/dog_cat.png?raw=true"  width="350" ><br/>
 图1. 通用图像分类展示
 </p>
 
@@ -30,7 +30,7 @@
 
 
 <p align="center">
-<img src="image/flowers.png" width="400" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/flowers.png?raw=true" width="400" ><br/>
 图2. 细粒度图像分类展示
 </p>
 
@@ -38,7 +38,7 @@
 一个好的模型既要对不同类别识别正确，同时也应该能够对不同视角、光照、背景、变形或部分遮挡的图像正确识别(这里我们统一称作图像扰动)。图3展示了一些图像的扰动，较好的模型会像聪明的人类一样能够正确识别。
 
 <p align="center">
-<img src="image/variations.png" width="550" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/variations.png?raw=true" width="550" ><br/>
 图3. 扰动图片展示[22]
 </p>
 
@@ -47,9 +47,13 @@
 图像识别领域大量的研究成果都是建立在[PASCAL VOC](http://host.robots.ox.ac.uk/pascal/VOC/)、[ImageNet](http://image-net.org/)等公开的数据集上，很多图像识别算法通常在这些数据集上进行测试和比较。PASCAL VOC是2005年发起的一个视觉挑战赛，ImageNet是2010年发起的大规模视觉识别竞赛(ILSVRC)的数据集，在本章中我们基于这些竞赛的一些论文介绍图像分类模型。
 
 在2012年之前的传统图像分类方法可以用背景描述中提到的三步完成，但通常完整建立图像识别模型一般包括底层特征学习、特征编码、空间约束、分类器设计、模型融合等几个阶段。
+
   1). **底层特征提取**: 通常从图像中按照固定步长、尺度提取大量局部特征描述。常用的局部特征包括SIFT(Scale-Invariant Feature Transform, 尺度不变特征转换) \[[1](#参考文献)\]、HOG(Histogram of Oriented Gradient, 方向梯度直方图) \[[2](#参考文献)\]、LBP(Local Bianray Pattern, 局部二值模式) \[[3](#参考文献)\] 等，一般也采用多种特征描述子，防止丢失过多的有用信息。
+
   2). **特征编码**: 底层特征中包含了大量冗余与噪声，为了提高特征表达的鲁棒性，需要使用一种特征变换算法对底层特征进行编码，称作特征编码。常用的特征编码包括向量量化编码 \[[4](#参考文献)\]、稀疏编码 \[[5](#参考文献)\]、局部线性约束编码 \[[6](#参考文献)\]、Fisher向量编码 \[[7](#参考文献)\] 等。
+
   3). **空间特征约束**: 特征编码之后一般会经过空间特征约束，也称作**特征汇聚**。特征汇聚是指在一个空间范围内，对每一维特征取最大值或者平均值，可以获得一定特征不变形的特征表达。金字塔特征匹配是一种常用的特征聚会方法，这种方法提出将图像均匀分块，在分块内做特征汇聚。
+
   4). **通过分类器分类**: 经过前面步骤之后一张图像可以用一个固定维度的向量进行描述，接下来就是经过分类器对图像进行分类。通常使用的分类器包括SVM(Support Vector Machine, 支持向量机)、随机森林等。而使用核方法的SVM是最为广泛的分类器，在传统图像分类任务上性能很好。
 
 这种方法在PASCAL VOC竞赛中的图像分类算法中被广泛使用 \[[18](#参考文献)\]。[NEC实验室](http://www.nec-labs.com/)在ILSVRC2010中采用SIFT和LBP特征，两个非线性编码器以及SVM分类器获得图像分类的冠军 \[[8](#参考文献)\]。
@@ -57,7 +61,7 @@
 Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得了历史性的突破，效果大幅度超越传统方法，获得了ILSVRC2012冠军，该模型被称作AlexNet。这也是首次将深度学习用于大规模图像分类中。从AlexNet之后，涌现了一系列CNN模型，不断地在ImageNet上刷新成绩，如图4展示。随着模型变得越来越深以及精妙的结构设计，Top-5的错误率也越来越低，降到了3.5%附近。而在同样的ImageNet数据集上，人眼的辨识错误率大概在5.1%，也就是目前的深度学习模型的识别能力已经超过了人眼。
 
 <p align="center">
-<img src="image/ilsvrc.png" width="500" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/ilsvrc.png?raw=true" width="500" ><br/>
 图4. ILSVRC图像分类Top-5错误率
 </p>
 
@@ -66,7 +70,7 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 传统CNN包含卷积层、全连接层等组件，并采用softmax多类别分类器和多类交叉熵损失函数，一个典型的卷积神经网络如图5所示，我们先介绍用来构造CNN的常见组件。
 
 <p align="center">
-<img src="image/lenet.png"><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/lenet.png?raw=true"><br/>
 图5. CNN网络示例[20]
 </p>
 
@@ -85,7 +89,7 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 牛津大学VGG(Visual Geometry Group)组在2014年ILSVRC提出的模型被称作VGG模型 \[[11](#参考文献)\] 。该模型相比以往模型进一步加宽和加深了网络结构，它的核心是五组卷积操作，每两组之间做Max-Pooling空间降维。同一组内采用多次连续的3X3卷积，卷积核的数目由较浅组的64增多到最深组的512，同一组内的卷积核数目是一样的。卷积之后接两层全连接层，之后是分类层。由于每组内卷积层的不同，有11、13、16、19层这几种模型，下图展示一个16层的网络结构。VGG模型结构相对简洁，提出之后也有很多文章基于此模型进行研究，如在ImageNet上首次公开超过人眼识别的模型\[[19](#参考文献)\]就是借鉴VGG模型的结构。
 
 <p align="center">
-<img src="image/vgg16.png" width="750" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/vgg16.png?raw=true" width="750" ><br/>
 图6. 基于ImageNet的VGG16模型
 </p>
 
@@ -93,12 +97,16 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 
 GoogleNet \[[12](#参考文献)\] 在2014年ILSVRC的获得了冠军，在介绍该模型之前我们先来了解NIN(Network in Network)模型 \[[13](#参考文献)\] 和Inception模块，因为GoogleNet模型由多组Inception模块组成，模型设计借鉴了NIN的一些思想。
 
-NIN模型主要有两个特点：1) 引入了多层感知卷积网络(Multi-Layer Perceptron Convolution, MLPconv)代替一层线性卷积网络。MLPconv是一个微小的多层卷积网络，即在线性卷积后面增加若干层1x1的卷积，这样可以提取出高度非线性特征。2) 传统的CNN最后几层一般都是全连接层，参数较多。而NIN模型设计最后一层卷积层包含类别维度大小的特征图，然后采用全局均值池化(Avg-Pooling)替代全连接层，得到类别维度大小的向量，再进行分类。这种替代全连接层的方式有利于减少参数。
+NIN模型主要有两个特点：
+
+1) 引入了多层感知卷积网络(Multi-Layer Perceptron Convolution, MLPconv)代替一层线性卷积网络。MLPconv是一个微小的多层卷积网络，即在线性卷积后面增加若干层1x1的卷积，这样可以提取出高度非线性特征。
+
+2) 传统的CNN最后几层一般都是全连接层，参数较多。而NIN模型设计最后一层卷积层包含类别维度大小的特征图，然后采用全局均值池化(Avg-Pooling)替代全连接层，得到类别维度大小的向量，再进行分类。这种替代全连接层的方式有利于减少参数。
 
 Inception模块如下图7所示，图(a)是最简单的设计，输出是3个卷积层和一个池化层的特征拼接。这种设计的缺点是池化层不会改变特征通道数，拼接后会导致特征的通道数较大，经过几层这样的模块堆积后，通道数会越来越大，导致参数和计算量也随之增大。为了改善这个缺点，图(b)引入3个1x1卷积层进行降维，所谓的降维就是减少通道数，同时如NIN模型中提到的1x1卷积也可以修正线性特征。
 
 <p align="center">
-<img src="image/inception.png" width="800" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/inception.png?raw=ture" width="800" ><br/>
 图7. Inception模块
 </p>
 
@@ -107,7 +115,7 @@ GoogleNet由多组Inception模块堆积而成。另外，在网络最后也没�
 GoogleNet整体网络结构如图8所示，总共22层网络：开始由3层普通的卷积组成；接下来由三组子网络组成，第一组子网络包含2个Inception模块，第二组包含5个Inception模块，第三组包含2个Inception模块；然后接均值池化层、全连接层。
 
 <p align="center">
-<img src="image/googlenet.jpeg" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/googlenet.jpeg?raw=true" ><br/>
 图8. GoogleNet[12]
 </p>
 
@@ -122,14 +130,14 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 残差模块如图9所示，左边是基本模块连接方式，由两个输出通道数相同的3x3卷积组成。右边是瓶颈模块(Bottleneck)连接方式，之所以称为瓶颈，是因为上面的1x1卷积用来降维(图示例即256->64)，下面的1x1卷积用来升维(图示例即64->256)，这样中间3x3卷积的输入和输出通道数都较小(图示例即64->64)。
 
 <p align="center">
-<img src="image/resnet_block.jpg" width="400"><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/resnet_block.jpg?raw=true" width="400"><br/>
 图9. 残差模块
 </p>
 
 图10展示了50、101、152层网络连接示意图，使用的是瓶颈模块。这三个模型的区别在于每组中残差模块的重复次数不同(见图右上角)。ResNet训练收敛较快，成功的训练了上百乃至近千层的卷积神经网络。
 
 <p align="center">
-<img src="image/resnet.png"><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/resnet.png?raw=true"><br/>
 图10. 基于ImageNet的ResNet模型
 </p>
 
@@ -141,7 +149,7 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 由于ImageNet数据集较大，下载和训练较慢，为了方便大家学习，我们使用[CIFAR10](<https://www.cs.toronto.edu/~kriz/cifar.html>)数据集。CIFAR10数据集包含60,000张32x32的彩色图片，10个类别，每个类包含6,000张。其中50,000张图片作为训练集，10000张作为测试集。图11从每个类别中随机抽取了10张图片，展示了所有的类别。
 
 <p align="center">
-<img src="image/cifar.png" width="350"><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/cifar.png?raw=true" width="350"><br/>
 图11. CIFAR10数据集[21]
 </p>
 
@@ -199,13 +207,14 @@ def vgg_bn_drop(input):
     return predict
 ```
 
-    1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 Conv->BN->ReLu->Dropout 和 一组 Pooling 组成。
 
-    2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
+1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 Conv->BN->ReLu->Dropout 和 一组 Pooling 组成。
 
-    3. 最后接两层512维的全连接。
+2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
 
-    4. 通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
+3. 最后接两层512维的全连接。
+
+4. 通过上面VGG网络提取高层特征，然后经过全连接层映射到类别维度大小的向量，再通过Softmax归一化得到每个类别的概率，也可称作分类器。
 
 ### ResNet
 
@@ -262,7 +271,9 @@ def layer_warp(block_func, input, ch_in, ch_out, count, stride):
 `resnet_cifar10` 的连接结构主要有以下几个过程。
 
 1. 底层输入连接一层 `conv_bn_layer`，即带BN的卷积层。
+
 2. 然后连接3组残差模块即下面配置3组 `layer_warp` ，每组采用图 10 左边残差模块组成。
+
 3. 最后对网络做均值池化并返回该层。
 
 注意：除过第一层卷积层和最后一层全连接层之外，要求三组 `layer_warp` 总的含参层数能够被6整除，即 `resnet_cifar10` 的 depth 要满足 $(depth - 2) % 6 == 0$ 。
@@ -365,7 +376,11 @@ test_reader = paddle.batch(
 
 `event_handler_plot`可以用来利用回调数据来打点画图:
 
-![png](./image/train_and_test.png)
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/train_and_test.png?raw=true" width="350"><br/>
+图12. 训练结果
+</p>
+
 
 ```python
 params_dirname = "image_classification_resnet.inference.model"
@@ -451,11 +466,11 @@ Pass 300, Batch 0, Cost 1.223424, Acc 0.593750
 Test with Pass 0, Loss 1.1, Acc 0.6
 ```
 
-图12是训练的分类错误率曲线图，运行到第200个pass后基本收敛，最终得到测试集上分类错误率为8.54%。
+图13是训练的分类错误率曲线图，运行到第200个pass后基本收敛，最终得到测试集上分类错误率为8.54%。
 
 <p align="center">
-<img src="image/plot.png" width="400" ><br/>
-图12. CIFAR10数据集上VGG模型的分类错误率
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/plot.png?raw=true" width="400" ><br/>
+图13. CIFAR10数据集上VGG模型的分类错误率
 </p>
 
 ## 应用模型
