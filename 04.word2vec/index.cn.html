@@ -60,11 +60,13 @@ One-hot vector虽然自然，但是用处有限。比如，在互联网广告系
 
 $$X = USV^T$$
 
-但这样的传统做法有很多问题：<br/>
-1) 由于很多词没有出现，导致矩阵极其稀疏，因此需要对词频做额外处理来达到好的矩阵分解效果；<br/>
-2) 矩阵非常大，维度太高(通常达到$10^6*10^6$的数量级)；<br/>
-3) 需要手动去掉停用词（如although, a,...），不然这些频繁出现的词也会影响矩阵分解的效果。
+但这样的传统做法有很多问题：
 
+1) 由于很多词没有出现，导致矩阵极其稀疏，因此需要对词频做额外处理来达到好的矩阵分解效果；
+
+2) 矩阵非常大，维度太高(通常达到$10^6 \times 10^6$的数量级)；
+
+3) 需要手动去掉停用词（如although, a,...），不然这些频繁出现的词也会影响矩阵分解的效果。
 
 基于神经网络的模型不需要计算存储一个在全语料上统计的大表，而是通过学习语义信息得到词向量，因此能很好地解决以上问题。在本章里，我们将展示基于神经网络训练词向量的细节，以及如何用PaddlePaddle训练一个词向量模型。
 
@@ -74,21 +76,23 @@ $$X = USV^T$$
 本章中，当词向量训练好后，我们可以用数据可视化算法t-SNE\[[4](#参考文献)\]画出词语特征在二维上的投影（如下图所示）。从图中可以看出，语义相关的词语（如a, the, these; big, huge）在投影上距离很近，语意无关的词（如say, business; decision, japan）在投影上的距离很远。
 
 <p align="center">
-    <img src = "image/2d_similarity.png" width=400><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/2d_similarity.png?raw=true" width=400><br/>
     图1. 词向量的二维投影
 </p>
 
 另一方面，我们知道两个向量的余弦值在$[-1,1]$的区间内：两个完全相同的向量余弦值为1, 两个相互垂直的向量之间余弦值为0，两个方向完全相反的向量余弦值为-1，即相关性和余弦值大小成正比。因此我们还可以计算两个词向量的余弦相似度:
 
 ```
+
 please input two words: big huge
 similarity: 0.899180685161
 
 please input two words: from company
 similarity: -0.0997506977351
+
 ```
 
-以上结果可以通过运行`calculate_dis.py`, 加载字典里的单词和对应训练特征结果得到，我们将在[应用模型](#应用模型)中详细描述用法。
+以上结果可以通过运行`calculate_dis.py`, 加载字典里的单词和对应训练特征结果得到，我们将在[模型应用](#模型应用)中详细描述用法。
 
 
 ## 模型概览
@@ -128,7 +132,7 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
 
 <p align="center">
-       <img src="image/nnlm.png" width=500><br/>
+       <img src="https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/nnlm.png?raw=true" width=500><br/>
        图2. N-gram神经网络模型
 </p>
 
@@ -160,7 +164,7 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时，模型如下图所示：
 
 <p align="center">
-    <img src="image/cbow.png" width=250><br/>
+    <img src="https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/cbow.png?raw=true" width=250><br/>
     图3. CBOW模型
 </p>
 
@@ -175,7 +179,7 @@ $$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
 CBOW的好处是对上下文词语的分布在词向量上进行了平滑，去掉了噪声，因此在小数据集上很有效。而Skip-gram的方法中，用一个词预测其上下文，得到了当前词上下文的很多样本，因此可用于更大的数据集。
 
 <p align="center">
-    <img src="image/skipgram.png" width=250><br/>
+    <img src="https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/skipgram.png?raw=true" width=250><br/>
     图4. Skip-gram模型
 </p>
 
@@ -227,12 +231,13 @@ dream that one day <e>
 
 最后，每个输入会按其单词次在字典里的位置，转化成整数的索引序列，作为PaddlePaddle的输入。
 
+<a name="训练模型"></a>
 ## 编程实现
 
 本配置的模型结构如下图所示：
 
 <p align="center">
-    <img src="image/ngram.png" width=400><br/>
+    <img src="https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/ngram.png?raw=true" width=400><br/>
     图5. 模型配置中的N-gram神经网络模型
 </p>
 
@@ -387,6 +392,7 @@ Step 20: Average Cost 5.766995
 ...
 ```
 
+<a name="模型应用"></a>
 ## 模型应用
 在模型训练后，我们可以用它做一些预测。
 
