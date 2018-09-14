@@ -213,6 +213,9 @@ def infer(use_cuda, inference_program, params_dirname):
     # two sequences of indexes, of length 3 and 2, respectively.
     # Correspondingly, lod = [[3, 2]] contains one level of detail info,
     # indicating that `data` consists of two sequences of length 3 and 2.
+    infer_movie_id = 783
+    infer_movie_name = paddle.dataset.movielens.movie_info()[
+        infer_movie_id].title
     user_id = fluid.create_lod_tensor([[1]], [[1]], place)
     gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
     age_id = fluid.create_lod_tensor([[0]], [[1]], place)
