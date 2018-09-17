@@ -100,7 +100,7 @@ def train(use_cuda, train_program, params_dirname):
     test_reader = paddle.batch(
         paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
 
-    trainer = fluid.Trainer(
+    trainer = Trainer(
         train_func=partial(train_program, word_dict),
         place=place,
         optimizer_func=optimizer_func)
@@ -108,7 +108,7 @@ def train(use_cuda, train_program, params_dirname):
     feed_order = ['words', 'label']
 
     def event_handler(event):
-        if isinstance(event, fluid.EndStepEvent):
+        if isinstance(event, EndStepEvent):
             if event.step % 10 == 0:
                 avg_cost, acc = trainer.test(
                     reader=test_reader, feed_order=feed_order)
@@ -119,7 +119,7 @@ def train(use_cuda, train_program, params_dirname):
                 print("Step {0}, Epoch {1} Metrics {2}".format(
                     event.step, event.epoch, map(np.array, event.metrics)))
 
-        elif isinstance(event, fluid.EndEpochEvent):
+        elif isinstance(event, EndEpochEvent):
             trainer.save_params(params_dirname)
 
     trainer.train(
@@ -133,7 +133,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
     word_dict = paddle.dataset.imdb.word_dict()
 
-    inferencer = fluid.Inferencer(
+    inferencer = Inferencer(
         infer_func=partial(inference_program, word_dict),
         param_path=params_dirname,
         place=place)

@@ -297,7 +297,7 @@ train_reader = paddle.batch(
 Create a trainer that takes `train_program` as input and specify optimizer function.
 
 ```python
-trainer = fluid.Trainer(
+trainer = fluid.contrib.trainer.Trainer(
     train_func=partial(train_program, word_dict),
     place=place,
     optimizer_func=optimizer_func)
@@ -321,7 +321,7 @@ For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
 params_dirname = "understand_sentiment_conv.inference.model"
 
 def event_handler(event):
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
         print("Step {0}, Epoch {1} Metrics {2}".format(
                 event.step, event.epoch, map(np.array, event.metrics)))
 
@@ -349,7 +349,7 @@ trainer.train(
 Initialize Inferencer with `inference_program` and `params_dirname` which is where we save params from training.
 
 ```python
-inferencer = fluid.Inferencer(
+inferencer = fluid.contrib.inferencer.Inferencer(
         infer_func=partial(inference_program, word_dict),
         param_path=params_dirname,
         place=place)

@@ -97,7 +97,7 @@ def train(use_cuda, train_program, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
     def event_handler(event):
-        if isinstance(event, fluid.EndStepEvent):
+        if isinstance(event, EndStepEvent):
             outs = trainer.test(
                 reader=test_reader,
                 feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
@@ -116,7 +116,7 @@ def train(use_cuda, train_program, params_dirname):
             if math.isnan(avg_cost):
                 sys.exit("got NaN loss, training failed.")
 
-    trainer = fluid.Trainer(
+    trainer = Trainer(
         train_func=train_program,
         # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
         optimizer_func=optimizer_func,
@@ -131,7 +131,7 @@ def train(use_cuda, train_program, params_dirname):
 
 def infer(use_cuda, inference_program, params_dirname=None):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    inferencer = fluid.Inferencer(
+    inferencer = Inferencer(
         infer_func=inference_program, param_path=params_dirname, place=place)
 
     # Setup inputs by creating 4 LoDTensors representing 4 words. Here each word

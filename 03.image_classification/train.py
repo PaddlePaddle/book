@@ -58,7 +58,7 @@ def train(use_cuda, train_program, params_dirname):
         paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
 
     def event_handler(event):
-        if isinstance(event, fluid.EndStepEvent):
+        if isinstance(event, EndStepEvent):
             if event.step % 100 == 0:
                 print("\nPass %d, Batch %d, Cost %f, Acc %f" %
                       (event.step, event.epoch, event.metrics[0],
@@ -67,7 +67,7 @@ def train(use_cuda, train_program, params_dirname):
                 sys.stdout.write('.')
                 sys.stdout.flush()
 
-        if isinstance(event, fluid.EndEpochEvent):
+        if isinstance(event, EndEpochEvent):
             avg_cost, accuracy = trainer.test(
                 reader=test_reader, feed_order=['pixel', 'label'])
 
@@ -77,7 +77,7 @@ def train(use_cuda, train_program, params_dirname):
                 trainer.save_params(params_dirname)
 
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    trainer = fluid.Trainer(
+    trainer = Trainer(
         train_func=train_program, optimizer_func=optimizer_program, place=place)
 
     trainer.train(
@@ -89,7 +89,7 @@ def train(use_cuda, train_program, params_dirname):
 
 def infer(use_cuda, inference_program, params_dirname=None):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    inferencer = fluid.Inferencer(
+    inferencer = Inferencer(
         infer_func=inference_program, param_path=params_dirname, place=place)
 
     # Prepare testing data. 

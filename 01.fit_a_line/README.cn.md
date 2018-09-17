@@ -164,7 +164,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 训练器会读入一个训练程序和一些必要的其他参数：
 
 ```python
-trainer = fluid.Trainer(
+trainer = fluid.contrib.trainer.Trainer(
     train_func=train_program,
     place=place,
     optimizer_func=optimizer_program)
@@ -194,7 +194,7 @@ step = 0
 # event_handler prints training and testing info
 def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
         if step % 10 == 0:   # record a train cost every 10 batches
             plot_cost.append(train_title, step, event.metrics[0])
 
@@ -210,7 +210,7 @@ def event_handler_plot(event):
                 trainer.stop()
         step += 1
 
-    if isinstance(event, fluid.EndEpochEvent):
+    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
         if event.epoch % 10 == 0:
             # We can save the trained parameters for the inferences later
             if params_dirname is not None:
@@ -254,7 +254,7 @@ def inference_program():
 预测器会从`params_dirname`中读取已经训练好的模型，来对从未遇见过的数据进行预测。
 
 ```python
-inferencer = fluid.Inferencer(
+inferencer = fluid.contrib.inferencer.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10

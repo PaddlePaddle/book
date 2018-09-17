@@ -180,7 +180,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 The trainer will take the `train_program` as input.
 
 ```python
-trainer = fluid.Trainer(
+trainer = fluid.contrib.trainer.Trainer(
     train_func=train_program,
     place=place,
     optimizer_func=optimizer_program)
@@ -213,7 +213,7 @@ step = 0
 # event_handler prints training and testing info
 def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
         if step % 10 == 0:   # record a train cost every 10 batches
             plot_cost.append(train_title, step, event.metrics[0])
 
@@ -229,7 +229,7 @@ def event_handler_plot(event):
                 trainer.stop()
         step += 1
 
-    if isinstance(event, fluid.EndEpochEvent):
+    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
         if event.epoch % 10 == 0:
             # We can save the trained parameters for the inferences later
             if params_dirname is not None:
@@ -276,7 +276,7 @@ def inference_program():
 Inferencer will load the trained model from `params_dirname` and use it to infer the unseen data.
 
 ```python
-inferencer = fluid.Inferencer(
+inferencer = fluid.contrib.inferencer.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
