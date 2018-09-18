@@ -19,6 +19,17 @@ import paddle
 import paddle.fluid as fluid
 from functools import partial
 import numpy as np
+import sys
+
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 
 CLASS_DIM = 2
 EMB_DIM = 128

@@ -19,6 +19,16 @@ import paddle.fluid as fluid
 import numpy
 import sys
 
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
+
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
 
