@@ -346,7 +346,7 @@ def optimizer_program():
 ```python
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-trainer = fluid.Trainer(
+trainer = fluid.contrib.trainer.Trainer(
     train_func=train_program,
     optimizer_func=optimizer_program,
     place=place)
@@ -394,12 +394,12 @@ cost_ploter = Ploter(train_title, test_title)
 step = 0
 def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
         if step % 1 == 0:
             cost_ploter.append(train_title, step, event.metrics[0])
             cost_ploter.plot()
         step += 1
-    if isinstance(event, fluid.EndEpochEvent):
+    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
         avg_cost, accuracy = trainer.test(
             reader=test_reader,
             feed_order=['pixel', 'label'])
@@ -417,7 +417,7 @@ params_dirname = "image_classification_resnet.inference.model"
 
 # event handler to track training and testing process
 def event_handler(event):
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
         if event.step % 100 == 0:
             print("\nPass %d, Batch %d, Cost %f, Acc %f" %
                   (event.step, event.epoch, event.metrics[0],
@@ -426,7 +426,7 @@ def event_handler(event):
             sys.stdout.write('.')
             sys.stdout.flush()
 
-    if isinstance(event, fluid.EndEpochEvent):
+    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
         # Test against with the test dataset to get accuracy.
         avg_cost, accuracy = trainer.test(
             reader=test_reader, feed_order=['pixel', 'label'])
@@ -475,7 +475,7 @@ Test with Pass 0, Loss 1.1, Acc 0.6
 
 ## 应用模型
 
-可以使用训练好的模型对图片进行分类，下面程序展示了如何使用 `fluid.Inferencer` 接口进行推断，可以打开注释，更改加载的模型。
+可以使用训练好的模型对图片进行分类，下面程序展示了如何使用 `fluid.contrib.inferencer.Inferencer` 接口进行推断，可以打开注释，更改加载的模型。
 
 ### 生成预测输入数据
 
@@ -513,7 +513,7 @@ img = load_image(cur_dir + '/image/dog.png')
 现在我们准备做预测。
 
 ```python
-inferencer = fluid.Inferencer(
+inferencer = fluid.contrib.inferencer.Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 label_list = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
 # inference

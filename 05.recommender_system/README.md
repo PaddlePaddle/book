@@ -382,7 +382,7 @@ test_reader = paddle.batch(
 Create a trainer that takes `train_program` as input and specify optimizer function.
 
 ```python
-trainer = fluid.Trainer(
+trainer = fluid.contrib.trainer.Trainer(
     train_func=train_program, place=place, optimizer_func=optimizer_func)
 ```
 
@@ -412,7 +412,7 @@ plot_cost = Ploter(test_title)
 
 
 def event_handler(event):
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
         avg_cost_set = trainer.test(
             reader=test_reader, feed_order=feed_order)
 
@@ -451,7 +451,7 @@ trainer.train(
 Initialize Inferencer with `inference_program` and `params_dirname` which is where we save params from training.
 
 ```python
-inferencer = fluid.Inferencer(
+inferencer = fluid.contrib.inferencer.Inferencer(
         inference_program, param_path=params_dirname, place=place)  
 ```
 

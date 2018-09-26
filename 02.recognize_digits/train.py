@@ -5,6 +5,16 @@ import numpy as np
 import paddle
 import paddle.fluid as fluid
 
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
+
 
 def softmax_regression():
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
@@ -77,7 +87,7 @@ def main():
     use_cuda = False  # set to True if training with GPU
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-    trainer = fluid.Trainer(
+    trainer = Trainer(
         train_func=train_program, place=place, optimizer_func=optimizer_program)
 
     # Save the parameter into a directory. The Inferencer can load the parameters from it to do infer
@@ -86,14 +96,14 @@ def main():
     lists = []
 
     def event_handler(event):
-        if isinstance(event, fluid.EndStepEvent):
+        if isinstance(event, EndStepEvent):
             if event.step % 100 == 0:
                 # event.metrics maps with train program return arguments.
                 # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
                 print("Pass %d, Batch %d, Cost %f" % (event.step, event.epoch,
                                                       event.metrics[0]))
 
-        if isinstance(event, fluid.EndEpochEvent):
+        if isinstance(event, EndEpochEvent):
             avg_cost, acc = trainer.test(
                 reader=test_reader, feed_order=['img', 'label'])
 
@@ -125,7 +135,7 @@ def main():
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     img = load_image(cur_dir + '/image/infer_3.png')
-    inferencer = fluid.Inferencer(
+    inferencer = Inferencer(
         # infer_func=softmax_regression, # uncomment for softmax regression
         # infer_func=multilayer_perceptron, # uncomment for MLP
         infer_func=convolutional_neural_network,  # uncomment for LeNet5

@@ -15,6 +15,18 @@
 from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
+import sys
+
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
+
 import numpy
 
 BATCH_SIZE = 20
@@ -49,7 +61,7 @@ def optimizer_program():
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-trainer = fluid.Trainer(
+trainer = Trainer(
     train_func=train_program, place=place, optimizer_func=optimizer_program)
 
 feed_order = ['x', 'y']
@@ -59,6 +71,7 @@ params_dirname = "fit_a_line.inference.model"
 
 # Plot data
 from paddle.v2.plot import Ploter
+
 train_title = "Train cost"
 test_title = "Test cost"
 plot_cost = Ploter(train_title, test_title)
@@ -69,7 +82,7 @@ step = 0
 # event_handler prints training and testing info
 def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if step % 10 == 0:  # record a train cost every 10 batches
             plot_cost.append(train_title, step, event.metrics[0])
 
@@ -85,7 +98,7 @@ def event_handler_plot(event):
                 trainer.stop()
         step += 1
 
-    if isinstance(event, fluid.EndEpochEvent):
+    if isinstance(event, EndEpochEvent):
         if event.epoch % 10 == 0:
             # We can save the trained parameters for the inferences later
             if params_dirname is not None:
@@ -106,7 +119,7 @@ def inference_program():
     return y_predict
 
 
-inferencer = fluid.Inferencer(
+inferencer = Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10
