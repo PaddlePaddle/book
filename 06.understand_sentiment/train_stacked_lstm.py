@@ -119,7 +119,8 @@ def train(use_cuda, train_program, params_dirname):
                     event.step, avg_cost, acc))
 
                 print("Step {0}, Epoch {1} Metrics {2}".format(
-                    event.step, event.epoch, list(map(np.array, event.metrics))))
+                    event.step, event.epoch, list(map(np.array,
+                                                      event.metrics))))
 
         elif isinstance(event, EndEpochEvent):
             trainer.save_params(params_dirname)
