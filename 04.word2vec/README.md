@@ -221,6 +221,7 @@ import numpy
 from functools import partial
 import math
 import os
+import six
 import sys
 from __future__ import print_function
 ```
@@ -412,7 +413,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
     most_possible_word_index = numpy.argmax(result[0])
     print(most_possible_word_index)
     print([
-        key for key, value in word_dict.iteritems()
+        key for key, value in six.iteritems(word_dict)
         if value == most_possible_word_index
     ][0])
 ```

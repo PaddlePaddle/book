@@ -128,7 +128,7 @@ def train(use_cuda, train_program, params_dirname):
                     event.step, avg_cost, acc))
 
                 print("Step {0}, Epoch {1} Metrics {2}".format(
-                    event.step, event.epoch, map(np.array, event.metrics)))
+                    event.step, event.epoch, list(map(np.array, event.metrics))))
 
         elif isinstance(event, EndEpochEvent):
             trainer.save_params(params_dirname)
@@ -150,14 +150,14 @@ def infer(use_cuda, inference_program, params_dirname=None):
         place=place)
 
     # Setup input by creating LoDTensor to represent sequence of words.
-    # Here each word is the basic element of the LoDTensor and the shape of 
-    # each word (base_shape) should be [1] since it is simply an index to 
+    # Here each word is the basic element of the LoDTensor and the shape of
+    # each word (base_shape) should be [1] since it is simply an index to
     # look up for the corresponding word vector.
     # Suppose the length_based level of detail (lod) info is set to [[3, 4, 2]],
-    # which has only one lod level. Then the created LoDTensor will have only 
-    # one higher level structure (sequence of words, or sentence) than the basic 
-    # element (word). Hence the LoDTensor will hold data for three sentences of 
-    # length 3, 4 and 2, respectively. 
+    # which has only one lod level. Then the created LoDTensor will have only
+    # one higher level structure (sequence of words, or sentence) than the basic
+    # element (word). Hence the LoDTensor will hold data for three sentences of
+    # length 3, 4 and 2, respectively.
     # Note that lod info should be a list of lists.
 
     reviews_str = [

@@ -70,7 +70,7 @@ feed_order = ['x', 'y']
 params_dirname = "fit_a_line.inference.model"
 
 # Plot data
-from paddle.v2.plot import Ploter
+from plot import Ploter
 
 train_title = "Train cost"
 test_title = "Test cost"
@@ -125,7 +125,7 @@ inferencer = Inferencer(
 batch_size = 10
 test_reader = paddle.batch(
     paddle.dataset.uci_housing.test(), batch_size=batch_size)
-test_data = test_reader().next()
+test_data = next(test_reader())
 test_x = numpy.array([data[0] for data in test_data]).astype("float32")
 test_y = numpy.array([data[1] for data in test_data]).astype("float32")
 
