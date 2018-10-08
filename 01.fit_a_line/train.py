@@ -70,7 +70,7 @@ feed_order = ['x', 'y']
 params_dirname = "fit_a_line.inference.model"
 
 # Plot data
-from plot import Ploter
+from paddle.utils import Ploter
 
 train_title = "Train cost"
 test_title = "Test cost"
