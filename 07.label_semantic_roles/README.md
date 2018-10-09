@@ -207,8 +207,9 @@ from __future__ import print_function
 import math, os
 import numpy as np
 import paddle
-import paddle.v2.dataset.conll05 as conll05
+import paddle.dataset.conll05 as conll05
 import paddle.fluid as fluid
+import six
 import time
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
@@ -427,7 +428,7 @@ def train(use_cuda, save_dirname=None, is_local=True):
 
         start_time = time.time()
         batch_id = 0
-        for pass_id in xrange(PASS_NUM):
+        for pass_id in six.moves.xrange(PASS_NUM):
             for data in train_data():
                 cost = exe.run(main_program,
                                feed=feeder.feed(data),

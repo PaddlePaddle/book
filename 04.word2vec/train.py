@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import print_function
-import paddle.v2 as paddle
+import paddle as paddle
 import paddle.fluid as fluid
+import six
 import sys
 
 try:
@@ -176,7 +177,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
     most_possible_word_index = numpy.argmax(result[0])
     print(most_possible_word_index)
     print([
-        key for key, value in word_dict.iteritems()
+        key for key, value in six.iteritems(word_dict)
         if value == most_possible_word_index
     ][0])
 

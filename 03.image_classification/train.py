@@ -102,7 +102,7 @@ def infer(use_cuda, inference_program, params_dirname=None):
     inferencer = Inferencer(
         infer_func=inference_program, param_path=params_dirname, place=place)
 
-    # Prepare testing data. 
+    # Prepare testing data.
     from PIL import Image
     import numpy as np
     import os

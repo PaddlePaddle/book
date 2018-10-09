@@ -281,7 +281,7 @@ params_dirname = "understand_sentiment_conv.inference.model"
 def event_handler(event):
     if isinstance(event, fluid.contrib.trainer.EndStepEvent):
         print("Step {0}, Epoch {1} Metrics {2}".format(
-                event.step, event.epoch, map(np.array, event.metrics)))
+                event.step, event.epoch, list(map(np.array, event.metrics))))
 
         if event.step == 10:
             trainer.save_params(params_dirname)
