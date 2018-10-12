@@ -215,7 +215,7 @@ from __future__ import print_function
 
 本教程中我们提供了VGG和ResNet两个模型的配置。
 
-#### VGG
+### VGG
 
 首先介绍VGG模型结构，由于CIFAR10图片大小和数量相比ImageNet数据小很多，因此这里的模型针对CIFAR10数据做了一定的适配。卷积部分引入了BN和Dropout操作。
 VGG核心模块的输入是数据层，`vgg_bn_drop` 定义了16层VGG结构，每层卷积后面引入BN层和Dropout层，详细的定义如下：

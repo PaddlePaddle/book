@@ -229,10 +229,6 @@ trainer.train(
     event_handler=event_handler,
     feed_order=feed_order)
 ```
-<div align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/train_and_test.png?raw=true" width="400"><br/>
-图3 训练结果
-</div>
 
 
 ## 预测
