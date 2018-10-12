@@ -22,8 +22,11 @@ Yann LeCun早先在手写字符识别上做了很多研究，并在研究过程�
 ## 模型概览
 
 基于MNIST数据训练一个分类器，在介绍本教程使用的三个基本图像分类网络前，我们先给出一些定义：
+
 - $X$是输入：MNIST图片是$28\times28$ 的二维图像，为了进行计算，我们将其转化为$784$维向量，即$X=\left ( x_0, x_1, \dots, x_{783} \right )$。
+
 - $Y$是输出：分类器的输出是10类数字（0-9），即$Y=\left ( y_0, y_1, \dots, y_9 \right )$，每一维$y_i$代表图片分类为第$i$类数字的概率。
+
 - $L$是图片的真实标签：$L=\left ( l_0, l_1, \dots, l_9 \right )$也是10维，但只有一维为1，其他都为0。
 
 ### Softmax回归(Softmax Regression)
@@ -133,18 +136,19 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 我们建议使用 Fluid API，因为它更容易学起来。
 
 下面是快速的 Fluid API 概述。
+
 1. `inference_program`：指定如何从数据输入中获得预测的函数。
 这是指定网络流的地方。
 
-1. `train_program`：指定如何从 `inference_program` 和`标签值`中获取 `loss` 的函数。
+2. `train_program`：指定如何从 `inference_program` 和`标签值`中获取 `loss` 的函数。
 这是指定损失计算的地方。
 
-1. `optimizer_func`: “指定优化器配置的函数。优化器负责减少损失并驱动培训。Paddle 支持多种不同的优化器。
+3. `optimizer_func`: “指定优化器配置的函数。优化器负责减少损失并驱动培训。Paddle 支持多种不同的优化器。
 
-1. `Trainer`：PaddlePaddle Trainer 管理由 `train_program` 和 `optimizer` 指定的训练过程。
+4. `Trainer`：PaddlePaddle Trainer 管理由 `train_program` 和 `optimizer` 指定的训练过程。
 通过 `event_handler` 回调函数，用户可以监控培训的进展。
 
-1. `Inferencer`：Fluid inferencer 加载 `inference_program` 和由 Trainer 训练的参数。
+5. `Inferencer`：Fluid inferencer 加载 `inference_program` 和由 Trainer 训练的参数。
 然后，它可以推断数据和返回预测。
 
 在这个演示中，我们将深入了解它们。
