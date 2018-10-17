@@ -1,5 +1,5 @@
 #!/bin/env python
-import paddle.v2.dataset as dataset
+import paddle.dataset as dataset
 import nltk
 
 #cifar

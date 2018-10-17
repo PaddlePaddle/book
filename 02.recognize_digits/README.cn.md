@@ -321,7 +321,7 @@ def event_handler(event):
 
 
 ```python
-from paddle.v2.plot import Ploter
+from paddle.utils import Ploter
 
 train_title = "Train cost"
 test_title = "Test cost"
