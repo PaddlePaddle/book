@@ -40,7 +40,7 @@ $$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mb
 
 ## 模型概览
 
-循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于前馈神经网络（Feed-forward Neural Network），RNN能够处理输入之间前后关联的问题。LSTM是RNN的一种重要变种，常用来学习长序列中蕴含的长程依赖关系，我们在[情感分析](https://github.com/PaddlePaddle/book/tree/develop/05.understand_sentiment)一篇中已经介绍过，这一篇中我们依然利用LSTM来解决SRL问题。
+循环神经网络（Recurrent Neural Network）是一种对序列建模的重要模型，在自然语言处理任务中有着广泛地应用。不同于前馈神经网络（Feed-forward Neural Network），RNN能够处理输入之间前后关联的问题。LSTM是RNN的一种重要变种，常用来学习长序列中蕴含的长程依赖关系，我们在[情感分析](https://github.com/PaddlePaddle/book/tree/develop/06.understand_sentiment)一篇中已经介绍过，这一篇中我们依然利用LSTM来解决SRL问题。
 
 ### 栈式循环神经网络（Stacked Recurrent Neural Network）
 
