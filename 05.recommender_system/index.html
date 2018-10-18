@@ -235,6 +235,15 @@ import paddle
 import paddle.fluid as fluid
 import paddle.fluid.layers as layers
 import paddle.fluid.nets as nets
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 
 IS_SPARSE = True
 USE_GPU = False
@@ -424,7 +433,7 @@ test_reader = paddle.batch(
 Create a trainer that takes `train_program` as input and specify optimizer function.
 
 ```python
-trainer = fluid.contrib.trainer.Trainer(
+trainer = Trainer(
     train_func=train_program, place=place, optimizer_func=optimizer_func)
 ```
 
@@ -454,7 +463,7 @@ plot_cost = Ploter(test_title)
 
 
 def event_handler(event):
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         avg_cost_set = trainer.test(
             reader=test_reader, feed_order=feed_order)
 
@@ -493,7 +502,7 @@ trainer.train(
 Initialize Inferencer with `inference_program` and `params_dirname` which is where we save params from training.
 
 ```python
-inferencer = fluid.contrib.inferencer.Inferencer(
+inferencer = Inferencer(
         inference_program, param_path=params_dirname, place=place)  
 ```
 

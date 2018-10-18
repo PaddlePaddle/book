@@ -224,6 +224,15 @@ import os
 import six
 import sys
 from __future__ import print_function
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 ```
 
 - Configure parameters and build word dictionary.
@@ -322,7 +331,7 @@ def train(use_cuda, train_program, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
     def event_handler(event):
-        if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+        if isinstance(event, EndStepEvent):
             outs = trainer.test(
                 reader=test_reader,
                 feed_order=['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw'])
@@ -342,9 +351,9 @@ def train(use_cuda, train_program, params_dirname):
             if math.isnan(avg_cost):
                 sys.exit("got NaN loss, training failed.")
 
-    trainer = fluid.contrib.trainer.Trainer(
+    trainer = Trainer(
         train_func=train_program,
-        # Note here we need to choose more sophisticated optimizer
+        # Note here we need to chse more sophisticated optimizer
         # such as AdaGrad with a decay rate. The normal SGD converges
         # very slowly.
         # optimizer=fluid.optimizer.SGD(learning_rate=0.001),
@@ -379,7 +388,7 @@ We can use our trained model to predict the next word given its previous N-gram.
 ```python
 def infer(use_cuda, inference_program, params_dirname=None):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    inferencer = fluid.contrib.inferencer.Inferencer(
+    inferencer = Inferencer(
         infer_func=inference_program, param_path=params_dirname, place=place)
 
     # Setup inputs by creating 4 LoDTensors representing 4 words. Here each word

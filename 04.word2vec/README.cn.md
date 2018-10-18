@@ -211,6 +211,15 @@ import os
 import six
 import sys
 from __future__ import print_function
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 ```
 
 然后，定义参数：
@@ -310,7 +319,7 @@ def train(use_cuda, train_program, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
     def event_handler(event):
-        if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+        if isinstance(event, EndStepEvent):
             # We output cost every 10 steps.
             if event.step % 10 == 0:
                 outs = trainer.test(
@@ -330,7 +339,7 @@ def train(use_cuda, train_program, params_dirname):
                 if math.isnan(avg_cost):
                     sys.exit("got NaN loss, training failed.")
 
-    trainer = fluid.contrib.trainer.Trainer(
+    trainer = Trainer(
         train_func=train_program,
         optimizer_func=optimizer_func,
         place=place)
@@ -361,7 +370,7 @@ Step 20: Average Cost 5.766995
 ```python
 def infer(use_cuda, inference_program, params_dirname=None):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    inferencer = fluid.contrib.inferencer.Inferencer(
+    inferencer = Inferencer(
         infer_func=inference_program, param_path=params_dirname, place=place)
 
     # Setup inputs by creating 4 LoDTensors representing 4 words. Here each word
