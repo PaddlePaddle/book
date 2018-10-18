@@ -162,6 +162,8 @@ A PaddlePaddle program starts from importing the API package:
 import paddle
 import paddle.fluid as fluid
 from __future__ import print_function
+from paddle.fluid.contrib.trainer import *
+from paddle.fluid.contrib.inferencer import *
 ```
 
 ### Program Functions Configuration

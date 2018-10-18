@@ -169,6 +169,8 @@ import paddle.fluid as fluid
 import numpy
 import sys
 from __future__ import print_function
+from paddle.fluid.contrib.trainer import *
+from paddle.fluid.contrib.inferencer import *
 ```
 
 本教程中我们提供了VGG和ResNet两个模型的配置。

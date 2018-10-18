@@ -115,6 +115,8 @@ import paddle
 import paddle.fluid as fluid
 import numpy
 from __future__ import print_function
+from paddle.fluid.contrib.trainer import *
+from paddle.fluid.contrib.inferencer import *
 ```
 
 We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can

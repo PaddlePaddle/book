@@ -112,6 +112,8 @@ import paddle
 import paddle.fluid as fluid
 from functools import partial
 import numpy as np
+from paddle.fluid.contrib.trainer import *
+from paddle.fluid.contrib.inferencer import *
 
 CLASS_DIM = 2
 EMB_DIM = 128

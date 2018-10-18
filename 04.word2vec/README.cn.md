@@ -211,6 +211,8 @@ import os
 import six
 import sys
 from __future__ import print_function
+from paddle.fluid.contrib.trainer import *
+from paddle.fluid.contrib.inferencer import *
 ```
 
 然后，定义参数：

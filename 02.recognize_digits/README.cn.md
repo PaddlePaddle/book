@@ -160,6 +160,8 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 import paddle
 import paddle.fluid as fluid
 from __future__ import print_function
+from paddle.fluid.contrib.trainer import *
+from paddle.fluid.contrib.inferencer import *
 ```
 
 ### Program Functions 配置

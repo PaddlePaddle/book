@@ -193,6 +193,8 @@ import paddle
 import paddle.fluid as fluid
 import paddle.fluid.layers as layers
 import paddle.fluid.nets as nets
+from paddle.fluid.contrib.trainer import *
+from paddle.fluid.contrib.inferencer import *
 
 IS_SPARSE = True
 USE_GPU = False
