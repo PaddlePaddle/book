@@ -162,6 +162,15 @@ A PaddlePaddle program starts from importing the API package:
 import paddle
 import paddle.fluid as fluid
 from __future__ import print_function
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 ```
 
 ### Program Functions Configuration
@@ -281,7 +290,7 @@ Now, we need to setup the trainer. The trainer need to take in `train_program`, 
 use_cuda = False # set to True if training with GPU
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-trainer = fluid.contrib.trainer.Trainer(
+trainer = Trainer(
     train_func=train_program, place=place, optimizer_func=optimizer_program)
  ```
 
@@ -297,14 +306,14 @@ We will demonstrate two event handlers here. Please feel free to modify on the J
 params_dirname = "recognize_digits_network.inference.model"
 lists = []
 def event_handler(event):
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if event.step % 100 == 0:
             # event.metrics maps with train program return arguments.
             # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
             print("Pass %d, Batch %d, Cost %f" % (
                 event.step, event.epoch, event.metrics[0]))
 
-    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
+    if isinstance(event, EndEpochEvent):
         avg_cost, acc = trainer.test(
             reader=test_reader, feed_order=['img', 'label'])
 
@@ -331,14 +340,14 @@ lists = []
 # event_handler to plot a figure
 def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if step % 100 == 0:
             # event.metrics maps with train program return arguments.
             # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
             cost_ploter.append(train_title, step, event.metrics[0])
             cost_ploter.plot()
         step += 1
-    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
+    if isinstance(event, EndEpochEvent):
         # save parameters
         trainer.save_params(params_dirname)
 
@@ -398,7 +407,7 @@ The `Inferencer` takes an `infer_func` and `param_path` to setup the network and
 We can simply plug-in the classifier defined earlier here.
 
 ```python
-inferencer = fluid.contrib.inferencer.Inferencer(
+inferencer = Inferencer(
     # infer_func=softmax_regression, # uncomment for softmax regression
     # infer_func=multilayer_perceptron, # uncomment for MLP
     infer_func=convolutional_neural_network,  # uncomment for LeNet5

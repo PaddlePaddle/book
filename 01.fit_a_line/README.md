@@ -115,6 +115,16 @@ import paddle
 import paddle.fluid as fluid
 import numpy
 from __future__ import print_function
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
+
 ```
 
 We encapsulated the [UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing) in our Python module `uci_housing`.  This module can
@@ -180,7 +190,7 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 The trainer will take the `train_program` as input.
 
 ```python
-trainer = fluid.contrib.trainer.Trainer(
+trainer = Trainer(
     train_func=train_program,
     place=place,
     optimizer_func=optimizer_program)
@@ -202,24 +212,28 @@ Moreover, an event handler is provided to print the training progress:
 # Specify the directory to save the parameters
 params_dirname = "fit_a_line.inference.model"
 
+# Plot data
+from paddle.utils import Ploter
+
 train_title = "Train cost"
 test_title = "Test cost"
+plot_cost = Ploter(train_title, test_title)
 
 step = 0
 
 # event_handler prints training and testing info
-def event_handler(event):
+def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if step % 10 == 0:   # record a train cost every 10 batches
-            print("%s, Step %d, Cost %f" % (train_title, step, event.metrics[0]))
-
+            plot_cost.append(train_title, step, event.metrics[0])
         if step % 100 == 0:  # record a test cost every 100 batches
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-            print("%s, Step %d, Cost %f" % (test_title, step, test_metrics[0]))
-
+            plot_cost.append(test_title, step, test_metrics[0])
+            plot_cost.plot()
             if test_metrics[0] < 10.0:
+            print("%s, Step %d, Cost %f" % (test_title, step, test_metrics[0]))
                 # If the accuracy is good enough, we can stop the training.
                 print('loss is less than 10.0, stop')
                 trainer.stop()
@@ -244,7 +258,7 @@ We now can start training by calling `trainer.train()`.
 trainer.train(
     reader=train_reader,
     num_epochs=100,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     feed_order=feed_order)
 
 ```
@@ -272,7 +286,7 @@ def inference_program():
 Inferencer will load the trained model from `params_dirname` and use it to infer the unseen data.
 
 ```python
-inferencer = fluid.contrib.inferencer.Inferencer(
+inferencer = Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 batch_size = 10

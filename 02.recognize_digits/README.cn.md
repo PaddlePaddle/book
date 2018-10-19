@@ -160,6 +160,15 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 import paddle
 import paddle.fluid as fluid
 from __future__ import print_function
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 ```
 
 ### Program Functions 配置
@@ -278,7 +287,7 @@ test_reader = paddle.batch(
 use_cuda = False # set to True if training with GPU
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-trainer = fluid.contrib.trainer.Trainer(
+trainer = Trainer(
     train_func=train_program, place=place, optimizer_func=optimizer_program)
 ```
 
@@ -294,14 +303,14 @@ Fluid API 在训练期间为回调函数提供了一个钩子。用户能够通�
 params_dirname = "recognize_digits_network.inference.model"
 lists = []
 def event_handler(event):
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if event.step % 100 == 0:
             # event.metrics maps with train program return arguments.
             # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
             print("Pass %d, Batch %d, Cost %f" % (
                 event.step, event.epoch, event.metrics[0]))
 
-    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
+    if isinstance(event, EndEpochEvent):
         avg_cost, acc = trainer.test(
             reader=test_reader, feed_order=['img', 'label'])
 
@@ -332,14 +341,14 @@ lists = []
 # event_handler to plot a figure
 def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if step % 100 == 0:
             # event.metrics maps with train program return arguments.
             # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
             cost_ploter.append(train_title, step, event.metrics[0])
             cost_ploter.plot()
         step += 1
-    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
+    if isinstance(event, EndEpochEvent):
         # save parameters
         trainer.save_params(params_dirname)
 
@@ -392,7 +401,7 @@ Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
 我们可以简单地插入在此之前定义的分类器。
 
 ```python
-inferencer = fluid.contrib.inferencer.Inferencer(
+inferencer = Inferencer(
     # infer_func=softmax_regression, # uncomment for softmax regression
     # infer_func=multilayer_perceptron, # uncomment for MLP
     infer_func=convolutional_neural_network,  # uncomment for LeNet5

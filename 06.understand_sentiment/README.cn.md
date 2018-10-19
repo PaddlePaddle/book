@@ -112,6 +112,15 @@ import paddle
 import paddle.fluid as fluid
 from functools import partial
 import numpy as np
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 
 CLASS_DIM = 2
 EMB_DIM = 128
@@ -249,7 +258,7 @@ train_reader = paddle.batch(
 训练器需要一个训练程序和一个训练优化函数。
 
 ```python
-trainer = fluid.contrib.trainer.Trainer(
+trainer = Trainer(
     train_func=partial(train_program, word_dict),
     place=place,
     optimizer_func=optimizer_func)
@@ -272,7 +281,7 @@ feed_order = ['words', 'label']
 params_dirname = "understand_sentiment_conv.inference.model"
 
 def event_handler(event):
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         print("Step {0}, Epoch {1} Metrics {2}".format(
                 event.step, event.epoch, list(map(np.array, event.metrics))))
 
@@ -300,7 +309,7 @@ trainer.train(
 传入`inference_program`和`params_dirname`来初始化一个预测器, `params_dirname`用来存放训练过程中的各个参数。
 
 ```python
-inferencer = fluid.contrib.inferencer.Inferencer(
+inferencer = Inferencer(
         infer_func=partial(inference_program, word_dict), param_path=params_dirname, place=place)
 ```
 

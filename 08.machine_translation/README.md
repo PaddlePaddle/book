@@ -180,6 +180,15 @@ import paddle.fluid.layers as pd
 from paddle.fluid.executor import Executor
 from functools import partial
 import os
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 
 dict_size = 30000
 source_dict_dim = target_dict_dim = dict_size
@@ -374,7 +383,7 @@ Create a trainer that takes `train_program` as input and specify optimizer funct
 
 ```python
 is_sparse = False
-trainer = fluid.Trainer(
+trainer = Trainer(
         train_func=partial(train_program, is_sparse),
         place=place,
         optimizer_func=optimizer_func)
@@ -397,7 +406,7 @@ For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
 
 ```python
 def event_handler(event):
-    if isinstance(event, fluid.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if event.step % 10 == 0:
             print('pass_id=' + str(event.epoch) + ' batch=' + str(event.step))
 

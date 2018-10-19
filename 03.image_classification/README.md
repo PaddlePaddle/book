@@ -172,6 +172,15 @@ import paddle.fluid as fluid
 import numpy
 import sys
 from __future__ import print_function
+try:
+    from paddle.fluid.contrib.trainer import *
+    from paddle.fluid.contrib.inferencer import *
+except ImportError:
+    print(
+        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
+        file=sys.stderr)
+    from paddle.fluid.trainer import *
+    from paddle.fluid.inferencer import *
 ```
 
 Now we are going to walk you through the implementations of the VGG and ResNet.
@@ -348,7 +357,7 @@ Here we specify `Adam` optimization algorithm via `fluid.optimizer`.
 ```python
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-trainer = fluid.contrib.trainer.Trainer(
+trainer = Trainer(
     train_func=train_program,
     optimizer_func=optimizer_program,
     place=place)
@@ -392,12 +401,12 @@ cost_ploter = Ploter(train_title, test_title)
 step = 0
 def event_handler_plot(event):
     global step
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if step % 1 == 0:
             cost_ploter.append(train_title, step, event.metrics[0])
             cost_ploter.plot()
         step += 1
-    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
+    if isinstance(event, EndEpochEvent):
         avg_cost, accuracy = trainer.test(
             reader=test_reader,
             feed_order=['pixel', 'label'])
@@ -415,7 +424,7 @@ params_dirname = "image_classification_resnet.inference.model"
 
 # event handler to track training and testing process
 def event_handler(event):
-    if isinstance(event, fluid.contrib.trainer.EndStepEvent):
+    if isinstance(event, EndStepEvent):
         if event.step % 100 == 0:
             print("\nPass %d, Batch %d, Cost %f, Acc %f" %
                   (event.step, event.epoch, event.metrics[0],
@@ -424,7 +433,7 @@ def event_handler(event):
             sys.stdout.write('.')
             sys.stdout.flush()
 
-    if isinstance(event, fluid.contrib.trainer.EndEpochEvent):
+    if isinstance(event, EndEpochEvent):
         # Test against with the test dataset to get accuracy.
         avg_cost, accuracy = trainer.test(
             reader=test_reader, feed_order=['pixel', 'label'])
@@ -512,7 +521,7 @@ We can simply plug-in the inference_program defined earlier here.
 Now we are ready to do inference.
 
 ```python
-inferencer = fluid.contrib.inferencer.Inferencer(
+inferencer = Inferencer(
     infer_func=inference_program, param_path=params_dirname, place=place)
 
 label_list = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
