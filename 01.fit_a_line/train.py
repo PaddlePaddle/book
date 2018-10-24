@@ -69,7 +69,6 @@ feed_order = ['x', 'y']
 # Specify the directory to save the parameters
 params_dirname = "fit_a_line.inference.model"
 
-
 train_title = "Train cost"
 test_title = "Test cost"
 
