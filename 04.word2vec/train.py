@@ -38,7 +38,7 @@ HIDDEN_SIZE = 256
 N = 5
 BATCH_SIZE = 100
 
-use_cuda = True  # set to True if training with GPU
+use_cuda = False  # set to True if training with GPU
 
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
