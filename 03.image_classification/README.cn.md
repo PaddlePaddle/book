@@ -383,12 +383,6 @@ test_reader = paddle.batch(
 
 可以使用`event_handler`回调函数来观察训练过程，或进行测试等, 该回调函数是`trainer.train`函数里设定。
 
-
-<p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/train_and_test.png?raw=true" width="350"><br/>
-图12. 训练结果
-</p>
-
 `event_handler` 用来在训练过程中输出文本日志
 
 ```python

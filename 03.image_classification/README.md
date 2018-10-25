@@ -385,10 +385,6 @@ test_reader = paddle.batch(
 
 Callback function `event_handler` will be called during training when a pre-defined event happens.
 
-
-![png](./image/train_and_test.png)
-
-
 `event_handler` is used to plot some text data when training.
 
 ```python
