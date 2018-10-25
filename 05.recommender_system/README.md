@@ -415,30 +415,26 @@ For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
 # Specify the directory path to save the parameters
 params_dirname = "recommender_system.inference.model"
 
-from paddle.utils import Ploter
-test_title = "Test cost"
-plot_cost = Ploter(test_title)
-
-
 def event_handler(event):
     if isinstance(event, EndStepEvent):
+        test_reader = paddle.batch(
+            paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
         avg_cost_set = trainer.test(
             reader=test_reader, feed_order=feed_order)
 
         # get avg cost
         avg_cost = np.array(avg_cost_set).mean()
 
-        plot_cost.append(test_title, event.step, avg_cost_set[0])
-        plot_cost.plot()
-
         print("avg_cost: %s" % avg_cost)
-        print('BatchID {0}, Test Loss {1:0.2}'.format(event.epoch + 1,
-                                                          float(avg_cost)))
 
-        if event.step == 20: # Adjust this number for accuracy
+        if float(avg_cost) < 4:  # Change this number to adjust accuracy
             trainer.save_params(params_dirname)
             trainer.stop()
-
+        else:
+            print('BatchID {0}, Test Loss {1:0.2}'.format(event.epoch + 1,
+                                                          float(avg_cost)))
+            if math.isnan(float(avg_cost)):
+                sys.exit("got NaN loss, training failed.")
 ```
 
 ### Training
