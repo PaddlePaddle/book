@@ -383,42 +383,6 @@ test_reader = paddle.batch(
 
 可以使用`event_handler`回调函数来观察训练过程，或进行测试等, 该回调函数是`trainer.train`函数里设定。
 
-`event_handler_plot`可以用来利用回调数据来打点画图:
-
-<p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/train_and_test.png?raw=true" width="350"><br/>
-图12. 训练结果
-</p>
-
-
-```python
-params_dirname = "image_classification_resnet.inference.model"
-
-from paddle.utils import Ploter
-
-train_title = "Train cost"
-test_title = "Test cost"
-cost_ploter = Ploter(train_title, test_title)
-
-step = 0
-def event_handler_plot(event):
-    global step
-    if isinstance(event, EndStepEvent):
-        if step % 1 == 0:
-            cost_ploter.append(train_title, step, event.metrics[0])
-            cost_ploter.plot()
-        step += 1
-    if isinstance(event, EndEpochEvent):
-        avg_cost, accuracy = trainer.test(
-            reader=test_reader,
-            feed_order=['pixel', 'label'])
-        cost_ploter.append(test_title, step, avg_cost)
-
-        # save parameters
-        if params_dirname is not None:
-            trainer.save_params(params_dirname)
-```
-
 `event_handler` 用来在训练过程中输出文本日志
 
 ```python

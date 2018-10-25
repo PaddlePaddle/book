@@ -427,38 +427,6 @@ test_reader = paddle.batch(
 
 Callback function `event_handler` will be called during training when a pre-defined event happens.
 
-`event_handler_plot`is used to plot a figure like below：
-
-![png](./image/train_and_test.png)
-
-```python
-params_dirname = "image_classification_resnet.inference.model"
-
-from paddle.utils import Ploter
-
-train_title = "Train cost"
-test_title = "Test cost"
-cost_ploter = Ploter(train_title, test_title)
-
-step = 0
-def event_handler_plot(event):
-    global step
-    if isinstance(event, EndStepEvent):
-        if step % 1 == 0:
-            cost_ploter.append(train_title, step, event.metrics[0])
-            cost_ploter.plot()
-        step += 1
-    if isinstance(event, EndEpochEvent):
-        avg_cost, accuracy = trainer.test(
-            reader=test_reader,
-            feed_order=['pixel', 'label'])
-        cost_ploter.append(test_title, step, avg_cost)
-
-        # save parameters
-        if params_dirname is not None:
-            trainer.save_params(params_dirname)
-```
-
 `event_handler` is used to plot some text data when training.
 
 ```python

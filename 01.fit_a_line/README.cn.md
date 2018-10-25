@@ -196,28 +196,24 @@ feed_order=['x', 'y']
 # Specify the directory to save the parameters
 params_dirname = "fit_a_line.inference.model"
 
-# Plot data
-from paddle.utils import Ploter
 
 train_title = "Train cost"
 test_title = "Test cost"
-plot_cost = Ploter(train_title, test_title)
 
 
 step = 0
 
 # event_handler prints training and testing info
-def event_handler_plot(event):
+def event_handler(event):
     global step
     if isinstance(event, EndStepEvent):
         if step % 10 == 0:   # record a train cost every 10 batches
-            plot_cost.append(train_title, step, event.metrics[0])
+            print("%s, Step %d, Cost %f" % (train_title, step, event.metrics[0]))
 
         if step % 100 == 0:  # record a test cost every 100 batches
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)
-            plot_cost.append(test_title, step, test_metrics[0])
-            plot_cost.plot()
+            print("%s, Step %d, Cost %f" % (test_title, step, test_metrics[0]))
 
             if test_metrics[0] < 10.0:
                 # If the accuracy is good enough, we can stop the training.
@@ -242,7 +238,7 @@ def event_handler_plot(event):
 trainer.train(
     reader=train_reader,
     num_epochs=100,
-    event_handler=event_handler_plot,
+    event_handler=event_handler,
     feed_order=feed_order)
 ```
 
