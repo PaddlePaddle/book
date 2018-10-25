@@ -363,6 +363,42 @@ def event_handler(event):
         lists.append((event.epoch, avg_cost, acc))
 ```
 
+`event_handler_plot` 可以用来在训练过程中画图如下：
+
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/train_and_test.png?raw=true" width="400"><br/>
+图7 训练结果
+</div>
+
+
+```python
+from paddle.utils import Ploter
+
+train_title = "Train cost"
+test_title = "Test cost"
+cost_ploter = Ploter(train_title, test_title)
+step = 0
+lists = []
+
+# event_handler to plot a figure
+def event_handler_plot(event):
+    global step
+    if isinstance(event, EndStepEvent):
+        if step % 100 == 0:
+            # event.metrics maps with train program return arguments.
+            # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
+            cost_ploter.append(train_title, step, event.metrics[0])
+            cost_ploter.plot()
+        step += 1
+    if isinstance(event, EndEpochEvent):
+        # save parameters
+        trainer.save_params(params_dirname)
+
+        avg_cost, acc = trainer.test(
+            reader=test_reader, feed_order=['img', 'label'])
+        cost_ploter.append(test_title, step, avg_cost)
+        lists.append((event.epoch, avg_cost, acc))
+```
 
 #### 开始训练
 

@@ -80,7 +80,8 @@ def event_handler(event):
     global step
     if isinstance(event, EndStepEvent):
         if step % 10 == 0:  # record a train cost every 10 batches
-            print("%s, Step %d, Cost %f" % (train_title, step, event.metrics[0]))
+            print("%s, Step %d, Cost %f" %
+                  (train_title, step, event.metrics[0]))
         if step % 100 == 0:  # record a test cost every 100 batches
             test_metrics = trainer.test(
                 reader=test_reader, feed_order=feed_order)

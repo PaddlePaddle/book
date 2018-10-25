@@ -324,6 +324,38 @@ def event_handler(event):
         lists.append((event.epoch, avg_cost, acc))
 ```
 
+`event_handler_plot` is used to plot a figure like below：
+
+![png](./image/train_and_test.png)
+
+```python
+from paddle.utils import Ploter
+
+train_title = "Train cost"
+test_title = "Test cost"
+cost_ploter = Ploter(train_title, test_title)
+step = 0
+lists = []
+
+# event_handler to plot a figure
+def event_handler_plot(event):
+    global step
+    if isinstance(event, EndStepEvent):
+        if step % 100 == 0:
+            # event.metrics maps with train program return arguments.
+            # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
+            cost_ploter.append(train_title, step, event.metrics[0])
+            cost_ploter.plot()
+        step += 1
+    if isinstance(event, EndEpochEvent):
+        # save parameters
+        trainer.save_params(params_dirname)
+
+        avg_cost, acc = trainer.test(
+            reader=test_reader, feed_order=['img', 'label'])
+        cost_ploter.append(test_title, step, avg_cost)
+        lists.append((event.epoch, avg_cost, acc))
+```
 
 #### Start training
 
@@ -333,7 +365,7 @@ Now that we setup the event_handler and the reader, we can start training the mo
 # Train the model now
 trainer.train(
     num_epochs=5,
-    event_handler=event_handler,
+    event_handler=event_handler_plot,
     reader=train_reader,
     feed_order=['img', 'label'])
 ```
