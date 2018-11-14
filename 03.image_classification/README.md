@@ -2,7 +2,7 @@
 Image Classification
 =======================
 
-The source code for this chapter is at [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification). First-time users, please refer to PaddlePaddle [Installation Tutorial](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book) for installation instructions.
+The source code for this chapter is at [book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification).For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Background
 
