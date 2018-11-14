@@ -1,6 +1,6 @@
 # Personalized Recommendation
 
-The source code from this tutorial is at [here](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system).  For instructions to run it, please refer to [this guide](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code from this tutorial is at [here](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system).  For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 
 ## Background
