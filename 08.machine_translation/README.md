@@ -1,6 +1,6 @@
 # Machine Translation
 
-The source code of this tutorial is live at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation).For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code of this tutorial is live at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation). For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Background
 

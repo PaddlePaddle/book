@@ -1,7 +1,6 @@
 # Recognize Digits
 
-The source code for this tutorial is here:  [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits).
-For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code for this tutorial is here:  [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
 
 ## Introduction
 When one learns to program, the first task is usually to write a program that prints "Hello World!".
