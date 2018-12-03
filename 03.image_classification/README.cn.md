@@ -169,15 +169,7 @@ import paddle.fluid as fluid
 import numpy
 import sys
 from __future__ import print_function
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
+
 ```
 
 本教程中我们提供了VGG和ResNet两个模型的配置。
@@ -348,19 +340,6 @@ def optimizer_program():
 
 ## 训练模型
 
-### Trainer 配置
-
-现在，我们需要配置 `Trainer`。`Trainer` 需要接受训练程序 `train_program`, `place` 和优化器 `optimizer_func`。
-
-```python
-use_cuda = False
-place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-trainer = Trainer(
-    train_func=train_program,
-    optimizer_func=optimizer_program,
-    place=place)
-```
-
 ### Data Feeders 配置
 
 `cifar.train10()` 每次产生一条样本，在完成shuffle和batch之后，作为训练的输入。
@@ -379,50 +358,104 @@ test_reader = paddle.batch(
     paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
 ```
 
-### Event Handler
+### Trainer 程序的实现
+我们需要为训练过程制定一个main_program, 同样的，还需要为测试程序配置一个test_program。定义训练的 `place` ，并使用先前定义的优化器 `optimizer_func`。
 
-可以使用`event_handler`回调函数来观察训练过程，或进行测试等, 该回调函数是`trainer.train`函数里设定。
 
-`event_handler` 用来在训练过程中输出文本日志
+```python
+use_cuda = False
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+
+feed_order = ['pixel', 'label']
+
+main_program = fluid.default_main_program()
+star_program = fluid.default_startup_program()
+
+predict = inference_program()
+avg_cost, acc = train_program(predict)
+
+# Test program
+test_program = main_program.clone(for_test=True)
+
+optimizer = optimizer_program()
+optimizer.minimize(avg_cost)
+
+exe = fluid.Executor(place)
+
+EPOCH_NUM = 2
+
+# For training test cost
+def train_test(program, reader):
+    count = 0
+    feed_var_list = [
+        program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder_test = fluid.DataFeeder(
+        feed_list=feed_var_list, place=place)
+    test_exe = fluid.Executor(place)
+    accumulated = len([avg_cost, acc]) * [0]
+    for tid, test_data in enumerate(reader()):
+        avg_cost_np = test_exe.run(program=program,
+                                               feed=feeder_test.feed(test_data),
+                                               fetch_list=[avg_cost, acc])
+        accumulated = [x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)]
+        count += 1
+    return [x / count for x in accumulated]
+```
+
+### 训练主循环以及过程输出
+
+在接下来的主训练循环中，我们将通过输出来来观察训练过程，或进行测试等。
+
+也可以使用`plot`, 利用回调数据来打点画图:
 
 ```python
 params_dirname = "image_classification_resnet.inference.model"
 
-# event handler to track training and testing process
-def event_handler(event):
-    if isinstance(event, EndStepEvent):
-        if event.step % 100 == 0:
-            print("\nPass %d, Batch %d, Cost %f, Acc %f" %
-                  (event.step, event.epoch, event.metrics[0],
-                   event.metrics[1]))
-        else:
-            sys.stdout.write('.')
-            sys.stdout.flush()
+from paddle.v2.plot import Ploter
 
-    if isinstance(event, EndEpochEvent):
-        # Test against with the test dataset to get accuracy.
-        avg_cost, accuracy = trainer.test(
-            reader=test_reader, feed_order=['pixel', 'label'])
+train_title = "Train cost"
+test_title = "Test cost"
+plot_cost = Ploter(test_title,train_title)
 
-        print('\nTest with Pass {0}, Loss {1:2.2}, Acc {2:2.2}'.format(event.epoch, avg_cost, accuracy))
+# main train loop.
+def train_loop():
+    feed_var_list_loop = [
+        main_program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder = fluid.DataFeeder(
+        feed_list=feed_var_list_loop, place=place)
+    exe.run(star_program)
+
+    step = 0
+    for pass_id in range(EPOCH_NUM):
+        for step_id, data_train in enumerate(train_reader()):
+            avg_loss_value = exe.run(main_program,
+                                     feed=feeder.feed(data_train),
+                                     fetch_list=[avg_cost, acc])
+            if step % 1 == 0:
+                plot_cost.append(train_title, step, avg_loss_value[0])
+                plot_cost.plot()
+            step += 1
+
+        avg_cost_test, accuracy_test = train_test(test_program,
+                                                  reader=test_reader)
+        plot_cost.append(test_title, step, avg_cost_test)
 
         # save parameters
         if params_dirname is not None:
-            trainer.save_params(params_dirname)
+            fluid.io.save_inference_model(params_dirname, ["pixel"],
+                                          [predict], exe)
 ```
 
 ### 训练
 
-通过`trainer.train`函数训练:
+通过`trainer_loop`函数训练, 这里我们只进行了2个Epoch, 一般我们在实际应用上会执行上百个以上Epoch
 
 **注意:** CPU，每个 Epoch 将花费大约15～20分钟。这部分可能需要一段时间。请随意修改代码，在GPU上运行测试，以提高训练速度。
 
 ```python
-trainer.train(
-    reader=train_reader,
-    num_epochs=2,
-    event_handler=event_handler,
-    feed_order=['pixel', 'label'])
+train_loop()
 ```
 
 一轮训练log示例如下所示，经过1个pass， 训练集上平均 Accuracy 为0.59 ，测试集上平均  Accuracy 为0.6 。
@@ -448,7 +481,11 @@ Test with Pass 0, Loss 1.1, Acc 0.6
 
 ## 应用模型
 
-可以使用训练好的模型对图片进行分类，下面程序展示了如何使用 `fluid.contrib.inferencer.Inferencer` 接口进行推断，可以打开注释，更改加载的模型。
+可以使用训练好的模型对图片进行分类，下面程序展示了如何加载已经训练好的网络和参数进行推断。
+
+### 生成预测输入数据
+
+`dog.png` is an example image of a dog. Turn it into an numpy array to match the data feeder format.
 
 ### 生成预测输入数据
 
@@ -481,17 +518,48 @@ img = load_image(cur_dir + '/image/dog.png')
 
 ### Inferencer 配置和预测
 
-`Inferencer` 需要一个 `infer_func` 和 `param_path` 来设置网络和经过训练的参数。
+与训练过程类似，inferencer需要构建相应的过程。我们从`params_dirname` 加载网络和经过训练的参数。
 我们可以简单地插入前面定义的推理程序。
 现在我们准备做预测。
 
 ```python
-inferencer = Inferencer(
-    infer_func=inference_program, param_path=params_dirname, place=place)
-label_list = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
-# inference
-results = inferencer.infer({'pixel': img})
-print("infer results: %s" % label_list[np.argmax(results[0])])
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+exe = fluid.Executor(place)
+inference_scope = fluid.core.Scope()
+
+with fluid.scope_guard(inference_scope):
+
+    [inference_program, feed_target_names,
+     fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
+
+        # The input's dimension of conv should be 4-D or 5-D.
+        # Use inference_transpiler to speedup
+    inference_transpiler_program = inference_program.clone()
+    t = fluid.transpiler.InferenceTranspiler()
+    t.transpile(inference_transpiler_program, place)
+
+        # Construct feed as a dictionary of {feed_target_name: feed_target_data}
+        # and results will contain a list of data corresponding to fetch_targets.
+    results = exe.run(inference_program,
+                      feed={feed_target_names[0]: img},
+                      fetch_list=fetch_targets)
+
+    transpiler_results = exe.run(inference_transpiler_program,
+                                 feed={feed_target_names[0]: img},
+                                 fetch_list=fetch_targets)
+
+    assert len(results[0]) == len(transpiler_results[0])
+    for i in range(len(results[0])):
+        numpy.testing.assert_almost_equal(
+            results[0][i], transpiler_results[0][i], decimal=5)
+
+    # infer label
+    label_list = [
+        "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse",
+        "ship", "truck"
+    ]
+
+    print("infer results: %s" % label_list[numpy.argmax(results[0])])
 ```
 
 ## 总结
