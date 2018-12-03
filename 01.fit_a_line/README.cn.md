@@ -155,7 +155,7 @@ use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
-除此之外，还可以定义一个事件响应器来处理类似`打印训练进程`的事件：
+除此之外，还可以通过画图，来展现`训练进程`：
 
 ```python
 # Plot data
@@ -165,10 +165,6 @@ train_title = "Train cost"
 test_title = "Test cost"
 plot_cost = Ploter(train_title, test_title)
 
-
-def event_handler(title, loop_step, handler_val):
-    plot_cost.append(title, loop_step, handler_val)
-    plot_cost.plot()
 ```
 
 ### 创建训练过程
@@ -216,11 +212,13 @@ def train_loop(main_program):
                                       feed=feeder.feed(data_train),
                                       fetch_list=[avg_loss])
             if step % 10 == 0:  # record a train cost every 10 batches
-                event_handler(train_title, step, avg_loss_value[0])
+                plot_cost.append(train_title, step, avg_loss_value[0])
+                plot_cost.plot()
             if step % 100 == 0:  # record a test cost every 100 batches
                 test_metics = train_test(train_program=main_program,
                                          feeder=feeder_test)
-                event_handler(test_title, step, test_metics[0])
+                plot_cost.append(test_title, step, test_metics[0])
+                plot_cost.plot()
                 # If the accuracy is good enough, we can stop the training.
                 if test_metics[0] < 10.0:
                     return
@@ -229,9 +227,9 @@ def train_loop(main_program):
 
             if math.isnan(float(avg_loss_value)):
                 sys.exit("got NaN loss, training failed.")
-    if params_dirname is not None:
-        # We can save the trained parameters for the inferences later
-        fluid.io.save_inference_model(params_dirname, ['x'],
+        if params_dirname is not None:
+            # We can save the trained parameters for the inferences later
+            fluid.io.save_inference_model(params_dirname, ['x'],
                                       [y_predict], exe)
 ```
 
