@@ -225,15 +225,6 @@ import paddle
 import paddle.fluid as fluid
 import paddle.fluid.layers as layers
 import paddle.fluid.nets as nets
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
 
 IS_SPARSE = True
 USE_GPU = False
@@ -414,8 +405,8 @@ test_reader = paddle.batch(
     paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
 ```
 
-### 构造训练器(trainer)
-训练器需要一个训练程序和一个训练优化函数。
+### 构造训练过程(trainer)
+我们这里构造了一个训练过程，包括训练优化函数。
 
 ```python
 trainer = Trainer(
@@ -433,56 +424,92 @@ feed_order = [
 ]
 ```
 
-### 事件处理器
-回调函数`event_handler`在一个之前定义好的事件发生后会被调用。例如，我们可以在每步训练结束后查看误差。
+### 构建训练程序以及测试程序
+分别构建训练程序和测试程序，并引入训练优化器。
+
+```python
+main_program = fluid.default_main_program()
+star_program = fluid.default_startup_program()
+[avg_cost, scale_infer] = train_program()
+
+test_program = main_program.clone(for_test=True)
+sgd_optimizer = optimizer_func()
+sgd_optimizer.minimize(avg_cost)
+exe = fluid.Executor(place)
+
+def train_test(program, reader):
+    count = 0
+    feed_var_list = [
+        program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder_test = fluid.DataFeeder(
+    feed_list=feed_var_list, place=place)
+    test_exe = fluid.Executor(place)
+    accumulated = len([avg_cost, scale_infer]) * [0]
+    for test_data in reader():
+        avg_cost_np = test_exe.run(program=program,
+                                               feed=feeder_test.feed(test_data),
+                                               fetch_list=[avg_cost, scale_infer])
+        accumulated = [x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)]
+        count += 1
+    return [x / count for x in accumulated]
+```
+
+### 构建训练主循环并开始训练
+我们根据上面定义的训练循环数（`PASS_NUM`）和一些别的参数，来进行训练循环，并且每次循环都进行一次测试，当测试结果足够好时退出训练并保存训练好的参数。
 
 ```python
 # Specify the directory path to save the parameters
 params_dirname = "recommender_system.inference.model"
-def event_handler(event):
-    if isinstance(event, EndStepEvent):
-        test_reader = paddle.batch(
-            paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
-        avg_cost_set = trainer.test(
-            reader=test_reader, feed_order=feed_order)
 
-        # get avg cost
-        avg_cost = np.array(avg_cost_set).mean()
+from paddle.v2.plot import Ploter
+test_title = "Test cost"
+plot_cost = Ploter(test_title)
 
-        print("avg_cost: %s" % avg_cost)
+def train_loop():
+    feed_list = [
+        main_program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder = fluid.DataFeeder(feed_list, place)
+    exe.run(star_program)
 
-        if float(avg_cost) < 4:  # Change this number to adjust accuracy
-            trainer.save_params(params_dirname)
-            trainer.stop()
-        else:
-            print('BatchID {0}, Test Loss {1:0.2}'.format(event.epoch + 1,
-                                                          float(avg_cost)))
-            if math.isnan(float(avg_cost)):
+    for pass_id in range(PASS_NUM):
+        for batch_id, data in enumerate(train_reader()):
+            # train a mini-batch
+            outs = exe.run(program=main_program,
+                               feed=feeder.feed(data),
+                               fetch_list=[avg_cost])
+            out = np.array(outs[0])
+
+            avg_cost_set = train_test(test_program, test_reader)
+
+            # get test avg_cost
+            test_avg_cost = np.array(avg_cost_set).mean()
+            plot_cost.append(test_title, batch_id, outs[0])
+            plot_cost.plot()
+            print("avg_cost: %s" % test_avg_cost)
+
+            if batch_id == 20:
+                if params_dirname is not None:
+                    fluid.io.save_inference_model(params_dirname, [
+                                "user_id", "gender_id", "age_id", "job_id",
+                                "movie_id", "category_id", "movie_title"
+                        ], [scale_infer], exe)
+                return
+            else:
+                print('BatchID {0}, Test Loss {1:0.2}'.format(pass_id + 1,
+                                                                  float(test_avg_cost)))
+
+            if math.isnan(float(out[0])):
                 sys.exit("got NaN loss, training failed.")
 ```
-
-### 开始训练
-最后，我们传入训练循环数（`num_epoch`）和一些别的参数，调用 `trainer.train` 来开始训练。
-
 ```python
-trainer.train(
-    num_epochs=1,
-    event_handler=event_handler,
-    reader=train_reader,
-    feed_order=feed_order)
+train_loop()
 ```
 
 ## 应用模型
 
-### 构建预测器
-传入`inference_program`和`params_dirname`来初始化一个预测器, `params_dirname`用来存放训练过程中的各个参数。
-
-```python
-inferencer = Inferencer(
-        inference_program, param_path=params_dirname, place=place)
-```
-
-### 生成测试用输入数据
+### 生成测试数据
 使用 create_lod_tensor(data, lod, place) 的API来生成细节层次的张量。`data`是一个序列，每个元素是一个索引号的序列。`lod`是细节层次的信息，对应于`data`。比如，data = [[10, 2, 3], [2, 3]] 意味着它包含两个序列，长度分别是3和2。于是相应地 lod = [[3, 2]]，它表明其包含一层细节信息，意味着 `data` 有两个序列，长度分别是3和2。
 
 在这个预测例子中，我们试着预测用户ID为1的用户对于电影'Hunchback of Notre Dame'的评分
@@ -500,27 +527,42 @@ movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
                                       place) # 'hunchback','of','notre','dame','the'
 ```
 
+### 构建预测过程并测试
+与训练过程类似，我们需要构建一个预测过程。其中， `params_dirname`是之前用来存放训练过程中的各个参数的地址。
+
+```python
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+exe = fluid.Executor(place)
+
+inference_scope = fluid.core.Scope()
+```
+
 ### 测试
 现在我们可以进行预测了。我们要提供的`feed_order`应该和训练过程一致。
 
 
 ```python
-results = inferencer.infer(
-    {
-        'user_id': user_id,
-        'gender_id': gender_id,
-        'age_id': age_id,
-        'job_id': job_id,
-        'movie_id': movie_id,
-        'category_id': category_id,
-        'movie_title': movie_title
-    },
-    return_numpy=False)
+with fluid.scope_guard(inference_scope):
+    [inferencer, feed_target_names,
+    fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
 
-predict_rating = np.array(results[0])
-print("Predict Rating of user id 1 on movie \"" + infer_movie_name + "\" is " + str(predict_rating[0][0]))
-print("Actual Rating of user id 1 on movie \"" + infer_movie_name + "\" is 4.")
-
+    results = exe.run(inferencer,
+                          feed={
+                               'user_id': user_id,
+                              'gender_id': gender_id,
+                              'age_id': age_id,
+                              'job_id': job_id,
+                              'movie_id': movie_id,
+                              'category_id': category_id,
+                              'movie_title': movie_title
+                          },
+                          fetch_list=fetch_targets,
+                          return_numpy=False)
+    predict_rating = np.array(results[0])
+    print("Predict Rating of user id 1 on movie \"" + infer_movie_name +
+              "\" is " + str(predict_rating[0][0]))
+    print("Actual Rating of user id 1 on movie \"" + infer_movie_name +
+              "\" is 4.")
 ```
 
 ## 总结
