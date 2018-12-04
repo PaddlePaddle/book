@@ -106,6 +106,8 @@ import numpy
 import math
 import sys
 from __future__ import print_function
+import os
+os.environ['CPU_NUM'] = '1'
 ```
 
 我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)
@@ -115,7 +117,7 @@ from __future__ import print_function
 1. 数据下载的过程。下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data。
 2. [数据预处理](#数据预处理)的过程。
 
-接下来我们定义了用于训练的数据提供器。提供器每次读入一个大小为`BATCH_SIZE`的数据批次。如果用户希望加一些随机性，她可以同时定义一个批次大小和一个缓存大小。这样的话，每次数据提供器会从缓存中随机读取批次大小那么多的数据。
+接下来我们定义了用于训练的数据提供器。提供器每次读入一个大小为`BATCH_SIZE`的数据批次。如果用户希望加一些随机性，它可以同时定义一个批次大小和一个缓存大小。这样的话，每次数据提供器会从缓存中随机读取批次大小那么多的数据。
 
 ```python
 BATCH_SIZE = 20
@@ -123,7 +125,12 @@ BATCH_SIZE = 20
 train_reader = paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.uci_housing.train(), buf_size=500),
-    batch_size=BATCH_SIZE)
+        batch_size=BATCH_SIZE)
+
+test_reader = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.uci_housing.test(), buf_size=500),
+        batch_size=BATCH_SIZE)
 ```
 
 ### 配置训练程序
@@ -133,6 +140,9 @@ train_reader = paddle.batch(
 x = fluid.layers.data(name='x', shape=[13], dtype='float32')
 y = fluid.layers.data(name='y', shape=[1], dtype='float32')
 y_predict = fluid.layers.fc(input=x, size=1, act=None)
+
+main_program = fluid.default_main_program()
+startup_program = fluid.default_startup_program()
 
 cost = fluid.layers.square_error_cost(input=y_predict, label=y)
 avg_loss = fluid.layers.mean(cost)
@@ -145,6 +155,9 @@ avg_loss = fluid.layers.mean(cost)
 ```python
 sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
 sgd_optimizer.minimize(avg_loss)
+
+#clone a test_program
+test_program = main_program.clone(for_test=True)
 ```
 
 ### 定义运算场所
@@ -153,13 +166,16 @@ sgd_optimizer.minimize(avg_loss)
 ```python
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+
+exe = fluid.ParallelExecutor(use_cuda, main_program=main_program)
+
 ```
 
 除此之外，还可以通过画图，来展现`训练进程`：
 
 ```python
 # Plot data
-from paddle.v2.plot import Ploter
+from paddle.utils.plot import Ploter
 
 train_title = "Train cost"
 test_title = "Test cost"
@@ -171,22 +187,19 @@ plot_cost = Ploter(train_title, test_title)
 训练需要有一个训练程序和一些必要参数，并构建了一个获取训练过程中测试误差的函数。
 
 ```python
-exe = fluid.Executor(place)
 num_epochs = 100
 
 # For training test cost
-def train_test(train_program, feeder):
-    exe_test = fluid.Executor(place)
+def train_test(executor, reader, feeder, fetch_list):
     accumulated = 1 * [0]
     count = 0
-    test_program = train_program.clone(for_test=True)
-    for data_test in test_reader():
-        outs = exe_test.run(program=test_program,
-                                    feed=feeder.feed(data_test),
-                                    fetch_list=[avg_loss])
+    for data_test in reader():
+        outs = executor.run(feed=feeder.feed(data_test),
+                            fetch_list=fetch_list)
         accumulated = [x_c[0] + x_c[1][0] for x_c in zip(accumulated, outs)]
         count += 1
     return [x_d / count for x_d in accumulated]
+
 ```
 
 ### 训练主循环
@@ -194,54 +207,45 @@ PaddlePaddle提供了读取数据者发生器机制来读取训练数据。读�
 如果训练顺利，可以把训练参数保存到`params_dirname`。
 
 ```python
+%matplotlib inline
 # Specify the directory to save the parameters
 params_dirname = "fit_a_line.inference.model"
+feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
+naive_exe = fluid.Executor(place)
+naive_exe.run(startup_program)
+step = 0
 
+exe_test = fluid.ParallelExecutor(use_cuda,
+                                  main_program=test_program,
+                                  share_vars_from=exe)
 # main train loop.
-def train_loop(main_program):
+for pass_id in range(num_epochs):
+    for data_train in train_reader():
+        avg_loss_value, = exe.run(feed=feeder.feed(data_train),
+                                  fetch_list=[avg_loss.name])
+        if step % 10 == 0:  # record a train cost every 10 batches
+            plot_cost.append(train_title, step, avg_loss_value[0])
+            plot_cost.plot()
+        if step % 100 == 0:  # record a test cost every 100 batches
+            test_metics = train_test(executor=exe_test,
+                                     reader=test_reader,
+                                     fetch_list=[avg_loss.name],
+                                     feeder=feeder)
+            plot_cost.append(test_title, step, test_metics[0])
+            plot_cost.plot()
+            # If the accuracy is good enough, we can stop the training.
+            if test_metics[0] < 10.0:
+                break
 
-    feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
-    feeder_test = fluid.DataFeeder(place=place, feed_list=[x, y])
-    exe.run(fluid.default_startup_program())
+        step += 1
 
-    step = 0
-
-    for pass_id in range(num_epochs):
-        for data_train in train_reader():
-            avg_loss_value, = exe.run(main_program,
-                                      feed=feeder.feed(data_train),
-                                      fetch_list=[avg_loss])
-            if step % 10 == 0:  # record a train cost every 10 batches
-                plot_cost.append(train_title, step, avg_loss_value[0])
-                plot_cost.plot()
-            if step % 100 == 0:  # record a test cost every 100 batches
-                test_metics = train_test(train_program=main_program,
-                                         feeder=feeder_test)
-                plot_cost.append(test_title, step, test_metics[0])
-                plot_cost.plot()
-                # If the accuracy is good enough, we can stop the training.
-                if test_metics[0] < 10.0:
-                    return
-
-            step += 1
-
-            if math.isnan(float(avg_loss_value)):
-                sys.exit("got NaN loss, training failed.")
-        if params_dirname is not None:
-            # We can save the trained parameters for the inferences later
-            fluid.io.save_inference_model(params_dirname, ['x'],
-                                      [y_predict], exe)
+        if math.isnan(float(avg_loss_value[0])):
+            sys.exit("got NaN loss, training failed.")
+    if params_dirname is not None:
+        # We can save the trained parameters for the inferences later
+        fluid.io.save_inference_model(params_dirname, ['x'],
+                                      [y_predict], naive_exe)
 ```
-
-### 开始训练
-
-```python
-%matplotlib inline
-
-# The training could take up to a few minutes.
-train_loop(fluid.default_main_program())
-```
-
 
 ## 预测
 需要构建一个使用训练好的参数来进行预测的程序，训练好的参数位置在`params_dirname`。
@@ -260,7 +264,7 @@ inference_scope = fluid.core.Scope()
 ```python
 with fluid.scope_guard(inference_scope):
     [inference_program, feed_target_names,
-     fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
+     fetch_targets] = fluid.io.load_inference_model(params_dirname, infer_exe)
     batch_size = 10
 
     infer_reader = paddle.batch(
