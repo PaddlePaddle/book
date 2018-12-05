@@ -106,8 +106,6 @@ import numpy
 import math
 import sys
 from __future__ import print_function
-import os
-os.environ['CPU_NUM'] = '1'
 ```
 
 我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)
@@ -167,7 +165,7 @@ test_program = main_program.clone(for_test=True)
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-exe = fluid.ParallelExecutor(use_cuda, main_program=main_program)
+exe = fluid.Executor(place)
 
 ```
 
@@ -177,9 +175,9 @@ exe = fluid.ParallelExecutor(use_cuda, main_program=main_program)
 # Plot data
 from paddle.utils.plot import Ploter
 
-train_title = "Train cost"
-test_title = "Test cost"
-plot_cost = Ploter(train_title, test_title)
+train_prompt = "Train cost"
+test_prompt = "Test cost"
+plot_prompt = Ploter(train_prompt, test_prompt)
 
 ```
 
@@ -190,11 +188,12 @@ plot_cost = Ploter(train_title, test_title)
 num_epochs = 100
 
 # For training test cost
-def train_test(executor, reader, feeder, fetch_list):
+def train_test(executor, program, reader, feeder, fetch_list):
     accumulated = 1 * [0]
     count = 0
     for data_test in reader():
-        outs = executor.run(feed=feeder.feed(data_test),
+        outs = executor.run(program=program,
+                            feed=feeder.feed(data_test),
                             fetch_list=fetch_list)
         accumulated = [x_c[0] + x_c[1][0] for x_c in zip(accumulated, outs)]
         count += 1
@@ -215,23 +214,24 @@ naive_exe = fluid.Executor(place)
 naive_exe.run(startup_program)
 step = 0
 
-exe_test = fluid.ParallelExecutor(use_cuda,
-                                  main_program=test_program,
-                                  share_vars_from=exe)
+exe_test = fluid.Executor(place)
+
 # main train loop.
 for pass_id in range(num_epochs):
     for data_train in train_reader():
-        avg_loss_value, = exe.run(feed=feeder.feed(data_train),
-                                  fetch_list=[avg_loss.name])
+        avg_loss_value, = exe.run(main_program,
+                                  feed=feeder.feed(data_train),
+                                  fetch_list=[avg_loss])
         if step % 10 == 0:  # record a train cost every 10 batches
-            plot_cost.append(train_title, step, avg_loss_value[0])
+            plot_cost.append(train_prompt, step, avg_loss_value[0])
             plot_cost.plot()
         if step % 100 == 0:  # record a test cost every 100 batches
             test_metics = train_test(executor=exe_test,
+                                     program=test_program,
                                      reader=test_reader,
                                      fetch_list=[avg_loss.name],
                                      feeder=feeder)
-            plot_cost.append(test_title, step, test_metics[0])
+            plot_cost.append(test_prompt, step, test_metics[0])
             plot_cost.plot()
             # If the accuracy is good enough, we can stop the training.
             if test_metics[0] < 10.0:
@@ -244,7 +244,7 @@ for pass_id in range(num_epochs):
     if params_dirname is not None:
         # We can save the trained parameters for the inferences later
         fluid.io.save_inference_model(params_dirname, ['x'],
-                                      [y_predict], naive_exe)
+                                      [y_predict], exe)
 ```
 
 ## 预测

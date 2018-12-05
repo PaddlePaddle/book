@@ -19,16 +19,15 @@ import paddle.fluid as fluid
 import numpy
 import math
 import sys
-import os
-os.environ['CPU_NUM'] = '1'
 
 
 # For training test cost
-def train_test(executor, reader, feeder, fetch_list):
+def train_test(executor, program, reader, feeder, fetch_list):
     accumulated = 1 * [0]
     count = 0
     for data_test in reader():
-        outs = executor.run(feed=feeder.feed(data_test), fetch_list=fetch_list)
+        outs = executor.run(
+            program=program, feed=feeder.feed(data_test), fetch_list=fetch_list)
         accumulated = [x_c[0] + x_c[1][0] for x_c in zip(accumulated, outs)]
         count += 1
     return [x_d / count for x_d in accumulated]
@@ -62,28 +61,28 @@ def main():
     # can use CPU or GPU
     use_cuda = False
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    exe = fluid.ParallelExecutor(use_cuda, main_program=main_program)
+    exe = fluid.Executor(place)
 
     # Specify the directory to save the parameters
     params_dirname = "fit_a_line.inference.model"
-    num_epochs = 200
+    num_epochs = 100
 
     # main train loop.
     feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
-    naive_exe = fluid.Executor(place)
-    naive_exe.run(startup_program)
+    exe.run(startup_program)
 
     train_prompt = "Train cost"
     test_prompt = "Test cost"
     step = 0
 
-    exe_test = fluid.ParallelExecutor(
-        use_cuda, main_program=test_program, share_vars_from=exe)
+    exe_test = fluid.Executor(place)
 
     for pass_id in range(num_epochs):
         for data_train in train_reader():
             avg_loss_value, = exe.run(
-                feed=feeder.feed(data_train), fetch_list=[avg_loss.name])
+                main_program,
+                feed=feeder.feed(data_train),
+                fetch_list=[avg_loss])
             if step % 10 == 0:  # record a train cost every 10 batches
                 print("%s, Step %d, Cost %f" %
                       (train_prompt, step, avg_loss_value[0]))
@@ -91,8 +90,9 @@ def main():
             if step % 100 == 0:  # record a test cost every 100 batches
                 test_metics = train_test(
                     executor=exe_test,
+                    program=test_program,
                     reader=test_reader,
-                    fetch_list=[avg_loss.name],
+                    fetch_list=[avg_loss],
                     feeder=feeder)
                 print("%s, Step %d, Cost %f" %
                       (test_prompt, step, test_metics[0]))
@@ -107,7 +107,7 @@ def main():
         if params_dirname is not None:
             # We can save the trained parameters for the inferences later
             fluid.io.save_inference_model(params_dirname, ['x'], [y_predict],
-                                          naive_exe)
+                                          exe)
 
     infer_exe = fluid.Executor(place)
     inference_scope = fluid.core.Scope()
