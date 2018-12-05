@@ -20,19 +20,11 @@ import paddle
 import paddle.fluid as fluid
 import paddle.fluid.layers as layers
 import paddle.fluid.nets as nets
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
 
 IS_SPARSE = True
 USE_GPU = False
 BATCH_SIZE = 256
+PASS_NUM = 100
 
 
 def get_usr_combined_features():
@@ -148,71 +140,101 @@ def inference_program():
     inference = layers.cos_sim(X=usr_combined_features, Y=mov_combined_features)
     scale_infer = layers.scale(x=inference, scale=5.0)
 
-    return scale_infer
-
-
-def train_program():
-
-    scale_infer = inference_program()
-
     label = layers.data(name='score', shape=[1], dtype='float32')
     square_cost = layers.square_error_cost(input=scale_infer, label=label)
     avg_cost = layers.mean(square_cost)
 
-    return [avg_cost, scale_infer]
+    return scale_infer, avg_cost
 
 
 def optimizer_func():
     return fluid.optimizer.SGD(learning_rate=0.2)
 
 
-def train(use_cuda, train_program, params_dirname):
+def train(use_cuda, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-    trainer = Trainer(
-        train_func=train_program, place=place, optimizer_func=optimizer_func)
+    train_reader = paddle.batch(
+        paddle.reader.shuffle(paddle.dataset.movielens.train(), buf_size=8192),
+        batch_size=BATCH_SIZE)
+    test_reader = paddle.batch(
+        paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
 
     feed_order = [
         'user_id', 'gender_id', 'age_id', 'job_id', 'movie_id', 'category_id',
         'movie_title', 'score'
     ]
 
-    def event_handler(event):
-        if isinstance(event, EndStepEvent):
-            test_reader = paddle.batch(
-                paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
-            avg_cost_set = trainer.test(
-                reader=test_reader, feed_order=feed_order)
+    main_program = fluid.default_main_program()
+    star_program = fluid.default_startup_program()
+    scale_infer, avg_cost = inference_program()
 
-            # get avg cost
-            avg_cost = np.array(avg_cost_set).mean()
+    test_program = main_program.clone(for_test=True)
+    sgd_optimizer = optimizer_func()
+    sgd_optimizer.minimize(avg_cost)
+    exe = fluid.Executor(place)
 
-            print("avg_cost: %s" % avg_cost)
+    def train_test(program, reader):
+        count = 0
+        feed_var_list = [
+            program.global_block().var(var_name) for var_name in feed_order
+        ]
+        feeder_test = fluid.DataFeeder(feed_list=feed_var_list, place=place)
+        test_exe = fluid.Executor(place)
+        accumulated = len([avg_cost, scale_infer]) * [0]
+        for test_data in reader():
+            avg_cost_np = test_exe.run(
+                program=program,
+                feed=feeder_test.feed(test_data),
+                fetch_list=[avg_cost, scale_infer])
+            accumulated = [
+                x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)
+            ]
+            count += 1
+        return [x / count for x in accumulated]
 
-            if float(avg_cost) < 4:  # Change this number to adjust accuracy
-                trainer.save_params(params_dirname)
-                trainer.stop()
-            else:
-                print('BatchID {0}, Test Loss {1:0.2}'.format(event.epoch + 1,
-                                                              float(avg_cost)))
-                if math.isnan(float(avg_cost)):
+    def train_loop():
+        feed_list = [
+            main_program.global_block().var(var_name) for var_name in feed_order
+        ]
+        feeder = fluid.DataFeeder(feed_list, place)
+        exe.run(star_program)
+
+        for pass_id in range(PASS_NUM):
+            for batch_id, data in enumerate(train_reader()):
+                # train a mini-batch
+                outs = exe.run(
+                    program=main_program,
+                    feed=feeder.feed(data),
+                    fetch_list=[avg_cost])
+                out = np.array(outs[0])
+
+                avg_cost_set = train_test(test_program, test_reader)
+
+                # get test avg_cost
+                test_avg_cost = np.array(avg_cost_set).mean()
+                print("avg_cost: %s" % test_avg_cost)
+
+                # if test_avg_cost < 4.0: # Change this number to adjust accuracy
+                if batch_id == 20:
+                    if params_dirname is not None:
+                        fluid.io.save_inference_model(params_dirname, [
+                            "user_id", "gender_id", "age_id", "job_id",
+                            "movie_id", "category_id", "movie_title"
+                        ], [scale_infer], exe)
+                    return
+                else:
+                    print('BatchID {0}, Test Loss {1:0.2}'.format(
+                        pass_id + 1, float(test_avg_cost)))
+
+                if math.isnan(float(out[0])):
                     sys.exit("got NaN loss, training failed.")
 
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.movielens.train(), buf_size=8192),
-        batch_size=BATCH_SIZE)
-
-    trainer.train(
-        num_epochs=1,
-        event_handler=event_handler,
-        reader=train_reader,
-        feed_order=feed_order)
+    train_loop()
 
 
-def infer(use_cuda, inference_program, params_dirname):
+def infer(use_cuda, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    inferencer = Inferencer(
-        inference_program, param_path=params_dirname, place=place)
 
     # Use the first data from paddle.dataset.movielens.test() as input.
     # Use create_lod_tensor(data, lod, place) API to generate LoD Tensor,
@@ -225,46 +247,79 @@ def infer(use_cuda, inference_program, params_dirname):
     infer_movie_id = 783
     infer_movie_name = paddle.dataset.movielens.movie_info()[
         infer_movie_id].title
-    user_id = fluid.create_lod_tensor([[1]], [[1]], place)
-    gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
-    age_id = fluid.create_lod_tensor([[0]], [[1]], place)
-    job_id = fluid.create_lod_tensor([[10]], [[1]], place)
-    movie_id = fluid.create_lod_tensor([[783]], [[1]], place)
-    category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place)
-    movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
-                                          place)
 
-    results = inferencer.infer(
-        {
-            'user_id': user_id,
-            'gender_id': gender_id,
-            'age_id': age_id,
-            'job_id': job_id,
-            'movie_id': movie_id,
-            'category_id': category_id,
-            'movie_title': movie_title
-        },
-        return_numpy=False)
+    exe = fluid.Executor(place)
 
-    predict_rating = np.array(results[0])
-    print("Predict Rating of user id 1 on movie \"" + infer_movie_name +
-          "\" is " + str(predict_rating[0][0]))
-    print("Actual Rating of user id 1 on movie \"" + infer_movie_name +
-          "\" is 4.")
+    inference_scope = fluid.core.Scope()
+
+    with fluid.scope_guard(inference_scope):
+        # Use fluid.io.load_inference_model to obtain the inference program desc,
+        # the feed_target_names (the names of variables that will be feeded
+        # data using feed operators), and the fetch_targets (variables that
+        # we want to obtain data from using fetch operators).
+        [inferencer, feed_target_names,
+         fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
+
+        # Use the first data from paddle.dataset.movielens.test() as input
+        assert feed_target_names[0] == "user_id"
+        # Use create_lod_tensor(data, recursive_sequence_lengths, place) API
+        # to generate LoD Tensor where `data` is a list of sequences of index
+        # numbers, `recursive_sequence_lengths` is the length-based level of detail
+        # (lod) info associated with `data`.
+        # For example, data = [[10, 2, 3], [2, 3]] means that it contains
+        # two sequences of indexes, of length 3 and 2, respectively.
+        # Correspondingly, recursive_sequence_lengths = [[3, 2]] contains one
+        # level of detail info, indicating that `data` consists of two sequences
+        # of length 3 and 2, respectively.
+        user_id = fluid.create_lod_tensor([[1]], [[1]], place)
+
+        assert feed_target_names[1] == "gender_id"
+        gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
+
+        assert feed_target_names[2] == "age_id"
+        age_id = fluid.create_lod_tensor([[0]], [[1]], place)
+
+        assert feed_target_names[3] == "job_id"
+        job_id = fluid.create_lod_tensor([[10]], [[1]], place)
+
+        assert feed_target_names[4] == "movie_id"
+        movie_id = fluid.create_lod_tensor([[783]], [[1]], place)
+
+        assert feed_target_names[5] == "category_id"
+        category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place)
+
+        assert feed_target_names[6] == "movie_title"
+        movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]],
+                                              [[5]], place)
+
+        # Construct feed as a dictionary of {feed_target_name: feed_target_data}
+        # and results will contain a list of data corresponding to fetch_targets.
+        results = exe.run(
+            inferencer,
+            feed={
+                feed_target_names[0]: user_id,
+                feed_target_names[1]: gender_id,
+                feed_target_names[2]: age_id,
+                feed_target_names[3]: job_id,
+                feed_target_names[4]: movie_id,
+                feed_target_names[5]: category_id,
+                feed_target_names[6]: movie_title
+            },
+            fetch_list=fetch_targets,
+            return_numpy=False)
+        predict_rating = np.array(results[0])
+        print("Predict Rating of user id 1 on movie \"" + infer_movie_name +
+              "\" is " + str(predict_rating[0][0]))
+        print("Actual Rating of user id 1 on movie \"" + infer_movie_name +
+              "\" is 4.")
 
 
 def main(use_cuda):
     if use_cuda and not fluid.core.is_compiled_with_cuda():
         return
     params_dirname = "recommender_system.inference.model"
-    train(
-        use_cuda=use_cuda,
-        train_program=train_program,
-        params_dirname=params_dirname)
-    infer(
-        use_cuda=use_cuda,
-        inference_program=inference_program,
-        params_dirname=params_dirname)
+    train(use_cuda=use_cuda, params_dirname=params_dirname)
+    infer(use_cuda=use_cuda, params_dirname=params_dirname)
 
 
 if __name__ == '__main__':
