@@ -302,9 +302,9 @@ def event_handler(pass_id, batch_id, cost):
 ```python
 from paddle.v2.plot import Ploter
 
-train_title = "Train cost"
-test_title = "Test cost"
-cost_ploter = Ploter(train_title, test_title)
+train_prompt = "Train cost"
+test_prompt = "Test cost"
+cost_ploter = Ploter(train_prompt, test_prompt)
 
 # event_handler to plot a figure
 def event_handler_plot(ploter_title, step, cost):
@@ -376,7 +376,7 @@ for epoch_id in epochs:
                           fetch_list=[avg_loss, acc])
         if step % 100 == 0:
             print("Pass %d, Batch %d, Cost %f" % (step, epoch_id, metrics[0]))
-            event_handler_plot(train_title, step, metrics[0])
+            event_handler_plot(train_prompt, step, metrics[0])
         step += 1
 
     # test for epoch
@@ -385,7 +385,7 @@ for epoch_id in epochs:
                                        train_test_feed=feeder)
 
     print("Test with Epoch %d, avg_cost: %s, acc: %s" %(epoch_id, avg_loss_val, acc_val))
-    event_handler_plot(test_title, step, metrics[0])
+    event_handler_plot(test_prompt, step, metrics[0])
 
     lists.append((epoch_id, avg_loss_val, acc_val))
     if save_dirname is not None:
