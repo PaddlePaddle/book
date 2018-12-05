@@ -215,8 +215,8 @@ def train(use_cuda, params_dirname):
                 test_avg_cost = np.array(avg_cost_set).mean()
                 print("avg_cost: %s" % test_avg_cost)
 
-                if test_avg_cost < 4.0:  # Change this number to adjust accuracy
-                    #if batch_id == 20:
+                # if test_avg_cost < 4.0: # Change this number to adjust accuracy
+                if batch_id == 20:
                     if params_dirname is not None:
                         fluid.io.save_inference_model(params_dirname, [
                             "user_id", "gender_id", "age_id", "job_id",

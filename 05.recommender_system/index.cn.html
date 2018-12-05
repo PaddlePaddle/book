@@ -450,11 +450,6 @@ test_reader = paddle.batch(
 ### 构造训练过程(trainer)
 我们这里构造了一个训练过程，包括训练优化函数。
 
-```python
-trainer = Trainer(
-    train_func=train_program, place=place, optimizer_func=optimizer_func)
-```
-
 ### 提供数据
 
 `feed_order`用来定义每条产生的数据和`paddle.layer.data`之间的映射关系。比如，`movielens.train`产生的第一列的数据对应的是`user_id`这个特征。
@@ -504,9 +499,9 @@ def train_test(program, reader):
 # Specify the directory path to save the parameters
 params_dirname = "recommender_system.inference.model"
 
-from paddle.v2.plot import Ploter
-test_title = "Test cost"
-plot_cost = Ploter(test_title)
+from paddle.utils.plot import Ploter
+test_prompt = "Test cost"
+plot_cost = Ploter(test_prompt)
 
 def train_loop():
     feed_list = [
@@ -527,7 +522,7 @@ def train_loop():
 
             # get test avg_cost
             test_avg_cost = np.array(avg_cost_set).mean()
-            plot_cost.append(test_title, batch_id, outs[0])
+            plot_cost.append(test_prompt, batch_id, outs[0])
             plot_cost.plot()
             print("avg_cost: %s" % test_avg_cost)
 
