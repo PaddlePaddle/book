@@ -396,8 +396,8 @@ def train_test(program, reader):
     accumulated = len([avg_cost, acc]) * [0]
     for tid, test_data in enumerate(reader()):
         avg_cost_np = test_exe.run(program=program,
-                                               feed=feeder_test.feed(test_data),
-                                               fetch_list=[avg_cost, acc])
+                                   feed=feeder_test.feed(test_data),
+                                   fetch_list=[avg_cost, acc])
         accumulated = [x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)]
         count += 1
     return [x / count for x in accumulated]
@@ -412,11 +412,11 @@ def train_test(program, reader):
 ```python
 params_dirname = "image_classification_resnet.inference.model"
 
-from paddle.v2.plot import Ploter
+from paddle.utils.plot import Ploter
 
-train_title = "Train cost"
-test_title = "Test cost"
-plot_cost = Ploter(test_title,train_title)
+train_prompt = "Train cost"
+test_prompt = "Test cost"
+plot_cost = Ploter(test_prompt,train_prompt)
 
 # main train loop.
 def train_loop():
@@ -434,13 +434,13 @@ def train_loop():
                                      feed=feeder.feed(data_train),
                                      fetch_list=[avg_cost, acc])
             if step % 1 == 0:
-                plot_cost.append(train_title, step, avg_loss_value[0])
+                plot_cost.append(train_prompt, step, avg_loss_value[0])
                 plot_cost.plot()
             step += 1
 
         avg_cost_test, accuracy_test = train_test(test_program,
                                                   reader=test_reader)
-        plot_cost.append(test_title, step, avg_cost_test)
+        plot_cost.append(test_prompt, step, avg_cost_test)
 
         # save parameters
         if params_dirname is not None:
@@ -485,23 +485,18 @@ Test with Pass 0, Loss 1.1, Acc 0.6
 
 ### 生成预测输入数据
 
-`dog.png` is an example image of a dog. Turn it into an numpy array to match the data feeder format.
-
-### 生成预测输入数据
-
-`dog.png` is an example image of a dog. Turn it into an numpy array to match the data feeder format.
+`dog.png` 是一张小狗的图片. 我们将它转换成 `numpy` 数组以满足`feeder`的格式.
 
 ```python
 # Prepare testing data.
 from PIL import Image
-import numpy as np
 import os
 
 def load_image(file):
     im = Image.open(file)
     im = im.resize((32, 32), Image.ANTIALIAS)
 
-    im = np.array(im).astype(np.float32)
+    im = numpy.array(im).astype(numpy.float32)
     # The storage order of the loaded image is W(width),
     # H(height), C(channel). PaddlePaddle requires
     # the CHW order, so transpose them.
