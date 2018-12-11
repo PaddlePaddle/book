@@ -202,40 +202,32 @@ dream that one day <e>
 首先，加载所需要的包：
 
 ```python
-import paddle
+
+import paddle as paddle
 import paddle.fluid as fluid
-import numpy
-from functools import partial
-import math
-import os
 import six
-import sys
+import numpy
+import math
+
 from __future__ import print_function
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
+
 ```
 
 然后，定义参数：
 ```python
-EMBED_SIZE = 32  # word vector dimension
-HIDDEN_SIZE = 256  # hidden layer dimension
-N = 5  # train 5-gram
-BATCH_SIZE = 32  # batch size
+EMBED_SIZE = 32
+HIDDEN_SIZE = 256
+N = 5
+BATCH_SIZE = 100
+PASS_NUM = 100
 
-# can use CPU or GPU
-use_cuda = os.getenv('WITH_GPU', '0') != '0'
+use_cuda = False  # set to True if training with GPU
 
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
 ```
 
+更大的`BATCH_SIZE`将使得训练更快收敛，但也会消耗更多内存。由于词向量计算规模较大，如果环境允许，请开启使用GPU进行训练，能更快得到结果。
 不同于之前的PaddlePaddle v2版本，在新的Fluid版本里，我们不必再手动计算词向量。PaddlePaddle提供了一个内置的方法`fluid.layers.embedding`，我们就可以直接用它来构造 N-gram 神经网络。
 
 - 我们来定义我们的 N-gram 神经网络结构。这个结构在训练和预测中都会使用到。因为词向量比较稀疏，我们传入参数 `is_sparse == True`, 可以加速稀疏矩阵的更新。

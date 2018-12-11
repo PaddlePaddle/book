@@ -15,17 +15,6 @@
 from __future__ import print_function
 
 import paddle.fluid as fluid
-import sys
-
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
 
 __all__ = ['resnet_cifar10']
 

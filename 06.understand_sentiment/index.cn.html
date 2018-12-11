@@ -152,24 +152,16 @@ Paddle在`dataset/imdb.py`中提实现了imdb数据集的自动下载和读取�
 from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
-from functools import partial
 import numpy as np
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
+import sys
+import math
 
 CLASS_DIM = 2
 EMB_DIM = 128
 HID_DIM = 512
 STACKED_NUM = 3
 BATCH_SIZE = 128
-USE_GPU = False
+
 ```
 
 
@@ -254,8 +246,7 @@ def inference_program(word_dict):
 在测试过程中，分类器会计算各个输出的概率。第一个返回的数值规定为 损耗(cost)。
 
 ```python
-def train_program(word_dict):
-    prediction = inference_program(word_dict)
+def train_program(prediction):
     label = fluid.layers.data(name="label", shape=[1], dtype="int64")
     cost = fluid.layers.cross_entropy(input=prediction, label=label)
     avg_cost = fluid.layers.mean(cost)
@@ -300,59 +291,77 @@ train_reader = paddle.batch(
 训练器需要一个训练程序和一个训练优化函数。
 
 ```python
-trainer = Trainer(
-    train_func=partial(train_program, word_dict),
-    place=place,
-    optimizer_func=optimizer_func)
+exe = fluid.Executor(place)
+prediction = inference_program(word_dict)
+[avg_cost, accuracy] = train_program(prediction)
+sgd_optimizer = optimizer_func()
+sgd_optimizer.minimize(avg_cost)
 ```
 
-### 提供数据
+### 提供数据并构建主训练循环
 
 `feed_order`用来定义每条产生的数据和`paddle.layer.data`之间的映射关系。比如，`imdb.train`产生的第一列的数据对应的是`words`这个特征。
-
-```python
-feed_order = ['words', 'label']
-```
-
-### 事件处理器
-
-回调函数event_handler在一个之前定义好的事件发生后会被调用。例如，我们可以在每步训练结束后查看误差。
 
 ```python
 # Specify the directory path to save the parameters
 params_dirname = "understand_sentiment_conv.inference.model"
 
-def event_handler(event):
-    if isinstance(event, EndStepEvent):
-        print("Step {0}, Epoch {1} Metrics {2}".format(
-                event.step, event.epoch, list(map(np.array, event.metrics))))
+feed_order = ['words', 'label']
+pass_num = 1
 
-        if event.step == 10:
-            trainer.save_params(params_dirname)
-            trainer.stop()
+def train_loop(main_program):
+    exe.run(fluid.default_startup_program())
+    feed_var_list_loop = [
+        main_program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder = fluid.DataFeeder(
+        feed_list=feed_var_list_loop, place=place)
+
+    test_program = fluid.default_main_program().clone(for_test=True)
+
+    for epoch_id in range(pass_num):
+        for step_id, data in enumerate(train_reader()):
+            metrics = exe.run(main_program,
+                              feed=feeder.feed(data),
+                              fetch_list=[avg_cost, accuracy])
+
+            avg_cost_test, acc_test = train_test(test_program, test_reader)
+            print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
+                step_id, avg_cost_test, acc_test))
+
+            print("Step {0}, Epoch {1} Metrics {2}".format(
+                step_id, epoch_id, list(map(np.array,
+                                            metrics))))
+
+            if step_id == 30:
+                if params_dirname is not None:
+                    fluid.io.save_inference_model(params_dirname, ["words"],
+                                                  prediction, exe)
+                return
 ```
+
+### 训练过程处理
+
+我们在训练主循环里打印了每一步输出，可以观察训练情况。
 
 ### 开始训练
 
-最后，我们传入训练循环数（num_epoch）和一些别的参数，调用 trainer.train 来开始训练。
+最后，我们启动训练主循环来开始训练。训练时间较长，如果为了更快的返回结果，可以通过调整损耗值范围或者训练步数，以减少准确率的代价来缩短训练时间。
 
 ```python
-trainer.train(
-    num_epochs=1,
-    event_handler=event_handler,
-    reader=train_reader,
-    feed_order=feed_order)
+train_loop(fluid.default_main_program())
 ```
 
 ## 应用模型
 
 ### 构建预测器
 
-传入`inference_program`和`params_dirname`来初始化一个预测器, `params_dirname`用来存放训练过程中的各个参数。
+和训练过程一样，我们需要创建一个预测过程，并使用训练得到的模型和参数来进行预测，`params_dirname`用来存放训练过程中的各个参数。
 
 ```python
-inferencer = Inferencer(
-        infer_func=partial(inference_program, word_dict), param_path=params_dirname, place=place)
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+exe = fluid.Executor(place)
+inference_scope = fluid.core.Scope()
 ```
 
 ### 生成测试用输入数据
@@ -376,15 +385,25 @@ base_shape = [[len(c) for c in lod]]
 tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
 ```
 
-## 应用模型
+## 应用模型并进行预测
 
 现在我们可以对每一条评论进行正面或者负面的预测啦。
 
 ```python
-results = inferencer.infer({'words': tensor_words})
+with fluid.scope_guard(inference_scope):
 
-for i, r in enumerate(results[0]):
-    print("Predict probability of ", r[0], " to be positive and ", r[1], " to be negative for review \'", reviews_str[i], "\'")
+    [inferencer, feed_target_names,
+     fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
+
+    assert feed_target_names[0] == "words"
+    results = exe.run(inference_program,
+                      feed={feed_target_names[0]: tensor_words},
+                      fetch_list=fetch_targets,
+                      return_numpy=False)
+    np_data = np.array(results[0])
+    for i, r in enumerate(np_data):
+        print("Predict probability of ", r[0], " to be positive and ", r[1],
+              " to be negative for review \'", reviews_str[i], "\'")
 
 ```
 
