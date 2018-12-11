@@ -223,16 +223,16 @@ for pass_id in range(num_epochs):
                                   feed=feeder.feed(data_train),
                                   fetch_list=[avg_loss])
         if step % 10 == 0:  # record a train cost every 10 batches
-            plot_cost.append(train_prompt, step, avg_loss_value[0])
-            plot_cost.plot()
+            plot_prompt.append(train_prompt, step, avg_loss_value[0])
+            plot_prompt.plot()
         if step % 100 == 0:  # record a test cost every 100 batches
             test_metics = train_test(executor=exe_test,
                                      program=test_program,
                                      reader=test_reader,
                                      fetch_list=[avg_loss.name],
                                      feeder=feeder)
-            plot_cost.append(test_prompt, step, test_metics[0])
-            plot_cost.plot()
+            plot_prompt.append(test_prompt, step, test_metics[0])
+            plot_prompt.plot()
             # If the accuracy is good enough, we can stop the training.
             if test_metics[0] < 10.0:
                 break
