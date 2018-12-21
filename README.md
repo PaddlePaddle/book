@@ -28,10 +28,10 @@ docker run -d -p 8888:8888 paddlepaddle/book
 
 This command will download the pre-built Docker image from DockerHub.com and run it in a container.  Please direct your Web browser to http://localhost:8888 to read the book.
 
-If you are living in somewhere slow to access DockerHub.com, you might try our mirror server docker.paddlepaddlehub.com:
+If you are living in somewhere slow to access DockerHub.com, you might try our mirror server hub.baidubce.com:
 
 ```bash
-docker run -d -p 8888:8888 docker.paddlepaddlehub.com/book
+docker run -d -p 8888:8888 hub.baidubce.com/paddlepaddle/book
 
 ```
 
@@ -49,7 +49,7 @@ nvidia-docker run -d -p 8888:8888 paddlepaddle/book:latest-gpu
 Or you can use the image registry mirror in China:
 
 ```bash
-nvidia-docker run -d -p 8888:8888 docker.paddlepaddlehub.com/book:latest-gpu
+nvidia-docker run -d -p 8888:8888 hub.baidubce.com/paddlepaddle/book:latest-gpu
 
 ```
 

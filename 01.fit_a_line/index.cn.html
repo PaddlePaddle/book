@@ -55,7 +55,7 @@ $$y_i = \omega_1x_{i1} + \omega_2x_{i2} + \ldots + \omega_dx_{id} + b,  i=1,\ldo
 初看起来，这个假设实在过于简单了，变量间的真实关系很难是线性的。但由于线性回归模型有形式简单和易于建模分析的优点，它在实际问题中得到了大量的应用。很多经典的统计学习、机器学习书籍\[[2,3,4](#参考文献)\]也选择对线性模型独立成章重点讲解。
 
 ## 效果展示
-我们使用从[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)获得的波士顿房价数据集进行模型的训练和预测。下面的散点图展示了使用模型对部分房屋价格进行的预测。其中，每个点的横坐标表示同一类房屋真实价格的中位数，纵坐标表示线性回归模型根据特征预测的结果，当二者值完全相等的时候就会落在虚线上。所以模型预测得越准确，则点离虚线越近。
+我们使用从[UCI Housing Data Set](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data)获得的波士顿房价数据集进行模型的训练和预测。下面的散点图展示了使用模型对部分房屋价格进行的预测。其中，每个点的横坐标表示同一类房屋真实价格的中位数，纵坐标表示线性回归模型根据特征预测的结果，当二者值完全相等的时候就会落在虚线上。所以模型预测得越准确，则点离虚线越近。
 <p align="center">
     <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/predictions.png?raw=true" width=400><br/>
     图1. 预测值 V.S. 真实值
@@ -150,7 +150,7 @@ import sys
 from __future__ import print_function
 ```
 
-我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](https://archive.ics.uci.edu/ml/datasets/Housing)
+我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data)
 
 其中，在uci_housing模块中封装了：
 
@@ -265,16 +265,16 @@ for pass_id in range(num_epochs):
                                   feed=feeder.feed(data_train),
                                   fetch_list=[avg_loss])
         if step % 10 == 0:  # record a train cost every 10 batches
-            plot_cost.append(train_prompt, step, avg_loss_value[0])
-            plot_cost.plot()
+            plot_prompt.append(train_prompt, step, avg_loss_value[0])
+            plot_prompt.plot()
         if step % 100 == 0:  # record a test cost every 100 batches
             test_metics = train_test(executor=exe_test,
                                      program=test_program,
                                      reader=test_reader,
                                      fetch_list=[avg_loss.name],
                                      feeder=feeder)
-            plot_cost.append(test_prompt, step, test_metics[0])
-            plot_cost.plot()
+            plot_prompt.append(test_prompt, step, test_metics[0])
+            plot_prompt.plot()
             # If the accuracy is good enough, we can stop the training.
             if test_metics[0] < 10.0:
                 break
