@@ -22,7 +22,7 @@ import math
 EMBED_SIZE = 32
 HIDDEN_SIZE = 256
 N = 5
-BATCH_SIZE = 32
+BATCH_SIZE = 100
 PASS_NUM = 100
 
 use_cuda = False  # set to True if training with GPU
@@ -143,16 +143,16 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
                     main_program, feed=feeder.feed(data), fetch_list=[avg_cost])
 
                 if step % 10 == 0:
-                    #outs = train_test(test_program, test_reader)
-
+                    outs = train_test(test_program, test_reader)
                     # print("Step %d: Average Cost %f" % (step, avg_cost_np[0]))
-                    print("Step %d: Average Cost %f" % (step, avg_cost_np[0]))
+                    print("Step %d: Average Cost %f" % (step, outs[0]))
+                    # print(outs)
 
                     # it will take a few hours.
                     # If average cost is lower than 5.8, we consider the model good enough to stop.
                     # Note 5.8 is a relatively high value. In order to get a better model, one should
                     # aim for avg_cost lower than 3.5. But the training could take longer time.
-                    if avg_cost_np[0] < 5.8:
+                    if outs[0] < 5.8:
                         if params_dirname is not None:
                             fluid.io.save_inference_model(params_dirname, [
                                 'firstw', 'secondw', 'thirdw', 'fourthw'
