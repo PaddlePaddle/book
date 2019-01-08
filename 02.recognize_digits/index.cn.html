@@ -316,18 +316,10 @@ test_reader = paddle.batch(
             paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
 ```
 
-### Trainer 配置
+### Trainer 训练过程
 
-现在，我们需要构建一个 `Trainer`。`Trainer` 包含一个训练程序 `train_program`, `place` 和优化器 `optimizer`，并包含训练迭代、检查训练期间测试误差以及保存所需要用来预测的模型参数。
+现在，我们需要构建一个训练过程。将使用到前面定义的训练程序 `train_program`, `place` 和优化器 `optimizer`，并包含训练迭代、检查训练期间测试误差以及保存所需要用来预测的模型参数。
 
-```python
-# 该模型运行在单个CPU上
-use_cuda = False # set to True if training with GPU
-place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-
-trainer = Trainer(
-    train_func=train_program, place=place, optimizer_func=optimizer_program)
-```
 
 #### Event Handler 配置
 
