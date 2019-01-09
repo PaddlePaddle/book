@@ -185,7 +185,7 @@ def infer(use_cuda, params_dirname=None):
         UNK = word_dict['<unk>']
         lod = []
         for c in reviews:
-            lod.append([word_dict.get(words, UNK) for words in c])
+            lod.append([np.int64(word_dict.get(words, UNK)) for words in c])
 
         base_shape = [[len(c) for c in lod]]
 
