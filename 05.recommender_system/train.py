@@ -289,8 +289,8 @@ def infer(use_cuda, params_dirname):
         category_id = fluid.create_lod_tensor([[10L, 8L, 9L]], [[3]], place)
 
         assert feed_target_names[6] == "movie_title"
-        movie_title = fluid.create_lod_tensor([[1069L, 4140L, 2923L, 710L, 988L]],
-                                              [[5]], place)
+        movie_title = fluid.create_lod_tensor(
+            [[1069L, 4140L, 2923L, 710L, 988L]], [[5]], place)
 
         # Construct feed as a dictionary of {feed_target_name: feed_target_data}
         # and results will contain a list of data corresponding to fetch_targets.
