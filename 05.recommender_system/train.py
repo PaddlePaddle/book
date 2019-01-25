@@ -181,17 +181,15 @@ def train(use_cuda, params_dirname):
         ]
         feeder_test = fluid.DataFeeder(feed_list=feed_var_list, place=place)
         test_exe = fluid.Executor(place)
-        accumulated = len([avg_cost, scale_infer]) * [0]
+        accumulated = 0
         for test_data in reader():
             avg_cost_np = test_exe.run(
                 program=program,
                 feed=feeder_test.feed(test_data),
-                fetch_list=[avg_cost, scale_infer])
-            accumulated = [
-                x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)
-            ]
+                fetch_list=[avg_cost])
+            accumulated += avg_cost_np[0]
             count += 1
-        return [x / count for x in accumulated]
+        return accumulated / count
 
     def train_loop():
         feed_list = [
@@ -209,11 +207,8 @@ def train(use_cuda, params_dirname):
                     fetch_list=[avg_cost])
                 out = np.array(outs[0])
 
-                avg_cost_set = train_test(test_program, test_reader)
-
                 # get test avg_cost
-                test_avg_cost = np.array(avg_cost_set).mean()
-                print("avg_cost: %s" % test_avg_cost)
+                test_avg_cost = train_test(test_program, test_reader)
 
                 # if test_avg_cost < 4.0: # Change this number to adjust accuracy
                 if batch_id == 20:
@@ -223,9 +218,8 @@ def train(use_cuda, params_dirname):
                             "movie_id", "category_id", "movie_title"
                         ], [scale_infer], exe)
                     return
-                else:
-                    print('BatchID {0}, Test Loss {1:0.2}'.format(
-                        pass_id + 1, float(test_avg_cost)))
+                print('EpochID {0}, BatchID {1}, Test Loss {2:0.2}'.format(
+                    pass_id + 1, batch_id + 1, float(test_avg_cost)))
 
                 if math.isnan(float(out[0])):
                     sys.exit("got NaN loss, training failed.")
