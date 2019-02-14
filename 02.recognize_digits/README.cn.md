@@ -29,7 +29,7 @@ MNIST吸引了大量的科学家基于此数据集训练模型，1998年，LeCun
 
 - $Y$是输出：分类器的输出是10类数字（0-9），即$Y=\left ( y_0, y_1, \dots, y_9 \right )$，每一维$y_i$代表图片分类为第$i$类数字的概率。
 
-- $Label$是图片的真实标签：$Label=\left ( l_0, l_1, \dots, l_9 \right )$也是10维，但只有一维为1，其他都为0。例如某张图片上的数字为2，则它的标签为$(0,1,0, \dot, 0)$
+- $Label$是图片的真实标签：$Label=\left ( l_0, l_1, \dots, l_9 \right )$也是10维，但只有一维为1，其他都为0。例如某张图片上的数字为2，则它的标签为$(0,0,1,0, \dot, 0)$
 
 ### Softmax回归(Softmax Regression)
 
@@ -152,13 +152,7 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 2. `train_program`：指定如何从 `inference_program` 和`标签值`中获取 `loss` 的函数，
 这是指定损失计算的地方。
 
-3. `optimizer_func`: 指定优化器配置的函数，优化器负责减少损失并驱动培训，Paddle 支持多种不同的优化器。
-
-4. `Trainer`：PaddlePaddle Trainer 管理由 `train_program` 和 `optimizer` 指定的训练过程。
-通过 `event_handler` 回调函数，用户可以监控培训的进展。
-
-5. `Inferencer`：Fluid inferencer 加载 `inference_program` 和由 Trainer 训练的参数。
-然后，它可以推断数据和返回预测。
+3. `optimizer_func`: 指定优化器配置的函数，优化器负责减少损失并驱动训练，Paddle 支持多种不同的优化器。
 
 在下面的代码示例中，我们将深入了解它们。
 
@@ -326,14 +320,14 @@ test_reader = paddle.batch(
             paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
 ```
 
-### Trainer 训练过程
+### 构建训练过程
 
-现在，我们需要构建一个训练过程。将使用到前面定义的训练程序 `train_program`, `place` 和优化器 `optimizer`，并包含训练迭代、检查训练期间测试误差以及保存所需要用来预测的模型参数。
+现在，我们需要构建一个训练过程。将使用到前面定义的训练程序 `train_program`, `place` 和优化器 `optimizer`,并包含训练迭代、检查训练期间测试误差以及保存所需要用来预测的模型参数。
 
 
 #### Event Handler 配置
 
-我们可以在训练期间通过调用一个handler函数来监控培训进度。
+我们可以在训练期间通过调用一个handler函数来监控训练进度。
 我们将在这里演示两个 `event_handler` 程序。请随意修改 Jupyter Notebook ，看看有什么不同。
 
 `event_handler` 用来在训练过程中输出训练结果
