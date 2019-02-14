@@ -292,7 +292,7 @@ def event_handler(pass_id, batch_id, cost):
 ```
 
 ```python
-from paddle.v2.plot import Ploter
+from paddle.utils.plot import Ploter
 
 train_prompt = "Train cost"
 test_prompt = "Test cost"
