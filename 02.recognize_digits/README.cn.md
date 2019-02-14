@@ -143,10 +143,10 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 2. `train_program`：指定如何从 `inference_program` 和`标签值`中获取 `loss` 的函数。
 这是指定损失计算的地方。
 
-3. `optimizer_func`: “指定优化器配置的函数。优化器负责减少损失并驱动培训。Paddle 支持多种不同的优化器。
+3. `optimizer_func`: “指定优化器配置的函数。优化器负责减少损失并驱动训练。Paddle 支持多种不同的优化器。
 
 4. `Trainer`：PaddlePaddle Trainer 管理由 `train_program` 和 `optimizer` 指定的训练过程。
-通过 `event_handler` 回调函数，用户可以监控培训的进展。
+通过 `event_handler` 回调函数，用户可以监控训练的进展。
 
 5. `Inferencer`：Fluid inferencer 加载 `inference_program` 和由 Trainer 训练的参数。
 然后，它可以推断数据和返回预测。
@@ -281,7 +281,7 @@ test_reader = paddle.batch(
 
 #### Event Handler 配置
 
-我们可以在训练期间通过调用一个handler函数来监控培训进度。
+我们可以在训练期间通过调用一个handler函数来监控训练进度。
 我们将在这里演示两个 `event_handler` 程序。请随意修改 Jupyter 笔记本 ，看看有什么不同。
 
 `event_handler` 用来在训练过程中输出训练结果
