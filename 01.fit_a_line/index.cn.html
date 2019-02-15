@@ -179,14 +179,9 @@ test_reader = paddle.batch(
         batch_size=BATCH_SIZE)
 ```
 
-如果想直接从txt文件中读取数据的话，可以参考以下代码。
+如果想直接从txt文件中读取数据的话，可以参考以下方式。
 
-```python
-filename = 'housing.data'
-feature_name = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE',
-               'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT', 'convert']
-feature_num = len(feature_name)
-data = numpy.fromfile(filename, sep=' ') # 读取原始数据
+data = numpy.fromfile(filename, sep=' ') # 从文件中读取原始数据
 data = data.reshape(data.shape[0] // feature_num, feature_num)
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
 
@@ -207,7 +202,6 @@ test_reader = paddle.batch(
     paddle.reader.shuffle(
         test_data, buf_size=500),
         batch_size=BATCH_SIZE)
-```
 
 ### 配置训练程序
 训练程序的目的是定义一个训练模型的网络结构。对于线性回归来讲，它就是一个从输入到输出的简单的全连接层。更加复杂的结果，比如卷积神经网络，递归神经网络等会在随后的章节中介绍。训练程序必须返回`平均损失`作为第一个返回值，因为它会被后面反向传播算法所用到。
