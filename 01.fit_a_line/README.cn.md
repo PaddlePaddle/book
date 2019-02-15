@@ -155,6 +155,16 @@ ratio = 0.8 # 训练集和验证集的划分比例
 offset = int(data.shape[0]*ratio)
 train_data = data[:offset]
 test_data = data[offset:]
+
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        train_data, buf_size=500),
+        batch_size=BATCH_SIZE)
+
+test_reader = paddle.batch(
+    paddle.reader.shuffle(
+        test_data, buf_size=500),
+        batch_size=BATCH_SIZE)
 ```
 
 ### 配置训练程序
@@ -242,7 +252,7 @@ plot_prompt = ploter(train_prompt, test_prompt)
 
 ### 训练主循环
 
-首先给出需要存储的目录名，并初始化一个执行器。
+给出需要存储的目录名，并初始化一个执行器。
 
 ```python
 %matplotlib inline
@@ -257,7 +267,7 @@ exe_test = fluid.Executor(place)
 
 paddlepaddle提供了reader机制来读取训练数据。reader会一次提供多列数据，因此我们需要一个python的列表来定义读取顺序。我们构建一个循环来进行训练，直到训练结果足够好或者循环次数足够多。
 如果训练迭代次数满足参数保存的迭代次数，可以把训练参数保存到`params_dirname`。
-其次设置训练主循环
+设置训练主循环
 ```python
 for pass_id in range(num_epochs):
     for data_train in train_reader():
@@ -282,12 +292,10 @@ for pass_id in range(num_epochs):
 
         if math.isnan(float(avg_loss_value[0])):
             sys.exit("got NaN loss, training failed.")
-```
 
-保存训练参数到之前给定的路径中
-```python
-if params_dirname is not None:
-    fluid.io.save_inference_model(params_dirname, ['x'], [y_predict], exe)
+        #保存训练参数到之前给定的路径中
+        if params_dirname is not None:
+            fluid.io.save_inference_model(params_dirname, ['x'], [y_predict], exe)
 ```
 
 ## 预测
@@ -325,6 +333,23 @@ with fluid.scope_guard(inference_scope):
                             fetch_list=fetch_targets) # 进行预测
 ```
 
+保存图片
+```python
+def save_result(points1, points2):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    x1 = [idx for idx in range(len(points1))]
+    y1 = points1
+    y2 = points2
+    l1 = plt.plot(x1, y1, 'r--', label='predictions')
+    l2 = plt.plot(x1, y2, 'g--', label='GT')
+    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
+    plt.title('predictions VS GT')
+    plt.legend()
+    plt.savefig('./image/prediction_gt.png')
+```
+
 打印预测结果和标签并可视化结果
 ```python
  print("infer results: (House Price)")
@@ -335,7 +360,7 @@ with fluid.scope_guard(inference_scope):
  for idx, val in enumerate(infer_label):
      print("%d: %.2f" % (idx, val)) # 打印标签值
 
-save_result(results[0], infer_label) # 保存图片，该函数实现在train.py中
+save_result(results[0], infer_label) # 保存图片
 ```
 
 ## 总结
