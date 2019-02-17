@@ -39,7 +39,7 @@
 
 <p align="center">
 <img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/variations.png?raw=true" width="550" ><br/>
-图3. 扰动图片展示 [22]
+图3. 扰动图片展示[22]
 </p>
 
 ## 模型概览
@@ -116,7 +116,7 @@ GoogleNet整体网络结构如图8所示，总共22层网络：开始由3层普�
 
 <p align="center">
 <img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/googlenet.jpeg?raw=true" ><br/>
-图8. GoogleNet [12]
+图8. GoogleNet[12]
 </p>
 
 
@@ -150,7 +150,7 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 
 <p align="center">
 <img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/cifar.png?raw=true" width="350"><br/>
-图11. CIFAR10数据集 [21]
+图11. CIFAR10数据集[21]
 </p>
 
 Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
