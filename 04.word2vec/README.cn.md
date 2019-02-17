@@ -14,7 +14,7 @@ One-hot vector虽然自然，但是用处有限。比如，在互联网广告系
 
 在机器学习领域里，各种“知识”被各种模型表示，词向量模型(word embedding model)就是其中的一类。通过词向量模型可将一个 one-hot vector映射到一个维度更低的实数向量（embedding vector），如$embedding(母亲节) = [0.3, 4.2, -1.5, ...], embedding(康乃馨) = [0.2, 5.6, -2.3, ...]$。在这个映射到的实数向量表示中，希望两个语义（或用法）上相似的词对应的词向量“更像”，这样如“母亲节”和“康乃馨”的对应词向量的余弦相似度就不再为零了。
 
-词向量模型可以是概率模型、共生矩阵(co-occurrence matrix)模型或神经元网络模型。在用神经网络求词向量之前，传统做法是统计一个词语的共生矩阵$X$。$X$是一个$|V| \times |V|$ 大小的矩阵，$X_{ij}$表示在所有语料中，词汇表`V`(vocabulary)中第i个词和第j个词同时出现的词数，$|V|$为词汇表的大小。对$X$做矩阵分解（如奇异值分解，Singular Value Decomposition \[[5](#参考文献)\]），得到的$U$即视为所有词的词向量：
+词向量模型可以是概率模型、共生矩阵(co-occurrence matrix)模型或神经元网络模型。在用神经网络求词向量之前，传统做法是统计一个词语的共生矩阵$X$。$X$是一个$|V| \times |V|$ 大小的矩阵，$X_{ij}$表示在所有语料中，词汇表$V$(vocabulary)中第i个词和第j个词同时出现的词数，$|V|$为词汇表的大小。对$X$做矩阵分解（如奇异值分解，Singular Value Decomposition \[[5](#参考文献)\]），得到的$U$即视为所有词的词向量：
 
 $$X = USV^T$$
 
@@ -26,7 +26,7 @@ $$X = USV^T$$
 
 3) 需要手动去掉停用词（如although, a,...），不然这些频繁出现的词也会影响矩阵分解的效果。
 
-基于神经网络的模型不需要计算存储一个在全语料上统计的大表，而是通过学习语义信息得到词向量，因此能很好地解决以上问题。在本章里，我们将展示基于神经网络训练词向量的细节，以及如何用PaddlePaddle训练一个词向量模型。
+基于神经网络的模型不需要计算和存储一个在全语料上统计产生的大表，而是通过学习语义信息得到词向量，因此能很好地解决以上问题。在本章里，我们将展示基于神经网络训练词向量的细节，以及如何用PaddlePaddle训练一个词向量模型。
 
 
 ## 效果展示
@@ -77,7 +77,7 @@ $$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
 
 在计算语言学中，n-gram是一种重要的文本表示方法，表示一个文本中连续的n个项。基于具体的应用场景，每一项可以是一个字母、单词或者音节。 n-gram模型也是统计语言模型中的一种重要方法，用n-gram训练语言模型时，一般用每个n-gram的历史n-1个词语组成的内容来预测第n个词。
 
-Yoshua Bengio等科学家就于2003年在著名论文 Neural Probabilistic Language Models \[[1](#参考文献)\] 中介绍如何学习一个神经元网络表示的词向量模型。文中的神经概率语言模型（Neural Network Language Model，NNLM）通过一个线性映射和一个非线性隐层连接，同时学习了语言模型和词向量，即通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。用这种方法学习语言模型可以克服维度灾难（curse of dimensionality）,即训练和测试数据不同导致的模型不准。注意：由于“神经概率语言模型”说法较为泛泛，我们在这里不用其NNLM的本名，考虑到其具体做法，本文中称该模型为N-gram neural model。
+Yoshua Bengio等科学家就于2003年在著名论文 Neural Probabilistic Language Models \[[1](#参考文献)\] 中介绍如何学习一个神经元网络表示的词向量模型。文中的神经概率语言模型（Neural Network Language Model，NNLM）通过一个线性映射和一个非线性隐层连接，同时学习了语言模型和词向量，即通过学习大量语料得到词语的向量表达，通过这些向量得到整个句子的概率。因所有的词语都用一个低维向量来表示，用这种方法学习语言模型可以克服维度灾难（curse of dimensionality）。注意：由于“神经概率语言模型”说法较为泛泛，我们在这里不用其NNLM的本名，考虑到其具体做法，本文中称该模型为N-gram neural model。
 
 我们在上文中已经讲到用条件概率建模语言模型，即一句话中第$t$个词的概率和该句话的前$t-1$个词相关。可实际上越远的词语其实对该词的影响越小，那么如果考虑一个n-gram, 每个词都只受其前面`n-1`个词的影响，则有：
 
@@ -95,15 +95,15 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 </p>
 
 图2展示了N-gram神经网络模型，从下往上看，该模型分为以下几个部分：
- - 对于每个样本，模型输入$w_{t-n+1},...w_{t-1}$, 输出句子第t个词为字典中`|V|`个词的概率。
+ - 对于每个样本，模型输入$w_{t-n+1},...w_{t-1}$, 输出句子第t个词在字典中`|V|`个词上的概率分布。
 
    每个输入词$w_{t-n+1},...w_{t-1}$首先通过映射矩阵映射到词向量$C(w_{t-n+1}),...C(w_{t-1})$。
 
- - 然后所有词语的词向量连接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
+ - 然后所有词语的词向量拼接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
 
     $$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
 
-    其中，$x$为所有词语的词向量连接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
+    其中，$x$为所有词语的词向量拼接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
 
  - 根据softmax的定义，通过归一化$g_i$, 生成目标词$w_t$的概率为：
 
@@ -111,7 +111,7 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
  - 整个网络的损失值(cost)为多类分类交叉熵，用公式表示为
 
-   $$J(\theta) = -\sum_{i=1}^N\sum_{c=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
+   $$J(\theta) = -\sum_{i=1}^N\sum_{k=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
 
    其中$y_k^i$表示第$i$个样本第$k$类的真实标签(0或1)，$softmax(g_k^i)$表示第i个样本第k类softmax输出的概率。
 
@@ -214,14 +214,15 @@ from __future__ import print_function
 ```
 
 然后，定义参数：
-```python
-EMBED_SIZE = 32
-HIDDEN_SIZE = 256
-N = 5
-BATCH_SIZE = 100
-PASS_NUM = 100
 
-use_cuda = False  # set to True if training with GPU
+```python
+EMBED_SIZE = 32      # embedding维度
+HIDDEN_SIZE = 256    # 隐层大小
+N = 5                # ngram大小，这里固定取5
+BATCH_SIZE = 100     # batch大小
+PASS_NUM = 100       # 训练轮数
+
+use_cuda = False  # 如果用GPU训练，则设置为True
 
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
@@ -269,13 +270,13 @@ def inference_program(words, is_sparse):
     return predict_word
 ```
 
-- 基于以上的神经网络结构，我们可以如下定义我们的`训练`方法
+- 基于以上的神经网络结构，我们可以如下定义我们的训练方法
 
 ```python
 def train_program(predict_word):
-    # The declaration of 'next_word' must be after the invoking of inference_program,
-    # or the data input order of train program would be [next_word, firstw, secondw,
-    # thirdw, fourthw], which is not correct.
+    # 'next_word'的定义必须要在inference_program的声明之后，
+    # 否则train program输入数据的顺序就变成了[next_word, firstw, secondw,
+    # thirdw, fourthw], 这是不正确的.
     next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
     avg_cost = fluid.layers.mean(cost)
@@ -358,10 +359,10 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
 
                     print("Step %d: Average Cost %f" % (step, outs[0]))
 
-                    # it will take a few hours.
-                    # If average cost is lower than 5.8, we consider the model good enough to stop.
-                    # Note 5.8 is a relatively high value. In order to get a better model, one should
-                    # aim for avg_cost lower than 3.5. But the training could take longer time.
+                    # 整个训练过程要花费几个小时，如果平均损失低于5.8，
+                    # 我们就认为模型已经达到很好的效果可以停止训练了。
+                    # 注意5.8是一个相对较高的值，为了获取更好的模型，可以将
+                    # 这里的阈值设为3.5，但训练时间也会更长。
                     if outs[0] < 5.8:
                         if params_dirname is not None:
                             fluid.io.save_inference_model(params_dirname, [
@@ -377,7 +378,7 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
     train_loop()
 ```
 
-- `train_loop`将会开始训练。期间打印返回的监控情况如下：
+- `train_loop`将会开始训练。期间打印训练过程的日志如下：
 
 ```text
 Step 0: Average Cost 7.337213
@@ -400,23 +401,16 @@ def infer(use_cuda, params_dirname=None):
     exe = fluid.Executor(place)
 
     inference_scope = fluid.core.Scope()
-
-    inference_scope = fluid.core.Scope()
     with fluid.scope_guard(inference_scope):
-        # Use fluid.io.load_inference_model to obtain the inference program desc,
-        # the feed_target_names (the names of variables that will be feeded
-        # data using feed operators), and the fetch_targets (variables that
-        # we want to obtain data from using fetch operators).
+        # 使用fluid.io.load_inference_model获取inference program，
+        # feed变量的名称feed_target_names和从scope中fetch的对象fetch_targets
         [inferencer, feed_target_names,
          fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
 
-        # Setup inputs by creating 4 LoDTensors representing 4 words. Here each word
-        # is simply an index to look up for the corresponding word vector and hence
-        # the shape of word (base_shape) should be [1]. The recursive_sequence_lengths,
-        # which is length-based level of detail (lod) of each LoDTensor, should be [[1]]
-        # meaning there is only one level of detail and there is only one sequence of
-        # one word on this level.
-        # Note that recursive_sequence_lengths should be a list of lists.
+        # 设置输入，用四个LoDTensor来表示4个词语。这里每个词都是一个id，
+        # 用来查询embedding表获取对应的词向量，因此其形状大小是[1]。
+        # recursive_sequence_lengths设置的是基于长度的LoD，因此都应该设为[[1]]
+        # 注意recursive_sequence_lengths是列表的列表
         data1 = [[211]]  # 'among'
         data2 = [[6]]  # 'a'
         data3 = [[96]]  # 'group'
@@ -433,8 +427,8 @@ def infer(use_cuda, params_dirname=None):
         assert feed_target_names[2] == 'thirdw'
         assert feed_target_names[3] == 'fourthw'
 
-        # Construct feed as a dictionary of {feed_target_name: feed_target_data}
-        # and results will contain a list of data corresponding to fetch_targets.
+        # 构造feed词典 {feed_target_name: feed_target_data}
+        # 预测结果包含在results之中
         results = exe.run(
             inferencer,
             feed={
@@ -453,17 +447,16 @@ def infer(use_cuda, params_dirname=None):
             key for key, value in six.iteritems(word_dict)
             if value == most_possible_word_index
         ][0])
-
-
 ```
 
-由于词向量矩阵本身比较稀疏，训练的过程如果要达到一定的精度耗时会比较长。为了能简单看到效果，教程只设置了经过很少的训练就结束并得到如下的预测。我们的模型预测 `among a group of` 的下一个词是`the`。这比较符合文法规律。如果我们训练时间更长，比如几个小时，那么我们会得到的下一个预测是 `workers`。
+由于词向量矩阵本身比较稀疏，训练的过程如果要达到一定的精度耗时会比较长。为了能简单看到效果，教程只设置了经过很少的训练就结束并得到如下的预测。我们的模型预测 `among a group of` 的下一个词是`the`。这比较符合文法规律。如果我们训练时间更长，比如几个小时，那么我们会得到的下一个预测是 `workers`。预测输出的格式如下所示:
 
 ```text
 [[0.03768077 0.03463154 0.00018074 ... 0.00022283 0.00029888 0.02967956]]
 0
 the
 ```
+其中第一行表示预测词在词典上的概率分布，第二行表示概率最大的词对应的id，第三行表示概率最大的词。
 
 整个程序的入口很简单：
 
