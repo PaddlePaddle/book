@@ -33,6 +33,21 @@ def train_test(executor, program, reader, feeder, fetch_list):
     return [x_d / count for x_d in accumulated]
 
 
+def save_result(points1, points2):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    x1 = [idx for idx in range(len(points1))]
+    y1 = points1
+    y2 = points2
+    l1 = plt.plot(x1, y1, 'r--', label='predictions')
+    l2 = plt.plot(x1, y2, 'g--', label='GT')
+    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
+    plt.title('predictions VS GT')
+    plt.legend()
+    plt.savefig('./image/prediction_gt.png')
+
+
 def main():
     batch_size = 20
     train_reader = paddle.batch(
@@ -140,6 +155,8 @@ def main():
         print("\nground truth:")
         for idx, val in enumerate(infer_label):
             print("%d: %.2f" % (idx, val))
+
+        save_result(results[0], infer_label)
 
 
 if __name__ == '__main__':
