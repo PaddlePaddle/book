@@ -315,187 +315,295 @@ def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
 
 ## 训练模型
 
-- 我们根据网络拓扑结构和模型参数来构造出trainer用来训练，在构造时还需指定优化方法，这里使用最基本的SGD方法(momentum设置为0)，同时设定了学习率、正则等。
+- 我们根据网络拓扑结构和模型参数来进行训练，在构造时还需指定优化方法，这里使用最基本的SGD方法(momentum设置为0)，同时设定了学习率、正则等。
 
+定义训练过程的超参数
 ```python
-    feature_out = db_lstm(**locals())
-    target = fluid.layers.data(
-        name='target', shape=[1], dtype='int64', lod_level=1)
-    crf_cost = fluid.layers.linear_chain_crf(
-        input=feature_out,
-        label=target,
-        param_attr=fluid.ParamAttr(name='crfw', learning_rate=mix_hidden_lr))
-
-    avg_cost = fluid.layers.mean(crf_cost)
-
-    sgd_optimizer = fluid.optimizer.SGD(
-        learning_rate=fluid.layers.exponential_decay(
-            learning_rate=0.01,
-            decay_steps=100000,
-            decay_rate=0.5,
-            staircase=True))
-
-    sgd_optimizer.minimize(avg_cost)
+use_cuda = False #在cpu上执行训练
+save_dirname = "label_semantic_roles.inference.model" #训练得到的模型参数保存在文件中
+is_local = True
 ```
 
-- 数据介绍部分提到CoNLL 2005训练集付费，这里我们使用测试集训练供大家学习。conll05.test()每次产生一条样本，包含9个特征，shuffle和组完batch后作为训练的输入。
+### 数据输入层定义
+定义了模型输入特征的格式，包括句子序列、谓词、谓词上下文的5个特征、和谓词上下区域标志
 
 ```python
-    train_data = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.conll05.test(), buf_size=8192),
-        batch_size=BATCH_SIZE)
+# 句子序列
+word = fluid.layers.data(
+    name='word_data', shape=[1], dtype='int64', lod_level=1)
+
+# 谓词
+predicate = fluid.layers.data(
+    name='verb_data', shape=[1], dtype='int64', lod_level=1)
+
+# 谓词上下文5个特征
+ctx_n2 = fluid.layers.data(
+    name='ctx_n2_data', shape=[1], dtype='int64', lod_level=1)
+ctx_n1 = fluid.layers.data(
+    name='ctx_n1_data', shape=[1], dtype='int64', lod_level=1)
+ctx_0 = fluid.layers.data(
+    name='ctx_0_data', shape=[1], dtype='int64', lod_level=1)
+ctx_p1 = fluid.layers.data(
+    name='ctx_p1_data', shape=[1], dtype='int64', lod_level=1)
+ctx_p2 = fluid.layers.data(
+    name='ctx_p2_data', shape=[1], dtype='int64', lod_level=1)
+
+# 谓词上下区域标志
+mark = fluid.layers.data(
+    name='mark_data', shape=[1], dtype='int64', lod_level=1)
+```
+### 定义网络结构
+首先预训练并定义模型输入层
+
+```python
+#预训练谓词和谓词上下区域标志
+predicate_embedding = fluid.layers.embedding(
+    input=predicate,
+    size=[pred_dict_len, word_dim],
+    dtype='float32',
+    is_sparse=IS_SPARSE,
+    param_attr='vemb')
+
+mark_embedding = fluid.layers.embedding(
+    input=mark,
+    size=[mark_dict_len, mark_dim],
+    dtype='float32',
+    is_sparse=IS_SPARSE)
+
+#句子序列和谓词上下文5个特征并预训练
+word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
+# 因词向量是预训练好的，这里不再训练embedding表，
+# 参数属性trainable设置成False阻止了embedding表在训练过程中被更新
+emb_layers = [
+    fluid.layers.embedding(
+        size=[word_dict_len, word_dim],
+        input=x,
+        param_attr=fluid.ParamAttr(
+            name=embedding_name, trainable=False)) for x in word_input
+]
+#加入谓词和谓词上下区域标志的预训练结果
+emb_layers.append(predicate_embedding)
+emb_layers.append(mark_embedding)
+```
+定义8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习。
+
+```python
+# 共有8个LSTM单元被训练，每个单元的方向为从左到右或从右到左，
+# 由参数`is_reverse`确定
+# 第一层栈结构
+hidden_0_layers = [
+    fluid.layers.fc(input=emb, size=hidden_dim, act='tanh')
+    for emb in emb_layers
+]
+
+hidden_0 = fluid.layers.sums(input=hidden_0_layers)
+
+lstm_0 = fluid.layers.dynamic_lstm(
+    input=hidden_0,
+    size=hidden_dim,
+    candidate_activation='relu',
+    gate_activation='sigmoid',
+    cell_activation='sigmoid')
+
+# 用直连的边来堆叠L-LSTM、R-LSTM
+input_tmp = [hidden_0, lstm_0]
+
+# 其余的栈结构
+for i in range(1, depth):
+    mix_hidden = fluid.layers.sums(input=[
+        fluid.layers.fc(input=input_tmp[0], size=hidden_dim, act='tanh'),
+        fluid.layers.fc(input=input_tmp[1], size=hidden_dim, act='tanh')
+    ])
+
+    lstm = fluid.layers.dynamic_lstm(
+        input=mix_hidden,
+        size=hidden_dim,
+        candidate_activation='relu',
+        gate_activation='sigmoid',
+        cell_activation='sigmoid',
+        is_reverse=((i % 2) == 1))
+
+    input_tmp = [mix_hidden, lstm]
+
+# 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，
+# 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
+feature_out = fluid.layers.sums(input=[
+    fluid.layers.fc(input=input_tmp[0], size=label_dict_len, act='tanh'),
+    fluid.layers.fc(input=input_tmp[1], size=label_dict_len, act='tanh')
+])
+
+# 学习 CRF 的转移特征
+crf_cost = fluid.layers.linear_chain_crf(
+    input=feature_out,
+    label=target,
+    param_attr=fluid.ParamAttr(
+        name='crfw', learning_rate=mix_hidden_lr))
+
+
+avg_cost = fluid.layers.mean(crf_cost)
+
+# 使用最基本的SGD优化方法(momentum设置为0)
+sgd_optimizer = fluid.optimizer.SGD(
+    learning_rate=fluid.layers.exponential_decay(
+        learning_rate=0.01,
+        decay_steps=100000,
+        decay_rate=0.5,
+        staircase=True))
+
+sgd_optimizer.minimize(avg_cost)
+
+
 ```
 
-- 通过feeding来指定每一个数据和data_layer的对应关系, 下面的feeding表示 conll05.test()产生数据的第0列对应的data_layer是`word`
+数据介绍部分提到CoNLL 2005训练集付费，这里我们使用测试集训练供大家学习。conll05.test()每次产生一条样本，包含9个特征，shuffle和组完batch后作为训练的输入。
 
 ```python
-    feeder = fluid.DataFeeder(
-        feed_list=[
-            word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, predicate, mark, target
-        ],
-        place=place)
+crf_decode = fluid.layers.crf_decoding(
+    input=feature_out, param_attr=fluid.ParamAttr(name='crfw'))
+
+train_data = paddle.batch(
+    paddle.reader.shuffle(
+        paddle.dataset.conll05.test(), buf_size=8192),
+    batch_size=BATCH_SIZE)
+
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+
 ```
-
-- 最后定义`train_loop()`函数来控制训练过程，并执行`train_loop()`函数
+通过feeder来指定每一个数据和data_layer的对应关系, 下面的feeder表示 conll05.test()产生数据的第0列对应的data_layer是 `word`。
 
 ```python
-    def train_loop(main_program):
-        exe.run(fluid.default_startup_program())
-        embedding_param = fluid.global_scope().find_var(
-            embedding_name).get_tensor()
-        embedding_param.set(
-            load_parameter(conll05.get_embedding(), word_dict_len, word_dim),
-            place)
+feeder = fluid.DataFeeder(
+    feed_list=[
+        word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, predicate, mark, target
+    ],
+    place=place)
+exe = fluid.Executor(place)
+```
+开始训练
 
-        start_time = time.time()
-        batch_id = 0
-        for pass_id in six.moves.xrange(PASS_NUM):
-            for data in train_data():
-                cost = exe.run(
-                    main_program, feed=feeder.feed(data), fetch_list=[avg_cost])
-                cost = cost[0]
+```python
+main_program = fluid.default_main_program()
 
-                if batch_id % 10 == 0:
-                    print("avg_cost:" + str(cost))
-                    if batch_id != 0:
-                        print("second per batch: " + str((
-                            time.time() - start_time) / batch_id))
-                    # Set the threshold low to speed up the CI test
-                    if float(cost) < 60.0:
-                        if save_dirname is not None:
-                            # TODO(liuyiqun): Change the target to crf_decode
-                            fluid.io.save_inference_model(save_dirname, [
-                                'word_data', 'verb_data', 'ctx_n2_data',
-                                'ctx_n1_data', 'ctx_0_data', 'ctx_p1_data',
-                                'ctx_p2_data', 'mark_data'
-                            ], [feature_out], exe)
-                        return
+exe.run(fluid.default_startup_program())
+embedding_param = fluid.global_scope().find_var(
+    embedding_name).get_tensor()
+embedding_param.set(
+    load_parameter(conll05.get_embedding(), word_dict_len, word_dim),
+    place)
 
-                batch_id = batch_id + 1
+start_time = time.time()
+batch_id = 0
+for pass_id in six.moves.xrange(PASS_NUM):
+    for data in train_data():
+        cost = exe.run(main_program,
+                       feed=feeder.feed(data),
+                       fetch_list=[avg_cost])
+        cost = cost[0]
 
-    train_loop(fluid.default_main_program())
+        if batch_id % 10 == 0:
+            print("avg_cost: " + str(cost))
+            if batch_id != 0:
+                print("second per batch: " + str((time.time(
+                ) - start_time) / batch_id))
+            # Set the threshold low to speed up the CI test
+            if float(cost) < 60.0:
+                if save_dirname is not None:
+                    fluid.io.save_inference_model(save_dirname, [
+                        'word_data', 'verb_data', 'ctx_n2_data',
+                        'ctx_n1_data', 'ctx_0_data', 'ctx_p1_data',
+                        'ctx_p2_data', 'mark_data'
+                    ], [feature_out], exe)
+                break
+
+        batch_id = batch_id + 1
 ```
 
 
 ## 应用模型
 
-训练完成之后，需要依据某个我们关心的性能指标选择最优的模型进行预测，可以简单的选择测试集上标记错误最少的那个模型。以下我们给出一个使用训练后的模型进行预测的示例
+训练完成之后，需要依据某个我们关心的性能指标选择最优的模型进行预测，可以简单的选择测试集上标记错误最少的那个模型。以下我们给出一个使用训练后的模型进行预测的示例。
 
-- 加载inference model
-
-```python
-def infer(use_cuda, save_dirname=None):
-    if save_dirname is None:
-        return
-
-    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    exe = fluid.Executor(place)
-
-    inference_scope = fluid.core.Scope()
-    with fluid.scope_guard(inference_scope):
-        # 使用fluid.io.load_inference_model加载inference_program，
-        # feed_target_names是模型的输入变量的名称，fetch_targets是预测对象
-        [inference_program, feed_target_names,
-         fetch_targets] = fluid.io.load_inference_model(save_dirname, exe)
-```
-
-- 输入数据，这里构造假数据作为输入
+首先设置预测过程的参数
 
 ```python
-        # 设置输入，用LoDTensor来表示输入的词序列，这里每个词的形状
-        # base_shape都是[1]，是因为每个词都是用一个id来表示的。
-        # 假如基于长度的LoD是[[3, 4, 2]]，这是一个单层的LoD，那么构造出的
-        # LoDTensor就包含3个序列，其长度分别为3、4和2。
-        # 注意LoD是个列表的列表
-        lod = [[3, 4, 2]]
-        base_shape = [1]
-        # 整数随机数的范围是 [low, high]
-        word = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=word_dict_len - 1)
-        pred = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=pred_dict_len - 1)
-        ctx_n2 = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=word_dict_len - 1)
-        ctx_n1 = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=word_dict_len - 1)
-        ctx_0 = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=word_dict_len - 1)
-        ctx_p1 = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=word_dict_len - 1)
-        ctx_p2 = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=word_dict_len - 1)
-        mark = fluid.create_random_int_lodtensor(
-            lod, base_shape, place, low=0, high=mark_dict_len - 1)
-```
+use_cuda = False #在cpu上进行预测
+save_dirname = "label_semantic_roles.inference.model" #调用训练好的模型进行预测
 
-- 执行预测
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+exe = fluid.Executor(place)
+```
+设置输入，用LoDTensor来表示输入的词序列，这里每个词的形状 base_shape都是[1]，是因为每个词都是用一个id来表示的。假如基于长度的LoD是[[3, 4, 2]]，这是一个单层的LoD，那么构造出的LoDTensor就包含3个序列，其长度分别为3、4和2。
+
+注意LoD是个列表的列表
+
 
 ```python
-        # 构造feed字典 {feed_target_name: feed_target_data}
-        # results是由预测目标构成的列表
-        assert feed_target_names[0] == 'word_data'
-        assert feed_target_names[1] == 'verb_data'
-        assert feed_target_names[2] == 'ctx_n2_data'
-        assert feed_target_names[3] == 'ctx_n1_data'
-        assert feed_target_names[4] == 'ctx_0_data'
-        assert feed_target_names[5] == 'ctx_p1_data'
-        assert feed_target_names[6] == 'ctx_p2_data'
-        assert feed_target_names[7] == 'mark_data'
+lod = [[3, 4, 2]]
+base_shape = [1]
 
-        results = exe.run(inference_program,
-                          feed={
-                              feed_target_names[0]: word,
-                              feed_target_names[1]: pred,
-                              feed_target_names[2]: ctx_n2,
-                              feed_target_names[3]: ctx_n1,
-                              feed_target_names[4]: ctx_0,
-                              feed_target_names[5]: ctx_p1,
-                              feed_target_names[6]: ctx_p2,
-                              feed_target_names[7]: mark
-                          },
-                          fetch_list=fetch_targets,
-                          return_numpy=False)
-        print(results[0].lod())
-        np_data = np.array(results[0])
-        print("Inference Shape: ", np_data.shape)
+# 构造假数据作为输入，整数随机数的范围是[low, high]
+word = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=word_dict_len - 1)
+pred = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=pred_dict_len - 1)
+ctx_n2 = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=word_dict_len - 1)
+ctx_n1 = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=word_dict_len - 1)
+ctx_0 = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=word_dict_len - 1)
+ctx_p1 = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=word_dict_len - 1)
+ctx_p2 = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=word_dict_len - 1)
+mark = fluid.create_random_int_lodtensor(
+    lod, base_shape, place, low=0, high=mark_dict_len - 1)
 ```
 
-整个程序的入口如下：
+使用fluid.io.load_inference_model加载inference_program，feed_target_names是模型的输入变量的名称，fetch_targets是预测对象。
 
 ```python
-def main(use_cuda, is_local=True):
-    if use_cuda and not fluid.core.is_compiled_with_cuda():
-        return
-
-    # Directory for saving the trained model
-    save_dirname = "label_semantic_roles.inference.model"
-
-    train(use_cuda, save_dirname, is_local)
-    infer(use_cuda, save_dirname)
-
-
-main(use_cuda=False)
+[inference_program, feed_target_names,
+ fetch_targets] = fluid.io.load_inference_model(save_dirname, exe)
 ```
+构造feed字典 {feed_target_name: feed_target_data}，results是由预测目标构成的列表
+
+```python
+assert feed_target_names[0] == 'word_data'
+assert feed_target_names[1] == 'verb_data'
+assert feed_target_names[2] == 'ctx_n2_data'
+assert feed_target_names[3] == 'ctx_n1_data'
+assert feed_target_names[4] == 'ctx_0_data'
+assert feed_target_names[5] == 'ctx_p1_data'
+assert feed_target_names[6] == 'ctx_p2_data'
+assert feed_target_names[7] == 'mark_data'
+```
+执行预测
+
+```python
+results = exe.run(inference_program,
+                  feed={
+                      feed_target_names[0]: word,
+                      feed_target_names[1]: pred,
+                      feed_target_names[2]: ctx_n2,
+                      feed_target_names[3]: ctx_n1,
+                      feed_target_names[4]: ctx_0,
+                      feed_target_names[5]: ctx_p1,
+                      feed_target_names[6]: ctx_p2,
+                      feed_target_names[7]: mark
+                  },
+                  fetch_list=fetch_targets,
+                  return_numpy=False)
+```
+
+输出结果
+
+```python
+print(results[0].lod())
+np_data = np.array(results[0])
+print("Inference Shape: ", np_data.shape)
+```
+
 
 ## 总结
 
