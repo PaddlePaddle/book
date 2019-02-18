@@ -104,7 +104,7 @@ def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
 
 
 def train(use_cuda, save_dirname=None, is_local=True):
-    # define network topology
+    # define data layers
     word = fluid.layers.data(
         name='word_data', shape=[1], dtype='int64', lod_level=1)
     predicate = fluid.layers.data(
