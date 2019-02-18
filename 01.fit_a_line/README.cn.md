@@ -152,9 +152,8 @@ data = data.reshape(data.shape[0] // feature_num, feature_num)
 
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
 
-# six.moves可以兼容python2和python3
 for i in six.moves.range(feature_num-1):
-    data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i])
+ data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves可以兼容python2和python3
 
 ratio = 0.8 # 训练集和验证集的划分比例
 
