@@ -139,6 +139,11 @@ test_reader = paddle.batch(
 
 如果想直接从txt文件中读取数据的话，可以参考以下方式。
 
+feature_names = [
+    'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
+    'PTRATIO', 'B', 'LSTAT', 'convert'
+]
+feature_num = len(feature_names)
 data = numpy.fromfile(filename, sep=' ') # 从文件中读取原始数据
 data = data.reshape(data.shape[0] // feature_num, feature_num)
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
