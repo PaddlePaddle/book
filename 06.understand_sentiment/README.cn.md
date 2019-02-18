@@ -196,7 +196,7 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 ```
 以上的栈式双向LSTM抽象出了高级特征并把其映射到和分类类别数同样大小的向量上。最后一个全连接层的'softmax'激活函数用来计算分类属于某个类别的概率。
 
-重申一下，此处我们可以调用`convolution_net`或`stacked_lstm_net`的任何一个网络机构进行训练学习。我们以`convolution_net`为例。
+重申一下，此处我们可以调用`convolution_net`或`stacked_lstm_net`的任何一个网络结构进行训练学习。我们以`convolution_net`为例。
 
 接下来我们定义预测程序（`inference_program`）。预测程序使用`convolution_net`来对`fluid.layer.data`的输入进行预测。
 
