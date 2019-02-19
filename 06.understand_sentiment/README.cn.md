@@ -281,23 +281,23 @@ sgd_optimizer.minimize(avg_cost)
 该函数用来计算训练中模型在test数据集上的结果
 ```python
 def train_test(program, reader):
-        count = 0
-        feed_var_list = [
-            program.global_block().var(var_name) for var_name in feed_order
+    count = 0
+    feed_var_list = [
+        program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder_test = fluid.DataFeeder(feed_list=feed_var_list, place=place)
+    test_exe = fluid.Executor(place)
+    accumulated = len([avg_cost, accuracy]) * [0]
+    for test_data in reader():
+        avg_cost_np = test_exe.run(
+            program=program,
+            feed=feeder_test.feed(test_data),
+            fetch_list=[avg_cost, accuracy])
+        accumulated = [
+            x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)
         ]
-        feeder_test = fluid.DataFeeder(feed_list=feed_var_list, place=place)
-        test_exe = fluid.Executor(place)
-        accumulated = len([avg_cost, accuracy]) * [0]
-        for test_data in reader():
-            avg_cost_np = test_exe.run(
-                program=program,
-                feed=feeder_test.feed(test_data),
-                fetch_list=[avg_cost, accuracy])
-            accumulated = [
-                x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)
-            ]
-            count += 1
-        return [x / count for x in accumulated]
+        count += 1
+    return [x / count for x in accumulated]
 ```
 
 ### 提供数据并构建主训练循环
