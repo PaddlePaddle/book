@@ -23,15 +23,14 @@ import os
 
 dict_size = 30000
 source_dict_dim = target_dict_dim = dict_size
-hidden_dim = 32
 word_dim = 32
-batch_size = 2
+hidden_dim = 32
+decoder_size = hidden_dim
 max_length = 8
-topk_size = 50
 beam_size = 2
+batch_size = 2
 
 is_sparse = True
-decoder_size = hidden_dim
 model_save_dir = "machine_translation.inference.model"
 
 
@@ -40,66 +39,71 @@ def encoder():
         name="src_word_id", shape=[1], dtype='int64', lod_level=1)
     src_embedding = pd.embedding(
         input=src_word_id,
-        size=[dict_size, word_dim],
+        size=[source_dict_dim, word_dim],
         dtype='float32',
-        is_sparse=is_sparse,
-        param_attr=fluid.ParamAttr(name='vemb'))
+        is_sparse=is_sparse)
 
-    fc1 = pd.fc(input=src_embedding, size=hidden_dim * 4, act='tanh')
-    lstm_hidden0, lstm_0 = pd.dynamic_lstm(input=fc1, size=hidden_dim * 4)
-    encoder_out = pd.sequence_last_step(input=lstm_hidden0)
-    return encoder_out
+    fc_forward = pd.fc(
+        input=src_embedding, size=hidden_dim * 3, bias_attr=False)
+    src_forward = pd.dynamic_gru(input=fc_forward, size=hidden_dim)
+    fc_backward = pd.fc(
+        input=src_embedding, size=hidden_dim * 3, bias_attr=False)
+    src_backward = pd.dynamic_gru(
+        input=fc_backward, size=hidden_dim, is_reverse=True)
+    encoded_vector = pd.concat(input=[src_forward, src_backward], axis=1)
+    return encoded_vector
 
 
-def decode(context):
-    init_state = context
-    array_len = pd.fill_constant(shape=[1], dtype='int64', value=max_length)
+def decode(encoder_out):
+    encoder_last = pd.sequence_last_step(input=encoder_out)
+    encoder_last_projected = pd.fc(
+        input=encoder_last, size=decoder_size, act='tanh')
+
+    max_len = pd.fill_constant(shape=[1], dtype='int64', value=max_length)
     counter = pd.zeros(shape=[1], dtype='int64', force_cpu=True)
-
-    # fill the first element with init_state
-    state_array = pd.create_array('float32')
-    pd.array_write(init_state, array=state_array, i=counter)
-
-    # ids, scores as memory
-    ids_array = pd.create_array('int64')
-    scores_array = pd.create_array('float32')
 
     init_ids = pd.data(name="init_ids", shape=[1], dtype="int64", lod_level=2)
     init_scores = pd.data(
         name="init_scores", shape=[1], dtype="float32", lod_level=2)
 
+    # arrays to save selected ids and corresponding scores for each step
+    ids_array = pd.create_array('int64')
     pd.array_write(init_ids, array=ids_array, i=counter)
+    scores_array = pd.create_array('float32')
     pd.array_write(init_scores, array=scores_array, i=counter)
 
-    cond = pd.less_than(x=counter, y=array_len)
+    # arrays to save states and context for each step
+    state_array = pd.create_array('float32')
+    pd.array_write(encoder_last_projected, array=state_array, i=counter)
+    context_array = pd.create_array('float32')
+    pd.array_write(encoder_last, array=state_array, i=counter)
 
+    cond = pd.less_than(x=counter, y=max_len)
     while_op = pd.While(cond=cond)
     with while_op.block():
         pre_ids = pd.array_read(array=ids_array, i=counter)
-        pre_state = pd.array_read(array=state_array, i=counter)
         pre_score = pd.array_read(array=scores_array, i=counter)
+        pre_state = pd.array_read(array=state_array, i=counter)
+        pre_context = pd.array_read(array=context_array, i=counter)
 
-        # expand the lod of pre_state to be the same with pre_score
-        pre_state_expanded = pd.sequence_expand(pre_state, pre_score)
-
+        # cell calculations
         pre_ids_emb = pd.embedding(
             input=pre_ids,
-            size=[dict_size, word_dim],
+            size=[target_dict_dim, word_dim],
             dtype='float32',
-            is_sparse=is_sparse,
-            param_attr=fluid.ParamAttr(name='vemb'))
-
-        # use rnn unit to update rnn
-        current_state = pd.fc(
-            input=[pre_state_expanded, pre_ids_emb],
-            size=decoder_size,
-            act='tanh')
+            is_sparse=is_sparse)
+        decoder_inputs = pd.fc(
+            input=[pre_ids_emb, pre_context],
+            size=decoder_size * 3,
+            bias_attr=False)
+        current_state = pd.gru_unit(
+            input=decoder_inputs, hidden=pre_state, size=decoder_size)
         current_state_with_lod = pd.lod_reset(x=current_state, y=pre_score)
-        # use score to do beam search
         current_score = pd.fc(
-            input=current_state_with_lod, size=target_dict_dim, act='softmax')
+            input=current_state, size=target_dict_dim, act='softmax')
+
+        # beam search
         topk_scores, topk_indices = pd.topk(current_score, k=beam_size)
-        # calculate accumulated scores after topk to reduce computation cost
         accu_scores = pd.elementwise_add(
             x=pd.log(topk_scores), y=pd.reshape(pre_score, shape=[-1]), axis=0)
         selected_ids, selected_scores = pd.beam_search(
@@ -111,23 +115,20 @@ def decode(context):
             end_id=10,
             level=0)
 
-        with pd.Switch() as switch:
-            with switch.case(pd.is_empty(selected_ids)):
-                pd.fill_constant(
-                    shape=[1], value=0, dtype='bool', force_cpu=True, out=cond)
-            with switch.default():
-                pd.increment(x=counter, value=1, in_place=True)
+        pd.increment(x=counter, value=1, in_place=True)
+        # update states
+        pd.array_write(selected_ids, array=ids_array, i=counter)
+        pd.array_write(selected_scores, array=scores_array, i=counter)
+        # update rnn state by sequence_expand acting as gather
+        current_state = pd.sequence_expand(current_state, selected_ids)
+        current_context = pd.sequence_expand(pre_context, selected_ids)
+        pd.array_write(current_state, array=state_array, i=counter)
+        pd.array_write(current_context, array=context_array, i=counter)
 
-                # update the memories
-                pd.array_write(current_state, array=state_array, i=counter)
-                pd.array_write(selected_ids, array=ids_array, i=counter)
-                pd.array_write(selected_scores, array=scores_array, i=counter)
-
-                # update the break condition: up to the max length or all candidates of
-                # source sentences have ended.
-                length_cond = pd.less_than(x=counter, y=array_len)
-                finish_cond = pd.logical_not(pd.is_empty(x=selected_ids))
-                pd.logical_and(x=length_cond, y=finish_cond, out=cond)
+        # update conditional variable 
+        length_cond = pd.less_than(x=counter, y=array_len)
+        finish_cond = pd.logical_not(pd.is_empty(x=selected_ids))
+        pd.logical_and(x=length_cond, y=finish_cond, out=cond)
 
     translation_ids, translation_scores = pd.beam_search_decode(
         ids=ids_array, scores=scores_array, beam_size=beam_size, end_id=10)
@@ -143,8 +144,8 @@ def decode_main(use_cuda):
     exe = Executor(place)
     exe.run(framework.default_startup_program())
 
-    context = encoder()
-    translation_ids, translation_scores = decode(context)
+    encoder_out = encoder()
+    translation_ids, translation_scores = decode(encoder_out)
     fluid.io.load_persistables(executor=exe, dirname=model_save_dir)
 
     init_ids_data = np.array([1 for _ in range(batch_size)], dtype='int64')

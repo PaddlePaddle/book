@@ -29,15 +29,14 @@ except ImportError:
 
 dict_size = 30000
 source_dict_dim = target_dict_dim = dict_size
-hidden_dim = 32
 word_dim = 32
-batch_size = 2
+hidden_dim = 32
+decoder_size = hidden_dim
 max_length = 8
-topk_size = 50
 beam_size = 2
+batch_size = 2
 
 is_sparse = True
-decoder_size = hidden_dim
 model_save_dir = "machine_translation.inference.model"
 
 
@@ -46,36 +45,50 @@ def encoder():
         name="src_word_id", shape=[1], dtype='int64', lod_level=1)
     src_embedding = pd.embedding(
         input=src_word_id,
-        size=[dict_size, word_dim],
+        size=[source_dict_dim, word_dim],
         dtype='float32',
-        is_sparse=is_sparse,
-        param_attr=fluid.ParamAttr(name='vemb'))
+        is_sparse=is_sparse)
 
-    fc1 = pd.fc(input=src_embedding, size=hidden_dim * 4, act='tanh')
-    lstm_hidden0, lstm_0 = pd.dynamic_lstm(input=fc1, size=hidden_dim * 4)
-    encoder_out = pd.sequence_last_step(input=lstm_hidden0)
-    return encoder_out
+    fc_forward = pd.fc(
+        input=src_embedding, size=hidden_dim * 3, bias_attr=False)
+    src_forward = pd.dynamic_gru(input=fc_forward, size=hidden_dim)
+    fc_backward = pd.fc(
+        input=src_embedding, size=hidden_dim * 3, bias_attr=False)
+    src_backward = pd.dynamic_gru(
+        input=fc_backward, size=hidden_dim, is_reverse=True)
+    encoded_vector = pd.concat(input=[src_forward, src_backward], axis=1)
+    return encoded_vector
 
 
-def train_decoder(context):
+def train_decoder(encoder_out):
+    encoder_last = pd.sequence_last_step(input=encoder_out)
+    encoder_last_projected = pd.fc(
+        input=encoder_last, size=decoder_size, act='tanh')
     trg_language_word = pd.data(
-        name="target_language_word", shape=[1], dtype='int64', lod_level=1)
+        name="trg_word_id", shape=[1], dtype='int64', lod_level=1)
     trg_embedding = pd.embedding(
         input=trg_language_word,
-        size=[dict_size, word_dim],
+        size=[target_dict_dim, word_dim],
         dtype='float32',
-        is_sparse=is_sparse,
-        param_attr=fluid.ParamAttr(name='vemb'))
+        is_sparse=is_sparse)
 
     rnn = pd.DynamicRNN()
     with rnn.block():
         current_word = rnn.step_input(trg_embedding)
-        pre_state = rnn.memory(init=context, need_reorder=True)
-        current_state = pd.fc(
-            input=[current_word, pre_state], size=decoder_size, act='tanh')
+        context = rnn.static_input(encoder_last)
+        pre_state = rnn.memory(
+            init=encoder_last_projected, size=decoder_size, need_reorder=True)
+
+        decoder_inputs = pd.fc(
+            input=[current_word, context],
+            size=decoder_size * 3,
+            bias_attr=False)
+        current_state = pd.gru_unit(
+            input=decoder_inputs, hidden=pre_state, size=decoder_size)
 
         current_score = pd.fc(
             input=current_state, size=target_dict_dim, act='softmax')
+
         rnn.update_memory(pre_state, current_state)
         rnn.output(current_score)
 
@@ -83,10 +96,10 @@ def train_decoder(context):
 
 
 def train_program():
-    context = encoder()
-    rnn_out = train_decoder(context)
+    encoder_out = encoder()
+    rnn_out = train_decoder(encoder_out)
     label = pd.data(
-        name="target_language_next_word", shape=[1], dtype='int64', lod_level=1)
+        name="trg_next_word_id", shape=[1], dtype='int64', lod_level=1)
     cost = pd.cross_entropy(input=rnn_out, label=label)
     avg_cost = pd.mean(cost)
     return avg_cost
