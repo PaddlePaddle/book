@@ -274,87 +274,6 @@ def load_parameter(file_name, h, w):
         return np.fromfile(f, dtype=np.float32).reshape(h, w)
 ```
 
-- 8个LSTM单元以“正向/反向”的顺序对所有输入序列进行学习，主要的执行逻辑如下：
- 1）为不同的输入特征分别定义embedding层
-
-```python  
-def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
-            **ignored):
-    # 8 features
-    predicate_embedding = fluid.layers.embedding(
-        input=predicate,
-        size=[pred_dict_len, word_dim],
-        dtype='float32',
-        is_sparse=IS_SPARSE,
-        param_attr='vemb')
-
-    mark_embedding = fluid.layers.embedding(
-        input=mark,
-        size=[mark_dict_len, mark_dim],
-        dtype='float32',
-        is_sparse=IS_SPARSE)
-
-    word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
-    # 因词向量是预训练好的，这里不再训练embedding表，
-    # 参数属性trainable设置成False阻止了embedding表在训练过程中被更新
-    emb_layers = [
-        fluid.layers.embedding(
-            size=[word_dict_len, word_dim],
-            input=x,
-            param_attr=fluid.ParamAttr(
-                name=embedding_name, trainable=False)) for x in word_input
-    ]
-    emb_layers.append(predicate_embedding)
-    emb_layers.append(mark_embedding)
-```
-2) 定义深度双向LSTM结构
-
-```python
-    # 共有8个LSTM单元被训练，每个单元的方向为从左到右或从右到左，
-    # 由参数`is_reverse`确定
-    hidden_0_layers = [
-        fluid.layers.fc(input=emb, size=hidden_dim, act='tanh')
-        for emb in emb_layers
-    ]
-
-    hidden_0 = fluid.layers.sums(input=hidden_0_layers)
-
-    lstm_0 = fluid.layers.dynamic_lstm(
-        input=hidden_0,
-        size=hidden_dim,
-        candidate_activation='relu',
-        gate_activation='sigmoid',
-        cell_activation='sigmoid')
-
-    # 用直连的边来堆叠L-LSTM、R-LSTM
-    input_tmp = [hidden_0, lstm_0]
-
-    for i in range(1, depth):
-        mix_hidden = fluid.layers.sums(input=[
-            fluid.layers.fc(input=input_tmp[0], size=hidden_dim, act='tanh'),
-            fluid.layers.fc(input=input_tmp[1], size=hidden_dim, act='tanh')
-        ])
-
-        lstm = fluid.layers.dynamic_lstm(
-            input=mix_hidden,
-            size=hidden_dim,
-            candidate_activation='relu',
-            gate_activation='sigmoid',
-            cell_activation='sigmoid',
-            is_reverse=((i % 2) == 1))
-
-        input_tmp = [mix_hidden, lstm]
-
-    # 取最后一个栈式LSTM的输出和这个LSTM单元的输入到隐层映射，
-    # 经过一个全连接层映射到标记字典的维度，来学习 CRF 的状态特征
-    feature_out = fluid.layers.sums(input=[
-        fluid.layers.fc(input=input_tmp[0], size=label_dict_len, act='tanh'),
-        fluid.layers.fc(input=input_tmp[1], size=label_dict_len, act='tanh')
-    ])
-
-    return feature_out
-```
-
 ## 训练模型
 
 - 我们根据网络拓扑结构和模型参数来进行训练，在构造时还需指定优化方法，这里使用最基本的SGD方法(momentum设置为0)，同时设定了学习率、正则等。
@@ -473,6 +392,10 @@ feature_out = fluid.layers.sums(input=[
     fluid.layers.fc(input=input_tmp[0], size=label_dict_len, act='tanh'),
     fluid.layers.fc(input=input_tmp[1], size=label_dict_len, act='tanh')
 ])
+
+# 标注序列
+target = fluid.layers.data(
+    name='target', shape=[1], dtype='int64', lod_level=1)
 
 # 学习 CRF 的转移特征
 crf_cost = fluid.layers.linear_chain_crf(
