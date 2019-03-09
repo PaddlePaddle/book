@@ -1,139 +1,146 @@
 # Linear Regression
 
-Let us begin the tutorial with a classical problem called Linear Regression \[[1](#References)\]. In this chapter, we will train a model from a realistic dataset to predict home prices. Some important concepts in Machine Learning will be covered through this example.
+Let's start this tutorial from the classic Linear Regression ([[1](#References)]) model.
 
-The source code for this tutorial lives on [book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line). For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+In this chapter, you will build a model to predict house price with real datasets and learn about several important concepts about machine learning.
 
-## Problem Setup
+The source code of this tutorial is in [book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line). For the new users, please refer to [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book) .
 
-Suppose we have a dataset of $n$ real estate properties. Each real estate property will be referred to as **homes** in this chapter for clarity.
 
-Each home is associated with $d$ attributes. The attributes describe characteristics such as the number of rooms in the home, the number of schools or hospitals in the neighborhood, and the traffic condition nearby.
 
-In our problem setup, the attribute $x_{i,j}$ denotes the $j$th characteristic of the $i$th home. In addition, $y_i$ denotes the price of the $i$th home. Our task is to predict $y_i$ given a set of attributes $\{x_{i,1}, ..., x_{i,d}\}$. We assume that the price of a home is a linear combination of all of its attributes, namely,
+## Background
+Given a $n$ dataset ${\{y_{i}, x_{i1}, ..., x_{id}\}}_{i=1}^{n}$, of which $ x_{i1}, \ldots, x_{id}$ are the values of the $d$th attribute of $i$ sample, and $y_i$ is the target to be predicted for this sample.
 
-$$y_i = \omega_1x_{i,1} + \omega_2x_{i,2} + \ldots + \omega_dx_{i,d} + b,  i=1,\ldots,n$$
+ The linear regression model assumes that the target $y_i$ can be described by a linear combination among attributes, i.e.
 
-where $\vec{\omega}$ and $b$ are the model parameters we want to estimate. Once they are learned, we will be able to predict the price of a home, given the attributes associated with it. We call this model **Linear Regression**. In other words, we want to regress a value against several values linearly. In practice, a linear model is often too simplistic to capture the real relationships between the variables. Yet, because Linear Regression is easy to train and analyze, it has been applied to a large number of real problems. As a result, it is an important topic in many classic Statistical Learning and Machine Learning textbooks \[[2,3,4](#References)\].
+$$y_i = \omega_1x_{i1} + \omega_2x_{i2} + \ldots + \omega_dx_{id} + b,  i=1,\ldots,n$$
 
-## Results Demonstration
-We first show the result of our model. The dataset [UCI Housing Data Set](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data) is used to train a linear model to predict the home prices in Boston. The figure below shows the predictions the model makes for some home prices. The $X$-axis represents the median value of the prices of similar homes within a bin, while the $Y$-axis represents the home value our linear model predicts. The dotted line represents points where $X=Y$. When reading the diagram, the closer the point is to the dotted line, better the model's prediction.
+For example, in the problem of prediction of house price we are going to explore, $x_{ij}$ is a description of the various attributes of the house $i$ (such as the number of rooms, the number of schools and hospitals around, traffic conditions, etc.). $y_i$ is the price of the house.
+
+
+
+At first glance, this assumption is too simple, and the true relationship among variables is unlikely to be linear. However, because the linear regression model has the advantages of simple form and easy to be modeled and analyzed, it has been widely applied in practical problems. Many classic statistical learning and machine learning books \[[2,3,4](#references)\] also focus on linear model in a chapter.
+
+##  Result Demo
+We used the Boston house price dataset obtained from [UCI Housing dataset](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data) to train and predict the model. The scatter plot below shows the result of price prediction for parts of house with model. Each point on x-axis represents the median of the real price of the same type of house, and the y-axis represents the result of the linear regression model based on the feature prediction. When the two values are completely equal, they will fall on the dotted line. So the more accurate the model is predicted, the closer the point is to the dotted line.
 <p align="center">
-    <img src = "image/predictions_en.png" width=400><br/>
-    Figure 1. Predicted Value V.S. Actual Value
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/predictions.png?raw=true" width=400><br/>
+    Figure One. Predict value V.S Ground-truth value
 </p>
 
 ## Model Overview
 
 ### Model Definition
 
-In the UCI Housing Data Set, there are 13 home attributes $\{x_{i,j}\}$ that are related to the median home price $y_i$, which we aim to predict. Thus, our model can be written as:
+In the dataset of Boston house price, there are 14 values associated with the home: the first 13 are used to describe various information of house, that is $x_i$ in the model; the last value is the medium price of the house we want to predict, which is $y_i$ in the model.
+
+Therefore, our model can be expressed as:
 
 $$\hat{Y} = \omega_1X_{1} + \omega_2X_{2} + \ldots + \omega_{13}X_{13} + b$$
 
-where $\hat{Y}$ is the predicted value used to differentiate from actual value $Y$. The model learns parameters $\omega_1, \ldots, \omega_{13}, b$, where the entries of $\vec{\omega}$ are **weights** and $b$ is **bias**.
+$\hat{Y}$ represents the predicted result of the model and is used to distinguish it from the real value $Y$. The parameters to be learned by the model are: $\omega_1, \ldots, \omega_{13}, b$.
 
-Now we need an objective to optimize, so that the learned parameters can make $\hat{Y}$ as close to $Y$ as possible. Let's refer to the concept of [Loss Function (Cost Function)](https://en.wikipedia.org/wiki/Loss_function). A loss function must output a non-negative value, given any pair of the actual value $y_i$ and the predicted value $\hat{y_i}$. This value reflects the magnitutude of the model error.
+After building the model, we need to give the model an optimization goal so that the learned parameters can make the predicted value $\hat{Y}$ get as close to the true value $Y$. Here we introduce the concept of loss function ([Loss Function](https://en.wikipedia.org/wiki/Loss_function), or Cost Function.  Input the target value $y_{i}$ of any data sample and the predicted value $\hat{y_{i}}$ given by a model. Then the loss function outputs a non-negative real number, which is usually used to represent model error.
 
-For Linear Regression, the most common loss function is [Mean Square Error (MSE)](https://en.wikipedia.org/wiki/Mean_squared_error) which has the following form:
+For linear regression models, the most common loss function is the Mean Squared Error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)), which is:
 
 $$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
 
-That is, for a dataset of size $n$, MSE is the average value of the the prediction sqaure errors.
+That is, for a test set in size of $n$, $MSE$ is the mean of the squared error of the $n$ data prediction results.
+
+The method used to optimize the loss function is generally the gradient descent method. The gradient descent method is a first-order optimization algorithm. If $f(x)$ is defined and divisible at point $x_n$, then $f(x)$ is considered to be the fastest in the negative direction of the gradient $-▽f(x_n)$ at point of $x_n$. Adjust $x$ repeatedly to make $f(x)$ close to the local or global minimum value. The adjustment is as follows:
+
+$$x_n+1=x_n-λ▽f(x), n≧0$$
+
+Where λ represents the learning rate. This method of adjustment is called the gradient descent method.
 
 ### Training Process
 
-After setting up our model, there are several major steps to go through to train it:
-1. Initialize the parameters including the weights $\vec{\omega}$ and the bias $b$. For example, we can set their mean values as $0$s, and their standard deviations as $1$s.
-2. Feedforward. Evaluate the network output and compute the corresponding loss.
-3. [Backpropagate](https://en.wikipedia.org/wiki/Backpropagation) the errors. The errors will be propagated from the output layer back to the input layer, during which the model parameters will be updated with the corresponding errors.
-4. Repeat steps 2~3, until the loss is below a predefined threshold or the maximum number of epochs is reached.
+After defining the model structure, we will train the model through the following steps.
+
+  1. Initialize parameters, including weights $\omega_i$ and bias $b$, to initialize them (eg. 0 as mean, 1 as variance).
+  2. Forward propagation of network calculates network output and loss functions.
+  3. Reverse error propagation according to the loss function ( [backpropagation](https://en.wikipedia.org/wiki/Backpropagation) ), passing forward the network error from the output layer and updating the parameters in the network.
+  4. Repeat steps 2~3 until the network training error reaches the specified level or the training round reaches the set value.
+
 
 ## Dataset
 
-### An Introduction of the Dataset
+### Dataset Introduction
+The dataset consists of 506 lines, each containing information about a type of houses in a suburb of Boston and the median price of that type of house. The meaning of each dimensional attribute is as follows:
 
-The UCI housing dataset has 506 instances. Each instance describes the attributes of a house in surburban Boston.  The attributes are explained below:
-
-| Attribute Name | Characteristic | Data Type |
+| Property Name | Explanation | Type |
 | ------| ------ | ------ |
-| CRIM | per capita crime rate by town | Continuous|
-| ZN | proportion of residential land zoned for lots over 25,000 sq.ft. | Continuous |
-| INDUS | proportion of non-retail business acres per town | Continuous |
-| CHAS | Charles River dummy variable | Discrete, 1 if tract bounds river; 0 otherwise|
-| NOX | nitric oxides concentration (parts per 10 million) | Continuous |
-| RM | average number of rooms per dwelling | Continuous |
-| AGE | proportion of owner-occupied units built prior to 1940 | Continuous |
-| DIS | weighted distances to five Boston employment centres | Continuous |
-| RAD | index of accessibility to radial highways | Continuous |
-| TAX | full-value property-tax rate per \$10,000 | Continuous |
-| PTRATIO | pupil-teacher ratio by town | Continuous |
-| B | 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town | Continuous |
-| LSTAT | % lower status of the population | Continuous |
-| MEDV | Median value of owner-occupied homes in $1000's | Continuous |
+CRIM | Per capita crime rate in the town | Continuous value |
+| ZN | Proportion of residential land with an area of over 25,000 square feet | Continuous value |
+| INDUS | Proportion of non-retail commercial land | Continuous value |
+CHAS | Whether it is adjacent to Charles River | Discrete value, 1=proximity; 0=not adjacent |
+NOX | Nitric Oxide Concentration | Continuous value |
+| RM | Average number of rooms per house | Continuous value |
+| AGE | Proportion of self-use units built before 1940 | Continuous value |
+| DIS | Weighted Distance to 5 Job Centers in Boston | Continuous value |
+| RAD | Accessibility Index to Radial Highway | Continuous value |
+| TAX | Tax Rate of Full-value Property | Continuous value |
+| PTRATIO | Proportion of Student and Teacher | Continuous value |
+| B | 1000(BK - 0.63)^2, where BK is black ratio | Continuous value |
+LSTAT | Low-income population ratio | Continuous value |
+| MEDV | Median price of a similar home | Continuous value |
 
-The last entry is the median home price.
+### Data Pre-processing
 
-### Preprocessing
+#### Continuous value and discrete value
+Analyzing the data, first we find that all 13-dimensional attributes exist 12-dimensional continuous value and 1-dimensional discrete values (CHAS). Discrete value is often represented by numbers like 0, 1, and 2, but its meaning is different from continuous value's because the difference of discrete value here has no meaning. For example, if we use 0, 1, and 2 to represent red, green, and blue, we cannot infer that the distance between blue and red is longer than that between green and red. So usually for a discrete property with $d$ possible values, we will convert them to $d$ binary properties with a value of 0 or 1 or map each possible value to a multidimensional vector. However, there is no this problem for CHAS, since CHAS itself is a binary attribute .
 
-#### Continuous and Discrete Data
+#### Normalization of attributes
+Another fact that can be easily found is that the range of values of each dimensional attribute is largely different (as shown in Figure 2). For example, the value range of attribute B is [0.32, 396.90], and the value range of attribute NOX is [0.3850, 0.8170]. Here is a common operation - normalization. The goal of normalization is to scale the value of each attribute to a similar range, such as [-0.5, 0.5]. Here we use a very common operation method: subtract the mean and divide by the range of values.
 
-We define a feature vector of length 13 for each home, where each entry corresponds to an attribute. Our first observation is that, among the 13 dimensions, there are 12 continuous dimensions and 1 discrete dimension.
+There are at least three reasons for implementing normalization (or [Feature scaling](https://en.wikipedia.org/wiki/Feature_scaling)):
 
-Note that although a discrete value is also written as numeric values such as 0, 1, or 2, its meaning differs from a continuous value drastically.  The linear difference between two discrete values has no meaning. For example, suppose $0$, $1$, and $2$ are used to represent colors *Red*, *Green*, and *Blue* respectively. Judging from the numeric representation of these colors, *Red* differs more from *Blue* than it does from *Green*. Yet in actuality, it is not true that extent to which the color *Blue* is different from *Red* is greater than the extent to which *Green* is different from *Red*. Therefore, when handling a discrete feature that has $d$ possible values, we usually convert it to $d$ new features where each feature takes a binary value, $0$ or $1$, indicating whether the original value is absent or present. Alternatively, the discrete features can be mapped onto a continuous multi-dimensional vector through an embedding table. For our problem here, because CHAS itself is a binary discrete value, we do not need to do any preprocessing.
+- A range of values that are too large or too small can cause floating value overflow or underflow during calculation.
 
-#### Feature Normalization
+- Different ranges of number result in different attributes being different for the model (at least in the initial period of training), and this implicit assumption is often unreasonable. This can make the optimization process difficult and the training time greatly longer.
 
-We also observe a huge difference among the value ranges of the 13 features (Figure 2). For instance, the values of feature *B* fall in $[0.32, 396.90]$, whereas those of feature *NOX* has a range of $[0.3850, 0.8170]$. An effective optimization would require data normalization. The goal of data normalization is to scale the values of each feature into roughly the same range, perhaps $[-0.5, 0.5]$. Here, we adopt a popular normalization technique where we subtract the mean value from the feature value and divide the result by the width of the original range.
+- Many machine learning techniques/models (such as L1, L2 regular items, Vector Space Model) are based on the assumption that all attribute values are almost zero and their ranges of value are similar.
 
-There are at least three reasons for [Feature Normalization](https://en.wikipedia.org/wiki/Feature_scaling) (Feature Scaling):
-- A value range that is too large or too small might cause floating number overflow or underflow during computation.
-- Different value ranges might result in varying *importances* of different features to the model (at least in the beginning of the training process). This assumption about the data is often unreasonable, making the optimization difficult, which in turn results in increased training time.
-- Many machine learning techniques or models (e.g., *L1/L2 regularization* and *Vector Space Model*) assumes that all the features have roughly zero means and their value ranges are similar.
+
 
 <p align="center">
-    <img src = "image/ranges_en.png" width=550><br/>
-    Figure 2. The value ranges of the features
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/ranges.png?raw=true" width=550><br/>
+    Figure 2. Value range of attributes for all dimensions
 </p>
 
-#### Prepare Training and Test Sets
+#### Organizing training set and testing set
 
-We split the dataset in two, one for adjusting the model parameters, namely, for training the model, and the other for testing. The model error on the former is called the **training error**, and the error on the latter is called the **test error**. Our goal in training a model is to find the statistical dependency between the outputs and the inputs, so that we can predict outputs given new inputs. As a result, the test error reflects the performance of the model better than the training error does. We consider two things when deciding the ratio of the training set to the test set: 1) More training data will decrease the variance of the parameter estimation, yielding more reliable models; 2) More test data will decrease the variance of the test error, yielding more reliable test errors. One standard split ratio is $8:2$.
+We split the dataset into two parts: one is used to adjust the parameters of the model, that is, to train the model, the error of the model on this dataset is called ** training error **; the other is used to test.The error of the model on this dataset is called the ** test error**. The goal of our training model is to predict unknown new data by finding the regulation from the training data, so the test error is an better indicator for the performance of the model. When it comes to the ratio of the segmentation data, we should take into account two factors: more training data will reduce the square error of estimated parameters, resulting in a more reliable model; and more test data will reduce the square error of the test error, resulting in more credible test error. The split ratio set in our example is $8:2$
 
-When training complex models, we usually have one more split: the validation set. Complex models usually have [Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_optimization) that need to be set before the training process, such as the number of layers in the network. Because hyperparameters are not part of the model parameters, they cannot be trained using the same loss function. Thus we will try several sets of hyperparameters to train several models and cross-validate them on the validation set to pick the best one; finally, the selected trained model is tested on the test set. Because our model is relatively simple, we will omit this validation process.
+
+In a more complex model training process, we often need more than one dataset: the validation set. Because complex models often have some hyperparameters ([Hyperparameter](https://en.wikipedia.org/wiki/Hyperparameter_optimization)) that need to be adjusted, we will try a combination of multiple hyperparameters to train multiple models separately and then compare their performance on the validation set to select the relatively best set of hyperparameters, and finally use the model with this set of parameters to evaluate the test error on the test set. Since the model trained in this chapter is relatively simple, we won't talk about this process at present.
 
 ## Training
 
-`fit_a_line/trainer.py` demonstrates the training using [PaddlePaddle](http://paddlepaddle.org).
+`fit_a_line/trainer.py` demonstrates the overall process of training.
 
-### Datafeeder Configuration
+### Configuring the Data feeder
 
-Our program starts with importing necessary packages:
+First we import the libraries:
 
 ```python
 import paddle
 import paddle.fluid as fluid
 import numpy
+import math
+import sys
 from __future__ import print_function
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
-
 ```
 
-We encapsulated the [UCI Housing Data Set](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data) in our Python module `uci_housing`.  This module can
+We introduced the dataset [UCI Housing dataset](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data) via the uci_housing module
 
-1. download the dataset to `~/.cache/paddle/dataset/uci_housing/housing.data`, if you haven't yet, and
-2.  [preprocess](#preprocessing) the dataset.
+It is encapsulated in the uci_housing module:
 
+1. The process of data download. The download data is saved in ~/.cache/paddle/dataset/uci_housing/housing.data.
+2. The process of [data preprocessing](#data preprocessing).
 
-We define data feeders for test and train. The feeder reads a `BATCH_SIZE` of data each time and feed them to the training/testing process. If the user wants some randomness on the data order, she can define both a `BATCH_SIZE` and a `buf_size`. That way the datafeeder will yield the first `BATCH_SIZE` data out of a shuffle of the first `buf_size` data.
+Next we define the data feeder for training. The data feeder reads a batch of data in the size of `BATCH_SIZE` each time. If the user wants the data to be random, it can define data in size of a batch and a cache. In this case, each time the data feeder randomly reads as same data as the batch size from the cache.
 
 ```python
 BATCH_SIZE = 20
@@ -141,177 +148,244 @@ BATCH_SIZE = 20
 train_reader = paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.uci_housing.train(), buf_size=500),
-    batch_size=BATCH_SIZE)
+        batch_size=BATCH_SIZE)
 
 test_reader = paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.uci_housing.test(), buf_size=500),
-    batch_size=BATCH_SIZE)
+        batch_size=BATCH_SIZE)
 ```
 
-### Train Program Configuration
+If you want to read data directly from \*.txt file, you can refer to the method as follows.
 
-`train_program` sets up the network structure of this current training model. For linear regression, it is simply a fully connected layer from the input to the output. More complex structures like CNN and RNN will be introduced in later chapters. The `train_program` must return an avg_loss as its first returned parameter because it is needed in backpropagation.
+feature_names = [
+    'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
+    'PTRATIO', 'B', 'LSTAT', 'convert'
+]
+
+feature_num = len(feature_names)
+
+data = numpy.fromfile(filename, sep=' ') # Read primary data from file
+
+data = data.reshape(data.shape[0] // feature_num, feature_num)
+
+maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
+
+for i in six.moves.range(feature_num-1):
+ data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves is compatible to python2 and python3
+
+ratio = 0.8 # distribution ratio of train dataset and verification dataset
+
+offset = int(data.shape[0]\*ratio)
+
+train_data = data[:offset]
+
+test_data = data[offset:]
+
+train_reader = paddle.batch(
+    paddle.reader.shuffle(
+        train_data, buf_size=500),
+        batch_size=BATCH_SIZE)
+
+test_reader = paddle.batch(
+    paddle.reader.shuffle(
+        test_data, buf_size=500),
+        batch_size=BATCH_SIZE)
+
+### Configure Program for Training
+The aim of the program for training is to define a network structure of a training model. For linear regression, it is a simple fully connected layer from input to output. More complex result, such as Convolutional Neural Network and Recurrent Neural Network, will be introduced in later chapters. It must return `mean error` as the first return value in program for training, for that `mean error` will be used for BackPropagation.
 
 ```python
-def train_program():
-    y = fluid.layers.data(name='y', shape=[1], dtype='float32')
+x = fluid.layers.data(name='x', shape=[13], dtype='float32') # define shape and data type of input
+y = fluid.layers.data(name='y', shape=[1], dtype='float32') # define shape and data type of output
+y_predict = fluid.layers.fc(input=x, size=1, act=None) # fully connected layer connecting input and output
 
-    # feature vector of length 13
-    x = fluid.layers.data(name='x', shape=[13], dtype='float32')
-    y_predict = fluid.layers.fc(input=x, size=1, act=None)
+main_program = fluid.default_main_program() # get default/global main function
+startup_program = fluid.default_startup_program() # get default/global launch program
 
-    loss = fluid.layers.square_error_cost(input=y_predict, label=y)
-    avg_loss = fluid.layers.mean(loss)
-
-    return avg_loss
+cost = fluid.layers.square_error_cost(input=y_predict, label=y) # use label and output predicted data to estimate square error
+avg_loss = fluid.layers.mean(cost) # compute mean value for square error and get mean loss
 ```
+For details, please refer to:
+[fluid.default_main_program](http://www.paddlepaddle.org/documentation/docs/zh/develop/api_cn/fluid_cn.html#default-main-program)
+[fluid.default_startup_program](http://www.paddlepaddle.org/documentation/docs/zh/develop/api_cn/fluid_cn.html#default-startup-program)
 
 ### Optimizer Function Configuration
 
-In the following `SGD` optimizer, `learning_rate` specifies the learning rate in the optimization procedure.
+`SGD optimizer`, `learning_rate` below are learning rate, which is related to rate of convergence for train of network.
 
 ```python
-def optimizer_program():
-    return fluid.optimizer.SGD(learning_rate=0.001)
+sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
+sgd_optimizer.minimize(avg_loss)
+
+#Clone main_program to get test_program
+# operations of some operators are different between train and test. For example, batch_norm use parameter for_test to determine whether the program is for training or for testing.
+#The api will not delete any operator, please apply it before backward and optimization.
+test_program = main_program.clone(for_test=True)
 ```
 
-### Specify Place
+### Define Training Place
 
-Specify your training environment, you should specify if the training is on CPU or GPU.
+We can define whether an operation runs on the CPU or on the GPU.
 
 ```python
 use_cuda = False
-place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace() # define the execution space of executor
+
+###executor can accept input program and add data input operator and result fetch operator based on feed map and fetch list. Use close() to close executor and call run(...) to run the program.
+exe = fluid.Executor(place)
+
 ```
+For details, please refer to:
+[fluid.executor](http://www.paddlepaddle.org/documentation/docs/zh/develop/api_cn/fluid_cn.html#permalink-15-executor)
 
-### Create Trainer
-
-The trainer will take the `train_program` as input.
+### Create Training Process
+To train, it needs a train program and some parameters and creates a function to get test error in the process of train necessary parameters contain executor, program, reader, feeder, fetch_list,  executor represents executor created before. Program created before represents program executed by executor. If the parameter is undefined, then it is defined default_main_program by default. Reader represents data read. Feeder represents forward input variable and fetch_list represents variable user wants to get or name.
 
 ```python
-trainer = Trainer(
-    train_func=train_program,
-    place=place,
-    optimizer_func=optimizer_program)
-```
+num_epochs = 100
 
-### Feeding Data
-
-PaddlePaddle provides the
-[reader mechanism](https://github.com/PaddlePaddle/Paddle/tree/develop/doc/design/reader)
-for loading the training data. A reader may return multiple columns, and we need a Python dictionary to specify the mapping from column index to data layers.
-
-```python
-feed_order=['x', 'y']
-```
-
-Moreover, an event handler is provided to print the training progress:
-
-```python
-# Specify the directory to save the parameters
-params_dirname = "fit_a_line.inference.model"
-
-
-train_title = "Train cost"
-test_title = "Test cost"
-
-step = 0
-
-# event_handler prints training and testing info
-def event_handler(event):
-    global step
-    if isinstance(event, EndStepEvent):
-        if step % 10 == 0:   # record a train cost every 10 batches
-            print("%s, Step %d, Cost %f" % (train_title, step, event.metrics[0]))
-
-        if step % 100 == 0:  # record a test cost every 100 batches
-            test_metrics = trainer.test(
-                reader=test_reader, feed_order=feed_order)
-            print("%s, Step %d, Cost %f" % (test_title, step, test_metrics[0]))
-            if test_metrics[0] < 10.0:
-                # If the accuracy is good enough, we can stop the training.
-                print('loss is less than 10.0, stop')
-                trainer.stop()
-        step += 1
-
-    if isinstance(event, EndEpochEvent):
-        if event.epoch % 10 == 0:
-            # We can save the trained parameters for the inferences later
-            if params_dirname is not None:
-                trainer.save_params(params_dirname)
+def train_test(executor, program, reader, feeder, fetch_list):
+    accumulated = 1 * [0]
+    count = 0
+    for data_test in reader():
+        outs = executor.run(program=program,
+                            feed=feeder.feed(data_test),
+                            fetch_list=fetch_list)
+        accumulated = [x_c[0] + x_c[1][0] for x_c in zip(accumulated, outs)] # accumulate loss value in the process of test
+        count += 1 # accumulate samples in test dataset
+    return [x_d / count for x_d in accumulated] # compute mean loss
 
 ```
 
-### Start Training
+### Train Main Loop
 
-We now can start training by calling `trainer.train()`.
+give name of directory to be stored and initialize an executor
 
 ```python
 %matplotlib inline
+params_dirname = "fit_a_line.inference.model"
+feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
+exe.run(startup_program)
+train_prompt = "train cost"
+test_prompt = "test cost"
+from paddle.utils.plot import Ploter
+plot_prompt = Ploter(train_prompt, test_prompt)
+step = 0
 
-# The training could take up to a few minutes.
-trainer.train(
-    reader=train_reader,
-    num_epochs=100,
-    event_handler=event_handler,
-    feed_order=feed_order)
+exe_test = fluid.Executor(place)
+```
+Paddlepaddle provides reader mechanism to read training data. Reader provide multiple columns of data at one time. Therefore, we need a python list to read sequence. We create a loop to train until the result of train is good enough or time of loop is enough.
+If the number of iterations for train is equal to the number of iterations for saving parameters, you can save train parameter into `params_dirname`.
+Set main loop for training.
+```python
+for pass_id in range(num_epochs):
+    for data_train in train_reader():
+        avg_loss_value, = exe.run(main_program,
+                                  feed=feeder.feed(data_train),
+                                  fetch_list=[avg_loss])
+        if step % 10 == 0: # record and output train loss for every 10 batches.
+            plot_prompt.append(train_prompt, step, avg_loss_value[0])
+            plot_prompt.plot()
+            print("%s, Step %d, Cost %f" %
+                      (train_prompt, step, avg_loss_value[0]))
+        if step % 100 == 0:  # record and output test loss for every 100 batches.
+            test_metics = train_test(executor=exe_test,
+                                     program=test_program,
+                                     reader=test_reader,
+                                     fetch_list=[avg_loss.name],
+                                     feeder=feeder)
+            plot_prompt.append(test_prompt, step, test_metics[0])
+            plot_prompt.plot()
+            print("%s, Step %d, Cost %f" %
+                      (test_prompt, step, test_metics[0]))
+            if test_metics[0] < 10.0: # If the accuracy is up to the requirement, the train can be stopped.
+                break
 
+        step += 1
+
+        if math.isnan(float(avg_loss_value[0])):
+            sys.exit("got NaN loss, training failed.")
+
+        #save train parameters into the path given before
+        if params_dirname is not None:
+            fluid.io.save_inference_model(params_dirname, ['x'], [y_predict], exe)
 ```
 
-![png](./image/train_and_test.png)
+## Predict
+It needs to create trained parameters to run program for prediction. The trained parameters is in `params_dirname`.
 
-## Inference
-
-Initialize the Inferencer with the inference_program and the params_dirname, which is where we saved our params
-
-### Setup the Inference Program
-
-Similar to the trainer.train, the Inferencer needs to take an inference_program to do inference.
-Prune the train_program to only have the y_predict.
+### Prepare Environment for Prediction
+Similar to the process of training, predictor needs a program for prediction. We can slightly modify our training program to include the prediction value.
 
 ```python
-def inference_program():
-    x = fluid.layers.data(name='x', shape=[13], dtype='float32')
-    y_predict = fluid.layers.fc(input=x, size=1, act=None)
-    return y_predict
+infer_exe = fluid.Executor(place)
+inference_scope = fluid.core.Scope()
 ```
 
-### Infer
+### Predict
 
-Inferencer will load the trained model from `params_dirname` and use it to infer the unseen data.
+Save pictures
+```python
+def save_result(points1, points2):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    x1 = [idx for idx in range(len(points1))]
+    y1 = points1
+    y2 = points2
+    l1 = plt.plot(x1, y1, 'r--', label='predictions')
+    l2 = plt.plot(x1, y2, 'g--', label='GT')
+    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
+    plt.title('predictions VS GT')
+    plt.legend()
+    plt.savefig('./image/prediction_gt.png')
+```
+
+Via fluid.io.load_inference_model, predictor will read well-trained model from `params_dirname` to predict unknown data.
 
 ```python
-inferencer = Inferencer(
-    infer_func=inference_program, param_path=params_dirname, place=place)
+with fluid.scope_guard(inference_scope):
+    [inference_program, feed_target_names,
+     fetch_targets] = fluid.io.load_inference_model(params_dirname, infer_exe) # load pre-predict model
+    batch_size = 10
 
-batch_size = 10
-test_reader = paddle.batch(paddle.dataset.uci_housing.test(),batch_size=batch_size)
-test_data = next(test_reader())
-test_x = numpy.array([data[0] for data in test_data]).astype("float32")
-test_y = numpy.array([data[1] for data in test_data]).astype("float32")
+    infer_reader = paddle.batch(
+        paddle.dataset.uci_housing.test(), batch_size=batch_size) # prepare test dataset
 
-results = inferencer.infer({'x': test_x})
+    infer_data = next(infer_reader())
+    infer_feat = numpy.array(
+        [data[0] for data in infer_data]).astype("float32") # extract data in test dataset
+    infer_label = numpy.array(
+        [data[1] for data in infer_data]).astype("float32") # extract label in test dataset
 
-print("infer results: (House Price)")
-for idx, val in enumerate(results[0]):
-    print("%d: %.2f" % (idx, val))
+    assert feed_target_names[0] == 'x'
+    results = infer_exe.run(inference_program,
+                            feed={feed_target_names[0]: numpy.array(infer_feat)},
+                            fetch_list=fetch_targets) # predict
+    #print predict result and label and visualize the result
+    print("infer results: (House Price)")
+    for idx, val in enumerate(results[0]):
+        print("%d: %.2f" % (idx, val)) # print predict result
 
-print("\nground truth:")
-for idx, val in enumerate(test_y):
-    print("%d: %.2f" % (idx, val))
+    print("\nground truth:")
+    for idx, val in enumerate(infer_label):
+        print("%d: %.2f" % (idx, val)) # print label
+
+    save_result(results[0], infer_label) # save picture
 ```
+
+
 
 ## Summary
+In this chapter, we analyzed dataset of Boston House Price to introduce the basic concepts of linear regression model and how to use PaddlePaddle to implement training and testing. A number of models and theories are derived from linear regression model. Therefore, it is not unnecessary to figure out the principle and limitation of linear regression model.
 
-This chapter introduces *Linear Regression* and how to train and test this model with PaddlePaddle, using the UCI Housing Data Set. Because a large number of more complex models and techniques are derived from linear regression, it is important to understand its underlying theory and limitation.
-
+<a name="References"></a>
 ## References
-
 1. https://en.wikipedia.org/wiki/Linear_regression
 2. Friedman J, Hastie T, Tibshirani R. The elements of statistical learning[M]. Springer, Berlin: Springer series in statistics, 2001.
 3. Murphy K P. Machine learning: a probabilistic perspective[M]. MIT press, 2012.
 4. Bishop C M. Pattern recognition[J]. Machine Learning, 2006, 128.
 
 <br/>
-This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.

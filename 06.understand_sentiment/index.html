@@ -40,143 +40,147 @@
 
 <!-- This block will be replaced by each markdown file content. Please do not change lines below.-->
 <div id="markdown" style='display:none'>
+
+
 # Sentiment Analysis
 
-The source codes of this section is located at [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/06.understand_sentiment). For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code of this tutorial is in [book/understand_sentiment](https://github.com/PaddlePaddle/book/tree/develop/06.understand_sentiment). For new users, please refer to [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book) .
 
-## Background
+## Background Introduction
 
-In natural language processing, sentiment analysis refers to determining the emotion expressed in a piece of text. The text can be a sentence, a paragraph, or a document. Emotion categorization can be binary -- positive/negative or happy/sad -- or in three classes -- positive/neutral/negative. Sentiment analysis is applicable in a wide range of services, such as e-commerce sites like Amazon and Taobao, hospitality services like Airbnb and hotels.com, and movie rating sites like Rotten Tomatoes and IMDB. It can be used to gauge from the reviews how the customers feel about the product. Table 1 illustrates an example of sentiment analysis in movie reviews:
+In natural language processing, sentiment analysis generally refers to judging the emotion expressed by a piece of text. Among them, a piece of text can be a sentence, a paragraph or a document. Emotional state can be two categories, such as (positive, negative), (happy, sad); or three categories, such as (positive, negative, neutral) and so on.The application scenarios of understanding sentiment are very broad, such as dividing the comments posted by users on shopping websites (Amazon, Tmall, Taobao, etc.), travel websites, and movie review websites into positive comments and negative comments; or in order to analyze the user's overall experience with a product, grab user reviews of the product, and perform sentiment analysis. Table 1 shows an example of understanding sentiment of movie reviews:
 
-| Movie Review       | Category  |
-| --------     | -----  |
-| Best movie of Xiaogang Feng in recent years!| Positive |
-| Pretty bad. Feels like a tv-series from a local TV-channel     | Negative |
-| Politically correct version of Taken ... and boring as Heck| Negative|
-|delightful, mesmerizing, and completely unexpected. The plot is nicely designed.|Positive|
+| Movie Comments | Category |
+| -------- | ----- |
+|In Feng Xiaogang’s movies of the past few years, it is the best one | Positive |
+|Very bad feat, like a local TV series | Negative |
+|The round-lens lens is full of brilliance, and the tonal background is beautiful, but the plot is procrastinating, the accent is not good, and even though taking an effort but it is hard to focus on the show | Negative |
+|The plot could be scored 4 stars. In addition, the angle of the round lens plusing the scenery of Wuyuan is very much like the feeling of Chinese landscape painting. It satisfied me. | Positive |
 
-<p align="center">Table 1 Sentiment Analysis in Movie Reviews</p>
+<p align="center">Form 1  Sentiment analysis of movie comments</p>
 
-In natural language processing, sentiment analysis can be categorized as a **Text Classification problem**, i.e., to categorize a piece of text to a specific class. It involves two related tasks: text representation and classification. Before the emergence of deep learning techniques, the mainstream methods for text representation include BOW (*bag of words*) and topic modeling, while the latter contains SVM (*support vector machine*) and LR (*logistic regression*).
+In natural language processing, sentiment is a typical problem of **text categorization**, which divides the text that needs to be sentiment analysis into its category. Text categorization involves two issues: text representation and classification methods. Before the emergence of the deep learning, the mainstream text representation methods are BOW (bag of words), topic models, etc.; the classification methods are SVM (support vector machine), LR (logistic regression) and so on.
 
-The BOW model does not capture all the information in a piece of text, as it ignores syntax and grammar and just treats the text as a set of words. For example, “this movie is extremely bad“ and “boring, dull, and empty work” describe very similar semantic meaning, yet their BOW representations have very little similarity. Furthermore, “the movie is bad“ and “the movie is not bad“ have high similarity with BOW features, but they express completely opposite semantics.
+For a piece of text, BOW means that its word order, grammar and syntax are ignored, and this text is only treated as a collection of words, so the BOW method does not adequately represent the semantic information of the text. For example, the sentence "This movie is awful" and "a boring, empty, non-connotative work" have a high semantic similarity in sentiment analysis, but their BOW representation has a similarity of zero. Another example is that the BOW is very similar to the sentence "an empty, work without connotations" and "a work that is not empty and has connotations", but in fact they mean differently.
 
-This chapter introduces a deep learning model that handles these issues in BOW. Our model embeds texts into a low-dimensional space and takes word order into consideration. It is an end-to-end framework and it has large performance improvement over traditional methods \[[1](#references)\].
+The deep learning we are going to introduce in this chapter overcomes the above shortcomings of BOW representation. It maps text to low-dimensional semantic space based on word order, and performs text representation and classification in end-to-end mode. Its performance is significantly improved compared to the traditional method \[[1](#References)\].
 
 ## Model Overview
+The text representation models used in this chapter are Convolutional Neural Networks and Recurrent Neural Networks and their extensions. These models are described below.
 
-The model we used in this chapter uses **Convolutional Neural Networks** (**CNNs**) and **Recurrent Neural Networks** (**RNNs**) with some specific extensions.
+### Introduction of Text Convolutional Neural Networks (CNN)
 
+We introduced the calculation process of the CNN model applied to text data in the [Recommended System](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system) section. Here is a simple review.
 
-### Revisit to the Convolutional Neural Networks for Texts (CNN)
+For a CNN, first convolute input word vector sequence to generate a feature map, and then obtain the features of the whole sentence corresponding to the kernel by using a max pooling over time on the feature map. Finally, the splicing of all the features obtained is the fixed-length vector representation of the text. For the text classification problem, connecting it via softmax to construct a complete model. In actual applications, we use multiple convolution kernels to process sentences, and convolution kernels with the same window size are stacked to form a matrix, which can complete the operation more efficiently. In addition, we can also use the convolution kernel with different window sizes to process the sentence. Figure 3 in the [Recommend System](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system) section shows four convolution kernels, namely Figure 1 below, with different colors representing convolution kernel operations of different sizes.
 
-The convolutional neural network for texts is introduced in chapter [recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system), here is a brief overview.
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/text_cnn.png?raw=true" width = "80%" align="center"/><br/>
+Figure 1. CNN text classification model
+</p>
 
-CNN mainly contains convolution and pooling operation, with versatile combinations in various applications. We firstly apply the convolution operation: we apply the kernel in each window, extracting features. Convolving by the kernel at every window produces a feature map. Next, we apply *max pooling* over time to represent the whole sentence, which is the maximum element across the feature map. In real applications, we will apply multiple CNN kernels on the sentences. It can be implemented efficiently by concatenating the kernels together as a matrix. Also, we can use CNN kernels with different kernel size. Finally, concatenating the resulting features produces a fixed-length representation, which can be combined with a softmax to form the model for the sentiment analysis problem.
-
-For short texts, the aforementioned CNN model can achieve very high accuracy \[[1](#references)\]. If we want to extract more abstract representations, we may apply a deeper CNN model \[[2](#references),[3](#references)\].
+For the general short text classification problem, the simple text convolution network described above can achieve a high accuracy rate \[[1](#References)\]. If you want a more abstract and advanced text feature representation, you can construct a deep text convolutional neural network\[[2](#References), [3](#References)\].
 
 ### Recurrent Neural Network (RNN)
 
-RNN is an effective model for sequential data. In terms of computability, the RNN is Turing-complete \[[4](#references)\]. Since NLP is a classical problem of sequential data, the RNN, especially its variant LSTM\[[5](#references)\]), achieves state-of-the-art performance on various NLP tasks, such as language modeling, syntax parsing, POS-tagging, image captioning, dialog, machine translation, and so forth.
+RNN is a powerful tool for accurately modeling sequence data. In fact, the theoretical computational power of the RNN is perfected by Turing' \[[4](#References)\]. Natural language is a typical sequence data (word sequence). In recent years, RNN and its derivation (such as long short term memory\[[5](#References)\]) have been applied in many natural language fields, such as in language models, syntactic parsing, semantic role labeling (or general sequence labeling), semantic representation, graphic generation, dialogue, machine translation, etc., all perform well and even become the best at present.
 
 <p align="center">
-<img src="image/rnn.png" width = "60%" align="center"/><br/>
-Figure 1. An illustration of an unfolded RNN in time.
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/rnn.png?raw=true" width = "60%" align="center"/><br />
+Figure 2. Schematic diagram of the RNN expanded by time
 </p>
 
-As shown in Figure 1, we unfold an RNN: at the $t$-th time step, the network takes two inputs: the $t$-th input vector $\vec{x_t}$ and the latent state from the last time-step $\vec{h_{t-1}}$. From those, it computes the latent state of the current step $\vec{h_t}$. This process is repeated until all inputs are consumed. Denoting the RNN as function $f$, it can be formulated as follows:
+The RNN expands as time is shown in Figure 2: at the time of $t$, the network reads the $t$th input $x_t$ (vector representation) and the state value of the hidden layer at the previous moment $h_{t- 1}$ (vector representation, $h_0$ is normally initialized to $0$ vector), and calculate the state value $h_t$ of the hidden layer at this moment. Repeat this step until all the inputs have been read. If the function is recorded as $f$, its formula can be expressed as:
 
-$$\vec{h_t}=f(\vec{x_t},\vec{h_{t-1}})=\sigma(W_{xh}\vec{x_t}+W_{hh}\vec{h_{t-1}}+\vec{b_h})$$
+$$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{t-1}+b_h)$$
 
-where $W_{xh}$ is the weight matrix to feed into the latent layer; $W_{hh}$ is the latent-to-latent matrix; $b_h$ is the latent bias and $\sigma$ refers to the $sigmoid$ function.
+Where $W_{xh}$ is the matrix parameter of the input to the hidden layer, $W_{hh}$ is the matrix parameter of the hidden layer to the hidden layer, and $b_h$ is the bias vector parameter of the hidden layer, $\sigma $ is the $sigmoid$ function.
 
-In NLP, words are often represented as one-hot vectors and then mapped to an embedding. The embedded feature goes through an RNN as input $x_t$ at every time step. Moreover, we can add other layers on top of RNN, such as a deep or stacked RNN. Finally, the last latent state may be used as a feature for sentence classification.
+When dealing with natural language, the word (one-hot representation) is usually mapped to its word vector representation, and then used as the input $x_t$ for each moment of the recurrent neural network. In addition, other layers may be connected to the hidden layer of the RNN depending on actual needs. For example, you can connect the hidden layer output of a RNN to the input of the next RNN to build a deep or stacked RNN, or extract the hidden layer state at the last moment as a sentence representation and then implement a classification model, etc.
 
-### Long-Short Term Memory (LSTM)
+### Long and Short Term Memory Network (LSTM)
 
-Training an RNN on long sequential data sometimes leads to the gradient vanishing or exploding\[[6](#references)\]. To solve this problem Hochreiter S, Schmidhuber J. (1997) proposed **Long Short Term Memory** (LSTM)\[[5](#references)\]).
+For longer sequence data, the gradient disappearance or explosion phenomenon is likely to occur during training RNN\[[6](#References)\]. To solve this problem, Hochreiter S, Schmidhuber J. (1997) proposed LSTM (long short term memory\[[5](#References)\]).
 
-Compared to the structure of a simple RNN, an LSTM includes memory cell $c$, input gate $i$, forget gate $f$ and output gate $o$. These gates and memory cells dramatically improve the ability for the network to handle long sequences. We can formulate the **LSTM-RNN**, denoted as a function $F$, as follows：
+Compared to a simple RNN, LSTM adds memory unit $c$, input gate $i$, forget gate $f$, and output gate $o$. The combination of these gates and memory units greatly enhances the ability of the recurrent neural network to process long sequence data. If the function \is denoted as $F$, the formula is:
 
 $$ h_t=F(x_t,h_{t-1})$$
 
-$F$ contains following formulations\[[7](#references)\]：
+$F$ It is a combination of the following formulas\[[7](#References)\]:
 $$ i_t = \sigma{(W_{xi}x_t+W_{hi}h_{t-1}+W_{ci}c_{t-1}+b_i)} $$
 $$ f_t = \sigma(W_{xf}x_t+W_{hf}h_{t-1}+W_{cf}c_{t-1}+b_f) $$
 $$ c_t = f_t\odot c_{t-1}+i_t\odot tanh(W_{xc}x_t+W_{hc}h_{t-1}+b_c) $$
 $$ o_t = \sigma(W_{xo}x_t+W_{ho}h_{t-1}+W_{co}c_{t}+b_o) $$
 $$ h_t = o_t\odot tanh(c_t) $$
-
-In the equation，$i_t, f_t, c_t, o_t$ stand for input gate, forget gate, memory cell and output gate, respectively. $W$ and $b$ are model parameters, $\tanh$ is a hyperbolic tangent, and $\odot$ denotes an element-wise product operation. The input gate controls the magnitude of the new input into the memory cell $c$; the forget gate controls the memory propagated from the last time step; the output gate controls the magnitutde of the output. The three gates are computed similarly with different parameters, and they influence memory cell $c$ separately, as shown in Figure 2:
+Where $i_t, f_t, c_t, o_t$ respectively represent the vector representation of the input gate, the forget gate, the memory unit and the output gate, the $W$ and $b$ with the angular label are the model parameters, and the $tanh$ is the hyperbolic tangent function. , $\odot$ represents an elementwise multiplication operation. The input gate controls the intensity of the new input into the memory unit $c$, the forget gate controls the intensity of the memory unit to maintain the previous time value, and the output gate controls the intensity of the output memory unit. The three gates are calculated in a similar way, but with completely different parameters.They controll the memory unit $c$ in different ways, as shown in Figure 3:
 
 <p align="center">
-<img src="image/lstm_en.png" width = "65%" align="center"/><br/>
-Figure 2. LSTM at time step $t$ [7].
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/lstm.png?raw=true" width = "65%" align="center"/><br />
+Figure 3. LSTM for time $t$ [7]
 </p>
 
-LSTM enhances the ability of considering long-term reliance, with the help of memory cell and gate. Similar structures are also proposed in Gated Recurrent Unit (GRU)\[[8](Reference)\] with a simpler design. **The structures are still similar to RNN, though with some modifications (As shown in Figure 2), i.e., latent status depends on input as well as the latent status of the last time step, and the process goes on recurrently until all inputs are consumed:**
+LSTM enhances its ability to handle long-range dependencies by adding memory and control gates to RNN. A similar principle improvement is Gated Recurrent Unit (GRU)\[[8](#References)\], which is more concise in design. **These improvements are different, but their macro descriptions are the same as simple recurrent neural networks (as shown in Figure 2). That is, the hidden state changes according to the current input and the hidden state of the previous moment, and this process is continuous until the input is processed:**
 
 $$ h_t=Recrurent(x_t,h_{t-1})$$
-where $Recrurent$ is a simple RNN, GRU or LSTM.
 
+Among them, $Recrurent$ can represent a RNN, GRU or LSTM.
+
+
+
+<a name="Stacked Bidirectional LSTM"></a>
 ### Stacked Bidirectional LSTM
 
-For vanilla LSTM, $h_t$ contains input information from previous time-step $1..t-1$ context. We can also apply an RNN with reverse-direction to take successive context $t+1…n$ into consideration. Combining constructing deep RNN (deeper RNN can contain more abstract and higher level semantic), we can design structures with deep stacked bidirectional LSTM to model sequential data\[[9](#references)\].
+For a normal directional RNN, $h_t$ contains the input information before the $t$ time, which is the above context information. Similarly, in order to get the following context information, we can use a RNN in the opposite direction (which will be processed in reverse order). Combined with the method of constructing deep-loop neural networks (deep neural networks often get more abstract and advanced feature representations), we can build a more powerful LSTM-based stack bidirectional recurrent neural network\[[9](#References )\] to model time series data.
 
-As shown in Figure 3 (3-layer RNN), odd/even layers are forward/reverse LSTM. Higher layers of LSTM take lower-layers LSTM as input, and the top-layer LSTM produces a fixed length vector by max-pooling (this representation considers contexts from previous and successive words for higher-level abstractions). Finally, we concatenate the output to a softmax layer for classification.
+As shown in Figure 4 (taking three layers as an example), the odd-numbered LSTM is forward and the even-numbered LSTM is inverted. The higher-level LSTM uses the lower LSTM and all previous layers of information as input. The maximum pooling of the highest-level LSTM sequence in the time dimension can be used to obtain a fixed-length vector representation of the text (this representation fully fuses the contextual information and deeply abstracts of the text), and finally we connect the text representation to the softmax to build the classification model.
 
 <p align="center">
-<img src="image/stacked_lstm_en.png" width=450><br/>
-Figure 3. Stacked Bidirectional LSTM for NLP modeling.
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/stacked_lstm.jpg?raw=true" width=450><br/>
+Figure 4. Stacked bidirectional LSTM for text categorization
 </p>
 
-## Dataset
 
-We use [IMDB](http://ai.stanford.edu/%7Eamaas/data/sentiment/) dataset for sentiment analysis in this tutorial, which consists of 50,000 movie reviews split evenly into a 25k train set and a 25k test set. In the labeled train/test sets, a negative review has a score <= 4 out of 10, and a positive review has a score >= 7 out of 10.
+## Dataset Introduction
 
-`paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `moivelens`, and `wmt14`, etc. There's no need for us to manually download and preprocess IMDB.
-
-After issuing a command `python train.py`, training will start immediately. The details will be unpacked by the following sessions to see how it works.
-
+We use the [IMDB sentiment analysis data set](http://ai.stanford.edu/%7Eamaas/data/sentiment/) as an example. The training and testing IMDB dataset contain 25,000 labeled movie reviews respectively. Among them, the score of the negative comment is less than or equal to 4, and the score of the positive comment is greater than or equal to 7, full score is 10.
+```text
+aclImdb
+|- test
+   |-- neg
+   |-- pos
+|- train
+   |-- neg
+   |-- pos
+```
+Paddle implements the automatic download and read the imdb dataset in `dataset/imdb.py`, and provides API for reading dictionary, training data, testing data, and so on.
 
 ## Model Configuration
 
-Our program starts with importing necessary packages and initializing some global variables:
+In this example, we implement two text categorization algorithms based on the text convolutional neural network described in the [Recommender System](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system) section and [Stacked Bidirectional LSTM](#Stacked Bidirectional LSTM). We first import the packages we need to use and define global variables:
 
 ```python
 from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
-from functools import partial
 import numpy as np
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
+import sys
+import math
 
-CLASS_DIM = 2
-EMB_DIM = 128
-HID_DIM = 512
-STACKED_NUM = 3
-BATCH_SIZE = 128
-USE_GPU = False
+CLASS_DIM = 2 #Number of categories for sentiment analysis
+EMB_DIM = 128 #Dimensions of the word vector
+HID_DIM = 512 #Dimensions of hide layer
+STACKED_NUM = 3 #LSTM Layers of the bidirectional stack
+BATCH_SIZE = 128 #batch size
+
 ```
 
-As alluded to in section [Model Overview](#model-overview), here we provide the implementations of both Text CNN and Stacked-bidirectional LSTM models.
 
-### Text Convolution Neural Network (Text CNN)
-
-We create a neural network `convolution_net` as the following snippet code.
-
-Note: `fluid.nets.sequence_conv_pool` includes both convolution and pooling layer operations.
+### Text Convolutional Neural Network
+We build the neural network `convolution_net`, the sample code is as follows.
+Note that `fluid.nets.sequence_conv_pool` contains both convolution and pooling layers.
 
 ```python
+#Textconvolution neural network
 def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
     emb = fluid.layers.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
@@ -195,48 +199,53 @@ def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
     prediction = fluid.layers.fc(
         input=[conv_3, conv_4], size=class_dim, act="softmax")
     return prediction
-
 ```
-Parameter `input_dim` denotes the dictionary size, and `class_dim` is the number of categories.
 
-The above Text CNN network extracts high-level features and maps them to a vector of the same size as the categories. `paddle.activation.Softmax` function or classifier is then used for calculating the probability of the sentence belonging to each category.
+The network input `input_dim` indicates the size of the dictionary, and `class_dim` indicates the number of categories. Here, we implement the convolution and pooling operations using the [`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API.
 
+<a name="Stack value bidirectional LSTM"></a>
 
 ### Stacked bidirectional LSTM
 
-We create a neural network `stacked_lstm_net` as below.
+The code of the stack bidirectional LSTM `stacked_lstm_net` is as follows:
 
 ```python
+#Stack Bidirectional LSTM
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
+    # Calculate word vectorvector
     emb = fluid.layers.embedding(
-        input=data, size=[input_dim, emb_dim], is_sparse=True)
+        input=data, size=[input_dim, emb_dim], is_sparse=True)=True)
 
+    #First stack
+    #Fully connected layer
     fc1 = fluid.layers.fc(input=emb, size=hid_dim)
+    #lstm layer
     lstm1, cell1 = fluid.layers.dynamic_lstm(input=fc1, size=hid_dim)
 
     inputs = [fc1, lstm1]
 
+    #All remaining stack structures
     for i in range(2, stacked_num + 1):
         fc = fluid.layers.fc(input=inputs, size=hid_dim)
         lstm, cell = fluid.layers.dynamic_lstm(
             input=fc, size=hid_dim, is_reverse=(i % 2) == 0)
         inputs = [fc, lstm]
 
-    fc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
+    #pooling layer
+    pc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
     lstm_last = fluid.layers.sequence_pool(input=inputs[1], pool_type='max')
 
-    prediction = fluid.layers.fc(input=[fc_last, lstm_last],
-                                 size=class_dim,
-                                 act='softmax')
+    #Fully connected layer, softmax prediction
+    prediction = fluid.layers.fc(
+        input=[fc_last, lstm_last], size=class_dim, act='softmax')
     return prediction
-
 ```
-The above stacked bidirectional LSTM network extracts high-level features and maps them to a vector of the same size as the categories. `paddle.activation.Softmax` function or classifier is then used for calculating the probability of the sentence belonging to each category.
+The above stacked bidirectional LSTM abstracts the advanced features and maps them to vectors of the same size as the number of classification. The 'softmax' activation function of the last fully connected layer is used to calculate the probability of a certain category.
 
-To reiterate, we can either invoke `convolution_net` or `stacked_lstm_net`. In below steps, we will go with `convolution_net`.
+Again, here we can call any network structure of `convolution_net` or `stacked_lstm_net` for training and learning. Let's take `convolution_net` as an example.
 
-Next we define an `inference_program` that simply uses `convolution_net` to predict output with the input from `fluid.layer.data`.
+Next we define the prediction program (`inference_program`). We use `convolution_net` to predict the input of `fluid.layer.data`.
 
 ```python
 def inference_program(word_dict):
@@ -249,47 +258,44 @@ def inference_program(word_dict):
     return net
 ```
 
-Then we define a `training_program` that uses the result from `inference_program` to compute the cost with label data.
-Also define `optimizer_func` to specify the optimizer.
+We define `training_program` here, which uses the result returned from `inference_program` to calculate the error. We also define the optimization function `optimizer_func`.
 
+Because it is supervised learning, the training set tags are also defined in `fluid.layers.data`. During training, cross-entropy is used as a loss function in `fluid.layer.cross_entropy`.
 
-In the context of supervised learning, labels of the training set are defined in `paddle.layer.data` too. During training, cross-entropy is used as loss function in `paddle.layer.classification_cost` and as the output of the network; During testing, the outputs are the probabilities calculated in the classifier.
-First result that returns from the list must be cost.
+During the testing, the classifier calculates the probability of each output. The first returned value is specified as cost.
 
 ```python
-def train_program(word_dict):
-    prediction = inference_program(word_dict)
+def train_program(prediction):
     label = fluid.layers.data(name="label", shape=[1], dtype="int64")
     cost = fluid.layers.cross_entropy(input=prediction, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=prediction, label=label)
-    return [avg_cost, accuracy]
+    return [avg_cost, accuracy] #return average cost and accuracy acc
 
-
+#Optimization function
 def optimizer_func():
     return fluid.optimizer.Adagrad(learning_rate=0.002)
 ```
 
-## Model Training
+## Training Model
 
-### Specify training environment
+### Defining the training environment
 
-Specify your training environment, you should specify if the training is on CPU or GPU.
+Define whether your training is on the CPU or GPU:
+
 
 ```python
-use_cuda = False
+use_cuda = False #train on cpu
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
-### Datafeeder Configuration
+### Defining the data creator
 
-Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process.
-`paddle.dataset.imdb.train` will yield records during each pass, after shuffling, a batch input of `BATCH_SIZE` is generated for training.
+The next step is to define a data creator for training and testing. The creator reads in a data of size BATCH_SIZE. Paddle.dataset.imdb.word_dict will provide a size of BATCH_SIZE after each time shuffling, which is the cache size: buf_size.
 
-Notice for loading and reading IMDB data, it could take up to 1 minute. Please be patient.
+Note: It may take a few minutes to read the IMDB data, please be patient.
 
 ```python
-
 print("Loading IMDB word dict....")
 word_dict = paddle.dataset.imdb.word_dict()
 
@@ -298,77 +304,125 @@ train_reader = paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.imdb.train(word_dict), buf_size=25000),
     batch_size=BATCH_SIZE)
+print("Reading testing data....")
+test_reader = paddle.batch(
+    paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
 ```
+Word_dict is a dictionary sequence, which is the correspondence between words and labels. You can see it specifically by running the next code:
+```python
+word_dict
+```
+Each line is a correspondence such as ('limited': 1726), which indicates that the label corresponding to the word limited is 1726.
 
-
-### Create Trainer
-
-Create a trainer that takes `train_program` as input and specify optimizer function.
+### Construction Trainer
+The trainer requires a training program and a training optimization function.
 
 ```python
-trainer = Trainer(
-    train_func=partial(train_program, word_dict),
-    place=place,
-    optimizer_func=optimizer_func)
+exe = fluid.Executor(place)
+prediction = inference_program(word_dict)
+[avg_cost, accuracy] = train_program(prediction)#training program
+sgd_optimizer = optimizer_func()# training optimization function
+sgd_optimizer.minimize(avg_cost)
 ```
 
-### Feeding Data
-
-`feed_order` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `imdb.train` corresponds to `words`.
-
+This function is used to calculate the result of the model on the test dataset.
 ```python
-feed_order = ['words', 'label']
+def train_test(program, reader):
+    count = 0
+    feed_var_list = [
+        program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder_test = fluid.DataFeeder(feed_list=feed_var_list, place=place)
+    test_exe = fluid.Executor(place)
+    accumulated = len([avg_cost, accuracy]) * [0]
+    for test_data in reader():
+        avg_cost_np = test_exe.run(
+            program=program,
+            feed=feeder_test.feed(test_data),
+            fetch_list=[avg_cost, accuracy])
+        accumulated = [
+            x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)
+        ]
+        count += 1
+    return [x / count for x in accumulated]
 ```
 
-### Event Handler
+### Providing data and building a main training loop
 
-Callback function `event_handler` will be called during training when a pre-defined event happens.
-For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
+`feed_order` is used to define the mapping relationship between each generated data and `fluid.layers.data`. For example, the data in the first column generated by `imdb.train` corresponds to the `words` feature.
 
 ```python
 # Specify the directory path to save the parameters
 params_dirname = "understand_sentiment_conv.inference.model"
 
-def event_handler(event):
-    if isinstance(event, EndStepEvent):
-        print("Step {0}, Epoch {1} Metrics {2}".format(
-                event.step, event.epoch, list(map(np.array, event.metrics))))
+feed_order = ['words', 'label']
+pass_num = 1  #Number rounds of the training loop
 
-        if event.step == 10:
-            trainer.save_params(params_dirname)
-            trainer.stop()
+# Main loop part of the program
+def train_loop(main_program):
+    # Start the trainer built above
+    exe.run(fluid.default_startup_program())
+
+    feed_var_list_loop = [
+        main_program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder = fluid.DataFeeder(
+        feed_list=feed_var_list_loop, place=place)
+
+    test_program = fluid.default_main_program().clone(for_test=True)
+
+    # Training loop
+    for epoch_id in range(pass_num):
+        for step_id, data in enumerate(train_reader()):
+            # Running trainer
+            metrics = exe.run(main_program,
+                              feed=feeder.feed(data),
+                              fetch_list=[avg_cost, accuracy])
+
+            # Testing Results
+            avg_cost_test, acc_test = train_test(test_program, test_reader)
+            print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
+                step_id, avg_cost_test, acc_test))
+
+            print("Step {0}, Epoch {1} Metrics {2}".format(
+                step_id, epoch_id, list(map(np.array,
+                                            metrics))))
+
+            if step_id == 30:
+                if params_dirname is not None:
+                    fluid.io.save_inference_model(params_dirname, ["words"],
+                                                  prediction, exe)# Save model
+                return
 ```
 
-### Training
+### Training process
 
-Finally, we invoke `trainer.train` to start training with `num_epochs` and other parameters.
+We print the output of each step in the main loop of the training, and we can observe the training situation.
+
+### Start training
+
+Finally, we start the training main loop to start training. The training time is longer. If you want to get the result faster, you can shorten the training time by adjusting the loss value range or the number of training steps at the cost of reducing the accuracy.
 
 ```python
-trainer.train(
-    num_epochs=1,
-    event_handler=event_handler,
-    reader=train_reader,
-    feed_order=feed_order)
+train_loop(fluid.default_main_program())
 ```
 
-## Inference
+## Application Model
 
-### Create Inferencer
+### Building a predictor
 
-Initialize Inferencer with `inference_program` and `params_dirname` which is where we save params from training.
+As the training process, we need to create a prediction process and use the trained models and parameters to make predictions. `params_dirname` is used to store the various parameters in the training process.
 
 ```python
-inferencer = Inferencer(
-        infer_func=partial(inference_program, word_dict),
-        param_path=params_dirname,
-        place=place)
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+exe = fluid.Executor(place)
+inference_scope = fluid.core.Scope()
 ```
 
-### Create Lod Tensor with test data
+### Generating test input data
 
-To do inference, we pick 3 potential reviews out of our mind as testing data. Feel free to modify any of them.
-We map each word in the reviews to id from `word_dict`, replaced by 'unknown' if the word is not in `word_dict`.
-Then we create lod data with the id list and use `create_lod_tensor` to create lod tensor.
+In order to make predictions, we randomly select 3 comments. We correspond each word in the comment to the id in `word_dict`. If the word is not in the dictionary, set it to `unknown`.
+Then we use `create_lod_tensor` to create the tensor of the detail level. For a detailed explanation of this function, please refer to [API documentation](http://paddlepaddle.org/documentation/docs/en/1.2/user_guides/howto/basic_concept/lod_tensor.html).
 
 ```python
 reviews_str = [
@@ -386,27 +440,39 @@ base_shape = [[len(c) for c in lod]]
 tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
 ```
 
-### Infer
+## Applying models and making predictions
 
-Now we can infer and predict probability of positive or negative from each review above.
+Now we can make positive or negative predictions for each comment.
 
 ```python
-results = inferencer.infer({'words': tensor_words})
+with fluid.scope_guard(inference_scope):
 
-for i, r in enumerate(results[0]):
-    print("Predict probability of ", r[0], " to be positive and ", r[1], " to be negative for review \'", reviews_str[i], "\'")
+    [inferencer, feed_target_names,
+     fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
 
+    assert feed_target_names[0] == "words"
+    results = exe.run(inferencer,
+                      feed={feed_target_names[0]: tensor_words},
+                      fetch_list=fetch_targets,
+                      return_numpy=False)
+    np_data = np.array(results[0])
+    for i, r in enumerate(np_data):
+        print("Predict probability of ", r[0], " to be positive and ", r[1],
+              " to be negative for review \'", reviews_str[i], "\'")
 
 ```
 
+
 ## Conclusion
 
-In this chapter, we use sentiment analysis as an example to introduce applying deep learning models on end-to-end short text classification, as well as how to use PaddlePaddle to implement the model. Meanwhile, we briefly introduce two models for text processing: CNN and RNN. In following chapters, we will see how these models can be applied in other tasks.
+In this chapter, we take sentiment analysis as an example to introduce end-to-end short text classification using deep learning, and complete all relevant experiments using PaddlePaddle. At the same time, we briefly introduce two text processing models: convolutional neural networks and recurrent neural networks. In the following chapters, we will see the application of these two basic deep learning models on other tasks.
+
+<a name="References"></a>
 
 ## References
 
 1. Kim Y. [Convolutional neural networks for sentence classification](http://arxiv.org/pdf/1408.5882)[J]. arXiv preprint arXiv:1408.5882, 2014.
-2. Kalchbrenner N, Grefenstette E, Blunsom P. [A convolutional neural network for modeling sentences](http://arxiv.org/pdf/1404.2188.pdf?utm_medium=App.net&utm_source=PourOver)[J]. arXiv preprint arXiv:1404.2188, 2014.
+2. Kalchbrenner N, Grefenstette E, Blunsom P. [A convolutional neural network for modelling sentences](http://arxiv.org/pdf/1404.2188.pdf?utm_medium=App.net&utm_source=PourOver)[J]. arXiv preprint arXiv:1404.2188, 2014.
 3. Yann N. Dauphin, et al. [Language Modeling with Gated Convolutional Networks](https://arxiv.org/pdf/1612.08083v1.pdf)[J] arXiv preprint arXiv:1612.08083, 2016.
 4. Siegelmann H T, Sontag E D. [On the computational power of neural nets](http://research.cs.queensu.ca/home/akl/cisc879/papers/SELECTED_PAPERS_FROM_VARIOUS_SOURCES/05070215382317071.pdf)[C]//Proceedings of the fifth annual workshop on Computational learning theory. ACM, 1992: 440-449.
 5. Hochreiter S, Schmidhuber J. [Long short-term memory](http://web.eecs.utk.edu/~itamar/courses/ECE-692/Bobby_paper1.pdf)[J]. Neural computation, 1997, 9(8): 1735-1780.
@@ -416,7 +482,7 @@ In this chapter, we use sentiment analysis as an example to introduce applying d
 9. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
 
 <br/>
-This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
 
 </div>
 <!-- You can change the lines below now. -->
