@@ -40,7 +40,7 @@ $$\hat{Y} = \omega_1X_{1} + \omega_2X_{2} + \ldots + \omega_{13}X_{13} + b$$
 
 $\hat{Y}$ represents the predicted result of the model and is used to distinguish it from the real value $Y$. The parameters to be learned by the model are: $\omega_1, \ldots, \omega_{13}, b$.
 
-After building the model, we need to give the model an optimization goal so that the learned parameters can make the predicted value $\hat{Y}$ get as close to the true value $Y$. Here we introduce the concept of loss function ([Loss Function](https://en.wikipedia.org/wiki/Loss_function), or Cost Function.  Input the target value $y_{i}$ of any data sample and the predicted value $\hat{y_{i}}$ given by a model. Then the loss function outputs a non-negative real number, which is usually used to represent model error.
+After building the model, we need to give the model an optimization goal so that the learned parameters can make the predicted value $\hat{Y}$ get as close to the true value $Y$. Here we introduce the concept of loss function ([Loss Function](https://en.wikipedia.org/wiki/Loss_function), or Cost Function).  Input the target value $y_{i}$ of any data sample and the predicted value $\hat{y_{i}}$ given by a model. Then the loss function outputs a non-negative real number, which is usually used to represent model error.
 
 For linear regression models, the most common loss function is the Mean Squared Error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)), which is:
 
@@ -158,39 +158,33 @@ test_reader = paddle.batch(
 
 If you want to read data directly from \*.txt file, you can refer to the method as follows.
 
+```python
 feature_names = [
     'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
     'PTRATIO', 'B', 'LSTAT', 'convert'
 ]
 
 feature_num = len(feature_names)
-
 data = numpy.fromfile(filename, sep=' ') # Read primary data from file
-
 data = data.reshape(data.shape[0] // feature_num, feature_num)
-
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
-
 for i in six.moves.range(feature_num-1):
- data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves is compatible to python2 and python3
+    data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves is compatible to python2 and python3
 
 ratio = 0.8 # distribution ratio of train dataset and verification dataset
-
-offset = int(data.shape[0]\*ratio)
-
+offset = int(data.shape[0]*ratio)
 train_data = data[:offset]
-
 test_data = data[offset:]
 
 train_reader = paddle.batch(
     paddle.reader.shuffle(
         train_data, buf_size=500),
         batch_size=BATCH_SIZE)
-
 test_reader = paddle.batch(
     paddle.reader.shuffle(
         test_data, buf_size=500),
         batch_size=BATCH_SIZE)
+```
 
 ### Configure Program for Training
 The aim of the program for training is to define a network structure of a training model. For linear regression, it is a simple fully connected layer from input to output. More complex result, such as Convolutional Neural Network and Recurrent Neural Network, will be introduced in later chapters. It must return `mean error` as the first return value in program for training, for that `mean error` will be used for BackPropagation.
