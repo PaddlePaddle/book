@@ -14,11 +14,13 @@
 
 from __future__ import print_function
 
+import sys
+
+import math
+import numpy
+
 import paddle
 import paddle.fluid as fluid
-import numpy
-import math
-import sys
 
 
 # For training test cost
