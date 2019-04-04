@@ -238,7 +238,7 @@ def G(x):
 ```
 ### 损失函数
 
-损失函数使用 `sigmoid_cross_entropy_with_logits`，
+损失函数使用 `sigmoid_cross_entropy_with_logits`
 
 ```python
 def loss(x, label):
@@ -282,7 +282,7 @@ with fluid.program_guard(dg_program):
             input=noise, dtype='float32', shape=[-1, 1], value=1.0))
 
 ```
-使用adam作为优化器，分别优化判别真实图片的loss和判别生成图片的loss
+使用adam作为优化器，分别优化判别真实图片的loss和判别生成图片的loss。
 
 ```python
 opt = fluid.optimizer.Adam(learning_rate=LEARNING_RATE)
@@ -329,7 +329,7 @@ losses = [[], []]
 # 判别器的迭代次数
 NUM_TRAIN_TIMES_OF_DG = 2  
 
-# 定义最终生成图像的噪声数据
+# 最终生成图像的噪声数据
 const_n = np.random.uniform(
     low=-1.0, high=1.0,
     size=[batch_size, NOISE_SIZE]).astype('float32')
