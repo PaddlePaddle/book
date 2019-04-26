@@ -353,7 +353,7 @@ train_reader = paddle.batch(
 ```python
 if use_gpu:
     exe = fluid.Executor(fluid.CUDAPlace(0))
-else：
+else:
     exe = fluid.Executor(fluid.CPUPlace())
 
 exe.run(fluid.default_startup_program())
