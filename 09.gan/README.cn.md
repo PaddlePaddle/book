@@ -390,7 +390,7 @@ for pass_id in range(epoch):
                                  fetch_list={dg_loss})[0][0]
             losses[1].append(dg_loss_n)
         t_time += (time.time() - s_time)
-        if batch_id % 10 == 0 and not run_ce:
+        if batch_id % 10 == 0 :
             if not os.path.exists(output):
                 os.makedirs(output)
             # 每轮的生成结果
