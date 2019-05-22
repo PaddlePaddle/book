@@ -21,13 +21,23 @@ import numpy
 import paddle
 import paddle.fluid as fluid
 
+
 def parse_args():
     parser = argparse.ArgumentParser("mnist")
-    parser.add_argument('--enable_ce', action='store_true', help="If set, run the task with continuous evaluation logs.")
-    parser.add_argument('--use_gpu', type=bool, default=False, help="Whether to use GPU or not.")
-    parser.add_argument('--num_epochs', type=int, default=5, help="number of epochs.")
-    args=parser.parse_args()
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help="If set, run the task with continuous evaluation logs.")
+    parser.add_argument(
+        '--use_gpu',
+        type=bool,
+        default=False,
+        help="Whether to use GPU or not.")
+    parser.add_argument(
+        '--num_epochs', type=int, default=5, help="number of epochs.")
+    args = parser.parse_args()
     return args
+
 
 def loss_net(hidden, label):
     prediction = fluid.layers.fc(input=hidden, size=10, act='softmax')
@@ -73,18 +83,21 @@ def train(nn_type,
           params_filename=None):
     if use_cuda and not fluid.core.is_compiled_with_cuda():
         return
-   
+
     startup_program = fluid.default_startup_program()
     main_program = fluid.default_main_program()
-        
+
     if args.enable_ce:
-        train_reader = paddle.batch(paddle.dataset.mnist.train(), batch_size=BATCH_SIZE)
-        test_reader = paddle.batch(paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
+        train_reader = paddle.batch(
+            paddle.dataset.mnist.train(), batch_size=BATCH_SIZE)
+        test_reader = paddle.batch(
+            paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
         startup_program.random_seed = 90
         main_program.random_seed = 90
-    else :
+    else:
         train_reader = paddle.batch(
-            paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=500), batch_size=BATCH_SIZE)
+            paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=500),
+            batch_size=BATCH_SIZE)
         test_reader = paddle.batch(
             paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
 
@@ -122,7 +135,7 @@ def train(nn_type,
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
     exe = fluid.Executor(place)
-    
+
     feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
     exe.run(startup_program)
     epochs = [epoch_id for epoch_id in range(PASS_NUM)]
@@ -154,17 +167,17 @@ def train(nn_type,
                 exe,
                 model_filename=model_filename,
                 params_filename=params_filename)
-    
+
     if args.enable_ce:
-        print("kpis\ttrain_cost\t%f" % metrics[0] )
+        print("kpis\ttrain_cost\t%f" % metrics[0])
         print("kpis\ttest_cost\t%s" % avg_loss_val)
         print("kpis\ttest_acc\t%s" % acc_val)
-   
+
     # find the best pass
     best = sorted(lists, key=lambda list: float(list[1]))[0]
     print('Best pass is %s, testing Avgcost is %s' % (best[0], best[1]))
     print('The classification accuracy is %.2f%%' % (float(best[2]) * 100))
-   
+
 
 def infer(use_cuda,
           save_dirname=None,
