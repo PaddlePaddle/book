@@ -67,8 +67,7 @@
 相比于简单的循环神经网络，LSTM增加了记忆单元$c$、输入门$i$、遗忘门$f$及输出门$o$。这些门及记忆单元组合起来大大提升了循环神经网络处理长序列数据的能力。若将基于LSTM的循环神经网络表示的函数记为$F$，则其公式为：
 
 <p align="center">
-<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_1.png
-?raw=true" width = "30%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_1.png?raw=true" width = "30%" align="center"/><br/>
 </p>
 
 
