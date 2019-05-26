@@ -87,7 +87,7 @@ $F$由下列公式组合而成\[[7](#参考文献)\]：
 LSTM通过给简单的循环神经网络增加记忆及控制门的方式，增强了其处理远距离依赖问题的能力。类似原理的改进还有Gated Recurrent Unit (GRU)\[[8](#参考文献)\]，其设计更为简洁一些。**这些改进虽然各有不同，但是它们的宏观描述却与简单的循环神经网络一样（如图2所示），即隐状态依据当前输入及前一时刻的隐状态来改变，不断地循环这一过程直至输入处理完毕：**
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_rnn_2.png?raw=true" width = "50%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_rnn_2.png?raw=true" width = "50%" align="center"/><br/>
 </p>
 
 其中，$Recrurent$可以表示简单的循环神经网络、GRU或LSTM。
