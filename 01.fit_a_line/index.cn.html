@@ -48,6 +48,7 @@
 ## 背景介绍
 给定一个大小为$n$的数据集  ${\{y_{i}, x_{i1}, ..., x_{id}\}}_{i=1}^{n}$，其中$x_{i1}, \ldots, x_{id}$是第$i$个样本$d$个属性上的取值，$y_i$是该样本待预测的目标。线性回归模型假设目标$y_i$可以被属性间的线性组合描述，即
 
+
 <p align="center">
     <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_1.png?raw=true" width=200><br/>
 </p>
@@ -62,9 +63,6 @@
     <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/predictions.png?raw=true" width=400><br/>
     图1. 预测值 V.S. 真实值
 </p>
-
-## 硬件环境的要求
-本文档支持GPU训练，如果您使用了本文配套的docker镜像，请注意：该镜像对GPU的支持仅限于CUDA 8，cuDNN 5
 
 ## 模型概览
 
@@ -154,8 +152,7 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 
 ## 训练
 
-`fit_a_line/train.py`演示了训练的整体过程。
-请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，如希望直接看到训练脚本输出效果，可运行train.py。
+`fit_a_line/trainer.py`演示了训练的整体过程。
 
 ### 配置数据提供器(Datafeeder)
 首先我们引入必要的库：
@@ -409,7 +406,6 @@ with fluid.scope_guard(inference_scope):
 
     save_result(results[0], infer_label) # 保存图片
 ```
-请注意：按照本文提供的数据集和训练代码进行训练，每次得到的预测结果会有一些不同。
 
 
 
