@@ -237,24 +237,6 @@ def train_test(executor, program, reader, feeder, fetch_list):
     return [x_d / count for x_d in accumulated] # 计算平均损失
 
 ```
-可以直接输出损失值来观察`训练进程`:
-
-```python
-train_prompt = "train cost"
-test_prompt = "test cost"
-print("%s', out %f" % (train_prompt, out))
-print("%s', out %f" % (test_prompt, out))
-
-```
-
-除此之外，还可以通过画图，来展现`训练进程`：
-
-```python
-from paddle.utils.plot import ploter
-
-plot_prompt = ploter(train_prompt, test_prompt)
-
-```
 
 ### 训练主循环
 
@@ -264,8 +246,11 @@ plot_prompt = ploter(train_prompt, test_prompt)
 %matplotlib inline
 params_dirname = "fit_a_line.inference.model"
 feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
-naive_exe = fluid.Executor(place)
-naive_exe.run(startup_program)
+exe.run(startup_program)
+train_prompt = "train cost"
+test_prompt = "test cost"
+from paddle.utils.plot import Ploter
+plot_prompt = Ploter(train_prompt, test_prompt)
 step = 0
 
 exe_test = fluid.Executor(place)
@@ -280,10 +265,12 @@ for pass_id in range(num_epochs):
         avg_loss_value, = exe.run(main_program,
                                   feed=feeder.feed(data_train),
                                   fetch_list=[avg_loss])
-        if step % 10 == 0: # 每10个批次记录一下训练损失
+        if step % 10 == 0: # 每10个批次记录并输出一下训练损失
             plot_prompt.append(train_prompt, step, avg_loss_value[0])
             plot_prompt.plot()
-        if step % 100 == 0:  # 每100批次记录一下测试损失
+            print("%s, Step %d, Cost %f" %
+	                  (train_prompt, step, avg_loss_value[0]))
+        if step % 100 == 0:  # 每100批次记录并输出一下测试损失
             test_metics = train_test(executor=exe_test,
                                      program=test_program,
                                      reader=test_reader,
@@ -291,6 +278,8 @@ for pass_id in range(num_epochs):
                                      feeder=feeder)
             plot_prompt.append(test_prompt, step, test_metics[0])
             plot_prompt.plot()
+            print("%s, Step %d, Cost %f" %
+	                  (test_prompt, step, test_metics[0]))
             if test_metics[0] < 10.0: # 如果准确率达到要求，则停止训练
                 break
 
@@ -316,6 +305,24 @@ inference_scope = fluid.core.Scope()
 ```
 
 ### 预测
+
+保存图片
+```python
+def save_result(points1, points2):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    x1 = [idx for idx in range(len(points1))]
+    y1 = points1
+    y2 = points2
+    l1 = plt.plot(x1, y1, 'r--', label='predictions')
+    l2 = plt.plot(x1, y2, 'g--', label='GT')
+    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
+    plt.title('predictions VS GT')
+    plt.legend()
+    plt.savefig('./image/prediction_gt.png')
+```
+
 通过fluid.io.load_inference_model，预测器会从`params_dirname`中读取已经训练好的模型，来对从未遇见过的数据进行预测。
 
 ```python
@@ -337,37 +344,19 @@ with fluid.scope_guard(inference_scope):
     results = infer_exe.run(inference_program,
                             feed={feed_target_names[0]: numpy.array(infer_feat)},
                             fetch_list=fetch_targets) # 进行预测
+    #打印预测结果和标签并可视化结果
+    print("infer results: (House Price)")
+    for idx, val in enumerate(results[0]):
+        print("%d: %.2f" % (idx, val)) # 打印预测结果
+
+    print("\nground truth:")
+    for idx, val in enumerate(infer_label):
+        print("%d: %.2f" % (idx, val)) # 打印标签值
+
+    save_result(results[0], infer_label) # 保存图片
 ```
 
-保存图片
-```python
-def save_result(points1, points2):
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    x1 = [idx for idx in range(len(points1))]
-    y1 = points1
-    y2 = points2
-    l1 = plt.plot(x1, y1, 'r--', label='predictions')
-    l2 = plt.plot(x1, y2, 'g--', label='GT')
-    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
-    plt.title('predictions VS GT')
-    plt.legend()
-    plt.savefig('./image/prediction_gt.png')
-```
 
-打印预测结果和标签并可视化结果
-```python
- print("infer results: (House Price)")
- for idx, val in enumerate(results[0]):
-     print("%d: %.2f" % (idx, val)) # 打印预测结果
-
- print("\nground truth:")
- for idx, val in enumerate(infer_label):
-     print("%d: %.2f" % (idx, val)) # 打印标签值
-
-save_result(results[0], infer_label) # 保存图片
-```
 
 ## 总结
 在这章里，我们借助波士顿房价这一数据集，介绍了线性回归模型的基本概念，以及如何使用PaddlePaddle实现训练和测试的过程。很多的模型和技巧都是从简单的线性回归模型演化而来，因此弄清楚线性模型的原理和局限非常重要。

@@ -1,212 +1,238 @@
 # Recognize Digits
 
-The source code for this tutorial is here:  [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code of this tutorial is in [book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits). For new users, please refer to [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book) .
 
-## Introduction
-When one learns to program, the first task is usually to write a program that prints "Hello World!".
-In Machine Learning or Deep Learning, an equivalent task is to train a model to recognize hand-written digits using the [MNIST](http://yann.lecun.com/exdb/mnist/) dataset.
-Handwriting recognition is a classic image classification problem. The problem is relatively easy and MNIST is a complete dataset.
-As a simple Computer Vision dataset, MNIST contains images of handwritten digits and their corresponding labels (Fig. 1).
-The input image is a $28\times28$ matrix, and the label is one of the digits from $0$ to $9$. All images are normalized, meaning that they are both rescaled and centered.
+## Background
+When we learning programming, the first program we write is generally to implement printing “Hello World”. But the tutorial of machine learning or deep learning for the beginner is usually handwriting recognition on the [MNIST](http://yann.lecun.com/exdb/mnist/) database. Because handwriting recognition is a typical classification problem, relatively simple and the MNIST dataset is complete. MNIST dataset as a simple computer vision dataset contains a series of pictures and corresponding labels of handwriting digits. The picture is a 28x28 pixel matrix, and the label corresponds to 10 numbers from 0 to 9. Each picture has been normalized in size and centered in the position.
 
 <p align="center">
-<img src="image/mnist_example_image.png" width="400"><br/>
-Fig. 1. Examples of MNIST images
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/mnist_example_image.png?raw=true" width="400"><br/>
+Figure 1. Example of a MNIST picture
 </p>
 
-The MNIST dataset is from the [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3 (SD-3) and the Special Database 1 (SD-1).
-The SD-3 is labeled by the staff of the U.S. Census Bureau, while SD-1 is labeled by high school students. Therefore the SD-3 is cleaner and easier to recognize than the SD-1 dataset.
-Yann LeCun et al. used half of the samples from each of SD-1 and SD-3 to create the MNIST training set of 60,000 samples and test set of 10,000 samples.
-250 annotators labeled the training set, thus guaranteed that there wasn't a complete overlap of annotators of training set and test set.
+MNIST dataset is created from [NIST](https://www.nist.gov/srd/nist-special-database-19) Special Database 3（SD-3) and Special Database 1（SD-1). Because SD-3 is labeled by stuff of US Census Bureau and SD-1 is labeled by US high school students, so SD-3 is clearer and easier to be recognized than SD-1. Yann LeCun et al. pick half of SD-1 and half of SD-3 as train dataset (60000 data) and test dataset (10000 data).250 annotators labeled the training set, thus guaranteed that there wasn't a complete overlap of annotators of training set and test set.
 
-The MNIST dataset has been used for evaluating many image recognition algorithms such as a single layer linear classifier,
-Multilayer Perceptron (MLP) and Multilayer CNN LeNet\[[1](#references)\], K-Nearest Neighbors (k-NN) \[[2](#references)\], Support Vector Machine (SVM) \[[3](#references)\],
-Neural Networks \[[4-7](#references)\], Boosting \[[8](#references)\] and preprocessing methods like distortion removal, noise removal, and blurring.
-Among these algorithms, the *Convolutional Neural Network* (CNN) has achieved a series of impressive results in Image Classification tasks, including VGGNet, GoogLeNet,
-and ResNet (See [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification) tutorial).
+MNIST attracts scholars to train model based on the dataset. In 1998, LeCun conducted experiments respectively using Single layer classifier, Multilayer Perceptron and Multilayer convolutional neural network LeNet, constantly decreasing the error on test dataset ( from 12% to 0.7%)\[[1](#References)\]。 In the process of research, LeCun, the pioneer in the field of deep learning, came up with Convolutional Neural Network, largely improving the performance of handwriting recognition. After that, researchers take a large number of experiments based on K-Nearest Neighbors algorithm\[[2](#References)\], SVM\[[3](#References)\], Neural Network\[[4-7](#References)\] and Boosting method\[[8](#References)\] and so on, with multiple pre-processing methods(like distortion removal, noise removal, and blurring) to upgrade accuracy of recognition.
 
-In this tutorial, we start with a simple **softmax** regression model and go on with MLP and CNN.  Readers will see how these methods improve the recognition accuracy step-by-step.
+Convolutional Neural Network plays an important role in the field of deep learning now. From simple LeNet proposed by Yann LeCun in early days to model VGGNet, GoogleNet, ResNet and so on in the ImageNet competition (please refer to [Image Classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification) tutorial ), we have gain a serious of great achievements with convolutional neural network in the field of image classification.
 
 
-## Model Overview
 
-Before introducing classification algorithms and training procedure, we define the following symbols:
-- $X$ is the input: Input is a $28\times 28$ MNIST image. It is flattened to a $784$ dimensional vector. $X=\left (x_0, x_1, \dots, x_{783} \right )$.
-- $Y$ is the output: Output of the classifier is 1 of the 10 classes (digits from 0 to 9). $Y=\left (y_0, y_1, \dots, y_9 \right )$. Each dimension $y_i$ represents the probability that the input image belongs to class $i$.
-- $L$ is the ground truth label: $L=\left ( l_0, l_1, \dots, l_9 \right )$. It is also 10 dimensional, but only one entry is $1$ and all others are $0$s.
+In this tutorial, starting from simple Softmax regression model, we help you learn about handwriting recognition and introduce you how to upgrade model and how to use MLP and CNN to optimize recognition result.
+
+
+## Exploration of Models
+
+To train a classifier based on MNIST dataset, before the introduction of three basic image classification networks used in this tutorial, we first give some definitions:
+
+- $X$ is the input: the MNIST image is a two-dimensional image of $28\times28$. For the calculation, we transform it into a $784$ dimensional vector, ie $X=\left ( x_0, x_1, \dots, x_{783} \right )$.
+
+- $Y$ is the output: the output of the classifier is number (0-9), ie $Y=\left ( y_0, y_1, \dots, y_9 \right )$, and each dimension $y_i$ represents the probability of image classification as $i$th number.
+
+- $Label$ is the actual label of the picture: $Label=\left ( l_0, l_1, \dots, l_9 \right ) $ is also 10 dimensions, but only one dimension represents 1, and the rest is 0. For example, if the number on an image is 2, its label is $(0,0,1,0, \dot, 0)$
 
 ### Softmax Regression
 
-In a simple softmax regression model, the input is first fed to fully connected layers. Then, a softmax function is applied to output probabilities of multiple output classes\[[9](#references)\].
+The simplest Softmax regression model is to get features with input layer passing through a fully connected layer and then compute and ouput probabilities of multiple classifications directly via Softmax function \[[9](#references)\].
 
-The input $X$ is multiplied by weights $W$ and then added to the bias $b$ to generate activations.
+The data of the input layer $X$ is passed to the output layer. The input $X$ is multiplied by weights $W$ and then added to the bias $b$ to generate activations:
 
 $$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
 where $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
 
-For an $N$-class classification problem with $N$ output nodes, Softmax normalizes the resulting $N$ dimensional vector so that each of its entries falls in the range $[0,1]\in {R}$, representing the probability that the sample belongs to a certain class. Here $y_i$ denotes the predicted probability that an image is of digit $i$.
-
-In such a classification problem, we usually use the cross entropy loss function:
-
-$$  \text{_L_<sub>cross-entropy</sub>}(label, y) = -\sum_i label_ilog(y_i) $$
-
-Fig. 2 illustrates a softmax regression network, with the weights in blue, and the bias in red. `+1` indicates that the bias is $1$.
+Figure 2 is a network of softmax regression, in which weights are represented by blue lines, bias are represented by red lines, and +1 indicates that the bias is $1$.
 
 <p align="center">
-<img src="image/softmax_regression_en.png" width=400><br/>
-Fig. 2. Softmax regression network architecture<br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/softmax_regression.png?raw=true" width=400><br/>
+Figure 2. Softmax regression network structure <br/>
 </p>
+
+For an $N$-class classification problem with $N$ output nodes, Softmax normalizes the resulting $N$ dimensional vector so that each of its entries falls in the range $[0,1]\in {R}$, representing the probability that the sample belongs to a certain category. Here $y_i$ denotes the predicted probability that an image is of number $i$.
+
+In the classification problem, we usually use cross-entropy loss, the formula is as follows:
+
+$$  L_{cross-entropy}(label, y) = -\sum_i label_ilog(y_i) $$
+
+
 
 ### Multilayer Perceptron
 
-The softmax regression model described above uses the simplest two-layer neural network. That is, it only contains an input layer and an output layer, with limited regression capability. To achieve better recognition results, consider adding several hidden layers\[[10](#references)\] between the input layer and the output layer.
+The Softmax regression model uses the simplest two-layer neural network, which contains only the input layer and the output layer, so its performance is limited. In order to achieve better recognition, we consider adding several hidden layers \[[10](#references)\] between the input and output layer.
 
-1.  After the first hidden layer, we get $ H_1 = \phi(W_1X + b_1) $, where $\phi$ denotes the activation function. Some [common ones](###list-of-common-activation-functions) are sigmoid, tanh and ReLU.
-2.  After the second hidden layer, we get $ H_2 = \phi(W_2H_1 + b_2) $.
-3.  Finally, the output layer outputs $Y=\text{softmax}(W_3H_2 + b_3)$, the vector denoting our classification result.
+1.In the first hidden layer, you can get $ H_1 = \phi(W_1X + b_1) $, where $\phi$ represents the activation function. And common functions are [sigmoid, tanh or ReLU](#common activation functions).
+2.In the second hidden layer, you can get $ H_2 = \phi(W_2H_1 + b_2) $.
+3.Finally, in the output layer, you can get $Y=\text{softmax}(W_3H_2 + b_3)$, that is the final classification result vector.
 
-Fig. 3. shows a Multilayer Perceptron network, with the weights in blue, and the bias in red. +1 indicates that the bias is $1$.
+
+Figure 3 is a network structure of a multi-layer perceptron, in which weights are represented by blue lines, bias are represented by red lines, and +1 indicates that the bias is $1$.
 
 <p align="center">
-<img src="image/mlp_en.png" width=500><br/>
-Fig. 3. Multilayer Perceptron network architecture<br/>
-
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/mlp.png?raw=true" width=500><br/>
+Figure 3. Multilayer perceptron network structure <br/>
 </p>
 
 ### Convolutional Neural Network
 
+In the multi-layer perceptron model, an image is expanded into a one-dimensional vector and input into the network, ignoring its position and structure information. And the convolutional neural network can better utilize the structure information of the image. [LeNet-5](http://yann.lecun.com/exdb/lenet/) is a relatively simple convolutional neural network. Figure 4 shows the structure: the input two-dimensional image, first through the two convolutional layers to the pooling layer, then through the fully connected layer, and finally using the softmax as the output layer. Below we mainly introduce the convolutional layer and the pooling layer.
+
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/cnn.png?raw=true" width="600"><br/>
+Figure 4. LeNet-5 convolutional neural network structure<br/>
+</p>
+
 #### Convolutional Layer
 
-<p align="center">
-<img src="image/conv_layer.png" width='750'><br/>
-Fig. 4. Convolutional layer<br/>
-</p>
-
-The **convolutional layer** is the core of a Convolutional Neural Network. The parameters in this layer are composed of a set of filters, also called kernels. We could visualize the convolution step in the following fashion: Each kernel slides horizontally and vertically till it covers the whole image. At every window, we compute the dot product of the kernel and the input. Then, we add the bias and apply an activation function. The result is a two-dimensional activation map. For example, some kernel may recognize corners, and some may recognize circles. These convolution kernels may respond strongly to the corresponding features.
-
-Fig. 4 illustrates the dynamic programming of a convolutional layer, where depths are flattened for simplicity. The input is $W_1=5$, $H_1=5$, $D_1=3$. In fact, this is a common representation for colored images. $W_1$ and $H_1$ correspond to the width and height in a colored image. $D_1$ corresponds to the three color channels for RGB. The parameters of the convolutional layer are $K=2$, $F=3$, $S=2$, $P=1$. $K$ denotes the number of kernels; specifically, $Filter$ $W_0$ and $Filter$ $W_1$ are the kernels. $F$ is kernel size while $W0$ and $W1$ are both $F\timesF = 3\times3$ matrices in all depths. $S$ is the stride, which is the width of the sliding window; here, kernels move leftwards or downwards by two units each time. $P$ is the width of the padding, which denotes an extension of the input; here, the gray area shows zero padding with size 1.
-
-#### Pooling Layer
+Convolutional Layer is the core of convolutional neural network. The convolution we mentioned in image recognition is a two-dimensional convolution, that is, a discrete two-dimensional filter (also called a convolutional kernel) and a two-dimensional image for convoluting. In short, the two-dimensional filter slides to all positions on two-dimensional images and dot product is taken for this pixel and its domain pixel at each position. Convolution operations are widely used in the field of image processing. Different convolutional kernels can extract different features, such as edges, lines, and angles. In deep convolutional neural networks, low-level to complex image features can be extracted by convolution operation.
 
 <p align="center">
-<img src="image/max_pooling_en.png" width="400px"><br/>
-Fig. 5 Pooling layer using max-pooling<br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/conv_layer.png?raw=true" width='750'><br/>
+Figure 5. Convolutional Layer Picture <br/>
 </p>
 
-A **pooling layer** performs downsampling. The main functionality of this layer is to reduce computation by reducing the network parameters. It also prevents over-fitting to some extent. Usually, a pooling layer is added after a convolutional layer. Pooling layer can use various techniques, such as max pooling and average pooling. As shown in Fig.5, max pooling uses rectangles to segment the input layer into several parts and computes the maximum value in each part as the output.
+Figure 5 shows an example of the process of computing convolution with input image in size of $H=5, W=5, D=3$, ie $5 \times 5$ size of 3 channel (RGB, also known as depth) color image.
 
-#### LeNet-5 Network
+This example contains two (denoted by $K$) groups of convolutional kernels, i.e. $Filter W_0$ and $Filter W_1$ in the figure. In convolution calculation, different convolutional kernels are usually used for different input channels. In the example, each set of convolutional kernels contains ($D=3$) $3\times 3$ (indicated by $F \times F$) convolutional kernel. In addition, the stride of convolutional kernel in horizontal and vertical direction of image is 2 (indicated by $S$); Pad 1 (represented by $P$) 0 in the four directions of input image, that is, the input layer raw data in the figure is the blue part, and the gray part is expanded with 0 in the size of 1. The convolution operation yields a feature map of the size of $3 \times 3 \times 2$ (represented by $H_{o} \times W_{o} \times K$), which is a 2-channel feature map in size of $3 \times 3$, where $H_o$ is calculated as: $H_o = (H - F + 2 \times P)/S + 1$, so is $W_o$. And each pixel in the output feature map is the summation of the inner product of each set of filters and each feature of the input image, plus the bias $b_o$, the bias is usually shared by each output feature map. The last $-2$ in the output feature map $o[:,:,0]$ is calculated as shown in the lower right corner of Figure 5.
+
+The convolutional kernel is a learnable parameter in the convolution operation. As shown in the example above, the parameter of each layer of convolution is $D \times F \times F \times K$. In the multi-layer perceptron model, neurons are usually fully connected therefore with a large number of parameters. There are fewer parameters in the convolutional layer, which is also determined by main features of the convolutional layer, namely local connections and shared weights.
+
+- Local connection: Each neuron is connected to only one region of the input neuron, which is called Receptive Field. In the image convolution operation, that is, the neurons are locally connected in the spatial dimension (the plane in which the above examples H and W are located), but are fully connected in depth. For the two-dimensional image itself, the local pixels are strongly related. This local connection ensures that the learned filter makes the strongest response to local input features. The idea of local connection is also inspired by the structure of visual system in biology. The neurons in the visual cortex receive information locally.
+
+- Weight sharing: The filters used to calculate neurons in the same deep slice are shared. For example, in Figure 4, the filter for each neuron calculated by $o[:,:,0]$ is the same, both are $W_0$, which can greatly reduce the parameters. The sharing weight is meaningful to a certain extent, for example, the bottom edge feature of the image is independent of the specific location of the feature in the graph. However, it is unintentional in some cases. For example, the input picture is a face, eyes and hair are in different positions. And to learn different features in different positions, please (refer to [Stanford University Open Class](http://cs231n.Github.io/convolutional-networks/)). Note that the weights are only shared for the neurons of the same depth slice. In the convolutional layer, multiple sets of convolutional kernels are usually used to extract different features, that is, the weights of neurons with different depth slices are not shared by the features with different depth slices. In addition, bias are shared by all neurons with the same depth.
+
+By introducing the calculation process of convolution and its features, convolution could be seen as a linear operation with shift-invariant, which is the same operation performed at each position of the image. The local connection and weight sharing of the convolutional layer greatly reduce the parameters that need to be learned, which helps with training larger convolutional neural networks.
+
+For more information about convolution, please refer to [Reference Reading](http://ufldl.stanford.edu/wiki/index.php/Feature_extraction_using_convolution#Convolutions)。
+
+### Pooling Layer
 
 <p align="center">
-<img src="image/cnn_en.png"><br/>
-Fig. 6. LeNet-5 Convolutional Neural Network architecture<br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/max_pooling.png?raw=true" width="400px"><br/>
+Figure 6. Picture in pooling layer</br>
 </p>
 
-[**LeNet-5**](http://yann.lecun.com/exdb/lenet/) is one of the simplest Convolutional Neural Networks. Fig. 6. shows its architecture: A 2-dimensional input image is fed into two sets of convolutional layers and pooling layers. This output is then fed to a fully connected layer and a softmax classifier. Compared to multilayer, fully connected perceptrons, the LeNet-5 can recognize images better. This is due to the following three properties of the convolution:
+Pooling is a form of nonlinear downsampling. The main functionality of this layer is to reduce computation by reducing the network parameters and to control the overfitting to some extent. Normally a pooling layer is added after the convolutional layer. Pooling includes maximum pooling, average pooling and so on. The largest pooling is to divide the input layer into different areas by non-overlapping rectangular boxes, and the maximum value of each rectangular box is taken as the output layer, as shown in Figure. 6.
 
-- The 3D nature of the neurons: a convolutional layer is organized by width, height, and depth. Neurons in each layer are connected to only a small region in the previous layer. This region is called the receptive field.
-- Local connectivity: A CNN utilizes the local space correlation by connecting local neurons. This design guarantees that the learned filter has a strong response to local input features. Stacking many such layers generates a non-linear filter that is more global. This enables the network to first obtain good representation for small parts of input and then combine them to represent a larger region.
-- Weight sharing: In a CNN, computation is iterated on shared parameters (weights and bias) to form a feature map. This means that all the neurons in the same depth of the output response to the same feature. This allows the network to detect a feature regardless of its position in the input.
+For details about convolutional neural network, please refer to the tutorial of [Standford Online Course]( http://cs231n.github.io/convolutional-networks/ ), [Ufldl](http://ufldl.stanford.edu/wiki/index.php/Pooling) and [Image Classification]( https://github.com/PaddlePaddle/book/tree/develop/03.image_classification ).
 
-For more details on Convolutional Neural Networks, please refer to the tutorial on [Image Classification](https://github.com/PaddlePaddle/book/blob/develop/image_classification/README.md) and the [relevant lecture](http://cs231n.github.io/convolutional-networks/) from a Stanford course.
+<a name="common activation functions"></a>
+### Common activation functions
 
-### List of Common Activation Functions
 - Sigmoid activation function: $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
 
 - Tanh activation function: $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
 
-  In fact, tanh function is just a rescaled version of the sigmoid function. It is obtained by magnifying the value of the sigmoid function and moving it downwards by 1.
+In fact, the tanh function is only a sigmoid function with change of scale. The value of the sigmoid function is doubled and then shifted down by 1 unit: tanh(x) = 2sigmoid(2x) - 1 .
 
 - ReLU activation function: $ f(x) = max(0, x) $
 
-For more information, please refer to [Activation functions on Wikipedia](https://en.wikipedia.org/wiki/Activation_function).
+For details, please refer to [activation function in Wikipedia](https://en.wikipedia.org/wiki/Activation_function).
 
-## Data Preparation
+## Dataset Preparation
 
-PaddlePaddle provides a Python module, `paddle.dataset.mnist`, which downloads and caches the [MNIST dataset](http://yann.lecun.com/exdb/mnist/).  The cache is under `/home/username/.cache/paddle/dataset/mnist`:
+PaddlePaddle provides a module `paddle.dataset.mnist` that automatically loads [MNIST] (http://yann.lecun.com/exdb/mnist/) data in the API. The loaded data is located under `/home/username/.cache/paddle/dataset/mnist`:
 
 
-|    File name          |       Description | Size            |
-|----------------------|--------------|-----------|
-|train-images-idx3-ubyte|  Training images | 60,000 |
-|train-labels-idx1-ubyte|  Training labels | 60,000 |
-|t10k-images-idx3-ubyte |  Evaluation images | 10,000 |
-|t10k-labels-idx1-ubyte |  Evaluation labels | 10,000 |
-
+|    filename          |       note              |
+|----------------------|-------------------------|
+|train-images-idx3-ubyte|  train data picture, 60,000 data |
+|train-labels-idx1-ubyte|  train data label, 60,000 data    |
+|t10k-images-idx3-ubyte |  test data picture, 10,000 data  |
+|t10k-labels-idx1-ubyte |  test data label, 10,000 data     |
 
 ## Fluid API Overview
 
-The demo will be using the latest paddle fluid API. Fluid API is the latest Paddle API. It simplifies the model configurations without sacrifice the performance.
-We recommend using Fluid API as it is much easier to pick up.
-Here are the quick overview on the major fluid API complements.
+The demo will use the latest [Fluid API](http://paddlepaddle.org/documentation/docs/en/1.2/api_cn/index_cn.html). Fluid API is the latest PaddlePaddle API. It simplifies model configuration without sacrificing performance.
+We recommend using the Fluid API, which is easy to learn and use to help you complete your machine learning tasks quickly.
 
-1. `inference_program`: A function that specify how to get the prediction from the data input.
-This is where you specify the network flow.
-1. `train_program`: A function that specify how to get avg_cost from `inference_program` and labels.
-This is where you specify the loss calculations.
-1. `optimizer_func`:"A function that specifies the configuration of the the optimizer. The optimizer is responsible for minimizing the loss and driving the training. Paddle supports many different optimizers."
-1. `Trainer`: Fluid trainer manages the training process specified by the `train_program` and `optimizer`. Users can monitor the training
-progress through the `event_handler` callback function.
-1. `Inferencer`: Fluid inferencer loads the `inference_program` and the parameters trained by the Trainer.
-It then can infer the data and return prediction
+Here is an overview of several important concepts in the Fluid API:
 
-We will go though all of them and dig more on the configurations in this demo.
+1. `inference_program`: specifies how to get the inference function from the data input.
+This is where the network flow is defined.
 
-## Model Configuration
+2. `train_program`: specifies how to get the `loss` function from `inference_program` and `tag value`.
+This is where the loss calculation is specified.
 
-A PaddlePaddle program starts from importing the API package:
+3. `optimizer_func`: Specifies the function of the optimizer configuration. The optimizer is responsible for reducing losses and driving training. Paddle supports a number of different optimizers.
+
+In the code examples below, we'll take a closer look at them.
+
+## Configuration Instructions
+
+Load the Fluid API package for PaddlePaddle.
 
 ```python
-import paddle
+import os
+from PIL import Image # load module of image processing
+import matplotlib.pyplot as plt
+import numpy
+import paddle # load paddle module
 import paddle.fluid as fluid
-from __future__ import print_function
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
+from __future__ import print_function #load print of python3 into current version
 ```
 
 ### Program Functions Configuration
 
-First, We need to setup the `inference_program` function. We want to use this program to demonstrate three different classifiers, each defined as a Python function.
-We need to feed image data to the classifier. PaddlePaddle provides a special layer `layer.data` for reading data.
-Let us create a data layer for reading images and connect it to the classification network.
+We need to configure `inference_program` function. We want to use this program to show three different classifiers, each of which is defined as a Python function.
+We need to input the image data into the classifier. Paddle provides a special layer `layer.data` for reading data.
+Let's create a data layer to read the image and connect it to the network of classification.
 
-- Softmax regression: the network has a fully-connection layer with softmax activation:
+-Softmax regression: The results of the classification can be obtained only through a simple layer of simple fully connected layer with softmax as the activation function.
 
 ```python
 def softmax_regression():
+    """
+    Define softmax classifier:
+    A fully connected layer with activation function  softmax
+    Return:
+    predict_image -- result of classification
+    """
+    # input original image data in size of 28*28*1
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    # With softmax as the fully connected layer of the activation function, the size of the output layer must be 10
     predict = fluid.layers.fc(
-        input=img, size=10, act='softmax')
+    input=img, size=10, act='softmax')
     return predict
 ```
 
-- Multi-Layer Perceptron: this network has two hidden fully-connected layers, both are using ReLU as activation function. The output layer is using softmax activation:
+-Multilayer Perceptron: The following code implements a multilayer perceptron with two hidden layers (that is, fully connected layers). The activation functions of the two hidden layers are all ReLU, and the activation function of the output layer is Softmax.
 
 ```python
 def multilayer_perceptron():
+    """
+    Define multilayer perceptron classifier:
+    Multilayer perceptron with two hidden layers (fully connected layers)
+    The activation function of the first two hidden layers uses ReLU, and the activation function of the output layer uses Softmax.
+
+    Return:
+    predict_image -- result of classification
+    """
+    # input raw image data in size of 28*28*1
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
-    # first fully-connected layer, using ReLu as its activation function
+    # the first fully connected layer, whose activation function is ReLU
     hidden = fluid.layers.fc(input=img, size=200, act='relu')
-    # second fully-connected layer, using ReLu as its activation function
+    # the second fully connected layer, whose activation function is ReLU
     hidden = fluid.layers.fc(input=hidden, size=200, act='relu')
+    # With softmax as the fully connected output layer of the activation function, the size of the output layer must be 10
     prediction = fluid.layers.fc(input=hidden, size=10, act='softmax')
     return prediction
 ```
 
-- Convolution network LeNet-5: the input image is fed through two convolution-pooling layers, a fully-connected layer, and the softmax output layer:
+-Convolutional neural network LeNet-5: The input two-dimensional image first passes through two convolutional layers to the pooling layer, then passes through the fully connected layer, and finally fully connection layer with softmax as activation function is used as output layer.
 
 ```python
 def convolutional_neural_network():
+    """
+    Define convolutional neural network classifier:
+    The input 2D image passes through two convolution-pooling layers, using the fully connected layer with softmax as the output layer
+
+    Return:
+    predict -- result of classification
+    """
+    # input raw image data in size of 28*28*1
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
-    # first conv pool
+    # the first convolution-pooling layer
+    # Use 20 5*5 filters, the pooling size is 2, the pooling step is 2, and the activation function is Relu.
     conv_pool_1 = fluid.nets.simple_img_conv_pool(
         input=img,
         filter_size=5,
@@ -215,7 +241,8 @@ def convolutional_neural_network():
         pool_stride=2,
         act="relu")
     conv_pool_1 = fluid.layers.batch_norm(conv_pool_1)
-    # second conv pool
+    # the second convolution-pooling layer
+    # Use 20 5*5 filters, the pooling size is 2, the pooling step is 2, and the activation function is Relu.
     conv_pool_2 = fluid.nets.simple_img_conv_pool(
         input=conv_pool_1,
         filter_size=5,
@@ -223,121 +250,240 @@ def convolutional_neural_network():
         pool_size=2,
         pool_stride=2,
         act="relu")
-    # output layer with softmax activation function. size = 10 since there are only 10 possible digits.
+    # With softmax as the fully connected output layer of the activation function, the size of the output layer must be 10
     prediction = fluid.layers.fc(input=conv_pool_2, size=10, act='softmax')
     return prediction
 ```
 
 #### Train Program Configuration
-Then we need to setup the the `train_program`. It takes the prediction from the classifier first.
-During the training, it will calculate the `avg_loss` from the prediction.
+Then we need to set train program `train_program` It firstly infers from classifier.
+During the training, it will compute `avg_cost`.
 
-**NOTE:** A train program should return an array and the first return argument has to be `avg_cost`.
-The trainer always implicitly use it to calculate the gradient.
+** Note:** train program should return an array. The first parameter returned must be `avg_cost`. The trainer uses it to compute gradient.
 
-Please feel free to modify the code to test different results between `softmax regression`, `mlp`, and `convolutional neural network` classifier.
+Please write your code and then test results of different classifiers of  `softmax_regression`, `MLP` and `convolutional neural network`.
 
 ```python
 def train_program():
+    """
+    Configure train_program
+
+    Return:
+    predict -- result of classification
+    avg_cost -- mean loss
+    acc -- accuracy of classification
+
+    """
+    # label layer, called label, correspondent with label category of input picture
     label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 
-    # predict = softmax_regression() # uncomment for Softmax
-    # predict = multilayer_perceptron() # uncomment for MLP
-    predict = convolutional_neural_network() # uncomment for LeNet5
+    # predict = softmax_regression() # cancel note and run Softmax regression
+    # predict = multilayer_perceptron() # cancel note and run multiple perceptron
+    predict = convolutional_neural_network() # cancel note and run LeNet5 convolutional neural network
 
-    # Calculate the cost from the prediction and label.
+    # use class cross-entropy function to compute loss function between predict and label
     cost = fluid.layers.cross_entropy(input=predict, label=label)
+    # compute mean loss
     avg_cost = fluid.layers.mean(cost)
+    # compute accuracy of classification
     acc = fluid.layers.accuracy(input=predict, label=label)
+    return predict, [avg_cost, acc]
 
-    # The first item needs to be avg_cost.
-    return [avg_cost, acc]
 ```
 
 #### Optimizer Function Configuration
 
-In the following `Adam` optimizer, `learning_rate` specifies the learning rate in the optimization procedure.
+`Adam optimizer`，`learning_rate` below are learning rate. Their size is associated with speed of network train convergence.
 
 ```python
 def optimizer_program():
     return fluid.optimizer.Adam(learning_rate=0.001)
 ```
 
-### Data Feeders Configuration
+### Data Feeders for dataset Configuration
 
-Then we specify the training data `paddle.dataset.mnist.train()` and testing data `paddle.dataset.mnist.test()`. These two methods are *reader creators*. Once called, a reader creator returns a *reader*.  A reader is a Python method, which, once called, returns a Python generator, which yields instances of data.
+Next We start the training process. `Paddle.dataset.mnist.train()` and `paddle.dataset.mnist.test()` are respectively as train dataset and test dataset. These two functions respectively return a reader-- reader in PaddlePaddle is a Python function, which returns a Python yield generator when calling the reader.
 
-`shuffle` is a reader decorator. It takes a reader A as input and returns a new reader B. Under the hood, B calls A to read data in the following fashion: it copies in `buffer_size` instances at a time into a buffer, shuffles the data, and yields the shuffled instances one at a time. A large buffer size would yield very shuffled data.
+`Shuffle` below is a reader decorator, which receives a reader A and returns another reader B. Reader B read `buffer_size` train data into a buffer and then the data is disordered randomly and is output one by one.
 
-`batch` is a special decorator, which takes a reader and outputs a *batch reader*, which doesn't yield an instance, but a minibatch at a time.
+`Batch` is a special decorator. Its input is a reader and output is a batched reader. In PaddlePaddle, a reader yield a piece of data every time while batched reader yield a minibatch every time.
 
 ```python
+# there are 64 data in a minibatch
+BATCH_SIZE = 64
+
+# read 500 data in train dataset, randomly disorder them and then transfer it into batched reader which yield 64 data each time.
 train_reader = paddle.batch(
         paddle.reader.shuffle(
             paddle.dataset.mnist.train(), buf_size=500),
-        batch_size=64)
-
+        batch_size=BATCH_SIZE)
+# read data in test dataset and yield 64 data every time
 test_reader = paddle.batch(
-            paddle.dataset.mnist.test(), batch_size=64)
+            paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
 ```
 
-### Trainer Configuration
+### create training process
 
-Now, we need to setup the trainer. The trainer need to take in `train_program`, `place`, and `optimizer`.
+Now we need to create a training process. We will use `train_program`, `place` and `optimizer` defined before, conclude test loss in the period of training iteration and training verification and save parameters of model for prediction.
+
+
+#### Event Handler Configuration
+
+We can call a handler function to supervise training process during training.
+We display two `event_handler` programs here. Please freely update Jupyter Notebook and find the changes.
+
+`Event_handler` is used to output training result during the train
 
 ```python
-use_cuda = False # set to True if training with GPU
+def event_handler(pass_id, batch_id, cost):
+    # print the intermediate results of training, like
+    # training iterations, number of batch, and loss function
+    print("Pass %d, Batch %d, Cost %f" % (pass_id,batch_id, cost))
+```
+
+```python
+from paddle.utils.plot import Ploter
+
+train_prompt = "Train cost"
+test_prompt = "Test cost"
+cost_ploter = Ploter(train_prompt, test_prompt)
+
+# visualize training process
+def event_handler_plot(ploter_title, step, cost):
+    cost_ploter.append(ploter_title, step, cost)
+    cost_ploter.plot()
+```
+
+`event_handler_plot` can be visualized as follows:
+
+![png](./image/train_and_test.png)
+
+
+### Start training
+
+Aftering adding `event_handler` and `data reader` we configured, we can start to train the model.
+Set parameters for operation to configure data description.
+`Feed_order` is used to map data directory to `train_program`
+Create a `train_test` reflecting the loss during our training.
+
+Define network structure:
+
+```python
+# the model is run on single CPU
+use_cuda = False # If you want to use GPU, please set it True
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-trainer = Trainer(
-    train_func=train_program, place=place, optimizer_func=optimizer_program)
- ```
+# call train_program to get prediction value and loss value,
+prediction, [avg_loss, acc] = train_program()
 
-#### Event Handler
+# input original image data in size of 28*28*1
+img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+# label layer, called label, correspondent with label category of input picture.
+label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+# It is informed that data in network consists of two parts. One is img value, the other is label value.
+feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
 
-Fluid API provides a hook to the callback function during training. Users are able to monitor training progress through mechanism.
-We will demonstrate two event handlers here. Please feel free to modify on the Jupyter notebook to see the differences.
+# choose Adam optimizer
+optimizer = fluid.optimizer.Adam(learning_rate=0.001)
+optimizer.minimize(avg_loss)
+```
 
-`event_handler` is used to plot some text data when training.
+Configure hyper parameter during the training:
 
 ```python
-# Save the parameter into a directory. The Inferencer can load the parameters from it to do infer
-params_dirname = "recognize_digits_network.inference.model"
+
+PASS_NUM = 5 #train 5 iterations
+epochs = [epoch_id for epoch_id in range(PASS_NUM)]
+
+# save parameters of model into save_dirname file
+save_dirname = "recognize_digits.inference.model"
+```
+
+
+```python
+def train_test(train_test_program,
+                   train_test_feed, train_test_reader):
+
+    # save classification accuracy into acc_set
+    acc_set = []
+    # save mean loss in avg_loss_set
+    avg_loss_set = []
+    # transfer each data which is the output of testing reader_yield into network to train
+    for test_data in train_test_reader():
+        acc_np, avg_loss_np = exe.run(
+            program=train_test_program,
+            feed=train_test_feed.feed(test_data),
+            fetch_list=[acc, avg_loss])
+        acc_set.append(float(acc_np))
+        avg_loss_set.append(float(avg_loss_np))
+    # get accuracy and loss value on the test data
+    acc_val_mean = numpy.array(acc_set).mean()
+    avg_loss_val_mean = numpy.array(avg_loss_set).mean()
+    # return mean loss value and mean accuracy
+    return avg_loss_val_mean, acc_val_mean
+```
+
+Create executor
+
+```python
+exe = fluid.Executor(place)
+exe.run(fluid.default_startup_program())
+```
+
+Set up main_program and test_program:
+
+```python
+main_program = fluid.default_main_program()
+test_program = fluid.default_main_program().clone(for_test=True)
+```
+
+Start training:
+
+
+
+
+```python
 lists = []
-def event_handler(event):
-    if isinstance(event, EndStepEvent):
-        if event.step % 100 == 0:
-            # event.metrics maps with train program return arguments.
-            # event.metrics[0] will yeild avg_cost and event.metrics[1] will yeild acc in this example.
-            print("Pass %d, Batch %d, Cost %f" % (
-                event.step, event.epoch, event.metrics[0]))
+step = 0
+for epoch_id in epochs:
+    for step_id, data in enumerate(train_reader()):
+        metrics = exe.run(main_program,
+                          feed=feeder.feed(data),
+                          fetch_list=[avg_loss, acc])
+        if step % 100 == 0: # print a log for every 100 times of training
+            print("Pass %d, Batch %d, Cost %f" % (step, epoch_id, metrics[0]))
+            event_handler_plot(train_prompt, step, metrics[0])
+        step += 1
 
-    if isinstance(event, EndEpochEvent):
-        avg_cost, acc = trainer.test(
-            reader=test_reader, feed_order=['img', 'label'])
+    # test classification result of each epoch
+    avg_loss_val, acc_val = train_test(train_test_program=test_program,
+                                       train_test_reader=test_reader,
+                                       train_test_feed=feeder)
 
-        print("Test with Epoch %d, avg_cost: %s, acc: %s" % (event.epoch, avg_cost, acc))
+    print("Test with Epoch %d, avg_cost: %s, acc: %s" %(epoch_id, avg_loss_val, acc_val))
+    event_handler_plot(test_prompt, step, metrics[0])
 
-        # save parameters
-        trainer.save_params(params_dirname)
-        lists.append((event.epoch, avg_cost, acc))
+    lists.append((epoch_id, avg_loss_val, acc_val))
+
+    # save parameters of trained model for prediction
+    if save_dirname is not None:
+        fluid.io.save_inference_model(save_dirname,
+                                      ["img"], [prediction], exe,
+                                      model_filename=None,
+                                      params_filename=None)
+
+# Choose the best pass
+best = sorted(lists, key=lambda list: float(list[1]))[0]
+print('Best pass is %s, testing Avgcost is %s' % (best[0], best[1]))
+print('The classification accuracy is %.2f%%' % (float(best[2]) * 100))
 ```
 
 
-#### Start training
+The training process is completely automatic. The log printed in event_handler is like as follows.
 
-Now that we setup the event_handler and the reader, we can start training the model. `feed_order` is used to map the data dict to the train_program
+Pass represents iterations of train. Batch represents times to train all data. cost represents loss value of current pass.
 
-```python
-# Train the model now
-trainer.train(
-    num_epochs=5,
-    event_handler=event_handler,
-    reader=train_reader,
-    feed_order=['img', 'label'])
-```
-
-During training, `trainer.train` invokes `event_handler` for certain events. This gives us a chance to print the training progress.
+Compute the mean loss and accuracy of classification after an epoch.
 
 ```
 Pass 0, Batch 0, Cost 0.125650
@@ -353,79 +499,76 @@ Pass 900, Batch 0, Cost 0.239809
 Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
 ```
 
-After the training, we can check the model's prediction accuracy.
+Check prediction accuracy of the model after training. In the train with MNIST, generally classification accuracy of softmax regression model is about 92.34%, while that of multilayer perceptron is 97.66% and that of convolutional neural network is 99.20%.
+
+
+## Deploy the Model
+
+You can use trained model to classify handwriting pictures of digits. The program below shows how to use well-trained model to predict.
+
+### Generate input data to be inferred
+
+`infer_3.png` is an example picture of number 3. Transform it into a numpy to match feed data format
+
 
 ```python
-# find the best pass
-best = sorted(lists, key=lambda list: float(list[1]))[0]
-print 'Best pass is %s, testing Avgcost is %s' % (best[0], best[1])
-print 'The classification accuracy is %.2f%%' % (float(best[2]) * 100)
-```
-
-Usually, with MNIST data, the softmax regression model achieves an accuracy around 92.34%, the MLP 97.66%, and the convolution network around 99.20%. Convolution layers have been widely considered a great invention for image processing.
-
-## Application
-
-After training, users can use the trained model to classify images. The following code shows how to inference MNIST images through `fluid.contrib.inferencer.Inferencer`.
-
-### Create Inferencer
-
-The `Inferencer` takes an `infer_func` and `param_path` to setup the network and the trained parameters.
-We can simply plug-in the classifier defined earlier here.
-
-```python
-inferencer = Inferencer(
-    # infer_func=softmax_regression, # uncomment for softmax regression
-    # infer_func=multilayer_perceptron, # uncomment for MLP
-    infer_func=convolutional_neural_network,  # uncomment for LeNet5
-    param_path=params_dirname,
-    place=place)
-```
-
-#### Generate input data for inferring
-
-`infer_3.png` is an example image of the digit `3`. Turn it into an numpy array to match the data feeder format.
-
-```python
-# Prepare the test image
-import os
-import numpy as np
-from PIL import Image
 def load_image(file):
     im = Image.open(file).convert('L')
     im = im.resize((28, 28), Image.ANTIALIAS)
-    im = np.array(im).reshape(1, 1, 28, 28).astype(np.float32)
+    im = numpy.array(im).reshape(1, 1, 28, 28).astype(numpy.float32)
     im = im / 255.0 * 2.0 - 1.0
     return im
 
 cur_dir = os.getcwd()
-img = load_image(cur_dir + '/image/infer_3.png')
+tensor_img = load_image(cur_dir + '/image/infer_3.png')
 ```
 
 ### Inference
 
-Now we are ready to do inference.
+By configuring network and training parameters via `load_inference_model`, We can simply insert classifier defined before.
+
+
 
 ```python
-results = inferencer.infer({'img': img})
-lab = np.argsort(results)  # probs and lab are the results of one batch data
-print("Inference result of image/infer_3.png is: %d" % lab[0][0][-1])
+inference_scope = fluid.core.Scope()
+with fluid.scope_guard(inference_scope):
+    # use fluid.io.load_inference_model to get inference program desc,
+    # feed_target_names is used to define variable name needed to be passed into network
+    # fetch_targets define variable name to be fetched from network
+    [inference_program, feed_target_names,
+     fetch_targets] = fluid.io.load_inference_model(
+     save_dirname, exe, None, None)
+
+    # Make feed a dictionary {feed_target_name: feed_target_data}
+    # The result will contain a data list corresponding to fetch_targets
+    results = exe.run(inference_program,
+                            feed={feed_target_names[0]: tensor_img},
+                            fetch_list=fetch_targets)
+    lab = numpy.argsort(results)
+
+    # Print prediction result of  infer_3.png
+    img=Image.open('image/infer_3.png')
+    plt.imshow(img)
+    print("Inference result of image/infer_3.png is: %d" % lab[0][0][-1])
 ```
 
 
-## Conclusion
-
-This tutorial describes a few common deep learning models using **Softmax regression**, **Multilayer Perceptron Network**, and **Convolutional Neural Network**. Understanding these models is crucial for future learning; the subsequent tutorials derive more sophisticated networks by building on top of them.
-
-When our model evolves from a simple softmax regression to a slightly complex Convolutional Neural Network, the recognition accuracy on the MNIST dataset achieves a large improvement. This is due to the Convolutional layers' local connections and parameter sharing. While learning new models in the future, we encourage the readers to understand the key ideas that lead a new model to improve the results of an old one.
-
-Moreover, this tutorial introduces the basic flow of PaddlePaddle model design, which starts with a *data provider*, a model layer construction, and finally training and prediction. Motivated readers can leverage the flow used in this MNIST handwritten digit classification example and experiment with different data and network architectures to train models for classification tasks of their choice.
 
 
+### Result
+
+If successful, the inference result input is as follows:
+`Inference result of image/infer_3.png is: 3` , which indicates that out network successfully recognize the picture!
+
+## Summary
+
+Softmax regression, multilayer perceptron and convolutional neural network are the most basic deep learning model, from which complex neural networks are all derivative, so these models are helpful for later learning. At the same time, we found that from simple softmax regression transform to slightly complex convolutional neural network, the accuracy of recognition on MNIST dataset largely increased, resulting from that convolution layer is featured with local connection and sharing weight. When study of new models later, hope you make a deep understand of the key upgrade of new model compared with original model. In addition, this tutorial also talks about the basic steps to build PaddlePadle model, from the code of dataprovider, build of network to training and prediction. Familiar with the work flow, you can use your own data, define your own network model and finish your training and prediction tasks.
+
+<a name="References"></a>
 ## References
 
 1. LeCun, Yann, Léon Bottou, Yoshua Bengio, and Patrick Haffner. ["Gradient-based learning applied to document recognition."](http://ieeexplore.ieee.org/abstract/document/726791/) Proceedings of the IEEE 86, no. 11 (1998): 2278-2324.
-2. Wejéus, Samuel. ["A Neural Network Approach to Arbitrary SymbolRecognition on Modern Smartphones."](http://www.diva-portal.org/smash/record.jsf?pid=diva2:753279&dswid=-434) (2014).
+2. Wejéus, Samuel. ["A Neural Network Approach to Arbitrary SymbolRecognition on Modern Smartphones."](http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A753279&dswid=-434) (2014).
 3. Decoste, Dennis, and Bernhard Schölkopf. ["Training invariant support vector machines."](http://link.springer.com/article/10.1023/A:1012454411458) Machine learning 46, no. 1-3 (2002): 161-190.
 4. Simard, Patrice Y., David Steinkraus, and John C. Platt. ["Best Practices for Convolutional Neural Networks Applied to Visual Document Analysis."](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.160.8494&rep=rep1&type=pdf) In ICDAR, vol. 3, pp. 958-962. 2003.
 5. Salakhutdinov, Ruslan, and Geoffrey E. Hinton. ["Learning a Nonlinear Embedding by Preserving Class Neighbourhood Structure."](http://www.jmlr.org/proceedings/papers/v2/salakhutdinov07a/salakhutdinov07a.pdf) In AISTATS, vol. 11. 2007.
@@ -436,4 +579,4 @@ Moreover, this tutorial introduces the basic flow of PaddlePaddle model design, 
 10. Bishop, Christopher M. ["Pattern recognition."](http://users.isr.ist.utl.pt/~wurmd/Livros/school/Bishop%20-%20Pattern%20Recognition%20And%20Machine%20Learning%20-%20Springer%20%202006.pdf) Machine Learning 128 (2006): 1-58.
 
 <br/>
-This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.

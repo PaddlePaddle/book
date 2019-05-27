@@ -1,107 +1,123 @@
-# Personalized Recommendation
+# Recommender System
 
-The source code from this tutorial is at [here](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system).  For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+The source code of this tutorial is in [book/recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system). For new users, please refer to [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book) .
 
+## Background Introduction
 
-## Background
+With the continuous development of network technology and the ever-expanding scale of e-commerce, the number and variety of goods grow rapidly and users need to spend a lot of time to find the goods they want to buy. This is information overload. In order to solve this problem, recommendation system came into being.
 
-The recommender system is a component of e-commerce, online videos, and online reading services.  There are several different approaches for recommender systems to learn from user behavior and product properties and to understand users' interests.
+The recommendation system is a subset of the Information Filtering System, which can be used in a range of areas such as movies, music, e-commerce, and Feed stream recommendations. The recommendation system discovers the user's personalized needs and interests by analyzing and mining user behaviors, and recommends information or products that may be of interest to the user. Unlike search engines, recommendation system do not require users to accurately describe their needs, but model their historical behavior to proactively provide information that meets user interests and needs.
 
-- User behavior-based approach.  A well-known method of this approach is collaborative filtering, which assumes that if two users made similar purchases, they share common interests and would likely go on making the same decision. Some variants of collaborative filtering are user-based[[3](#references)], item-based [[4](#references)], social network based[[5](#references)], and model-based.
+The GroupLens system \[[1](#references)\] introduced by the University of Minnesota in 1994 is generally considered to be a relatively independent research direction for the recommendation system. The system first proposed the idea of completing recommendation task based on collaborative filtering. After that, the collaborative filtering recommendation based on the model led the development of recommendation system for more than ten years.
 
-- Content-based approach[[1](#references)].  This approach represents product properties and user interests as feature vectors of the same space so that it could measure how much a user is interested in a product by the distance between two feature vectors.
+The traditional personalized recommendation system methods mainly include:
 
-- Hybrid approach[[2](#references)]: This one combines above two to help with each other about the data sparsity problem[[6](#references)].
+- Collaborative Filtering Recommendation: This method is one of the most widely used technologies which requires the collection and analysis of users' historical behaviors, activities and preferences. It can usually be divided into two sub-categories: User-Based Recommendation \[[1](#references)\] and Item-Based Recommendation \[[2](#references)\]. A key advantage of this method is that it does not rely on the machine to analyze the content characteristics of the item, so it does not need to understand the item itself to accurately recommend complex items such as movies. However, the disadvantage is that there is a cold start problem for new users without any behavior. At the same time, there is also a sparsity problem caused by insufficient interaction data between users and commodities. It is worth mentioning that social network \[[3](#references)\] or geographic location and other context information can be integrated into collaborative filtering.
+- Content-Based Filtering Recommendation \[[4](#references)\] : This method uses the content description of the product to abstract meaningful features by calculating the similarity between the user's interest and the product description to make recommendations to users. The advantage is that it is simple and straightforward. It does not need to evaluate products based on the comments of users. Instead, it compares the product similarity by product attributes to recommend similar products to the users of interest. The disadvantage is that there is also a cold start problem for new users without any behavior.
+- Hybrid Recommendation \[[5](#references)\]: Use different inputs and techniques to jointly recommend items to complement each single recommendation technique.
 
-This tutorial explains a deep learning based hybrid approach and its implement in PaddlePaddle.  We are going to train a model using a dataset that includes user information, movie information, and ratings.  Once we train the model, we will be able to get a predicted rating given a pair of user and movie IDs.
+In recent years, deep learning has achieved great success in many fields. Both academia and industry are trying to apply deep learning to the field of recommendation systems. Deep learning has excellent ability to automatically extract features, can learn multi-level abstract feature representations, and learn heterogeneous or cross-domain content information, which can deal with the cold start problem \[[6](#references)\] of recommendation system to some extent. This tutorial focuses on the deep learning model of recommendation system and how to implement the model with PaddlePaddle.
 
+## Result Demo
+
+We use a dataset containing user information, movie information, and movie ratings as a recommendation system. When we train the model, we only need to input the corresponding user ID and movie ID, we can get a matching score (range [0, 5], the higher the score is regarded as the greater interest), and then according to the recommendation of all movies sort the scores and recommend them to movies that may be of interest to the user.
+
+```
+Input movie_id: 1962
+Input user_id: 1
+Prediction Score is 4.25
+```
 
 ## Model Overview
 
-To know more about deep learning based recommendation, let us start from going over the Youtube recommender system[[7](#references)] before introducing our hybrid model.
+In this chapter, we first introduce YouTube's video personalization recommendation system \[[7](#references)\], and then introduce the fusion recommendation model we implemented.
 
+### YouTube's Deep Neural Network Personalized Recommendation System
 
-### YouTube's Deep Learning Recommendation Model
-
-YouTube is a video-sharing Web site with one of the largest user base in the world.  Its recommender system serves more than a billion users.  This system is composed of two major parts: candidate generation and ranking.  The former selects few hundreds of candidates from millions of videos, and the latter ranks and outputs the top 10.
+YouTube is the world's largest video uploading, sharing and discovery site, and the YouTube Personalized Recommendation System recommends personalized content from a growing library to more than 1 billion users. The entire system consists of two neural networks: a candidate generation network and a ranking network. The candidate generation network generates hundreds of candidates from a million-level video library, and the ranking network sorts the candidates and outputs the highest ranked tens of results. The system structure is shown in Figure 1:
 
 <p align="center">
-<img src="image/YouTube_Overview.en.png" width="70%" ><br/>
-Figure 1. YouTube recommender system overview.
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/YouTube_Overview.png?raw=true" width="70%" ><br/>
+Figure 1. YouTube personalized recommendation system structure
 </p>
 
 #### Candidate Generation Network
 
-YouTube models candidate generation as a multi-class classification problem with a huge number of classes equal to the number of videos.  The architecture of the model is as follows:
+The candidate generation network models the recommendation problem as a multi-class classification problem with a large number of categories. For a Youtube user, using its watching history (video ID), search tokens, demographic information (such as geographic location, user login device), binary features (such as gender, whether to log in), and continuous features (such as user age), etc., multi-classify all videos in the video library to obtain the classification result of each category (ie, the recommendation probability of each video), eventually outputting hundreds of videos with high probability.
+
+First, the historical information such as watching history and search token records are mapped to vectors and averaged to obtain a fixed length representation. At the same time, demographic characteristics are input to optimize the recommendation effect of new users, and the binary features and continuous features are normalized to the range [0, 1]. Next, put all the feature representations into a vector and input them to the non-linear multilayer perceptron (MLP, see [Identification Figures](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/README.md) tutorial). Finally, during training, the output of the MLP is classified by softmax. When predicting, the similarity of the user's comprehensive features (MLP output) to all videos' features is calculated, and the highest score of $k$ is obtained as the result of the candidate generation network. Figure 2 shows the candidate generation network structure.
 
 <p align="center">
-<img src="image/Deep_candidate_generation_model_architecture.en.png" width="70%" ><br/>
-Figure 2. Deep candidate generation model.
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/Deep_candidate_generation_model_architecture.png?raw=true" width="70%" ><br/>
+Figure 2. Candidate generation network structure
 </p>
 
-The first stage of this model maps watching history and search queries into fixed-length representative features.  Then, an MLP (multi-layer Perceptron, as described in the [Recognize Digits](https://github.com/PaddlePaddle/book/blob/develop/recognize_digits/README.md) tutorial) takes the concatenation of all representative vectors.  The output of the MLP represents the user' *intrinsic interests*.  At training time, it is used together with a softmax output layer for minimizing the classification error.   At serving time, it is used to compute the relevance of the user with all movies.
-
-For a user $U$, the predicted watching probability of video $i$ is
+For a user $U$, the formula for predicting whether the video $\omega$ that the user wants to watch at the moment is video $i$ is:
 
 $$P(\omega=i|u)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
 
-where $u$ is the representative vector of user $U$, $V$ is the corpus of all videos, $v_i$ is the representative vector of the $i$-th video. $u$ and $v_i$ are vectors of the same length, so we can compute their dot product using a fully connected layer.
+Where $u$ is the feature representation of the user $U$, $V$ is the video library collection, and $v_i$ is the feature representation of the $i$ video in the video library. $u$ and $v_i$ are vectors of equal length, and the dot product can be implemented by a fully connected layer.
 
-This model could have a performance issue as the softmax output covers millions of classification labels.  To optimize performance, at the training time, the authors down-sample negative samples, so the actual number of classes is reduced to thousands.  At serving time, the authors ignore the normalization of the softmax outputs, because the results are just for ranking.
+Considering that the number of categories in the softmax classification is very large, in order to ensure a certain computational efficiency: 1) in the training phase, use negative sample category sampling to reduce the number of actually calculated categories to thousands; 2) in the recommendation (prediction) phase, ignore the normalized calculation of softmax (does not affect the result), and simplifies the category scoring problem into the nearest neighbor search problem in the dot product space, then takes the nearest $k$ video of $u$ as a candidate for generation.
 
 #### Ranking Network
+The structure of the ranking network is similar to the candidate generation network, but its goal is to perform finer ranking of the candidates. Similar to the feature extraction method in traditional advertisement ranking, a large number of related features (such as video ID, last watching time, etc.) for video sorting are also constructed here. These features are treated similarly to the candidate generation network, except that at the top of the ranking network is a weighted logistic regression that scores all candidate videos and sorts them from high to low. Then, return to the user.
 
-The architecture of the ranking network is similar to that of the candidate generation network.  Similar to ranking models widely used in online advertising, it uses rich features like video ID, last watching time, etc.  The output layer of the ranking network is a weighted logistic regression, which rates all candidate videos.
+### Fusion recommendation model
+This section uses Convolutional Neural Networks to learn the representation of movie titles. The convolutional neural network for text and the fusion recommendation model are introduced in turn.
 
-### Hybrid Model
+#### Convolutional Neural Network (CNN) for text
 
-In the section, let us introduce our movie recommendation system. Especially, we feed moives titles into a text convolution network to get a fixed-length representative feature vector. Accordingly we will introduce the convolutional neural network for texts and the hybrid recommendation model respectively.
+Convolutional neural networks are often used to deal with data of a grid-like topology. For example, an image can be viewed as a pixel of a two-dimensional grid, and a natural language can be viewed as a one-dimensional sequence of words. Convolutional neural networks can extract a variety of local features and combine them to obtain more advanced feature representations. Experiments show that convolutional neural networks can efficiently model image and text problems.
 
-#### Convolutional Neural Networks for Texts (CNN)
-
-**Convolutional Neural Networks** are frequently applied to data with grid-like topology such as two-dimensional images and one-dimensional texts. A CNN can extract multiple local features, combine them, and produce high-level abstractions, which correspond to semantic understanding. Empirically, CNN is shown to be efficient for image and text modeling.
-
-CNN mainly contains convolution and pooling operation, with versatile combinations in various applications. Here, we briefly describe a CNN as shown in Figure 3.
-
+The convolutional neural network is mainly composed of convolution and pooling operations, and its application and combination methods are flexible and varied. In this section we will explain the network as shown in Figure 3:
 
 <p align="center">
-<img src="image/text_cnn_en.png" width = "80%" align="center"/><br/>
-Figure 3. CNN for text modeling.
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/text_cnn.png?raw=true" width = "80%" align="center"/><br />
+Figure 3. Convolutional neural network text classification model
 </p>
 
-Let $n$ be the length of the sentence to process, and the $i$-th word has embedding as $x_i\in\mathbb{R}^k$，where $k$ is the embedding dimensionality.
+Suppose the length of the sentence to be processed is $n$, where the word vector of the $i$ word is $x_i\in\mathbb{R}^k$, and $k$ is the dimension size.
 
-First, we concatenate the words by piecing together every $h$ words, each as a window of length $h$. This window is denoted as $x_{i:i+h-1}$, consisting of $x_{i},x_{i+1},\ldots,x_{i+h-1}$, where $x_i$ is the first word in the window and $i$ takes value ranging from $1$ to $n-h+1$: $x_{i:i+h-1}\in\mathbb{R}^{hk}$.
+First, splicing the word vector: splicing each $h$ word to form a word window of size $h$, denoted as $x_{i:i+h-1}$, which represents the word sequence splicing of $x_{i}, x_{i+1}, \ldots, x_{i+h-1}$, where $i$ represents the position of the first word in the word window throughout the sentence, ranging from $1$ to $n-h+1$, $x_{i:i+h-1}\in\mathbb{R}^{hk}$.
 
-Next, we apply the convolution operation: we apply the kernel $w\in\mathbb{R}^{hk}$ in each window, extracting features $c_i=f(w\cdot x_{i:i+h-1}+b)$, where $b\in\mathbb{R}$ is the bias and $f$ is a non-linear activation function such as $sigmoid$. Convolving by the kernel at every window ${x_{1:h},x_{2:h+1},\ldots,x_{n-h+1:n}}$ produces a feature map in the following form:
+Second, perform a convolution operation: apply the convolution kernel $w\in\mathbb{R}^{hk}$ to the window $x_{i:i+h-1}$ containing $h$ words. , get the feature $c_i=f(w\cdot x_{i:i+h-1}+b)$, where $b\in\mathbb{R}$ is the bias and $f$ is the non Linear activation function, such as $sigmoid$. Apply the convolution kernel to all word windows ${x_{1:h}, x_{2:h+1},\ldots,x_{n-h+1:n}}$ in the sentence, producing a feature map:
 
 $$c=[c_1,c_2,\ldots,c_{n-h+1}], c \in \mathbb{R}^{n-h+1}$$
 
-Next, we apply *max pooling* over time to represent the whole sentence $\hat c$, which is the maximum element across the feature map:
+Next, using the max pooling over time for feature maps to obtain the feature $\hat c$, of the whole sentence corresponding to this convolution kernel, which is the maximum value of all elements in the feature map:
 
 $$\hat c=max(c)$$
 
-#### Model Structure Of The Hybrid Model
+#### Fusion recommendation model overview
 
-In our network, the input includes features of users and movies.  The user feature includes four properties: user ID, gender, occupation, and age.  Movie features include their IDs, genres, and titles.
+In the film personalized recommendation system that incorporates the recommendation model:
 
-We use fully-connected layers to map user features into representative feature vectors and concatenate them.  The process of movie features is similar, except that for movie titles -- we feed titles into a text convolution network as described in the above section to get a fixed-length representative feature vector.
+1. First, take user features and movie features as input to the neural network, where:
 
-Given the feature vectors of users and movies, we compute the relevance using cosine similarity.  We minimize the squared error at training time.
+   - The user features incorporate four attribute information: user ID, gender, occupation, and age.
+
+   - The movie feature incorporate three attribute information: movie ID, movie type ID, and movie name.
+
+2. For the user feature, map the user ID to a vector representation with a dimension size of 256, enter the fully connected layer, and do similar processing for the other three attributes. Then the feature representations of the four attributes are fully connected and added separately.
+
+3. For movie features, the movie ID is processed in a manner similar to the user ID. The movie type ID is directly input into the fully connected layer in the form of a vector, and the movie name is represented by a fixed-length vector using a text convolutional neural network. The feature representations of the three attributes are then fully connected and added separately.
+
+4. After obtaining the vector representation of the user and the movie, calculate the cosine similarity of them as the score of the personalized recommendation system. Finally, the square of the difference between the similarity score and the user's true score is used as the loss function of the regression model.
 
 <p align="center">
-<img src="image/rec_regression_network_en.png" width="90%" ><br/>
-Figure 4. A hybrid recommendation model.
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/rec_regression_network.png?raw=true" width="90%" ><br/>
+Figure 4. Fusion recommendation model
 </p>
 
-## Dataset
+## Data Preparation
 
-We use the [MovieLens ml-1m](http://files.grouplens.org/datasets/movielens/ml-1m.zip) to train our model.  This dataset includes 10,000 ratings of 4,000 movies from 6,000 users to 4,000 movies.  Each rate is in the range of 1~5.  Thanks to GroupLens Research for collecting, processing and publishing the dataset.
+### Data Introduction and Download
 
-`paddle.datasets` package encapsulates multiple public datasets, including `cifar`, `imdb`, `mnist`, `movielens` and `wmt14`, etc. There's no need for us to manually download and preprocess `MovieLens` dataset.
+We take [MovieLens Million Dataset (ml-1m)](http://files.grouplens.org/datasets/movielens/ml-1m.zip) as an example. The ml-1m dataset contains 1,000,000 reviews of 4,000 movies by 6,000 users (scores ranging from 1 to 5, all integer), collected by the GroupLens Research lab.
 
-The raw `MoiveLens` contains movie ratings, relevant features from both movies and users.
-For instance, one movie's feature could be:
+Paddle provides modules for automatically loading data in the API. The data module is `paddle.dataset.movielens`
+
 
 ```python
 import paddle
@@ -109,61 +125,77 @@ movie_info = paddle.dataset.movielens.movie_info()
 print movie_info.values()[0]
 ```
 
-```text
-<MovieInfo id(1), title(Toy Story), categories(['Animation', "Children's", 'Comedy'])>
+
+```python
+# Run this block to show dataset's documentation
+# help(paddle.dataset.movielens)
 ```
 
-One user's feature could be:
+The original data includes feature data of the movie, user's feature data, and the user's rating of the movie.
+
+For example, one of the movie features is:
+
+
+```python
+movie_info = paddle.dataset.movielens.movie_info()
+print movie_info.values()[0]
+```
+
+    <MovieInfo id(1), title(Toy Story ), categories(['Animation', "Children's", 'Comedy'])>
+
+
+This means that the movie id is 1, and the title is 《Toy Story》, which is divided into three categories. These three categories are animation, children, and comedy.
+
 
 ```python
 user_info = paddle.dataset.movielens.user_info()
 print user_info.values()[0]
 ```
 
-```text
-<UserInfo id(1), gender(F), age(1), job(10)>
-```
+    <UserInfo id(1), gender(F), age(1), job(10)>
 
-In this dateset, the distribution of age is shown as follows:
 
-```text
-1: "Under 18"
-18: "18-24"
-25: "25-34"
-35: "35-44"
-45: "45-49"
-50: "50-55"
-56: "56+"
-```
+This means that the user ID is 1, female, and younger than 18 years old. The occupation ID is 10.
 
-User's occupation is selected from the following options:
 
-```text
-0: "other" or not specified
-1: "academic/educator"
-2: "artist"
-3: "clerical/admin"
-4: "college/grad student"
-5: "customer service"
-6: "doctor/health care"
-7: "executive/managerial"
-8: "farmer"
-9: "homemaker"
-10: "K-12 student"
-11: "lawyer"
-12: "programmer"
-13: "retired"
-14: "sales/marketing"
-15: "scientist"
-16: "self-employed"
-17: "technician/engineer"
-18: "tradesman/craftsman"
-19: "unemployed"
-20: "writer"
-```
+Among them, the age uses the following distribution
 
-Each record consists of three main components: user features, movie features and movie ratings.
-Likewise, as a simple example, consider the following:
+*  1:  "Under 18"
+* 18:  "18-24"
+* 25:  "25-34"
+* 35:  "35-44"
+* 45:  "45-49"
+* 50:  "50-55"
+* 56:  "56+"
+
+The occupation is selected from the following options:
+
+*  0:  "other" or not specified
+*  1:  "academic/educator"
+*  2:  "artist"
+*  3:  "clerical/admin"
+*  4:  "college/grad student"
+*  5:  "customer service"
+*  6:  "doctor/health care"
+*  7:  "executive/managerial"
+*  8:  "farmer"
+*  9:  "homemaker"
+* 10:  "K-12 student"
+* 11:  "lawyer"
+* 12:  "programmer"
+* 13:  "retired"
+* 14:  "sales/marketing"
+* 15:  "scientist"
+* 16:  "self-employed"
+* 17:  "technician/engineer"
+* 18:  "tradesman/craftsman"
+* 19:  "unemployed"
+* 20:  "writer"
+
+For each training or test data, it is <user features> + <movie feature> + rating.
+
+For example, we get the first training data:
+
 
 ```python
 train_set_creator = paddle.dataset.movielens.train()
@@ -173,17 +205,20 @@ mov_id = train_sample[len(user_info[uid].value())]
 print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1])
 ```
 
-```text
-User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest), categories(['Drama'])> with Score [5.0]
+```python
+User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest ), categories(['Drama'])> with Score [5.0]
 ```
 
-The output shows that user 1 gave movie `1193` a rating of 5.
+That is, the user 1 evaluates the movie 1193 as 5 points.
 
-After issuing a command `python train.py`, training will start immediately. The details will be unpacked by the following sessions to see how it works.
+## Configuration Instruction
 
-## Model Configuration
+Below we begin to configure the model based on the form of the input data. First import the required library functions and define global variables.
 
-Our program starts with importing necessary packages and initializing some global variables:
+- IS_SPARSE: whether to use sparse update in embedding
+- PASS_NUM: number of epoch
+
+
 ```python
 from __future__ import print_function
 import math
@@ -193,26 +228,17 @@ import paddle
 import paddle.fluid as fluid
 import paddle.fluid.layers as layers
 import paddle.fluid.nets as nets
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
 
 IS_SPARSE = True
-USE_GPU = False
 BATCH_SIZE = 256
+PASS_NUM = 20
 ```
 
-
-Then we define the model configuration for user combined features:
+Then define the model configuration for our user feature synthesis model
 
 ```python
 def get_usr_combined_features():
+    """network definition for user part"""
 
     USR_DICT_SIZE = paddle.dataset.movielens.max_user_id() + 1
 
@@ -269,14 +295,16 @@ def get_usr_combined_features():
     return usr_combined_features
 ```
 
-As shown in the above code, the input is four dimension integers for each user, that is `user_id`,`gender_id`, `age_id` and `job_id`. In order to deal with these features conveniently, we use the language model in NLP to transform these discrete values into embedding vaules `usr_emb`, `usr_gender_emb`, `usr_age_emb` and `usr_job_emb`.
+As shown in the code above, for each user, we enter a 4-dimensional feature. This includes user_id, gender_id, age_id, job_id. These dimensional features are simple integer values. In order to facilitate the subsequent neural network processing of these features, we use the language model in NLP to transform these discrete integer values ​​into embedding. And form them into usr_emb, usr_gender_emb, usr_age_emb, usr_job_emb, respectively.
 
-Then we can use user features as input, directly connecting to a fully-connected layer, which is used to reduce dimension to 200.
+Then, we enter all the user features into a fully connected layer(fc). Combine all features into one 200-dimension feature.
 
-Furthermore, we do a similar transformation for each movie feature. The model configuration is:
+Furthermore, we make a similar transformation for each movie feature, the network configuration is:
+
 
 ```python
 def get_mov_combined_features():
+    """network definition for item(movie) part"""
 
     MOV_DICT_SIZE = paddle.dataset.movielens.max_movie_id() + 1
 
@@ -325,13 +353,15 @@ def get_mov_combined_features():
     return mov_combined_features
 ```
 
-Movie title, which is a sequence of words represented by an integer word index sequence, will be fed into a `sequence_conv_pool` layer, which will apply convolution and pooling on time dimension. Because pooling is done on time dimension, the output will be a fixed-length vector regardless the length of the input sequence.
 
+The title of a movie is a sequence of integers, and the integer represents the subscript of the word in the index sequence. This sequence is sent to the `sequence_conv_pool` layer, which uses convolution and pooling on the time dimension. Because of this, the output will be fixed length, although the length of the input sequence will vary.
 
-Finally, we can define a `inference_program` that uses cosine similarity to calculate the similarity between user characteristics and movie features.
+Finally, we define an `inference_program` to calculate the similarity between user features and movie features using cosine similarity.
 
 ```python
 def inference_program():
+    """the combined network"""
+
     usr_combined_features = get_usr_combined_features()
     mov_combined_features = get_mov_combined_features()
 
@@ -341,11 +371,11 @@ def inference_program():
     return scale_infer
 ```
 
-Then we define a `training_program` that uses the result from `inference_program` to compute the cost with label data.
-Also define `optimizer_func` to specify the optimizer.
+Furthermore, we define a `train_program` to use the result computed by `inference_program`, and calculate the error with the help of the tag data. We also define an `optimizer_func` to define the optimizer.
 
 ```python
 def train_program():
+    """define the cost function"""
 
     scale_infer = inference_program()
 
@@ -360,21 +390,19 @@ def optimizer_func():
     return fluid.optimizer.SGD(learning_rate=0.2)
 ```
 
-## Model Training
 
-### Specify training environment
+## Training Model
 
-Specify your training environment, you should specify if the training is on CPU or GPU.
+### Defining the training environment
+Define your training environment and specify whether the training takes place on CPU or GPU.
 
 ```python
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
-### Datafeeder Configuration
-
-Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process.
-`paddle.dataset.movielens.train` will yield records during each pass, after shuffling, a batch input of `BATCH_SIZE` is generated for training.
+### Defining the data provider
+The next step is to define a data provider for training and testing. The provider reads in a data of size `BATCH_SIZE`. `paddle.dataset.movielens.train` will provide a data of size `BATCH_SIZE` after each scribbling, and the size of the out-of-order is the cache size `buf_size`.
 
 ```python
 train_reader = paddle.batch(
@@ -386,87 +414,111 @@ test_reader = paddle.batch(
     paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
 ```
 
-### Create Trainer
+### Constructing a training process (trainer)
+We have constructed a training process here, including training optimization functions.
 
-Create a trainer that takes `train_program` as input and specify optimizer function.
+### Provide data
 
-```python
-trainer = Trainer(
-    train_func=train_program, place=place, optimizer_func=optimizer_func)
-```
-
-### Feeding Data
-
-`feed_order` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `movielens.train` corresponds to `user_id` feature.
+`feed_order` is used to define the mapping between each generated data and `paddle.layer.data`. For example, the data in the first column generated by `movielens.train` corresponds to the feature `user_id`.
 
 ```python
 feed_order = [
-        'user_id', 'gender_id', 'age_id', 'job_id', 'movie_id', 'category_id',
-        'movie_title', 'score'
-    ]
+    'user_id', 'gender_id', 'age_id', 'job_id', 'movie_id', 'category_id',
+    'movie_title', 'score'
+]
 ```
 
-### Event Handler
+### Building training programs and testing programs
+The training program and the test program are separately constructed, and the training optimizer is imported.
 
-Callback function `event_handler` will be called during training when a pre-defined event happens.
-For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
+```python
+main_program = fluid.default_main_program()
+star_program = fluid.default_startup_program()
+[avg_cost, scale_infer] = train_program()
+
+test_program = main_program.clone(for_test=True)
+sgd_optimizer = optimizer_func()
+sgd_optimizer.minimize(avg_cost)
+exe = fluid.Executor(place)
+
+def train_test(program, reader):
+    count = 0
+    feed_var_list = [
+        program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder_test = fluid.DataFeeder(
+    feed_list=feed_var_list, place=place)
+    test_exe = fluid.Executor(place)
+    accumulated = 0
+    for test_data in reader():
+        avg_cost_np = test_exe.run(program=program,
+                                               feed=feeder_test.feed(test_data),
+                                               fetch_list=[avg_cost])
+        accumulated += avg_cost_np[0]
+        count += 1
+    return accumulated / count
+```
+
+### Build a training main loop and start training
+We perform the training cycle according to the training cycle number (`PASS_NUM`) defined above and some other parameters, and perform a test every time. When the test result is good enough, we exit the training and save the trained parameters.
 
 ```python
 # Specify the directory path to save the parameters
 params_dirname = "recommender_system.inference.model"
 
-def event_handler(event):
-    if isinstance(event, EndStepEvent):
-        test_reader = paddle.batch(
-            paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
-        avg_cost_set = trainer.test(
-            reader=test_reader, feed_order=feed_order)
+from paddle.utils.plot import Ploter
+train_prompt = "Train cost"
+test_prompt = "Test cost"
 
-        # get avg cost
-        avg_cost = np.array(avg_cost_set).mean()
+plot_cost = Ploter(train_prompt, test_prompt)
 
-        print("avg_cost: %s" % avg_cost)
+def train_loop():
+    feed_list = [
+        main_program.global_block().var(var_name) for var_name in feed_order
+    ]
+    feeder = fluid.DataFeeder(feed_list, place)
+    exe.run(star_program)
 
-        if float(avg_cost) < 4:  # Change this number to adjust accuracy
-            trainer.save_params(params_dirname)
-            trainer.stop()
-        else:
-            print('BatchID {0}, Test Loss {1:0.2}'.format(event.epoch + 1,
-                                                          float(avg_cost)))
-            if math.isnan(float(avg_cost)):
+    for pass_id in range(PASS_NUM):
+        for batch_id, data in enumerate(train_reader()):
+            # train a mini-batch
+            outs = exe.run(program=main_program,
+                               feed=feeder.feed(data),
+                               fetch_list=[avg_cost])
+            out = np.array(outs[0])
+
+            # get test avg_cost
+            test_avg_cost = train_test(test_program, test_reader)
+
+            plot_cost.append(train_prompt, batch_id, outs[0])
+            plot_cost.append(test_prompt, batch_id, test_avg_cost)
+            plot_cost.plot()
+
+            if batch_id == 20:
+                if params_dirname is not None:
+                    fluid.io.save_inference_model(params_dirname, [
+                                "user_id", "gender_id", "age_id", "job_id",
+                                "movie_id", "category_id", "movie_title"
+                        ], [scale_infer], exe)
+                return
+            print('EpochID {0}, BatchID {1}, Test Loss {2:0.2}'.format(
+                            pass_id + 1, batch_id + 1, float(test_avg_cost)))
+
+            if math.isnan(float(out[0])):
                 sys.exit("got NaN loss, training failed.")
 ```
-
-### Training
-
-Finally, we invoke `trainer.train` to start training with `num_epochs` and other parameters.
-
+Start training
 ```python
-trainer.train(
-    num_epochs=1,
-    event_handler=event_handler,
-    reader=train_reader,
-    feed_order=feed_order)
+train_loop()
 ```
 
-## Inference
+## Model Application
 
-### Create Inferencer
+### Generate test data
+Use the API of create_lod_tensor(data, lod, place) to generate the tensor of the detail level. `data` is a sequence, and each element is a sequence of index numbers. `lod` is the detail level's information, corresponding to `data`. For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of lengths 3 and 2. Correspondingly lod = [[3, 2]], which indicates that it contains a layer of detail information, meaning that `data` has two sequences, lengths of 3 and 2.
 
-Initialize Inferencer with `inference_program` and `params_dirname` which is where we save params from training.
+In this prediction example, we try to predict the score given by user with ID1 for the movie 'Hunchback of Notre Dame'.
 
-```python
-inferencer = Inferencer(
-        inference_program, param_path=params_dirname, place=place)  
-```
-
-### Generate input data for testing
-
-Use create_lod_tensor(data, lod, place) API to generate LoD Tensor, where `data` is a list of sequences of index numbers, `lod` is the level of detail (lod) info associated with `data`.
-For example, data = [[10, 2, 3], [2, 3]] means that it contains two sequences of indices, of length 3 and 2, respectively.
-Correspondingly, lod = [[3, 2]] contains one level of detail info, indicating that `data` consists of two sequences of length 3 and 2.
-
-In this infer example, we try to predict rating of movie 'Hunchback of Notre Dame' from the info of user id 1.
 ```python
 infer_movie_id = 783
 infer_movie_name = paddle.dataset.movielens.movie_info()[infer_movie_id].title
@@ -480,42 +532,59 @@ movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
                                       place) # 'hunchback','of','notre','dame','the'
 ```
 
-### Infer
-
-Now we can infer with inputs that we provide in `feed_order` during training.
+### Building the prediction process and testing
+Similar to the training process, we need to build a prediction process, where `params_dirname` is the address used to store the various parameters in the training process.
 
 ```python
-results = inferencer.infer(
-    {
-        'user_id': user_id,
-        'gender_id': gender_id,
-        'age_id': age_id,
-        'job_id': job_id,
-        'movie_id': movie_id,
-        'category_id': category_id,
-        'movie_title': movie_title
-    },
-    return_numpy=False)
+place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
+exe = fluid.Executor(place)
 
-predict_rating = np.array(results[0])
-print("Predict Rating of user id 1 on movie \"" + infer_movie_name + "\" is " + str(predict_rating[0][0]))
-print("Actual Rating of user id 1 on movie \"" + infer_movie_name + "\" is 4.")
-
+inference_scope = fluid.core.Scope()
 ```
 
-## Conclusion
+### Testing
+Now we can make predictions. The `feed_order` we provide should be consistent with the training process.
 
-This tutorial goes over traditional approaches in recommender system and a deep learning based approach.  We also show that how to train and use the model with PaddlePaddle.  Deep learning has been well used in computer vision and NLP, we look forward to its new successes in recommender systems.
 
+```python
+with fluid.scope_guard(inference_scope):
+    [inferencer, feed_target_names,
+    fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
+
+    results = exe.run(inferencer,
+                          feed={
+                               'user_id': user_id,
+                              'gender_id': gender_id,
+                              'age_id': age_id,
+                              'job_id': job_id,
+                              'movie_id': movie_id,
+                              'category_id': category_id,
+                              'movie_title': movie_title
+                          },
+                          fetch_list=fetch_targets,
+                          return_numpy=False)
+    predict_rating = np.array(results[0])
+    print("Predict Rating of user id 1 on movie \"" + infer_movie_name +
+              "\" is " + str(predict_rating[0][0]))
+    print("Actual Rating of user id 1 on movie \"" + infer_movie_name +
+              "\" is 4.")
+```
+
+## Summary
+
+This chapter introduced the traditional personalized recommendation system method and YouTube's deep neural network personalized recommendation system. It further took movie recommendation as an example, and used PaddlePaddle to train a personalized recommendation neural network model. The personalized recommendation system covers almost all aspects of e-commerce systems, social networks, advertising recommendations, search engines, etc. Deep learning technologies have played an important role in image processing, natural language processing, etc., and will also prevail in personalized recommendation systems.
+
+<a name="references"></a>
 ## References
 
-1. [Peter Brusilovsky](https://en.wikipedia.org/wiki/Peter_Brusilovsky) (2007). *The Adaptive Web*. p. 325.
-2. Robin Burke , [Hybrid Web Recommender Systems](http://www.dcs.warwick.ac.uk/~acristea/courses/CS411/2010/Book%20-%20The%20Adaptive%20Web/HybridWebRecommenderSystems.pdf), pp. 377-408, The Adaptive Web, Peter Brusilovsky, Alfred Kobsa, Wolfgang Nejdl (Ed.), Lecture Notes in Computer Science, Springer-Verlag, Berlin, Germany, Lecture Notes in Computer Science, Vol. 4321, May 2007, 978-3-540-72078-2.
-3. P. Resnick, N. Iacovou, etc. “[GroupLens: An Open Architecture for Collaborative Filtering of Netnews](http://ccs.mit.edu/papers/CCSWP165.html)”, Proceedings of ACM Conference on Computer Supported Cooperative Work, CSCW 1994. pp.175-186.
-4. Sarwar, Badrul, et al. "[Item-based collaborative filtering recommendation algorithms.](http://files.grouplens.org/papers/www10_sarwar.pdf)" *Proceedings of the 10th International Conference on World Wide Web*. ACM, 2001.
-5. Kautz, Henry, Bart Selman, and Mehul Shah. "[Referral Web: Combining Social networks and collaborative filtering.](http://www.cs.cornell.edu/selman/papers/pdf/97.cacm.refweb.pdf)" Communications of the ACM 40.3 (1997): 63-65. APA
-6. Yuan, Jianbo, et al. ["Solving Cold-Start Problem in Large-scale Recommendation Engines: A Deep Learning Approach."](https://arxiv.org/pdf/1611.05480v1.pdf) *arXiv preprint arXiv:1611.05480* (2016).
-7. Covington P, Adams J, Sargin E. [Deep neural networks for youtube recommendations](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45530.pdf)[C]//Proceedings of the 10th ACM Conference on Recommender Systems. ACM, 2016: 191-198.
+1. P. Resnick, N. Iacovou, etc. “[GroupLens: An Open Architecture for Collaborative Filtering of Netnews](http://ccs.mit.edu/papers/CCSWP165.html)”, Proceedings of ACM Conference on Computer Supported Cooperative Work, CSCW 1994. pp.175-186.
+2. Sarwar, Badrul, et al. "[Item-based collaborative filtering recommendation algorithms.](http://files.grouplens.org/papers/www10_sarwar.pdf)" *Proceedings of the 10th international conference on World Wide Web*. ACM, 2001.
+3. Kautz, Henry, Bart Selman, and Mehul Shah. "[Referral Web: combining social networks and collaborative filtering.](http://www.cs.cornell.edu/selman/papers/pdf/97.cacm.refweb.pdf)" Communications of the ACM 40.3 (1997): 63-65. APA
+4. [Peter Brusilovsky](https://en.wikipedia.org/wiki/Peter_Brusilovsky) (2007). *The Adaptive Web*. p. 325.
+5. Robin Burke , [Hybrid Web recommendation systems](http://www.dcs.warwick.ac.uk/~acristea/courses/CS411/2010/Book%20-%20The%20Adaptive%20Web/HybridWebRecommenderSystems.pdf), pp. 377-408, The Adaptive Web, Peter Brusilovsky, Alfred Kobsa, Wolfgang Nejdl (Ed.), Lecture Notes in Computer Science, Springer-Verlag, Berlin, Germany, Lecture Notes in Computer Science, Vol. 4321, May 2007, 978-3-540-72078-2.
+6. Yuan, Jianbo, et al. ["Solving Cold-Start Problem in Large-scale Recommendation Engines: A Deep Learning Approach."](https://arxiv.org/pdf/1611.05480v1.pdf) *arXiv preprint arXiv:1611.05480* (2016).
+7. Covington P, Adams J, Sargin E. [Deep neural networks for youtube recommendations](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45530.pdf)[C]//Proceedings of the 10th ACM Conference on recommendation systems. ACM, 2016: 191-198.
+
 
 <br/>
-This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
