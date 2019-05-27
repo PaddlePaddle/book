@@ -22,7 +22,7 @@
 本章我们所要介绍的深度学习模型克服了BOW表示的上述缺陷，它在考虑词顺序的基础上把文本映射到低维度的语义空间，并且以端对端（end to end）的方式进行文本表示及分类，其性能相对于传统方法有显著的提升\[[1](#参考文献)\]。
 
 ## 硬件环境的要求
-本文档支持CPU和GPU训练，如果您使用了本文配套的docker镜像，请注意：该镜像对GPU的支持仅限于CUDA 8，cuDNN 5
+本文档支持CPU和GPU训练。如果您使用了本文配套的docker镜像，请注意：该镜像对GPU的支持仅限于CUDA 8，cuDNN 5。
 
 
 ## 模型概览
@@ -53,7 +53,7 @@
 循环神经网络按时间展开后如图2所示：在第$t$时刻，网络读入第$t$个输入$x_t$（向量表示）及前一时刻隐层的状态值$h_{t-1}$（向量表示，$h_0$一般初始化为$0$向量），计算得出本时刻隐层的状态值$h_t$，重复这一步骤直至读完所有输入。如果将循环神经网络所表示的函数记为$f$，则其公式可表示为：
 
 <p align="center">
-<img src="    https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_rnn.png?raw=true" width = "65%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_rnn.png?raw=true" width = "65%" align="center"/><br/>
 </p>
 
 其中$W_{xh}$是输入到隐层的矩阵参数，$W_{hh}$是隐层到隐层的矩阵参数，$b_h$为隐层的偏置向量（bias）参数，$\sigma$为$sigmoid$函数。  
@@ -74,7 +74,7 @@
 $F$由下列公式组合而成\[[7](#参考文献)\]：
 
 <p align="center">
-<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_more?raw=true" width = "65%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_more.png?raw=true" width = "65%" align="center"/><br/>
 </p>
 
 其中，$i_t, f_t, c_t, o_t$分别表示输入门，遗忘门，记忆单元及输出门的向量值，带角标的$W$及$b$为模型参数，$tanh$为双曲正切函数，$\odot$表示逐元素（elementwise）的乘法操作。输入门控制着新输入进入记忆单元$c$的强度，遗忘门控制着记忆单元维持上一时刻值的强度，输出门控制着输出记忆单元的强度。三种门的计算方式类似，但有着完全不同的参数，它们各自以不同的方式控制着记忆单元$c$，如图3所示：
@@ -87,7 +87,7 @@ $F$由下列公式组合而成\[[7](#参考文献)\]：
 LSTM通过给简单的循环神经网络增加记忆及控制门的方式，增强了其处理远距离依赖问题的能力。类似原理的改进还有Gated Recurrent Unit (GRU)\[[8](#参考文献)\]，其设计更为简洁一些。**这些改进虽然各有不同，但是它们的宏观描述却与简单的循环神经网络一样（如图2所示），即隐状态依据当前输入及前一时刻的隐状态来改变，不断地循环这一过程直至输入处理完毕：**
 
 <p align="center">
-<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_more.png/formula_rnn_2.png?raw=true" width = "30%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_recurrent.png?raw=true" width = "30%" align="center"/><br/>
 </p>
 
 其中，$Recrurent$可以表示简单的循环神经网络、GRU或LSTM。
