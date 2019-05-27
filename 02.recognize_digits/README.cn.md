@@ -2,7 +2,7 @@
 
 本教程源代码目录在[book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
-### 说明 ###
+### 说明: ###
 1. 硬件要求
 本文可支持在CPU、GPU下运行
 2. 对docker file cuda/cudnn的支持
@@ -50,7 +50,7 @@ MNIST吸引了大量的科学家基于此数据集训练模型，1998年，LeCun
 <img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/01.png?raw=true" width=200><br/>
 </p>
 
-其中 
+其中
 <p align="center">
 <img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/02.png?raw=true" width=200><br/>
 </p>
@@ -590,4 +590,3 @@ with fluid.scope_guard(inference_scope):
 
 <br/>
 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
-
