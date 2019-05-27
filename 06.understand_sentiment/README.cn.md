@@ -58,7 +58,7 @@
 循环神经网络按时间展开后如图2所示：在第$t$时刻，网络读入第$t$个输入$x_t$（向量表示）及前一时刻隐层的状态值$h_{t-1}$（向量表示，$h_0$一般初始化为$0$向量），计算得出本时刻隐层的状态值$h_t$，重复这一步骤直至读完所有输入。如果将循环神经网络所表示的函数记为$f$，则其公式可表示为：
 
 <p align="center">
-<img src="    https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_rnn.png?raw=true" width = "65%" align="center"/><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_rnn.png?raw=true" width = "65%" align="center"/><br/>
 </p>
 
 其中$W_{xh}$是输入到隐层的矩阵参数，$W_{hh}$是隐层到隐层的矩阵参数，$b_h$为隐层的偏置向量（bias）参数，$\sigma$为$sigmoid$函数。  
