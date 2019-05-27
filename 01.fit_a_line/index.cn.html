@@ -81,7 +81,7 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 对于线性回归模型来讲，最常见的损失函数就是均方误差（Mean Squared Error， [MSE](https://en.wikipedia.org/wiki/Mean_squared_error)）了，它的形式是：
 
 <p align="center">
-    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_3.png?raw=true" width=300><br/>
+    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_3.png?raw=true" width=200><br/>
 </p>
 
 即对于一个大小为$n$的测试集，$MSE$是$n$个数据预测结果误差平方的均值。
@@ -89,7 +89,7 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 对损失函数进行优化所采用的方法一般为梯度下降法。梯度下降法是一种一阶最优化算法。如果$f(x)$在点$x_n$有定义且可微，则认为$f(x)$在点$x_n$沿着梯度的负方向$-▽f(x_n)$下降的是最快的。反复调节$x$，使得$f(x)$接近最小值或者极小值，调节的方式为：
 
 <p align="center">
-    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_4.png?raw=true" width=200><br/>
+    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_4.png?raw=true" width=300><br/>
 </p>
 
 其中λ代表学习率。这种调节的方法称为梯度下降法。
