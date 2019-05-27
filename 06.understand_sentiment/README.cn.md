@@ -67,14 +67,14 @@
 相比于简单的循环神经网络，LSTM增加了记忆单元$c$、输入门$i$、遗忘门$f$及输出门$o$。这些门及记忆单元组合起来大大提升了循环神经网络处理长序列数据的能力。若将基于LSTM的循环神经网络表示的函数记为$F$，则其公式为：
 
 <p align="center">
-<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_1.png?raw=true" width = "30%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm.png?raw=true" width = "30%" align="center"/><br/>
 </p>
 
 
 $F$由下列公式组合而成\[[7](#参考文献)\]：
 
 <p align="center">
-<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_2.png?raw=true" width = "65%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_lstm_more.png?raw=true" width = "65%" align="center"/><br/>
 </p>
 
 其中，$i_t, f_t, c_t, o_t$分别表示输入门，遗忘门，记忆单元及输出门的向量值，带角标的$W$及$b$为模型参数，$tanh$为双曲正切函数，$\odot$表示逐元素（elementwise）的乘法操作。输入门控制着新输入进入记忆单元$c$的强度，遗忘门控制着记忆单元维持上一时刻值的强度，输出门控制着输出记忆单元的强度。三种门的计算方式类似，但有着完全不同的参数，它们各自以不同的方式控制着记忆单元$c$，如图3所示：
@@ -87,7 +87,7 @@ $F$由下列公式组合而成\[[7](#参考文献)\]：
 LSTM通过给简单的循环神经网络增加记忆及控制门的方式，增强了其处理远距离依赖问题的能力。类似原理的改进还有Gated Recurrent Unit (GRU)\[[8](#参考文献)\]，其设计更为简洁一些。**这些改进虽然各有不同，但是它们的宏观描述却与简单的循环神经网络一样（如图2所示），即隐状态依据当前输入及前一时刻的隐状态来改变，不断地循环这一过程直至输入处理完毕：**
 
 <p align="center">
-<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_rnn_2.png?raw=true" width = "50%" align="center"/><br/>
+<img src="https://github.com/JesseyXujin/book/blob/doc_1/06.understand_sentiment/image/formula_recrurent.png?raw=true" width = "50%" align="center"/><br/>
 </p>
 
 其中，$Recrurent$可以表示简单的循环神经网络、GRU或LSTM。
