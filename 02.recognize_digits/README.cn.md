@@ -2,6 +2,15 @@
 
 本教程源代码目录在[book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
+### 说明 ###
+1. 硬件要求
+本文可支持在CPU、GPU下运行
+2. 对docker file cuda/cudnn的支持
+如果您使用了本文配套的docker镜像，请注意：该镜像对GPU的支持仅限于CUDA 8，cuDNN 5
+3. 文档中代码和train.py不一致的问题
+请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，如希望直接看到训练脚本输出效果，可运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/train.py)。
+
+
 ## 背景介绍
 当我们学习编程的时候，编写的第一个程序一般是实现打印"Hello World"。而机器学习（或深度学习）的入门教程，一般都是 [MNIST](http://yann.lecun.com/exdb/mnist/) 数据库上的手写识别问题。原因是手写识别属于典型的图像分类问题，比较简单，同时MNIST数据集也很完备。MNIST数据集作为一个简单的计算机视觉数据集，包含一系列如图1所示的手写数字图片和对应的标签。图片是28x28的像素矩阵，标签则对应着0~9的10个数字。每张图片都经过了大小归一化和居中处理。
 
@@ -37,7 +46,9 @@ MNIST吸引了大量的科学家基于此数据集训练模型，1998年，LeCun
 
 输入层的数据$X$传到输出层，在激活操作之前，会乘以相应的权重 $W$ ，并加上偏置变量 $b$ ，具体如下：
 
-$$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/01.png?raw=true" width=400><br/>
+</p>
 
 其中 $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
 
@@ -52,7 +63,9 @@ $$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
 在分类问题中，我们一般采用交叉熵代价损失函数（cross entropy loss），公式如下：
 
-$$  L_{cross-entropy}(label, y) = -\sum_i label_ilog(y_i) $$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/02.png?raw=true" width=400><br/>
+</p>
 
 
 
@@ -117,9 +130,17 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 <a name="常见激活函数介绍"></a>
 ### 常见激活函数介绍  
-- sigmoid激活函数： $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
+- sigmoid激活函数：
 
-- tanh激活函数： $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/04.png?raw=true" width=400><br/>
+</p>
+
+- tanh激活函数：
+
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/05.png?raw=true" width=400><br/>
+</p>
 
   实际上，tanh函数只是规模变化的sigmoid函数，将sigmoid函数值放大2倍之后再向下平移1个单位：tanh(x) = 2sigmoid(2x) - 1 。
 
