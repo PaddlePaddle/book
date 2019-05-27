@@ -3,13 +3,12 @@
 本教程源代码目录在[book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
 ### 说明: ###
-1. 硬件要求
+1. 硬件环境要求：
 本文可支持在CPU、GPU下运行
-2. 对docker file cuda/cudnn的支持
-如果您使用了本文配套的docker镜像，请注意：该镜像对GPU的支持仅限于CUDA 8，cuDNN 5
-3. 文档中代码和train.py不一致的问题
-请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，如希望直接看到训练脚本输出效果，可运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/train.py)。
-
+2. Docker镜像支持的CUDA/cuDNN版本：
+如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
+3. 文档和脚本中代码的一致性问题：
+请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/train.py)进行验证。
 
 ## 背景介绍
 当我们学习编程的时候，编写的第一个程序一般是实现打印"Hello World"。而机器学习（或深度学习）的入门教程，一般都是 [MNIST](http://yann.lecun.com/exdb/mnist/) 数据库上的手写识别问题。原因是手写识别属于典型的图像分类问题，比较简单，同时MNIST数据集也很完备。MNIST数据集作为一个简单的计算机视觉数据集，包含一系列如图1所示的手写数字图片和对应的标签。图片是28x28的像素矩阵，标签则对应着0~9的10个数字。每张图片都经过了大小归一化和居中处理。
@@ -516,7 +515,7 @@ Pass 900, Batch 0, Cost 0.239809
 Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
 ```
 
-训练之后，检查模型的预测准确度。用 MNIST 训练的时候，一般 softmax回归模型的分类准确率为约为 92.34%，多层感知器为97.66%，卷积神经网络可以达到 99.20%。
+训练之后，检查模型的预测准确度。用 MNIST 训练的时候，一般 softmax回归模型的分类准确率约为 92.34%，多层感知器为97.66%，卷积神经网络可以达到 99.20%。
 
 
 ## 应用模型
