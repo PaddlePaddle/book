@@ -15,12 +15,27 @@
 from __future__ import print_function
 
 import os
+import argparse
 import paddle
 import paddle.fluid as fluid
 import numpy
 import sys
 from vgg import vgg_bn_drop
 from resnet import resnet_cifar10
+
+
+def parse_args():
+    parser = argparse.ArgumentParser("image_classification")
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help='If set, run the task with continuous evaluation logs.')
+    parser.add_argument(
+        '--use_gpu', type=bool, default=0, help='whether to use gpu')
+    parser.add_argument(
+        '--num_epochs', type=int, default=1, help='number of epoch')
+    args = parser.parse_args()
+    return args
 
 
 def inference_network():
@@ -48,31 +63,40 @@ def optimizer_program():
 def train(use_cuda, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
     BATCH_SIZE = 128
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.cifar.train10(), buf_size=128 * 100),
-        batch_size=BATCH_SIZE)
 
-    test_reader = paddle.batch(
-        paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
+    if args.enable_ce:
+        train_reader = paddle.batch(
+            paddle.dataset.cifar.train10(), batch_size=BATCH_SIZE)
+        test_reader = paddle.batch(
+            paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
+    else:
+        test_reader = paddle.batch(
+            paddle.dataset.cifar.test10(), batch_size=BATCH_SIZE)
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.cifar.train10(), buf_size=128 * 100),
+            batch_size=BATCH_SIZE)
 
     feed_order = ['pixel', 'label']
 
     main_program = fluid.default_main_program()
-    star_program = fluid.default_startup_program()
+    start_program = fluid.default_startup_program()
+
+    if args.enable_ce:
+        main_program.random_seed = 90
+        start_program.random_seed = 90
 
     predict = inference_network()
     avg_cost, acc = train_network(predict)
 
     # Test program
     test_program = main_program.clone(for_test=True)
-
     optimizer = optimizer_program()
     optimizer.minimize(avg_cost)
 
     exe = fluid.Executor(place)
 
-    EPOCH_NUM = 1
+    EPOCH_NUM = args.num_epochs
 
     # For training test cost
     def train_test(program, reader):
@@ -100,7 +124,7 @@ def train(use_cuda, params_dirname):
             main_program.global_block().var(var_name) for var_name in feed_order
         ]
         feeder = fluid.DataFeeder(feed_list=feed_var_list_loop, place=place)
-        exe.run(star_program)
+        exe.run(start_program)
 
         step = 0
         for pass_id in range(EPOCH_NUM):
@@ -125,6 +149,12 @@ def train(use_cuda, params_dirname):
             if params_dirname is not None:
                 fluid.io.save_inference_model(params_dirname, ["pixel"],
                                               [predict], exe)
+
+            if args.enable_ce and pass_id == EPOCH_NUM - 1:
+                print("kpis\ttrain_cost\t%f" % avg_loss_value[0])
+                print("kpis\ttrain_acc\t%f" % avg_loss_value[1])
+                print("kpis\ttest_cost\t%f" % avg_cost_test)
+                print("kpis\ttest_acc\t%f" % accuracy_test)
 
     train_loop()
 
@@ -206,4 +236,6 @@ def main(use_cuda):
 if __name__ == '__main__':
     # For demo purpose, the training runs on CPU
     # Please change accordingly.
-    main(use_cuda=False)
+    args = parse_args()
+    use_cuda = args.use_gpu
+    main(use_cuda)
