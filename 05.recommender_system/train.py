@@ -15,6 +15,7 @@
 from __future__ import print_function
 import math
 import sys
+import argparse
 import numpy as np
 import paddle
 import paddle.fluid as fluid
@@ -22,9 +23,21 @@ import paddle.fluid.layers as layers
 import paddle.fluid.nets as nets
 
 IS_SPARSE = True
-USE_GPU = False
 BATCH_SIZE = 256
-PASS_NUM = 100
+
+
+def parse_args():
+    parser = argparse.ArgumentParser("recommender_system")
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help="If set, run the task with continuous evaluation logs.")
+    parser.add_argument(
+        '--use_gpu', type=int, default=0, help="Whether to use GPU or not.")
+    parser.add_argument(
+        '--num_epochs', type=int, default=1, help="number of epochs.")
+    args = parser.parse_args()
+    return args
 
 
 def get_usr_combined_features():
@@ -154,11 +167,18 @@ def optimizer_func():
 def train(use_cuda, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.movielens.train(), buf_size=8192),
-        batch_size=BATCH_SIZE)
-    test_reader = paddle.batch(
-        paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
+    if args.enable_ce:
+        train_reader = paddle.batch(
+            paddle.dataset.movielens.train(), batch_size=BATCH_SIZE)
+        test_reader = paddle.batch(
+            paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
+    else:
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.movielens.train(), buf_size=8192),
+            batch_size=BATCH_SIZE)
+        test_reader = paddle.batch(
+            paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
 
     feed_order = [
         'user_id', 'gender_id', 'age_id', 'job_id', 'movie_id', 'category_id',
@@ -167,6 +187,10 @@ def train(use_cuda, params_dirname):
 
     main_program = fluid.default_main_program()
     star_program = fluid.default_startup_program()
+    if args.enable_ce:
+        main_program.random_seed = 90
+        star_program.random_seed = 90
+
     scale_infer, avg_cost = inference_program()
 
     test_program = main_program.clone(for_test=True)
@@ -212,6 +236,10 @@ def train(use_cuda, params_dirname):
 
                 # if test_avg_cost < 4.0: # Change this number to adjust accuracy
                 if batch_id == 20:
+
+                    if args.enable_ce:
+                        print("kpis\ttest_cost\t%f" % float(test_avg_cost))
+
                     if params_dirname is not None:
                         fluid.io.save_inference_model(params_dirname, [
                             "user_id", "gender_id", "age_id", "job_id",
@@ -319,4 +347,7 @@ def main(use_cuda):
 
 
 if __name__ == '__main__':
-    main(USE_GPU)
+    args = parse_args()
+    PASS_NUM = args.num_epochs
+    use_cuda = args.use_gpu
+    main(use_cuda)
