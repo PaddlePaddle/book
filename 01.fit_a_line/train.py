@@ -15,12 +15,30 @@
 from __future__ import print_function
 
 import sys
+import argparse
 
 import math
 import numpy
 
 import paddle
 import paddle.fluid as fluid
+
+
+def parse_args():
+    parser = argparse.ArgumentParser("fit_a_line")
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help="If set, run the task with continuous evaluation logs.")
+    parser.add_argument(
+        '--use_gpu',
+        type=bool,
+        default=False,
+        help="Whether to use GPU or not.")
+    parser.add_argument(
+        '--num_epochs', type=int, default=100, help="number of epochs.")
+    args = parser.parse_args()
+    return args
 
 
 # For training test cost
@@ -52,21 +70,34 @@ def save_result(points1, points2):
 
 def main():
     batch_size = 20
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.uci_housing.train(), buf_size=500),
-        batch_size=batch_size)
-    test_reader = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.uci_housing.test(), buf_size=500),
-        batch_size=batch_size)
+
+    if args.enable_ce:
+        train_reader = paddle.batch(
+            paddle.dataset.uci_housing.train(), batch_size=batch_size)
+        test_reader = paddle.batch(
+            paddle.dataset.uci_housing.test(), batch_size=batch_size)
+    else:
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.uci_housing.train(), buf_size=500),
+            batch_size=batch_size)
+        test_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.uci_housing.test(), buf_size=500),
+            batch_size=batch_size)
 
     # feature vector of length 13
     x = fluid.layers.data(name='x', shape=[13], dtype='float32')
     y = fluid.layers.data(name='y', shape=[1], dtype='float32')
-    y_predict = fluid.layers.fc(input=x, size=1, act=None)
 
     main_program = fluid.default_main_program()
     startup_program = fluid.default_startup_program()
 
+    if args.enable_ce:
+        main_program.random_seed = 90
+        startup_program.random_seed = 90
+
+    y_predict = fluid.layers.fc(input=x, size=1, act=None)
     cost = fluid.layers.square_error_cost(input=y_predict, label=y)
     avg_loss = fluid.layers.mean(cost)
 
@@ -76,13 +107,13 @@ def main():
     test_program = main_program.clone(for_test=True)
 
     # can use CPU or GPU
-    use_cuda = False
+    use_cuda = args.use_gpu
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
     exe = fluid.Executor(place)
 
     # Specify the directory to save the parameters
     params_dirname = "fit_a_line.inference.model"
-    num_epochs = 100
+    num_epochs = args.num_epochs
 
     # main train loop.
     feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
@@ -126,6 +157,10 @@ def main():
             fluid.io.save_inference_model(params_dirname, ['x'], [y_predict],
                                           exe)
 
+        if args.enable_ce and pass_id == args.num_epochs - 1:
+            print("kpis\ttrain_cost\t%f" % avg_loss_value[0])
+            print("kpis\ttest_cost\t%f" % test_metics[0])
+
     infer_exe = fluid.Executor(place)
     inference_scope = fluid.core.Scope()
 
@@ -162,4 +197,5 @@ def main():
 
 
 if __name__ == '__main__':
+    args = parse_args()
     main()
