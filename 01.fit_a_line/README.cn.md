@@ -3,7 +3,7 @@
 
 本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line)， 初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
-### 说明：###
+### 说明：
 1.硬件环境要求：
 本文可支持在CPU、GPU下运行
 2. Docker镜像支持的CUDA/cuDNN版本：
@@ -16,7 +16,7 @@
 
 
 <p align="center">
-    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_1.png?raw=true" width=550><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_1.png?raw=true" width=550><br/>
 </p>
 
 例如，在我们将要建模的房价预测问题里，$x_{ij}$是描述房子$i$的各种属性（比如房间的个数、周围学校和医院的个数、交通状况等），而 $y_i$是房屋的价格。
@@ -37,7 +37,7 @@
 在波士顿房价数据集中，和房屋相关的值共有14个：前13个用来描述房屋相关的各种信息，即模型中的 $x_i$；最后一个值为我们要预测的该类房屋价格的中位数，即模型中的 $y_i$。因此，我们的模型就可以表示成：
 
 <p align="center">
-    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_2.png?raw=true" width=350><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_2.png?raw=true" width=350><br/>
 </p>
 
 $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要学习的参数即：$\omega_1, \ldots, \omega_{13}, b$。
@@ -47,7 +47,7 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 对于线性回归模型来讲，最常见的损失函数就是均方误差（Mean Squared Error， [MSE](https://en.wikipedia.org/wiki/Mean_squared_error)）了，它的形式是：
 
 <p align="center">
-    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_3.png?raw=true" width=200><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_3.png?raw=true" width=200><br/>
 </p>
 
 即对于一个大小为$n$的测试集，$MSE$是$n$个数据预测结果误差平方的均值。
@@ -55,7 +55,7 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 对损失函数进行优化所采用的方法一般为梯度下降法。梯度下降法是一种一阶最优化算法。如果$f(x)$在点$x_n$有定义且可微，则认为$f(x)$在点$x_n$沿着梯度的负方向$-▽f(x_n)$下降的是最快的。反复调节$x$，使得$f(x)$接近最小值或者极小值，调节的方式为：
 
 <p align="center">
-    <img src = "https://github.com/ceci3/book/blob/update_fit_a_line/01.fit_a_line/image/formula_fit_a_line_4.png?raw=true" width=250><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_4.png?raw=true" width=250><br/>
 </p>
 
 其中λ代表学习率。这种调节的方法称为梯度下降法。
@@ -118,7 +118,7 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 
 ## 训练
 
-`fit_a_line/trainer.py`演示了训练的整体过程。
+`fit_a_line/train.py`演示了训练的整体过程。
 
 ### 配置数据提供器(Datafeeder)
 首先我们引入必要的库：
