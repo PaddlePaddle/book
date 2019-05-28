@@ -42,173 +42,148 @@
 <div id="markdown" style='display:none'>
 # Machine Translation
 
-The source code of this tutorial is live at [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation). For instructions on getting started with this book,see [Running This Book](https://github.com/PaddlePaddle/book/blob/develop/README.md#running-the-book).
+Source code of this tutorial is in [book/machine_translation](https://github.com/PaddlePaddle/book/tree/develop/08.machine_translation). For users new to Paddle book, please refer to [the user guide of Book Documentation](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#run_the_book).
 
-## Background
+##  Background
 
-Machine translation (MT) leverages computers to translate from one language to another. The language to be translated is referred to as the source language, while the language to be translated into is referred to as the target language. Thus, Machine translation is the process of translating from the source language to the target language. It is one of the most important research topics in the field of natural language processing.
+Machine translation is to translate different languages with computer. The language to be translated is usually called source language, and the language representing the result of translation is called target language. Machine translation is the process of transformation from source language to target language, which is an important research assignment of Natural Language Processing.
 
+Machine translation systems at early age were mostly rule-based translation system, which needs linguists make transformation rule between two languages and then input these rules into computer. This method requires proficient  professional linguistic background, but it is hard to cover all rules of a language, let it alone two or more languages. Therefore, the major challenge of traditional machine translation method is the impossibility of a completest set of rules\[[1](#References)\].
 
-Early machine translation systems are mainly rule-based i.e. they rely on a language expert to specify the translation rules between the two languages. It is quite difficult to cover all the rules used in one language. So it is quite a challenge for language experts to specify all possible rules in two or more different languages. Hence, a major challenge in conventional machine translation has been the difficulty in obtaining a complete rule set \[[1](#references)\].
+To solve the problem mentioned above, Statistical Machine Translation technology emerged afterwards. For Statistical Machine Translation, transformation rules are automatically learned from a large scale corpus instead of handcrafted rule. So it tackles with the limit of obtaining knowledge in rule-based machine translation systems. However, it still faces certain challenges: 1. man-made feature can never cover all language phenomena. 2. it is hard to use global feature. 3. it depends on many pre-processing parts, such as Word Alignment, Tokenization, Rule Extraction, Parsing. Errors accumulated by those parts will have a great influence on translation.
 
+In recent years, Deep Learning technology proposes new solutions to overcome the bottleneck. Two methods for machine translation are realized with the aid of deep learning. 1. Based on the framework of statistical machine translation system, the neural network is in place to improve core parts, such as language model, reordering model and so on (See the left part in figure One). 2. Abandoning the framework of statistical machine translation system, it directly uses neural network to transform source language to target language, which is End-to-End Neural Machine Translation (See right part in figure One), NMT model in short.
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/nmt.png?raw=true" width = "400" align=center/><br/>
+Figure One. Neural Network Machine Translation System
+</div>
 
-To address the aforementioned problems, statistical machine translation techniques have been developed. These techniques learn the translation rules from a large corpus, instead of being designed by a language expert. While these techniques overcome the bottleneck of knowledge acquisition, there are still quite a lot of challenges, for example:
+In the following parts, we'll guide you through NMT model and its hands-on implementation in PaddlePaddle
 
-1. Human designed features cannot cover all possible linguistic variations;
+## Result Demo
 
-2. It is difficult to use global features;
+Take Chinese to English translation model as an example. For a trained model, if input the following tokenized Chinese sentence :
 
-3. The techniques heavily rely on pre-processing techniques like word alignment, word segmentation and tokenization, rule-extraction and syntactic parsing etc. The error introduced in any of these steps could accumulate and impact translation quality.
-
-
-
-The recent development of deep learning provides new solutions to these challenges. The two main categories for deep learning based machine translation techniques are:
-
-1. Techniques based on the statistical machine translation system but with some key components improved with neural networks, e.g., language model, reordering model (please refer to the left part of Figure 1);
-
-2. Techniques mapping from source language to target language directly using a neural network, or end-to-end neural machine translation (NMT).
-
-<p align="center">
-<img src="image/nmt_en.png" width=400><br/>
-Figure 1. Neural Network based Machine Translation
-</p>
-
-
-This tutorial will mainly introduce an NMT model and how to use PaddlePaddle to train it.
-
-## Illustrative Results
-
-Let's consider an example of Chinese-to-English translation. The model is given the following segmented sentence in Chinese
 ```text
 这些 是 希望 的 曙光 和 解脱 的 迹象 .
 ```
-After training and with a beam-search size of 3, the generated translations are as follows:
+
+If it sets the entries of translation result ( e.t. the width of [beam search algorithm](#beam search algorithm)) as 3, the generated English sentence is as follows:
+
 ```text
 0 -5.36816   These are signs of hope and relief . <e>
 1 -6.23177   These are the light of hope and relief . <e>
 2 -7.7914  These are the light of hope and the relief of hope . <e>
 ```
-- The first column corresponds to the id of the generated sentence; the second column corresponds to the score of the generated sentence (in descending order), where a larger value indicates better quality; the last column corresponds to the generated sentence.
-- There are two special tokens: `<e>` denotes the end of a sentence while `<unk>` denotes unknown word, i.e., a word not in the training dictionary.
 
-## Overview of the Model
+- The first column to the left is the serial numbers of generated sentences. The second column from left is scores of the sentences in descending order, in which higher score is better. The third column contains the generated English sentences.
 
-This section will introduce Bi-directional Recurrent Neural Network, the Encoder-Decoder framework used in NMT, as well as the beam search algorithm.
+- In addition, there are two special marks. One is `<e>`, indicating the end of a sentence and another one is `<unk>`, representing unknown word, which have never appeared in dictionary.
+
+## Exploration of Models
+
+In this section, let's scrutinize Bi-directional Recurrent Neural Network, typical Encoder-Decoder structure in NMT model and beam search algorithm.
 
 ### Bi-directional Recurrent Neural Network
 
-We already introduced an instance of bi-directional RNN in the [Semantic Role Labeling](https://github.com/PaddlePaddle/book/blob/develop/label_semantic_roles/README.md) chapter. Here we present another bi-directional RNN model with a different architecture proposed by Bengio et al. in \[[2](#references),[4](#references)\]. This model takes a sequence as input and outputs a fixed dimensional feature vector at each step, encoding the context information at the corresponding time step.
+We have introduced a bi-directional recurrent neural network in the chapter [label_semantic_roles](https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/README.md). Here we introduce another network proposed by Bengio team in thesis \[[2](#References),[4](#References)\] The aim of this network is to input a sequence and get its features at each time step. Specifically, fixed-length vector is incorporated to represent contextual semantic information for each time step in the output.
 
-Specifically, this bi-directional RNN processes the input sequence in the original and reverse order respectively, and then concatenates the output feature vectors at each time step as the final output. Thus the output node at each time step contains information from the past and future as context. The figure below shows an unrolled bi-directional RNN. This network contains a forward RNN and backward RNN with six weight matrices: weight matrices from input to forward hidden layer and backward hidden ($W_1, W_3$), weight matrices from hidden to itself ($W_2, W_5$), matrices from forward hidden and backward hidden to output layer ($W_4, W_6$). Note that there are no connections between forward hidden and backward hidden layers.
+To be concrete, the Bi-directional recurrent neural network sequentially processes the input sequences in time dimension in sequential order or in reverse order, i.e., forward and backward. And the output of RNN at each time step are concatenated to be the final output layer. Hereby the output node of each time step contains complete past and future context information of current time step of input sequence. The figure below shows a bi-directional recurrent neural network expanded by time step. The network consists of a forward and a backward RNN with six weight matrices: a weight matrix ($W_1, W_3$) from input layer to the forward and backward hidden layers, and a weight matrix ($W_2, W_5$) from a hidden layer to itself (self-loop), the weight matrix from the forward hidden layer and the backward hidden layer to the output layer ($W_4, W_6$). Note that there is no connection between the forward hidden layer and the backward hidden layer.
 
-<p align="center">
-<img src="image/bi_rnn_en.png" width=450><br/>
-Figure 3. Temporally unrolled bi-directional RNN
-</p>
 
-### Encoder-Decoder Framework
+<div align="center">
+<img src = "https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/bi_rnn.png?raw=true" width="400"><br/>
+Figure 2. Bi-directional Recurrent Neural Network expanded by time step.
+</div>
 
-The Encoder-Decoder\[[2](#references)\] framework aims to solve the mapping of a sequence to another sequence, for sequences with arbitrary lengths. The source sequence is encoded into a vector via an encoder, which is then decoded to a target sequence via a decoder by maximizing the predictive probability. Both the encoder and the decoder are typically implemented via RNN.
+### Encoder-Decoder Structure
 
-<p align="center">
-<img src="image/encoder_decoder_en.png" width=700><br/>
-Figure 4. Encoder-Decoder Framework
-</p>
+The Encoder-Decoder\[[2](#References)\] structure helps transform a source sequence with arbitrary length to another target sequence with arbitrary length. In the encoding phase, it encodes the entire source sequence into a vector. And in the decoding phase, it decodes the entire target sequence by maximizing the predicted sequence probability. The encoding and decoding process is usually implemented by RNN.
 
+<div align="center">
+<img src ="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/encoder_decoder.png?raw=true" width="700"><br/>
+Figure 3. Encoder-Decoder Frame
+</div>
+
+<a name="encoder"></a>
 #### Encoder
 
-There are three steps for encoding a sentence:
+Encoding can be done in 3 steps:
 
-1. One-hot vector representation of a word: Each word $x_i$ in the source sentence $x=\left \{ x_1,x_2,...,x_T \right \}$ is represented as a vector $w_i\epsilon \left \{ 0,1 \right \}^{\left | V \right |},i=1,2,...,T$   where $w_i$ has the same dimensionality as the size of the dictionary, i.e., $\left | V \right |$, and has an element of one at the location corresponding to the location of the word in the dictionary and zero elsewhere.
+1.One-hot vector : each word $x_i$ of the source language sentence $x=\left \{ x_1,x_2,...,x_T \right \}$ is represented as a column vector $w_i\epsilon \left \{ 0,1 \right \}^{\left | V \right |},i=1,2,...,T$. The dimension of this vector $w_i$ is the same as the vocabulary size $\left | V \right |$, and there is only one dimension with a value of 1 (the position corresponds to the position of the word in the vocabulary), and the rest are all zero.
 
-2. Word embedding as a representation in the low-dimensional semantic space: There are two problems with one-hot vector representation
+2.Word vector mapped to low-dimensional semantic space: one-hot vector indicates that there are two problems: 1. the dimension of generated vector is often large, which is easy to cause dimension disaster. 2. it is difficult to characterize the relationship between words and words (such as semantical similarity, that is, the semantics cannot be expressed well.) Therefore, one-hot vector needs to be mapped to a low-dimensional semantic space, represented by a dense vector(called a word vector) with fixed dimensions . The mapping matrix is $C\epsilon R^{K\times \left | V \right |}$, with $s_i=Cw_i$ representing the word vector of the $i$ word, $K$ representing the dimension of vector.
 
-  * The dimensionality of the vector is typically large, leading to the curse of dimensionality;
+3.Encode a source language word sequence with RNN: The calculation for this process is $h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$, where $h_0$ is an all-zero vector. $\varnothing _\theta$ is a non-linear activation function, and the result $\mathbf{h}=\left \{ h_1,..., h_T \right \}$ is the state code sequence of source language $T$ words read by RNN respectively. The vector representation of the entire sentence can use $\mathbf{h}$ in the state code of the last time step $T$, or use the pooling result in the time dimension.
 
-  * It is hard to capture the relationships between words, i.e., semantic similarities. Therefore, it is useful to project the one-hot vector into a low-dimensional semantic space as a dense vector with fixed dimensions, i.e., $s_i=Cw_i$ for the $i$-th word, with $C\epsilon R^{K\times \left | V \right |}$ as the projection matrix and $K$ is the dimensionality of the word embedding vector.
-
-3. Encoding of the source sequence via RNN: This can be described mathematically as:
-
-    $$h_i=\varnothing _\theta \left ( h_{i-1}, s_i \right )$$
-
-    where
-    $h_0$ is a zero vector,
-    $\varnothing _\theta$ is a non-linear activation function, and
-    $\mathbf{h}=\left \{ h_1,..., h_T \right \}$
-    is the sequential encoding of the first $T$ words from the source sequence. The vector representation of the whole sentence can be represented as the encoding vector at the last time step $T$ from $\mathbf{h}$, or by temporal pooling over $\mathbf{h}$.
-
-
-Bi-directional RNN can also be used in step (3) for more a complicated sentence encoding. This can be implemented using a bi-directional GRU. Forward GRU encodes the source sequence in its original order $(x_1,x_2,...,x_T)$, and generates a sequence of hidden states $(\overrightarrow{h_1},\overrightarrow{h_2},...,\overrightarrow{h_T})$. The backward GRU encodes the source sequence in reverse order, i.e., $(x_T,x_T-1,...,x_1)$ and generates $(\overleftarrow{h_1},\overleftarrow{h_2},...,\overleftarrow{h_T})$. Then for each word $x_i$, its complete hidden state is the concatenation of the corresponding hidden states from the two GRUs, i.e., $h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T}$.
-
-<p align="center">
-<img src="image/encoder_attention_en.png" width=500><br/>
-Figure 5. Encoder using bi-directional GRU
-</p>
+Step 3 can also use bi-directional recurrent neural network to implement more complex sentence-coded representation, which can be implemented with bi-directional GRU. The forward GRU sequentially encodes the source language word  in the order of the word sequence $(x_1, x_2,..., x_T)$, and obtains a series of hidden layer states $(\overrightarrow{h_1},\overrightarrow{h_2},. ..,\overrightarrow{h_T})$. Similarly, the backward GRU encodes the source language word in the order of $(x_T,x_{T-1},...,x_1)$, resulting in $(\overleftarrow{h_1},\overleftarrow{h_2},. ..,\overleftarrow{h_T})$. Finally, for the word $x_i$, the hidden layer state is obtained by jointing the two GRUs, namely $h_i=\left [ \overrightarrow{h_i^T},\overleftarrow{h_i^T} \right ]^{T} $.
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/encoder_attention.png?raw=true" width="400"><br/>
+Figure 4. Use bi-directional GRU encoder
+</div>
 
 #### Decoder
 
-The goal of the decoder is to maximize the probability of the next correct word in the target language. The main idea is as follows:
+During the training of machine translation tasks, the goal of in decode period is to maximize the probability of the next correct target language word. The idea is:
+1.At each time, according to the encoding information of the source language sentence (also called context vector) $c$, the $i$th word $u_i$ of the real target language sequence and the hidden layer state $z_i $ of RNN at $i$th time, it calculates the next hidden layer state $z_{i+1}$. The formula is as follows:
+$$z_{i+1}=\phi_{\theta '} \left ( c,u_i,z_i \right )$$
+Where $\phi _{\theta '}$ is a nonlinear activation function; $c$ is the context vector of the source language sentence, if the attention mechanism is not used and the output of [encoder](#encoder) is the last element after the source language sentence is encoded, you can define $c=h_T$; $u_i$ is the $i$th word of the target language sequence, and $u_0$ is the start tag `<s>` of the target language sequence, indicating the start of decoding; $z_i$ is the hidden layer state of the RNN at $i$th time, and $z_0$ is an all-zero vector.
 
-1. At each time step $i$, given the encoding vector (or context vector) $c$ of the source sentence, the $i$-th word $u_i$ from the ground-truth target language and the RNN hidden state $z_i$, the next hidden state $z_{i+1}$ is computed as:
+2.Normalize $z_{i+1}$ by `softmax` to get the probability distribution $p_{i+1}$ of the $i+1$th word of the target language sequence. The probability distribution formula is as follows:
+$$p\left ( u_{i+1}|u_{&lt;i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
+Where $W_sz_{i+1}+b_z$ scores each possible output word and normalizes with softmax to get the probability $p_{i+1}$ of $i+1$th word.
 
-   $$z_{i+1}=\phi _{\theta '}\left ( c,u_i,z_i \right )$$
-   where $\phi _{\theta '}$ is a non-linear activation function and $c=q\mathbf{h}$ is the context vector of the source sentence. Without using [attention](#Attention Mechanism), if the output of the [encoder](#Encoder) is the encoding vector at the last time step of the source sentence, then $c$ can be defined as $c=h_T$. $u_i$ denotes the $i$-th word from the target language sentence and $u_0$ denotes the beginning of the target language sentence (i.e., `<s>`), indicating the beginning of decoding. $z_i$ is the RNN hidden state at time step $i$ and $z_0$ is an all zero vector.
+3.Calculate the cost according to $p_{i+1}$ and $u_{i+1}$.
 
-2. Calculate the probability $p_{i+1}$ for the $i+1$-th word in the target language sequence by normalizing $z_{i+1}$ using `softmax` as follows
+4.Repeat steps 1~3 until all words in the target language sequence have been processed.
 
-   $$p\left ( u_{i+1}|u_{<i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
+The process of generating machine translation tasks, in general, is to translate source language sentences based on pre-trained model. The decode period in the generation process is different from the training process above. For details, please refer to [Beam Search Algorithm](#Beam Search Algorithm).
 
-   where $W_sz_{i+1}+b_z$ scores each possible words and is then normalized via softmax to produce the probability $p_{i+1}$ for the $i+1$-th word.
-
-3. Compute the cost accoding to $p_{i+1}$ and $u_{i+1}$.
-4. Repeat Steps 1-3, until all the words in the target language sentence have been processed.
-
-The generation process of machine translation is to translate the source sentence into a sentence in the target language according to a pre-trained model. There are some differences between the decoding step in generation and training. Please refer to [Beam Search Algorithm](#Beam Search Algorithm) for details.
-
+<a name="beam search algorithm"></a>
 ### Beam Search Algorithm
 
-[Beam Search](http://en.wikipedia.org/wiki/Beam_search) is a heuristic search algorithm that explores a graph by expanding the most promising node in a limited set. It is typically used when the solution space is huge  (e.g., for machine translation, speech recognition), and there is not enough memory for all the possible solutions. For example, if we want to translate “`<s>你好<e>`” into English, even if there are only three words in the dictionary (`<s>`, `<e>`, `hello`), it is still possible to generate an infinite number of sentences, where the word `hello` can appear different number of times. Beam search could be used to find a good translation among them.
+Beam Search ([beam search](http://en.wikipedia.org/wiki/Beam_search)) is a heuristic graph search algorithm for searching the graph or tree for the optimal extended nodes in a finite set, usually used in systems with very large solution space (such as machine translation, speech recognition), for that the memory can't fit all the unfolded solutions in the graph or tree. If you want to translate "`<s>Hello<e>`" in the machine translation task, even if there are only 3 words (`<s>`, `<e>`, `hello`) in the target language dictionary, it is possible generate infinite sentences (the number of occurrences of `hello`  is uncertain). In order to find better translation results, we can use beam search algorithm.
 
-Beam search builds a search tree using breadth first search and sorts the nodes according to a heuristic cost (sum of the log probability of the generated words) at each level of the tree. Only a fixed number of nodes according to the pre-specified beam size (or beam width) are considered. Thus, only nodes with highest scores are expanded in the next level. This reduces the space and time requirements significantly. However, a globally optimal solution is not guaranteed.
+The beam search algorithm uses a breadth-first strategy to build a search tree. At each level of the tree, the nodes are sorted according to the heuristic cost (in this tutorial, the sum of the log probabilities of the generated words), and then only the predetermined number of nodes (commonly referred to in the literature as beam width, beam size, 柱宽度, etc.). Only these nodes will continue to expand in the next layer, and other nodes will be cut off, that is, the nodes with higher quality are retained, and the nodes with poor quality are pruned. Therefore, the space and time occupied by the search are greatly reduced, but the disadvantage is that there is no guarantee that an optimal solution will be obtained.
 
-The goal is to maximize the probability of the generated sequence when using beam search in decoding, The procedure is as follows:
+In the decode period of using beam search algorithm, the goal is to maximize the probability of generated sequence. The idea is:
+1.At each time, the next hidden layer state $z_{i+1}$ is calculated according to the encoding information $c$ of the source language sentence, the generated $i$th target language sequence words $u_i$, and the hidden layer state $z_i$ of RNN at $i$th time.
 
-1. At each time step $i$, compute the hidden state $z_{i+1}$ of the next time step according to the context vector $c$ of the source sentence, the $i$-th word $u_i$ generated for the target language sentence and the RNN hidden state $z_i$.
-2. Normalize $z_{i+1}$ using `softmax` to get the probability $p_{i+1}$ for the $i+1$-th word for the target language sentence.
-3. Sample the word $u_{i+1}$ according to $p_{i+1}$.
-4. Repeat Steps 1-3, until end-of-sentence token `<e>` is generated or the maximum length of the sentence is reached.
+2.Normalize $z_{i+1}$ by `softmax` to get the probability distribution $p_{i+1}$ of the $i+1$th words of the target language sequence.
 
-Note: $z_{i+1}$ and $p_{i+1}$ are computed the same way as in [Decoder](#Decoder). In generation mode, each step is greedy in so there is no guarantee of a global optimum.
+3.The word $u_{i+1}$ is sampled according to $p_{i+1}$.
 
-## BLEU Score
+4.Repeat steps 1~3 until you get the sentence end tag `<e>` or exceed the maximum generation length of the sentence.
 
-Bilingual Evaluation understudy (BLEU) is a metric widely used for automatic machine translation proposed by IBM Watson Research Center in 2002\[[5](#References)\]. The closer the translation produced by a machine is to the translation produced by a human expert, the better the performance of the translation system.
-
-To measure the closeness between machine translation and human translation, sentence precision is used. It compares the number of matched n-grams. More matches will lead to higher BLEU scores.
+Note: The formula for $z_{i+1}$ and $p_{i+1}$ is the same as in [Decoder](#Decoder). And since each step of the generation is implemented by the greedy method, it is not guaranteed to obtain the global optimal solution.
 
 ## Data Preparation
 
-This tutorial uses a dataset from [WMT-14](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/), where [bitexts (after selection)](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/bitexts.tgz) is used as the training set, and [dev+test data](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/dev+test.tgz) is used as test and generation set.
+This tutorial uses [bitexts(after selection)] in the [WMT-14](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/) dataset (http://www-lium.univ- Lemans.fr/~schwenk/cslm_joint_paper/data/bitexts.tgz) as a training set, [dev+test data](http://www-lium.univ-lemans.fr/~schwenk/cslm_joint_paper/data/dev+test.tgz) as a test set and generated set.
 
+### Data Pre-processing
 
-### Data Preprocessing
+It contains two steps in pre-processing:
 
-There are two steps for pre-processing:
-- Merge the source and target parallel corpus files into one file
-  - Merge `XXX.src` and `XXX.trg` file pair as `XXX`
-  - The $i$-th row in `XXX` is the concatenation of the $i$-th row from `XXX.src` with the $i$-th row from `XXX.trg`, separated with '\t'.
+-Merge parallel corpora files from source language to target language into one file:
 
-- Create source dictionary and target dictionary, each containing **DICTSIZE** number of words, including the most frequent (DICTSIZE - 3) fo word from the corpus and 3 special token `<s>` (begin of sequence), `<e>` (end of sequence)  and `<unk>` (unknown words that are not in the vocabulary).
+-Merge every `XXX.src` and `XXX.trg` into one file as `XXX`.
 
-### A Subset of Dataset
+-Content in $i$th row of `XXX` is the connection of $i$th row of `XXX.src` with $i$th row of `XXX.trg`, which is divided by '\t'.
 
-Because the full dataset is very big, to reduce the time for downloading the full dataset. PadddlePaddle package `paddle.dataset.wmt14` provides a preprocessed `subset of dataset`(http://paddlepaddle.bj.bcebos.com/demo/wmt_shrinked_data/wmt14.tgz).
+-Create source language dictionary and target language dictionary of train data. There are **DICTSIZE** words in each dictionary, including:  (DICTSIZE - 3) words with highest frequency in the corpus, and 3 special symbols `<s>` (the beginning of the sequence), `<e>` ( the end of the sequence) and `<unk>` (unknown word).
 
-This subset has 193319 instances of training data and 6003 instances of test data. Dictionary size is 30000. Because of the limitation of size of the subset, the effectiveness of trained model from this subset is not guaranteed.
+### Sample Data
+
+Because the data volume of the complete data set is large, in order to verify the training process, the PaddlePaddle interface paddle.data set.wmt14 provides a pre-processed [smaller scale dataset](http://paddlepaddle.bj.bcebos.com/demo/wmt_shrinked_data/wmt14.tgz) by default .
+
+In the data set, there are 193,319 training data, 6003 test data, and a dictionary with length of 30,000. Due to the limit of data size, the effects of models trained with this dataset are not guaranteed.
 
 ## Model Configuration
 
-Our program starts with importing necessary packages and initializing some global variables:
+Next we start configuring model according to input data. First we import necessary library functions and define global variables.
+
+
 
 ```python
 from __future__ import print_function
@@ -232,41 +207,51 @@ except ImportError:
     from paddle.fluid.trainer import *
     from paddle.fluid.inferencer import *
 
-dict_size = 30000
-source_dict_dim = target_dict_dim = dict_size
-hidden_dim = 32
-word_dim = 16
-batch_size = 2
-max_length = 8
-topk_size = 50
-beam_size = 2
+dict_size = 30000 # dictionary dimension
+source_dict_dim = target_dict_dim = dict_size # source/target language dictionary dimension
+hidden_dim = 32 # size of hidden layer in encoder
+word_dim = 16 # dimension of word vector
+batch_size = 2 # the number of samples in batch
+max_length = 8 # the maximum length of generated sentence
+beam_size = 2  # width of beam
 
-decoder_size = hidden_dim
+decoder_size = hidden_dim # size of hidden layer in decoder
 ```
 
-Then we implement encoder as follows:
 
-   ```python
+
+
+Then the frame of encoder is implemented as follows:
+
+
+```python
    def encoder(is_sparse):
+    # define input data id of source language
     src_word_id = pd.data(
         name="src_word_id", shape=[1], dtype='int64', lod_level=1)
+    # reflect encode above on the word vector of low-dimension language space.
     src_embedding = pd.embedding(
         input=src_word_id,
         size=[dict_size, word_dim],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr=fluid.ParamAttr(name='vemb'))
-
+    # LSTM layer：fc + dynamic_lstm
     fc1 = pd.fc(input=src_embedding, size=hidden_dim * 4, act='tanh')
     lstm_hidden0, lstm_0 = pd.dynamic_lstm(input=fc1, size=hidden_dim * 4)
+    # Fetch the final state after the sequence encode of source language
     encoder_out = pd.sequence_last_step(input=lstm_hidden0)
     return encoder_out
-   ```
+```
 
-Implement the decoder for training as follows:
+
+
+Then implement decoder in training mode:
+
 
 ```python
    def train_decoder(context, is_sparse):
+    # Define input data of sequence id of target language and reflect it on word vector of low-dimension language space
     trg_language_word = pd.data(
         name="target_language_word", shape=[1], dtype='int64', lod_level=1)
     trg_embedding = pd.embedding(
@@ -277,35 +262,44 @@ Implement the decoder for training as follows:
         param_attr=fluid.ParamAttr(name='vemb'))
 
     rnn = pd.DynamicRNN()
-    with rnn.block():
+    with rnn.block(): # use DynamicRNN to define computation at each step
+        # Fetch input word vector of target language at present step
         current_word = rnn.step_input(trg_embedding)
+        # obtain state of hidden layer
         pre_state = rnn.memory(init=context)
+        # computing unit of decoder: single-layer forward network
         current_state = pd.fc(input=[current_word, pre_state],
                               size=decoder_size,
                               act='tanh')
-
+        # compute predicting probability of nomarlized word
         current_score = pd.fc(input=current_state,
                               size=target_dict_dim,
                               act='softmax')
+        # update hidden layer of RNN
         rnn.update_memory(pre_state, current_state)
+        # output predicted probability
         rnn.output(current_score)
 
     return rnn()
 ```
 
-Implement the decoder for prediction as follows:
+
+
+implement decoder in inference mode
+
+
 
 ```python
 def decode(context, is_sparse):
     init_state = context
+    # define counter variable in the decoding
     array_len = pd.fill_constant(shape=[1], dtype='int64', value=max_length)
     counter = pd.zeros(shape=[1], dtype='int64', force_cpu=True)
 
-    # fill the first element with init_state
+    # define tensor array to save content at each time step, and write initial id, score and state
     state_array = pd.create_array('float32')
     pd.array_write(init_state, array=state_array, i=counter)
 
-    # ids, scores as memory
     ids_array = pd.create_array('int64')
     scores_array = pd.create_array('float32')
 
@@ -316,34 +310,35 @@ def decode(context, is_sparse):
     pd.array_write(init_ids, array=ids_array, i=counter)
     pd.array_write(init_scores, array=scores_array, i=counter)
 
+    # define conditional variable to stop loop
     cond = pd.less_than(x=counter, y=array_len)
-
+    # define while_op
     while_op = pd.While(cond=cond)
-    with while_op.block():
+    with while_op.block(): # define the computing of each step
+        # obtain input at present step of decoder, including id chosen at previous step, corresponding score and state at previous step.
         pre_ids = pd.array_read(array=ids_array, i=counter)
         pre_state = pd.array_read(array=state_array, i=counter)
         pre_score = pd.array_read(array=scores_array, i=counter)
 
-        # expand the lod of pre_state to be the same with pre_score
+        # update input state as state correspondent with id chosen at previous step
         pre_state_expanded = pd.sequence_expand(pre_state, pre_score)
-
+        # computing logic of decoder under the same train mode, including input vector and computing unit of decoder
+        # compute predicting probability of normalized word
         pre_ids_emb = pd.embedding(
             input=pre_ids,
             size=[dict_size, word_dim],
             dtype='float32',
             is_sparse=is_sparse)
-
-        # use rnn unit to update rnn
         current_state = pd.fc(input=[pre_state_expanded, pre_ids_emb],
                               size=decoder_size,
                               act='tanh')
         current_state_with_lod = pd.lod_reset(x=current_state, y=pre_score)
-        # use score to do beam search
         current_score = pd.fc(input=current_state_with_lod,
                               size=target_dict_dim,
                               act='softmax')
         topk_scores, topk_indices = pd.topk(current_score, k=beam_size)
-        # calculate accumulated scores after topk to reduce computation cost
+
+        # compute accumulated score and perform beam search
         accu_scores = pd.elementwise_add(
             x=pd.log(topk_scores), y=pd.reshape(pre_score, shape=[-1]), axis=0)
         selected_ids, selected_scores = pd.beam_search(
@@ -356,14 +351,12 @@ def decode(context, is_sparse):
             level=0)
 
         pd.increment(x=counter, value=1, in_place=True)
-
-        # update the memories
+        # write search result and corresponding hidden layer into tensor array
         pd.array_write(current_state, array=state_array, i=counter)
         pd.array_write(selected_ids, array=ids_array, i=counter)
         pd.array_write(selected_scores, array=scores_array, i=counter)
 
-        # update the break condition: up to the max length or all candidates of
-        # source sentences have ended.
+        # update condition to stop loop
         length_cond = pd.less_than(x=counter, y=array_len)
         finish_cond = pd.logical_not(pd.is_empty(x=selected_ids))
         pd.logical_and(x=length_cond, y=finish_cond, out=cond)
@@ -375,8 +368,9 @@ def decode(context, is_sparse):
 ```
 
 
-Then we define a `training_program` that uses the result from `encoder` and `train_decoder` to compute the cost with label data.
-Also define `optimizer_func` to specify the optimizer.
+
+
+Furthermore, we define a `train_program` to use result computed by `inference_program` and compute error with the help of marked data. We also define an `optimizer_func` to define optimizer.
 
 ```python
 def train_program(is_sparse):
@@ -396,21 +390,18 @@ def optimizer_func():
             regularization_coeff=0.1))
 ```
 
-## Model Training
+## Train Model
 
-### Specify training environment
-
-Specify your training environment, you should specify if the training is on CPU or GPU.
+### Define Training Environment
+Define your training environment and define the train executed on CPU or on GPU.
 
 ```python
 use_cuda = False
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
-### Datafeeder Configuration
-
-Next we define data feeders for test and train. The feeder reads a `buf_size` of data each time and feed them to the training/testing process.
-`paddle.dataset.wmt14.train` will yield records during each pass, after shuffling, a batch input of `BATCH_SIZE` is generated for training.
+### Define Data Provider
+The next step is to define data provider for train and test. Data Provider read data with size of `BATCH_SIZE` `paddle.dataset.wmt.train` will provide data with size of `BATCH_SIZE` after reordering every time. The size of reordering is `buf_size`.
 
 ```python
 train_reader = paddle.batch(
@@ -420,8 +411,7 @@ train_reader = paddle.batch(
 ```
 
 ### Create Trainer
-
-Create a trainer that takes `train_program` as input and specify optimizer function.
+Trainer needs a train program and a train optimizer.
 
 ```python
 is_sparse = False
@@ -431,20 +421,17 @@ trainer = Trainer(
         optimizer_func=optimizer_func)
 ```
 
-### Feeding Data
+### Provide Data
 
-`feed_order` is devoted to specifying the correspondence between each yield record and `paddle.layer.data`. For instance, the first column of data generated by `wmt14.train` corresponds to `src_word_id`.
+`feed_order` is used to define every generated data and reflecting relationship between `paddle.layer.data`. For example, the first column data generated by `wmt14.train` is correspondent with the feature `src_word_id`.
 
 ```python
-feed_order = [
-        'src_word_id', 'target_language_word', 'target_language_next_word'
-    ]
+feed_order = ['src_word_id', 'target_language_word', 'target_language_next_word'
+]
 ```
 
 ### Event Handler
-
-Callback function `event_handler` will be called during training when a pre-defined event happens.
-For example, we can check the cost by `trainer.test` when `EndStepEvent` occurs
+Call function `event_handler` will be called after the touch of an event defined before. For example, we can examine the loss after the training at each step.
 
 ```python
 def event_handler(event):
@@ -456,10 +443,8 @@ def event_handler(event):
             trainer.stop()
 ```
 
-
-### Training
-
-Finally, we invoke `trainer.train` to start training with `num_epochs` and other parameters.
+### Start Training
+Finally, we feed in `num_epoch` and other parameters and call `trainer.train` to start training.
 
 ```python
 EPOCH_NUM = 1
@@ -471,20 +456,20 @@ trainer.train(
         feed_order=feed_order)
 ```
 
-## Inference
+## Model Application
 
-### Define the decode part
+### Define Decoder Part
 
-Use the `encoder` and `decoder` function we defined above to predict translation ids and scores.
+Use `encoder` and `decoder` function defined above to infer corresponding id and score after the translation.
 
 ```python
 context = encoder(is_sparse)
 translation_ids, translation_scores = decode(context, is_sparse)
 ```
 
-### Define DataSet
+### Define Data
 
-We initialize ids and scores and create tensors for input. In this test we are using first record data from `wmt14.test` for inference. At the end we get src dict and target dict for printing out results later.
+First we initialize id and score to generate tensor as input data. In this prediction, we use the first record in `wmt14.test` to infer and finally use "source language dictionary" and "target language dictionary" to output corresponding sentence.
 
 ```python
 init_ids_data = np.array([1 for _ in range(batch_size)], dtype='int64')
@@ -513,9 +498,9 @@ feeder = fluid.DataFeeder(feed_list, place)
 src_dict, trg_dict = paddle.dataset.wmt14.get_dict(dict_size)
 ```
 
-### Infer
+### Test
+Now we can start predicting. We need provide corresponding parameters in `feed_order` and run it on `executor` to obtain id and score.
 
-We create `feed_dict` with all the inputs we need and run with `executor` to get predicted results id and corresponding scores.
 
 ```python
 exe = Executor(place)
@@ -549,6 +534,11 @@ for data in test_data():
     break
 ```
 
+## Summary
+
+End-to-End neural network translation is an recently acclaimed machine translation method. In this section, we introduced the typical Encoder-Decoder of NMT. Because NMT is a typical Seq2Seq (Sequence to Sequence) learning task, tasks of Seq2Seq, such as query rewriting, abstraction, single round dialogue, can be tackled by this model.
+
+<a name="References"></a>
 ## References
 
 1. Koehn P. [Statistical machine translation](https://books.google.com.hk/books?id=4v_Cx1wIMLkC&printsec=frontcover&hl=zh-CN&source=gbs_ge_summary_r&cad=0#v=onepage&q&f=false)[M]. Cambridge University Press, 2009.
@@ -558,7 +548,8 @@ for data in test_data():
 5. Papineni K, Roukos S, Ward T, et al. [BLEU: a method for automatic evaluation of machine translation](http://dl.acm.org/citation.cfm?id=1073135)[C]//Proceedings of the 40th annual meeting on association for computational linguistics. Association for Computational Linguistics, 2002: 311-318.
 
 <br/>
-This tutorial is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
 
 </div>
 <!-- You can change the lines below now. -->

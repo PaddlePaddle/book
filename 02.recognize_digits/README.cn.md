@@ -240,7 +240,7 @@ def convolutional_neural_network():
         act="relu")
     conv_pool_1 = fluid.layers.batch_norm(conv_pool_1)
     # 第二个卷积-池化层
-    # 使用20个5*5的滤波器，池化大小为2，池化步长为2，激活函数为Relu
+    # 使用50个5*5的滤波器，池化大小为2，池化步长为2，激活函数为Relu
     conv_pool_2 = fluid.nets.simple_img_conv_pool(
         input=conv_pool_1,
         filter_size=5,

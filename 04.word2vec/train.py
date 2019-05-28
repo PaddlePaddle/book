@@ -18,17 +18,29 @@ import six
 import numpy
 import sys
 import math
+import argparse
 
 EMBED_SIZE = 32
 HIDDEN_SIZE = 256
 N = 5
 BATCH_SIZE = 100
-PASS_NUM = 100
-
-use_cuda = False  # set to True if training with GPU
 
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser("word2vec")
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help='If set, run the task with continuous evaluation logs.')
+    parser.add_argument(
+        '--use_gpu', type=int, default=0, help='whether to use gpu')
+    parser.add_argument(
+        '--num_epochs', type=int, default=100, help='number of epoch')
+    args = parser.parse_args()
+    return args
 
 
 def inference_program(words, is_sparse):
@@ -102,6 +114,10 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
     main_program = fluid.default_main_program()
     star_program = fluid.default_startup_program()
 
+    if args.enable_ce:
+        main_program.random_seed = 90
+        star_program.random_seed = 90
+
     predict_word = inference_program(word_list, is_sparse)
     avg_cost = train_program(predict_word)
     test_program = main_program.clone(for_test=True)
@@ -153,6 +169,9 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
                     # Note 5.8 is a relatively high value. In order to get a better model, one should
                     # aim for avg_cost lower than 3.5. But the training could take longer time.
                     if outs[0] < 5.8:
+                        if args.enable_ce:
+                            print("kpis\ttrain_cost\t%f" % outs[0])
+
                         if params_dirname is not None:
                             fluid.io.save_inference_model(params_dirname, [
                                 'firstw', 'secondw', 'thirdw', 'fourthw'
@@ -161,7 +180,6 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
                 step += 1
                 if math.isnan(float(avg_cost_np[0])):
                     sys.exit("got NaN loss, training failed.")
-
         raise AssertionError("Cost is too large {0:2.2}".format(avg_cost_np[0]))
 
     train_loop()
@@ -245,4 +263,7 @@ def main(use_cuda, is_sparse):
 
 
 if __name__ == '__main__':
+    args = parse_args()
+    PASS_NUM = args.num_epochs
+    use_cuda = args.use_gpu  # set to True if training with GPU
     main(use_cuda=use_cuda, is_sparse=True)
