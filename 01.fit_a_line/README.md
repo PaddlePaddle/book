@@ -118,7 +118,7 @@ In a more complex model training process, we often need more than one dataset: t
 
 ## Training
 
-`fit_a_line/trainer.py` demonstrates the overall process of training.
+`fit_a_line/train.py` demonstrates the overall process of training.
 
 ### Configuring the Data feeder
 
