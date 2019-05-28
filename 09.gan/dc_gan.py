@@ -41,6 +41,7 @@ add_arg('batch_size',        int,   128,          "Minibatch size.")
 add_arg('epoch',             int,   20,        "The number of epoched to be trained.")
 add_arg('output',            str,   "./output_dcgan", "The directory the model and the test result to be saved to.")
 add_arg('use_gpu',           bool,  True,       "Whether to use GPU to train.")
+add_arg('enable_ce',         bool,  False,                "If set True, enable continuous evaluation job.")
 # yapf: enable
 
 
@@ -50,6 +51,10 @@ def loss(x, label):
 
 
 def train(args):
+
+    if args.enable_ce:
+        np.random.seed(10)
+        fluid.default_startup_program().random_seed = 90
 
     d_program = fluid.Program()
     dg_program = fluid.Program()
@@ -87,10 +92,14 @@ def train(args):
     if args.use_gpu:
         exe = fluid.Executor(fluid.CUDAPlace(0))
     exe.run(fluid.default_startup_program())
+    if args.enable_ce:
+        train_reader = paddle.batch(
+            paddle.dataset.mnist.train(), batch_size=args.batch_size)
+    else:
 
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=60000),
-        batch_size=args.batch_size)
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=60000),
+            batch_size=args.batch_size)
 
     NUM_TRAIN_TIMES_OF_DG = 2
     const_n = np.random.uniform(
@@ -166,6 +175,9 @@ def train(args):
                                                   batch_id),
                     bbox_inches='tight')
                 plt.close(fig)
+        if args.enable_ce and pass_id == args.epoch - 1:
+            print("kpis\tdcgan_d_train_cost\t%f" % np.mean(losses[0]))
+            print("kpis\tdcgan_g_train_cost\t%f" % np.mean(losses[1]))
 
 
 if __name__ == "__main__":
