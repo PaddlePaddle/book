@@ -45,6 +45,18 @@
 
 本教程源代码目录在[book/word2vec](https://github.com/PaddlePaddle/book/tree/develop/04.word2vec),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
+### 说明
+
+1. 本教程可支持在 CPU/GPU 环境下运行
+
+2. Docker镜像支持的CUDA/cuDNN版本
+
+   如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败;
+
+3. 文档和脚本中代码的一致性问题
+
+    请注意：为使本文更加易读易用，我们拆分、调整了[train.py](https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/train.py)的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行train.py进行验证。
+
 ## 背景介绍
 
 本章我们介绍词的向量表征，也称为word embedding。词向量是自然语言处理中常见的一个操作，是搜索引擎、广告系统、推荐系统等互联网服务背后常见的基础技术。
@@ -58,7 +70,9 @@ One-hot vector虽然自然，但是用处有限。比如，在互联网广告系
 
 词向量模型可以是概率模型、共生矩阵(co-occurrence matrix)模型或神经元网络模型。在用神经网络求词向量之前，传统做法是统计一个词语的共生矩阵$X$。$X$是一个$|V| \times |V|$ 大小的矩阵，$X_{ij}$表示在所有语料中，词汇表$V$(vocabulary)中第i个词和第j个词同时出现的词数，$|V|$为词汇表的大小。对$X$做矩阵分解（如奇异值分解，Singular Value Decomposition \[[5](#参考文献)\]），得到的$U$即视为所有词的词向量：
 
-$$X = USV^T$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn1.gif"><br/>
+</p>
 
 但这样的传统做法有很多问题：
 
@@ -107,11 +121,17 @@ similarity: -0.0997506977351
 
 对语言模型的目标概率$P(w_1, ..., w_T)$，如果假设文本中每个词都是相互独立的，则整句话的联合概率可以表示为其中所有词语条件概率的乘积，即：
 
-$$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t)$$
+
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn2.gif"><br/>
+</p>
+
 
 然而我们知道语句中的每个词出现的概率都与其前面的词紧密相关, 所以实际上通常用条件概率表示语言模型：
 
-$$P(w_1, ..., w_T) = \prod_{t=1}^TP(w_t | w_1, ... , w_{t-1})$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn3.gif"><br/>
+</p>
 
 
 
@@ -123,11 +143,16 @@ Yoshua Bengio等科学家就于2003年在著名论文 Neural Probabilistic Langu
 
 我们在上文中已经讲到用条件概率建模语言模型，即一句话中第$t$个词的概率和该句话的前$t-1$个词相关。可实际上越远的词语其实对该词的影响越小，那么如果考虑一个n-gram, 每个词都只受其前面`n-1`个词的影响，则有：
 
-$$P(w_1, ..., w_T) = \prod_{t=n}^TP(w_t|w_{t-1}, w_{t-2}, ..., w_{t-n+1})$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn4.gif"><br/>
+</p>
+
 
 给定一些真实语料，这些语料中都是有意义的句子，N-gram模型的优化目标则是最大化目标函数:
 
-$$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn5.gif"><br/>
+</p>
 
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
 
@@ -143,20 +168,25 @@ $$\frac{1}{T}\sum_t f(w_t, w_{t-1}, ..., w_{t-n+1};\theta) + R(\theta)$$
 
  - 然后所有词语的词向量拼接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
 
-    $$g=Utanh(\theta^Tx + b_1) + Wx + b_2$$
+    <p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn6.gif"><br/>
+</p>
 
     其中，$x$为所有词语的词向量拼接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
 
  - 根据softmax的定义，通过归一化$g_i$, 生成目标词$w_t$的概率为：
 
-  $$P(w_t | w_1, ..., w_{t-n+1}) = \frac{e^{g_{w_t}}}{\sum_i^{|V|} e^{g_i}}$$
+      <p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn7.gif"><br/>
+</p>
 
  - 整个网络的损失值(cost)为多类分类交叉熵，用公式表示为
 
-   $$J(\theta) = -\sum_{i=1}^N\sum_{k=1}^{|V|}y_k^{i}log(softmax(g_k^i))$$
+       <p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn8.gif"><br/>
+</p>
 
-   其中$y_k^i$表示第$i$个样本第$k$类的真实标签(0或1)，$softmax(g_k^i)$表示第i个样本第k类softmax输出的概率。
-
+   其中$y_k^i$表示第$i$个样本第$k$类的真实标签(0或1)，$\text{softmax}(g_k^i)$表示第i个样本第k类softmax输出的概率。
 
 
 ### Continuous Bag-of-Words model(CBOW)
@@ -170,7 +200,10 @@ CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时
 
 具体来说，不考虑上下文的词语输入顺序，CBOW是用上下文词语的词向量的均值来预测当前词。即：
 
-$$context = \frac{x_{t-1} + x_{t-2} + x_{t+1} + x_{t+2}}{4}$$
+
+   <p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn9.gif"><br/>
+</p>
 
 其中$x_t$为第$t$个词的词向量，分类分数（score）向量 $z=U*context$，最终的分类$y$采用softmax，损失函数采用多类分类交叉熵。
 
