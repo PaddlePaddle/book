@@ -2,6 +2,14 @@
 
 本教程源代码目录在[book/recognize_digits](https://github.com/PaddlePaddle/book/tree/develop/02.recognize_digits),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
+### 说明: ###
+1. 硬件环境要求：
+本文可支持在CPU、GPU下运行
+2. Docker镜像支持的CUDA/cuDNN版本：
+如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
+3. 文档和脚本中代码的一致性问题：
+请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/train.py)进行验证。
+
 ## 背景介绍
 当我们学习编程的时候，编写的第一个程序一般是实现打印"Hello World"。而机器学习（或深度学习）的入门教程，一般都是 [MNIST](http://yann.lecun.com/exdb/mnist/) 数据库上的手写识别问题。原因是手写识别属于典型的图像分类问题，比较简单，同时MNIST数据集也很完备。MNIST数据集作为一个简单的计算机视觉数据集，包含一系列如图1所示的手写数字图片和对应的标签。图片是28x28的像素矩阵，标签则对应着0~9的10个数字。每张图片都经过了大小归一化和居中处理。
 
@@ -37,14 +45,19 @@ MNIST吸引了大量的科学家基于此数据集训练模型，1998年，LeCun
 
 输入层的数据$X$传到输出层，在激活操作之前，会乘以相应的权重 $W$ ，并加上偏置变量 $b$ ，具体如下：
 
-$$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/01.png?raw=true" width=200><br/>
+</p>
 
-其中 $ \text{softmax}(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}} $
+其中
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/02.png?raw=true" width=200><br/>
+</p>
 
 图2为softmax回归的网络图，图中权重用蓝线表示、偏置用红线表示、+1代表偏置参数的系数为1。
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/softmax_regression.png?raw=true" width=400><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/softmax_regression.png?raw=true" width=200><br/>
 图2. softmax回归网络结构图<br/>
 </p>
 
@@ -52,7 +65,9 @@ $$ y_i = \text{softmax}(\sum_j W_{i,j}x_j + b_i) $$
 
 在分类问题中，我们一般采用交叉熵代价损失函数（cross entropy loss），公式如下：
 
-$$  L_{cross-entropy}(label, y) = -\sum_i label_ilog(y_i) $$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/03.png?raw=true" width=300><br/>
+</p>
 
 
 
@@ -117,9 +132,17 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 <a name="常见激活函数介绍"></a>
 ### 常见激活函数介绍  
-- sigmoid激活函数： $ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $
+- sigmoid激活函数：
 
-- tanh激活函数： $ f(x) = tanh(x) = \frac{e^x-e^{-x}}{e^x+e^{-x}} $
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/04.png?raw=true" width=200><br/>
+</p>
+
+- tanh激活函数：
+
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/05.png?raw=true" width=200><br/>
+</p>
 
   实际上，tanh函数只是规模变化的sigmoid函数，将sigmoid函数值放大2倍之后再向下平移1个单位：tanh(x) = 2sigmoid(2x) - 1 。
 
@@ -492,7 +515,7 @@ Pass 900, Batch 0, Cost 0.239809
 Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
 ```
 
-训练之后，检查模型的预测准确度。用 MNIST 训练的时候，一般 softmax回归模型的分类准确率为约为 92.34%，多层感知器为97.66%，卷积神经网络可以达到 99.20%。
+训练之后，检查模型的预测准确度。用 MNIST 训练的时候，一般 softmax回归模型的分类准确率约为 92.34%，多层感知器为97.66%，卷积神经网络可以达到 99.20%。
 
 
 ## 应用模型
@@ -566,4 +589,3 @@ with fluid.scope_guard(inference_scope):
 
 <br/>
 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
-
