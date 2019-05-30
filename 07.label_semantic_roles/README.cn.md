@@ -2,13 +2,28 @@
 
 本教程源代码目录在[book/label_semantic_roles](https://github.com/PaddlePaddle/book/tree/develop/07.label_semantic_roles),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
+### 说明
+
+1. 本教程可支持在 CPU/GPU 环境下运行
+
+2. Docker镜像支持的CUDA/cuDNN版本
+
+   如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败;
+
+3. 文档和脚本中代码的一致性问题
+
+    请注意：为使本文更加易读易用，我们拆分、调整了[train.py](https://github.com/PaddlePaddle/book/tree/develop/07.label_semantic_roles/train.py)的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行train.py进行验证。
+
 ## 背景介绍
 
 自然语言分析技术大致分为三个层面：词法分析、句法分析和语义分析。语义角色标注是实现浅层语义分析的一种方式。在一个句子中，谓词是对主语的陈述或说明，指出“做什么”、“是什么”或“怎么样，代表了一个事件的核心，跟谓词搭配的名词称为论元。语义角色是指论元在动词所指事件中担任的角色。主要有：施事者（Agent）、受事者（Patient）、客体（Theme）、经验者（Experiencer）、受益者（Beneficiary）、工具（Instrument）、处所（Location）、目标（Goal）和来源（Source）等。
 
 请看下面的例子，“遇到” 是谓词（Predicate，通常简写为“Pred”），“小明”是施事者（Agent），“小红”是受事者（Patient），“昨天” 是事件发生的时间（Time），“公园”是事情发生的地点（Location）。
 
-$$\mbox{[小明]}_{\mbox{Agent}}\mbox{[昨天]}_{\mbox{Time}}\mbox{[晚上]}_\mbox{Time}\mbox{在[公园]}_{\mbox{Location}}\mbox{[遇到]}_{\mbox{Predicate}}\mbox{了[小红]}_{\mbox{Patient}}\mbox{。}$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn1.png"><br/>
+</p>
+
 
 语义角色标注（Semantic Role Labeling，SRL）以句子的谓词为中心，不对句子所包含的语义信息进行深入分析，只分析句子中各成分与谓词之间的关系，即句子的谓词（Predicate）- 论元（Argument）结构，并用语义角色来描述这些结构关系，是许多自然语言理解任务（如信息抽取，篇章分析，深度问答等）的一个重要中间步骤。在研究中一般都假定谓词是给定的，所要做的就是找出给定谓词的各个论元和它们的语义角色。
 
@@ -85,15 +100,22 @@ CRF是一种概率化结构模型，可以看作是一个概率无向图模型�
 
 根据线性链条件随机场上的因子分解定理\[[5](#参考文献)\]，在给定观测序列$X$时，一个特定标记序列$Y$的概率可以定义为：
 
-$$p(Y | X) = \frac{1}{Z(X)} \text{exp}\left(\sum_{i=1}^{n}\left(\sum_{j}\lambda_{j}t_{j} (y_{i - 1}, y_{i}, X, i) + \sum_{k} \mu_k s_k (y_i, X, i)\right)\right)$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn2.gif"><br/>
+</p>
 
 其中$Z(X)$是归一化因子，$t_j$ 是定义在边上的特征函数，依赖于当前和前一个位置，称为转移特征，表示对于输入序列$X$及其标注序列在 $i$及$i - 1$位置上标记的转移概率。$s_k$是定义在结点上的特征函数，称为状态特征，依赖于当前位置，表示对于观察序列$X$及其$i$位置的标记概率。$\lambda_j$ 和 $\mu_k$ 分别是转移特征函数和状态特征函数对应的权值。实际上，$t$和$s$可以用相同的数学形式表示，再对转移特征和状态特在各个位置$i$求和有：$f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$，把$f$统称为特征函数，于是$P(Y|X)$可表示为：
 
-$$p(Y|X, W) = \frac{1}{Z(X)}\text{exp}\sum_{k}\omega_{k}f_{k}(Y, X)$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn3.gif"><br/>
+</p>
+
 
 $\omega$是特征函数对应的权值，是CRF模型要学习的参数。训练时，对于给定的输入序列和对应的标记序列集合$D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$ ，通过正则化的极大似然估计，求解如下优化目标：
 
-$$\DeclareMathOperator*{\argmax}{arg\,max} L(\lambda, D) = - \text{log}\left(\prod_{m=1}^{N}p(Y_m|X_m, W)\right) + C \frac{1}{2}\lVert W\rVert^{2}$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn4.png"><br/>
+</p>
 
 这个优化目标可以通过反向传播算法和整个神经网络一起求解。解码时，对于给定的输入序列$X$，通过解码算法（通常有：维特比算法、Beam Search）求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
 
@@ -455,6 +477,7 @@ save_dirname = "label_semantic_roles.inference.model" #调用训练好的模型�
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 exe = fluid.Executor(place)
 ```
+
 设置输入，用LoDTensor来表示输入的词序列，这里每个词的形状 base_shape都是[1]，是因为每个词都是用一个id来表示的。假如基于长度的LoD是[[3, 4, 2]]，这是一个单层的LoD，那么构造出的LoDTensor就包含3个序列，其长度分别为3、4和2。
 
 注意LoD是个列表的列表
