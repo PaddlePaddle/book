@@ -258,10 +258,6 @@ use_cuda = False  #在cpu上进行训练
 place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 ```
 
-
-请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，如希望直接看到训练脚本输出效果，可运行train.py。
-
-
 ### 定义数据提供器
 
 下一步是为训练和测试定义数据提供器。提供器读入一个大小为 BATCH_SIZE的数据。paddle.dataset.imdb.word_dict 每次会在乱序化后提供一个大小为BATCH_SIZE的数据，乱序化的大小为缓存大小buf_size。
