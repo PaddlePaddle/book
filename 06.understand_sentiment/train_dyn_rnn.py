@@ -19,11 +19,26 @@ import paddle.fluid as fluid
 import numpy as np
 import sys
 import math
+import argparse
 
 CLASS_DIM = 2
 EMB_DIM = 128
 BATCH_SIZE = 128
 LSTM_SIZE = 128
+
+
+def parse_args():
+    parser = argparse.ArgumentParser("dyn_rnn")
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help="If set, run the task with continuous evaluation logs.")
+    parser.add_argument(
+        '--use_gpu', type=int, default=0, help="Whether to use GPU or not.")
+    parser.add_argument(
+        '--num_epochs', type=int, default=1, help="number of epochs.")
+    args = parser.parse_args()
+    return args
 
 
 def dynamic_rnn_lstm(data, input_dim, class_dim, emb_dim, lstm_size):
@@ -89,20 +104,29 @@ def train(use_cuda, params_dirname):
     word_dict = paddle.dataset.imdb.word_dict()
 
     print("Reading training data....")
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(
-            paddle.dataset.imdb.train(word_dict), buf_size=25000),
-        batch_size=BATCH_SIZE)
+    if args.enable_ce:
+        train_reader = paddle.batch(
+            paddle.dataset.imdb.train(word_dict), batch_size=BATCH_SIZE)
+    else:
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.imdb.train(word_dict), buf_size=25000),
+            batch_size=BATCH_SIZE)
 
     print("Reading testing data....")
     test_reader = paddle.batch(
         paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
 
     feed_order = ['words', 'label']
-    pass_num = 1
+    pass_num = args.num_epochs
 
     main_program = fluid.default_main_program()
     star_program = fluid.default_startup_program()
+
+    if args.enable_ce:
+        main_program.random_seed = 90
+        star_program.random_seed = 90
+
     prediction = inference_program(word_dict)
     train_func_outputs = train_program(prediction)
     avg_cost = train_func_outputs[0]
@@ -148,9 +172,10 @@ def train(use_cuda, params_dirname):
                     fetch_list=[var.name for var in train_func_outputs])
                 if (step_id + 1) % 10 == 0:
 
-                    #avg_cost_test, acc_test = train_test(test_program, test_reader)
-                    #print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
-                    #    step_id, avg_cost_test, acc_test))
+                    avg_cost_test, acc_test = train_test(test_program,
+                                                         test_reader)
+                    print('Step {0}, Test Loss {1:0.2}, Acc {2:0.2}'.format(
+                        step_id, avg_cost_test, acc_test))
 
                     print("Step {0}, Epoch {1} Metrics {2}".format(
                         step_id, epoch_id, list(map(np.array, metrics))))
@@ -159,6 +184,11 @@ def train(use_cuda, params_dirname):
             if params_dirname is not None:
                 fluid.io.save_inference_model(params_dirname, ["words"],
                                               prediction, exe)
+            if args.enable_ce and epoch_id == pass_num - 1:
+                print("kpis\trnn_train_cost\t%f" % metrics[0])
+                print("kpis\trnn_train_acc\t%f" % metrics[1])
+                print("kpis\trnn_test_cost\t%f" % avg_cost_test)
+                print("kpis\trnn_test_acc\t%f" % acc_test)
 
     train_loop()
 
@@ -223,5 +253,6 @@ def main(use_cuda):
 
 
 if __name__ == '__main__':
-    use_cuda = False  # set to True if training with GPU
+    args = parse_args()
+    use_cuda = args.use_gpu  # set to True if training with GPU
     main(use_cuda)
