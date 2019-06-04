@@ -7,8 +7,10 @@
 
 1.硬件环境要求：
 本文可支持在CPU、GPU下运行
+
 2. Docker镜像支持的CUDA/cuDNN版本：
 如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
+
 3. 文档和脚本中代码的一致性问题：
 请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/train.py)进行验证。
 
