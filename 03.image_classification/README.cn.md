@@ -4,6 +4,7 @@
 本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
 ### 说明: ###
+
 1.硬件环境要求：
 本文可支持在CPU、GPU下运行
 2. Docker镜像支持的CUDA/cuDNN版本：
