@@ -88,12 +88,12 @@ MNIST吸引了大量的科学家基于此数据集训练模型，1998年，LeCun
 输入层的数据$X$传到输出层，在激活操作之前，会乘以相应的权重 $W$ ，并加上偏置变量 $b$ ，具体如下：
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/01.png?raw=true" width=200><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/01.gif?raw=true"><br/>
 </p>
 
 其中
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/02.png?raw=true" width=200><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/02.gif?raw=true"><br/>
 </p>
 
 图2为softmax回归的网络图，图中权重用蓝线表示、偏置用红线表示、+1代表偏置参数的系数为1。
@@ -108,7 +108,7 @@ MNIST吸引了大量的科学家基于此数据集训练模型，1998年，LeCun
 在分类问题中，我们一般采用交叉熵代价损失函数（cross entropy loss），公式如下：
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/03.png?raw=true" width=300><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/03.gif?raw=true"><br/>
 </p>
 
 
@@ -177,13 +177,13 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 - sigmoid激活函数：
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/04.png?raw=true" width=200><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/04.gif?raw=true"><br/>
 </p>
 
 - tanh激活函数：
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/05.png?raw=true" width=200><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/05.gif?raw=true"><br/>
 </p>
 
   实际上，tanh函数只是规模变化的sigmoid函数，将sigmoid函数值放大2倍之后再向下平移1个单位：tanh(x) = 2sigmoid(2x) - 1 。
