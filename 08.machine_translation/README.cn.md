@@ -100,16 +100,24 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 机器翻译任务的训练过程中，解码阶段的目标是最大化下一个正确的目标语言词的概率。思路是：
 1. 每一个时刻，根据源语言句子的编码信息（又叫上下文向量，context vector）$c$、真实目标语言序列的第$i$个词$u_i$和$i$时刻RNN的隐层状态$z_i$，计算出下一个隐层状态$z_{i+1}$。计算公式如下：
-$$z_{i+1}=\phi_{\theta '} \left ( c,u_i,z_i \right )$$
+
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/decoder_formula.png?raw=true" width="200"><br/>
+</div>
+
 其中$\phi _{\theta '}$是一个非线性激活函数；$c$是源语言句子的上下文向量，在不使用注意力机制时，如果[编码器](#编码器)的输出是源语言句子编码后的最后一个元素，则可以定义$c=h_T$；$u_i$是目标语言序列的第$i$个单词，$u_0$是目标语言序列的开始标记`<s>`，表示解码开始；$z_i$是$i$时刻解码RNN的隐层状态，$z_0$是一个全零的向量。
 
-2. 将$z_{i+1}$通过`softmax`归一化，得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。概率分布公式如下：
-$$p\left ( u_{i+1}|u_{&lt;i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
+1. 将$z_{i+1}$通过`softmax`归一化，得到目标语言序列的第$i+1$个单词的概率分布$p_{i+1}$。概率分布公式如下：
+
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/probability_formula.png?raw=true" width="400"><br/>
+</div>
+
 其中$W_sz_{i+1}+b_z$是对每个可能的输出单词进行打分，再用softmax归一化就可以得到第$i+1$个词的概率$p_{i+1}$。
 
-3. 根据$p_{i+1}$和$u_{i+1}$计算代价。
+1. 根据$p_{i+1}$和$u_{i+1}$计算代价。
 
-4. 重复步骤1~3，直到目标语言序列中的所有词处理完毕。
+2. 重复步骤1~3，直到目标语言序列中的所有词处理完毕。
 
 机器翻译任务的生成过程，通俗来讲就是根据预先训练的模型来翻译源语言句子。生成过程中的解码阶段和上述训练过程的有所差异，具体介绍请见[柱搜索算法](#柱搜索算法)。
 
@@ -119,18 +127,21 @@ $$p\left ( u_{i+1}|u_{&lt;i+1},\mathbf{x} \right )=softmax(W_sz_{i+1}+b_z)$$
 
 与简单的解码器不同，这里$z_i$的计算公式为：
 
-$$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$$
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/attention_decoder_formula.png?raw=true" width="200"><br/>
+</div>
 
 可见，源语言句子的编码向量表示为第$i$个词的上下文片段$c_i$，即针对每一个目标语言中的词$u_i$，都有一个特定的$c_i$与之对应。$c_i$的计算公式如下：
 
-$$c_i=\sum _{j=1}^{T}a_{ij}h_j, a_i=\left[ a_{i1},a_{i2},...,a_{iT}\right ]$$
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/sum_formula.png?raw=true" width="300"><br/>
+</div>
 
 从公式中可以看出，注意力机制是通过对编码器中各时刻的RNN状态$h_j$进行加权平均实现的。权重$a_{ij}$表示目标语言中第$i$个词对源语言中第$j$个词的注意力大小，$a_{ij}$的计算公式如下：
 
-\begin{align}
-a_{ij}&=\frac{exp(e_{ij})}{\sum_{k=1}^{T}exp(e_{ik})}\\\\
-e_{ij}&=align(z_i,h_j)\\\\
-\end{align}
+<div align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/image/weight_formula.png?raw=true" width="300"><br/>
+</div>
 
 其中，$align$可以看作是一个对齐模型，用来衡量目标语言中第$i$个词和源语言中第$j$个词的匹配程度。具体而言，这个程度是通过解码RNN的第$i$个隐层状态$z_i$和源语言句子的第$j$个上下文片段$h_j$计算得到的。传统的对齐模型中，目标语言的每个词明确对应源语言的一个或多个词（hard alignment）；而在注意力模型中采用的是soft alignment，即任何两个目标语言和源语言词间均存在一定的关联，且这个关联强度是由模型计算得到的实数，因此可以融入整个NMT框架，并通过反向传播算法进行训练。
 
