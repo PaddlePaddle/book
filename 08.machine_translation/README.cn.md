@@ -538,7 +538,7 @@ trg_idx2word = paddle.dataset.wmt16.get_dict(
 
     for data in test_data():
         src_word_id = fluid.create_lod_tensor(
-            data=map(lambda x: x[0], data),
+            data=[x[0] for x in data],
             recursive_seq_lens=[[len(x[0]) for x in data]],
             place=place)
         # init_ids内容为start token
