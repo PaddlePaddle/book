@@ -186,7 +186,7 @@ GRU\[[2](#参考文献)\]是Cho等人在LSTM上提出的简化版本，也是RNN
 
 ### 示例数据
 
-为了验证训练流程，PaddlePaddle接口`paddle.dataset.wmt16`中提供了对该数据集预处理后的版本(http://paddlemodels.bj.bcebos.com/wmt/wmt16.tar.gz)，调用该接口即可直接使用，因为数据规模限制，这里只作为示例使用，在相应的测试集上具有一定效果但在更多测试数据上的效果无法保证。
+为了验证训练流程，PaddlePaddle接口`paddle.dataset.wmt16`中提供了对该数据集[预处理后的版本](http://paddlemodels.bj.bcebos.com/wmt/wmt16.tar.gz)，调用该接口即可直接使用，因为数据规模限制，这里只作为示例使用，在相应的测试集上具有一定效果但在更多测试数据上的效果无法保证。
 
 ## 模型配置说明
 
@@ -531,7 +531,7 @@ trg_idx2word = paddle.dataset.wmt16.get_dict(
 ```
 
 ### 测试
-首先要加载训练过程保存下来的模型，然后就可以循环测试数据进行预测了。这里每次运行我们都会创建`data_layer`对应输入数据的`dict`传入，这个和`DataFeeder`相同的效果。生成过程对于每个测试数据都会将源语言句子和`beam_size`个生成句子打印输出。
+首先要加载训练过程保存下来的模型，然后就可以循环测试数据进行预测了。这里每次运行我们都会创建`data_layer`对应输入数据的`dict`传入，这个和`DataFeeder`相同的效果。生成过程对于每个测试数据都会将源语言句子和`beam_size`个生成句子打印输出。
 
 ```python
     fluid.io.load_params(exe, model_save_dir, main_program=infer_prog)
