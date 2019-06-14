@@ -149,7 +149,7 @@ def train(nn_type,
                 feed=feeder.feed(data),
                 fetch_list=[avg_loss, acc])
             if step % 100 == 0:
-                print("Pass %d, Batch %d, Cost %f" % (step, epoch_id,
+                print("Pass %d, Batch %d, Cost %f" % (epoch_id, step,
                                                       metrics[0]))
             step += 1
         # test for epoch
