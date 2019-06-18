@@ -123,7 +123,7 @@ GoogLeNet comprises multiple stacked Inception blocks followed by an avg-pooling
 Figure 8 illustrates the neural architecture of a GoogLeNet which consists of 22 layers: it starts with three regular convolutional layers followed by three groups of sub-networks -- the first group contains two Inception blocks, the second group has five, and the third group has two again. Finally, It ends with an average pooling and a fully-connected layer.
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/GoogleNet.jpeg?raw=true" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/googlenet.jpeg?raw=true" ><br/>
 Figure 8. GoogLeNet <a src="#References">[12]</a>
 </p>
 

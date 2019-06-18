@@ -127,7 +127,7 @@ GoogLeNet由多组Inception模块堆积而成。另外，在网络最后也没�
 GoogLeNet整体网络结构如图8所示，总共22层网络：开始由3层普通的卷积组成；接下来由三组子网络组成，第一组子网络包含2个Inception模块，第二组包含5个Inception模块，第三组包含2个Inception模块；然后接均值池化层、全连接层。
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/Googlenet.jpeg?raw=true" ><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/googlenet.jpeg?raw=true" ><br/>
 图8. GoogLeNet[12]
 </p>
 
