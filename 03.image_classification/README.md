@@ -216,7 +216,7 @@ def vgg_bn_drop(input):
 ```
 
 
-  1. Firstly, it defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Groups decide the number of consecutive convolution operations in each VGG block. Dropout specifies the probability to perform dropout operation. Function `img_conv_group` is predefined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a group of `Pooling` .
+  1. Firstly, it defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Groups decide the number of consecutive convolution operations in each VGG block. Dropout specifies the probability to perform dropout operation. Function `img_conv_group` is predefined in `paddle.nets` consisting of a series of `Conv->BN->ReLu->Dropout` and a group of `Pooling` .
 
   2. Five groups of convolutions. The first two groups perform two consecutive convolutions, while the last three groups perform three convolutions in sequence. The dropout rate of the last convolution in each group is set to 0, which means there is no dropout for this layer.
 
@@ -283,7 +283,7 @@ The following are the components of `resnet_cifar10`:
 2. The next level is composed of three residual blocks, namely three `layer_warp`, each of which uses the left residual block in Figure 10.
 3. The last level is average pooling layer.
 
-Note: Except the first convolutional layer and the last fully-connected layer, the total number of layers with parameters in three `layer_warp` should be dividable by 6. In other words, the depth of `resnet_cifar10` should satisfy $(depth - 2) % 6 == 0$.
+Note: Except the first convolutional layer and the last fully-connected layer, the total number of layers with parameters in three `layer_warp` should be dividable by 6. In other words, the depth of `resnet_cifar10` should satisfy $(depth-2)%6=0$.
 
 ```python
 def resnet_cifar10(ipt, depth=32):
@@ -369,7 +369,7 @@ test_reader = paddle.batch(
 
 
 ### Implementation of the trainer program
-We need to develop a main_program for the training process. Similarly, we need to configure a test_program for the test program. It's also necessary to define the `place` of the training and use the optimizer `optimizer_func` previously defined .
+We need to develop a main_program for the training process. Similarly, we need to configure a test_program for the test program. It's also necessary to define the `place` of the training and use the optimizer `optimizer_program` previously defined .
 
 
 
