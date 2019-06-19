@@ -94,7 +94,7 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 
 另外，在训练过程中由于每层参数不断更新，会导致下一次输入分布发生变化，这样导致训练过程需要精心设计超参数。如2015年Sergey Ioffe和Christian Szegedy提出了Batch Normalization (BN)算法 \[[14](#参考文献)\] 中，每个batch对网络中的每一层特征都做归一化，使得每层分布相对稳定。BN算法不仅起到一定的正则作用，而且弱化了一些超参数的设计。经过实验证明，BN算法加速了模型收敛过程，在后来较深的模型中被广泛使用。
 
-接下来我们主要介绍VGG，GoogleNet和ResNet网络结构。
+接下来我们主要介绍VGG，GoogLeNet和ResNet网络结构。
 
 ### VGG
 
@@ -105,9 +105,9 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 图6. 基于ImageNet的VGG16模型
 </p>
 
-### GoogleNet
+### GoogLeNet
 
-GoogleNet \[[12](#参考文献)\] 在2014年ILSVRC的获得了冠军，在介绍该模型之前我们先来了解NIN(Network in Network)模型 \[[13](#参考文献)\] 和Inception模块，因为GoogleNet模型由多组Inception模块组成，模型设计借鉴了NIN的一些思想。
+GoogLeNet \[[12](#参考文献)\] 在2014年ILSVRC的获得了冠军，在介绍该模型之前我们先来了解NIN(Network in Network)模型 \[[13](#参考文献)\] 和Inception模块，因为GoogLeNet模型由多组Inception模块组成，模型设计借鉴了NIN的一些思想。
 
 NIN模型主要有两个特点：
 
@@ -122,17 +122,17 @@ Inception模块如下图7所示，图(a)是最简单的设计，输出是3个卷
 图7. Inception模块
 </p>
 
-GoogleNet由多组Inception模块堆积而成。另外，在网络最后也没有采用传统的多层全连接层，而是像NIN网络一样采用了均值池化层；但与NIN不同的是，GoogleNet在池化层后加了一个全连接层来映射类别数。除了这两个特点之外，由于网络中间层特征也很有判别性，GoogleNet在中间层添加了两个辅助分类器，在后向传播中增强梯度并且增强正则化，而整个网络的损失函数是这个三个分类器的损失加权求和。
+GoogLeNet由多组Inception模块堆积而成。另外，在网络最后也没有采用传统的多层全连接层，而是像NIN网络一样采用了均值池化层；但与NIN不同的是，GoogLeNet在池化层后加了一个全连接层来映射类别数。除了这两个特点之外，由于网络中间层特征也很有判别性，GoogLeNet在中间层添加了两个辅助分类器，在后向传播中增强梯度并且增强正则化，而整个网络的损失函数是这个三个分类器的损失加权求和。
 
-GoogleNet整体网络结构如图8所示，总共22层网络：开始由3层普通的卷积组成；接下来由三组子网络组成，第一组子网络包含2个Inception模块，第二组包含5个Inception模块，第三组包含2个Inception模块；然后接均值池化层、全连接层。
+GoogLeNet整体网络结构如图8所示，总共22层网络：开始由3层普通的卷积组成；接下来由三组子网络组成，第一组子网络包含2个Inception模块，第二组包含5个Inception模块，第三组包含2个Inception模块；然后接均值池化层、全连接层。
 
 <p align="center">
-<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/googlenet.jpeg?raw=true" ><br/>
-图8. GoogleNet[12]
+<img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/GoogLeNet.jpeg?raw=true" ><br/>
+图8. GoogLeNet[12]
 </p>
 
 
-上面介绍的是GoogleNet第一版模型(称作GoogleNet-v1)。GoogleNet-v2 \[[14](#参考文献)\] 引入BN层；GoogleNet-v3 \[[16](#参考文献)\] 对一些卷积层做了分解，进一步提高网络非线性能力和加深网络；GoogleNet-v4 \[[17](#参考文献)\] 引入下面要讲的ResNet设计思路。从v1到v4每一版的改进都会带来准确度的提升，介于篇幅，这里不再详细介绍v2到v4的结构。
+上面介绍的是GoogLeNet第一版模型(称作GoogLeNet-v1)。GoogLeNet-v2 \[[14](#参考文献)\] 引入BN层；GoogLeNet-v3 \[[16](#参考文献)\] 对一些卷积层做了分解，进一步提高网络非线性能力和加深网络；GoogLeNet-v4 \[[17](#参考文献)\] 引入下面要讲的ResNet设计思路。从v1到v4每一版的改进都会带来准确度的提升，介于篇幅，这里不再详细介绍v2到v4的结构。
 
 
 ### ResNet
@@ -569,7 +569,7 @@ with fluid.scope_guard(inference_scope):
 
 ## 总结
 
-传统图像分类方法由多个阶段构成，框架较为复杂，而端到端的CNN模型结构可一步到位，而且大幅度提升了分类准确率。本文我们首先介绍VGG、GoogleNet、ResNet三个经典的模型；然后基于CIFAR10数据集，介绍如何使用PaddlePaddle配置和训练CNN模型，尤其是VGG和ResNet模型；最后介绍如何使用PaddlePaddle的API接口对图片进行预测和特征提取。对于其他数据集比如ImageNet，配置和训练流程是同样的，大家可以自行进行实验。
+传统图像分类方法由多个阶段构成，框架较为复杂，而端到端的CNN模型结构可一步到位，而且大幅度提升了分类准确率。本文我们首先介绍VGG、GoogLeNet、ResNet三个经典的模型；然后基于CIFAR10数据集，介绍如何使用PaddlePaddle配置和训练CNN模型，尤其是VGG和ResNet模型；最后介绍如何使用PaddlePaddle的API接口对图片进行预测和特征提取。对于其他数据集比如ImageNet，配置和训练流程是同样的，大家可以自行进行实验。
 
 <a name="参考文献"></a>
 ## 参考文献
