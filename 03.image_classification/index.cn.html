@@ -330,7 +330,7 @@ def layer_warp(block_func, input, ch_in, ch_out, count, stride):
 
 3. 最后对网络做均值池化并返回该层。
 
-注意：除第一层卷积层和最后一层全连接层之外，要求三组 `layer_warp` 总的含参层数能够被6整除，即 `resnet_cifar10` 的 depth 要满足 $(depth-2)%6=0$ 。
+注意：除第一层卷积层和最后一层全连接层之外，要求三组 `layer_warp` 总的含参层数能够被6整除，即 `resnet_cifar10` 的 depth 要满足(depth-2)%6=0 。
 
 ```python
 def resnet_cifar10(ipt, depth=32):

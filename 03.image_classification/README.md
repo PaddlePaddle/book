@@ -283,7 +283,7 @@ The following are the components of `resnet_cifar10`:
 2. The next level is composed of three residual blocks, namely three `layer_warp`, each of which uses the left residual block in Figure 10.
 3. The last level is average pooling layer.
 
-Note: Except the first convolutional layer and the last fully-connected layer, the total number of layers with parameters in three `layer_warp` should be dividable by 6. In other words, the depth of `resnet_cifar10` should satisfy $(depth-2)%6=0$.
+Note: Except the first convolutional layer and the last fully-connected layer, the total number of layers with parameters in three `layer_warp` should be dividable by 6. In other words, the depth of `resnet_cifar10` should satisfy (depth-2)%6=0.
 
 ```python
 def resnet_cifar10(ipt, depth=32):
