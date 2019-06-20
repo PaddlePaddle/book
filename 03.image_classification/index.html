@@ -132,7 +132,7 @@ Figure 5. A CNN example <a src="#References">[20]</a>
 
 Parameter updates at each layer during training causes input layer distributions to change and in turn requires hyper-parameters to be carefully tuned. In 2015, Sergey Ioffe and Christian Szegedy proposed a Batch Normalization (BN) algorithm \[[14](#References)\], which normalizes the features of each batch in a layer, and enables relatively stable distribution in each layer. Not only does BN algorithm act as a regularizer, but also eliminates the need for meticulous hyper-parameter design. Experiments demonstrate that BN algorithm accelerates the training convergence and has been widely used in further deeper models.
 
-In the following sections, we will take a tour through the following network architectures - VGG, GoogleNet and ResNets.
+In the following sections, we will take a tour through the following network architectures - VGG, GoogLeNet and ResNets.
 
 ### VGG
 
@@ -143,9 +143,9 @@ The Oxford Visual Geometry Group (VGG) proposed the VGG network in ILSVRC 2014 \
 Figure 6. VGG16 model for ImageNet
 </p>
 
-### GoogleNet
+### GoogLeNet
 
-GoogleNet \[[12](#References)\] won the ILSVRC championship in 2014. GoogleNet borrowed some ideas from the Network in Network(NIN) model \[[13](#References)\] and is built on the Inception blocks. Let us first familiarize ourselves with these concepts first.
+GoogLeNet \[[12](#References)\] won the ILSVRC championship in 2014. GoogLeNet borrowed some ideas from the Network in Network(NIN) model \[[13](#References)\] and is built on the Inception blocks. Let us first familiarize ourselves with these concepts first.
 
 The two main characteristics of the NIN model are:
 
@@ -160,16 +160,16 @@ Figure 7 depicts two Inception blocks. Figure 7(a) is the simplest design. The o
 Figure 7. Inception block
 </p>
 
-GoogleNet comprises multiple stacked Inception blocks followed by an avg-pooling layer as in NIN instead of traditional fully connected layers. The difference between GoogleNet and NIN is that GoogleNet adds a fully connected layer after avg-pooling layer to output a vector of category size. Besides these two characteristics, the features from middle layers of a GoogleNet are also very discriminative. Therefore, GoogeleNet inserts two auxiliary classifiers in the model for enhancing gradient and regularization when doing back-propagation. The loss function of the whole network is the weighted sum of these three classifiers.
+GoogLeNet comprises multiple stacked Inception blocks followed by an avg-pooling layer as in NIN instead of traditional fully connected layers. The difference between GoogLeNet and NIN is that GoogLeNet adds a fully connected layer after avg-pooling layer to output a vector of category size. Besides these two characteristics, the features from middle layers of a GoogLeNet are also very discriminative. Therefore, GoogeleNet inserts two auxiliary classifiers in the model for enhancing gradient and regularization when doing back-propagation. The loss function of the whole network is the weighted sum of these three classifiers.
 
-Figure 8 illustrates the neural architecture of a GoogleNet which consists of 22 layers: it starts with three regular convolutional layers followed by three groups of sub-networks -- the first group contains two Inception blocks, the second group has five, and the third group has two again. Finally, It ends with an average pooling and a fully-connected layer.
+Figure 8 illustrates the neural architecture of a GoogLeNet which consists of 22 layers: it starts with three regular convolutional layers followed by three groups of sub-networks -- the first group contains two Inception blocks, the second group has five, and the third group has two again. Finally, It ends with an average pooling and a fully-connected layer.
 
 <p align="center">
 <img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/googlenet.jpeg?raw=true" ><br/>
-Figure 8. GoogleNet <a src="#References">[12]</a>
+Figure 8. GoogLeNet <a src="#References">[12]</a>
 </p>
 
-The model above is the first version of GoogleNet or the so-called GoogelNet-v1. GoogleNet-v2 \[[14](#References)\] introduced BN layer; GoogleNet-v3 \[[16](#References)\] further split some convolutional layers, which increases non-linearity and network depth; GoogelNet-v4 \[[17](#References)\] is inspired by the design idea of ResNet which will be introduced in the next section. The evolution from v1 to v4 improved the accuracy rate consistently. The length of this article being limited, we will not scrutinize the neural architectures of v2 to v4.
+The model above is the first version of GoogLeNet or the so-called GoogelNet-v1. GoogLeNet-v2 \[[14](#References)\] introduced BN layer; GoogLeNet-v3 \[[16](#References)\] further split some convolutional layers, which increases non-linearity and network depth; GoogelNet-v4 \[[17](#References)\] is inspired by the design idea of ResNet which will be introduced in the next section. The evolution from v1 to v4 improved the accuracy rate consistently. The length of this article being limited, we will not scrutinize the neural architectures of v2 to v4.
 
 ### ResNet
 
@@ -258,7 +258,7 @@ def vgg_bn_drop(input):
 ```
 
 
-  1. Firstly, it defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Groups decide the number of consecutive convolution operations in each VGG block. Dropout specifies the probability to perform dropout operation. Function `img_conv_group` is predefined in `paddle.networks` consisting of a series of `Conv->BN->ReLu->Dropout` and a group of `Pooling` .
+  1. Firstly, it defines a convolution block or conv_block. The default convolution kernel is 3x3, and the default pooling size is 2x2 with stride 2. Groups decide the number of consecutive convolution operations in each VGG block. Dropout specifies the probability to perform dropout operation. Function `img_conv_group` is predefined in `paddle.nets` consisting of a series of `Conv->BN->ReLu->Dropout` and a group of `Pooling` .
 
   2. Five groups of convolutions. The first two groups perform two consecutive convolutions, while the last three groups perform three convolutions in sequence. The dropout rate of the last convolution in each group is set to 0, which means there is no dropout for this layer.
 
@@ -325,7 +325,7 @@ The following are the components of `resnet_cifar10`:
 2. The next level is composed of three residual blocks, namely three `layer_warp`, each of which uses the left residual block in Figure 10.
 3. The last level is average pooling layer.
 
-Note: Except the first convolutional layer and the last fully-connected layer, the total number of layers with parameters in three `layer_warp` should be dividable by 6. In other words, the depth of `resnet_cifar10` should satisfy $(depth - 2) % 6 == 0$.
+Note: Except the first convolutional layer and the last fully-connected layer, the total number of layers with parameters in three `layer_warp` should be dividable by 6. In other words, the depth of `resnet_cifar10` should satisfy (depth-2)%6=0.
 
 ```python
 def resnet_cifar10(ipt, depth=32):
@@ -411,7 +411,7 @@ test_reader = paddle.batch(
 
 
 ### Implementation of the trainer program
-We need to develop a main_program for the training process. Similarly, we need to configure a test_program for the test program. It's also necessary to define the `place` of the training and use the optimizer `optimizer_func` previously defined .
+We need to develop a main_program for the training process. Similarly, we need to configure a test_program for the test program. It's also necessary to define the `place` of the training and use the optimizer `optimizer_program` previously defined .
 
 
 
@@ -616,7 +616,7 @@ with fluid.scope_guard(inference_scope):
 
 ## Summary
 
-The traditional image classification method consists of multiple stages. The framework is a little complex. In contrast, the end-to-end CNN model can be implemented in one step, and the accuracy of classification is greatly improved. In this article, we first introduced three classic models, VGG, GoogleNet and ResNet. Then we have introduced how to use PaddlePaddle to configure and train CNN models based on CIFAR10 dataset, especially VGG and ResNet models. Finally, we have guided you how to use PaddlePaddle's API interfaces to predict images and extract features. For other datasets such as ImageNet, the configuration and training process is the same, so you can embark on your adventure on your own.
+The traditional image classification method consists of multiple stages. The framework is a little complex. In contrast, the end-to-end CNN model can be implemented in one step, and the accuracy of classification is greatly improved. In this article, we first introduced three classic models, VGG, GoogLeNet and ResNet. Then we have introduced how to use PaddlePaddle to configure and train CNN models based on CIFAR10 dataset, especially VGG and ResNet models. Finally, we have guided you how to use PaddlePaddle's API interfaces to predict images and extract features. For other datasets such as ImageNet, the configuration and training process is the same, so you can embark on your adventure on your own.
 
 <a name="References"></a>
 ## References
