@@ -95,7 +95,7 @@ LSTM通过给简单的循环神经网络增加记忆及控制门的方式，增�
 <img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_recrurent.png?raw=true" width = "50%" align="center"/><br/>
 </p>
 
-其中，$Recrurent$可以表示简单的循环神经网络、GRU或LSTM。
+其中，$Recurrent$可以表示简单的循环神经网络、GRU或LSTM。
 
 ### 栈式双向LSTM（Stacked Bidirectional LSTM）
 
