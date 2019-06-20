@@ -121,9 +121,9 @@ Figure 3. LSTM for time $t$ [7]
 
 LSTM enhances its ability to handle long-range dependencies by adding memory and control gates to RNN. A similar principle improvement is Gated Recurrent Unit (GRU)\[[8](#References)\], which is more concise in design. **These improvements are different, but their macro descriptions are the same as simple recurrent neural networks (as shown in Figure 2). That is, the hidden state changes according to the current input and the hidden state of the previous moment, and this process is continuous until the input is processed:**
 
-$$ h_t=Recrurent(x_t,h_{t-1})$$
+$$ h_t=Recurrent(x_t,h_{t-1})$$
 
-Among them, $Recrurent$ can represent a RNN, GRU or LSTM.
+Among them, $Recurrent$ can represent a RNN, GRU or LSTM.
 
 
 
