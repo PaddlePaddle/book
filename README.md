@@ -5,13 +5,14 @@
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md)
 
 1. [Fit a Line](http://www.paddlepaddle.org/documentation/book/en/develop/01.fit_a_line/index.html)
-1. [Recognize Digits](http://www.paddlepaddle.org/documentation/book/en/develop/02.recognize_digits/index.html)
-1. [Image Classification](http://www.paddlepaddle.org/documentation/book/en/develop/03.image_classification/index.html)
-1. [Word to Vector](http://www.paddlepaddle.org/documentation/book/en/develop/04.word2vec/index.html)
-1. [Recommender System](http://www.paddlepaddle.org/documentation/book/en/develop/05.recommender_system/index.html)
-1. [Understand Sentiment](http://www.paddlepaddle.org/documentation/book/en/develop/06.understand_sentiment/index.html)
-1. [Label Semantic Roles](http://www.paddlepaddle.org/documentation/book/en/develop/07.label_semantic_roles/index.html)
-1. [Machine Translation](http://www.paddlepaddle.org/documentation/book/en/develop/08.machine_translation/index.html)
+1. [Recognize Digits](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/recognize_digits/README.cn.html)
+1. [Image Classification](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/image_classification/index.html)
+1. [Word to Vector](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/word2vec/index.html)
+1. [Recommender System](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/recommender_system/index.html)
+1. [Understand Sentiment](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/understand_sentiment/index.html)
+1. [Label Semantic Roles](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/label_semantic_roles/index.html)
+1. [Machine Translation](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/machine_translation/index.html)
+1. [GAN](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/gan/index.html)
 
 ## Running the Book
 

@@ -4,14 +4,15 @@
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://github.com/PaddlePaddle/book/blob/develop/README.md)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md)
 
-1. [线性回归](http://www.paddlepaddle.org/documentation/book/zh/develop/01.fit_a_line/index.cn.html)
-1. [识别数字](http://www.paddlepaddle.org/documentation/book/zh/develop/02.recognize_digits/index.cn.html)
-1. [图像分类](http://www.paddlepaddle.org/documentation/book/zh/develop/03.image_classification/index.cn.html)
-1. [词向量](http://www.paddlepaddle.org/documentation/book/zh/develop/04.word2vec/index.cn.html)
-1. [个性化推荐](http://www.paddlepaddle.org/documentation/book/zh/develop/05.recommender_system/index.cn.html)
-1. [情感分析](http://www.paddlepaddle.org/documentation/book/zh/develop/06.understand_sentiment/index.cn.html)
-1. [语义角色标注](http://www.paddlepaddle.org/documentation/book/zh/develop/07.label_semantic_roles/index.cn.html)
-1. [机器翻译](http://www.paddlepaddle.org/documentation/book/zh/develop/08.machine_translation/index.cn.html)
+1. [线性回归](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/fit_a_line/README.cn.html)
+1. [识别数字](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/recognize_digits/README.cn.html)
+1. [图像分类](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/image_classification/index.html)
+1. [词向量](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/word2vec/index.html)
+1. [个性化推荐](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/recommender_system/index.html)
+1. [情感分析](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/understand_sentiment/index.html)
+1. [语义角色标注](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/label_semantic_roles/index.html)
+1. [机器翻译](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/machine_translation/index.html)
+1. [生成对抗网络](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/gan/index.html)
 
 更多学习内容请访问PaddlePaddle[视频课堂](http://bit.baidu.com/Course/datalist/column/117.html)。
 
