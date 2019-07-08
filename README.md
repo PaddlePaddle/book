@@ -4,15 +4,14 @@
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://github.com/PaddlePaddle/book/blob/develop/README.md)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md)
 
-1. [Fit a Line](http://www.paddlepaddle.org/documentation/book/en/1.5/01.fit_a_line/index.html)
-1. [Recognize Digits](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/recognize_digits/README.cn.html)
-1. [Image Classification](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/image_classification/index.html)
-1. [Word to Vector](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/word2vec/index.html)
-1. [Recommender System](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/recommender_system/index.html)
-1. [Understand Sentiment](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/understand_sentiment/index.html)
-1. [Label Semantic Roles](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/label_semantic_roles/index.html)
-1. [Machine Translation](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/machine_translation/index.html)
-1. [GAN](https://www.paddlepaddle.org.cn/documentation/docs/zh/1.5/beginners_guide/basics/gan/index.html)
+1. [Fit a Line](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/fit_a_line/README.html)
+1. [Recognize Digits](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/recognize_digits/README.html)
+1. [Image Classification](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/image_classification/index_en.html)
+1. [Word to Vector](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/word2vec/index_en.html)
+1. [Recommender System](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/recommender_system/index_en.html)
+1. [Understand Sentiment](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/understand_sentiment/index_en.html)
+1. [Label Semantic Roles](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/label_semantic_roles/index_en.html)
+1. [Machine Translation](https://www.paddlepaddle.org.cn/documentation/docs/en/1.5/beginners_guide/basics/machine_translation/index_en.html)
 
 ## Running the Book
 
