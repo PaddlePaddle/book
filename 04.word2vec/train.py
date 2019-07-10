@@ -206,11 +206,11 @@ def infer(use_cuda, params_dirname=None):
         # meaning there is only one level of detail and there is only one sequence of
         # one word on this level.
         # Note that recursive_sequence_lengths should be a list of lists.
-        data1 = [[numpy.int64(211)]]  # 'among'
-        data2 = [[numpy.int64(6)]]  # 'a'
-        data3 = [[numpy.int64(96)]]  # 'group'
-        data4 = [[numpy.int64(4)]]  # 'of'
-        lod = [[numpy.int64(1)]]
+        data1 = numpy.asarray([[211]], dtype=numpy.int64)  # 'among'
+        data2 = numpy.asarray([[6]], dtype=numpy.int64)  # 'a'
+        data3 = numpy.asarray([[96]], dtype=numpy.int64)  # 'group'
+        data4 = numpy.asarray([[4]], dtype=numpy.int64)  # 'of'
+        lod = numpy.asarray([[1]], dtype=numpy.int64)
 
         first_word = fluid.create_lod_tensor(data1, lod, place)
         second_word = fluid.create_lod_tensor(data2, lod, place)
