@@ -123,12 +123,12 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 ### 配置数据提供器(Datafeeder)
 首先我们引入必要的库：
 ```python
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import math
 import sys
-from __future__ import print_function
 ```
 
 我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data)
