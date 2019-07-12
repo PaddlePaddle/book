@@ -255,13 +255,14 @@ avg_loss = fluid.layers.mean(cost) # 对方差求均值，得到平均损失
 在下面的 `SGD optimizer`，`learning_rate` 是学习率，与网络的训练收敛速度有关系。
 
 ```python
-sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
-sgd_optimizer.minimize(avg_loss)
-
 #克隆main_program得到test_program
 #有些operator在训练和测试之间的操作是不同的，例如batch_norm，使用参数for_test来区分该程序是用来训练还是用来测试
 #该api不会删除任何操作符,请在backward和optimization之前使用
 test_program = main_program.clone(for_test=True)
+
+sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
+sgd_optimizer.minimize(avg_loss)
+
 ```
 
 ### 定义运算场所
