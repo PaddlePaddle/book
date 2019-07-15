@@ -537,9 +537,10 @@ user_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
 gender_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
 age_id = fluid.create_lod_tensor([[np.int64(0)]], [[1]], place)
 job_id = fluid.create_lod_tensor([[np.int64(10)]], [[1]], place)
-movie_id = fluid.create_lod_tensor([[np.int64(783)]], [[1]], place)
-category_id = fluid.create_lod_tensor([np.array([10, 8, 9], dtype='int64')], [[3]], place)
-movie_title = fluid.create_lod_tensor([np.array([1069, 4140, 2923, 710, 988], dtype='int64')], [[5]], place)
+movie_id = fluid.create_lod_tensor([[np.int64(783)]], [[1]], place) # Hunchback of Notre Dame
+category_id = fluid.create_lod_tensor([np.array([10, 8, 9], dtype='int64')], [[3]], place) # Animation, Children's, Musical
+movie_title = fluid.create_lod_tensor([np.array([1069, 4140, 2923, 710, 988], dtype='int64')], [[5]],
+                                      place) # 'hunchback','of','notre','dame','the'
 ```
 
 ### 构建预测过程并测试
