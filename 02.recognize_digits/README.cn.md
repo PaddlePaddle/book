@@ -524,7 +524,7 @@ Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
 
 ### 生成预测输入数据
 
-[infer_3.png](https://github.com/kinghuin/book/blob/develop/02.recognize_digits/image/infer_3.png) 是数字 3 的一个示例图像。把它变成一个 numpy 数组以匹配数据feed格式。
+[infer_3.png](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/infer_3.png) 是数字 3 的一个示例图像。把它变成一个 numpy 数组以匹配数据feed格式。
 
 ```python
 def load_image(file):

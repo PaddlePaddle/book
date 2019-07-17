@@ -508,7 +508,7 @@ You can use trained model to classify handwriting pictures of digits. The progra
 
 ### Generate input data to be inferred
 
-[infer_3.png](https://github.com/kinghuin/book/blob/develop/02.recognize_digits/image/infer_3.png) is an example picture of number 3. Transform it into a numpy to match feed data format
+[infer_3.png](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/infer_3.png) is an example picture of number 3. Transform it into a numpy to match feed data format
 
 
 ```python
