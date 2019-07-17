@@ -550,7 +550,7 @@ You can use trained model to classify handwriting pictures of digits. The progra
 
 ### Generate input data to be inferred
 
-`infer_3.png` is an example picture of number 3. Transform it into a numpy to match feed data format
+[infer_3.png](https://github.com/PaddlePaddle/book/blob/develop/02.recognize_digits/image/infer_3.png) is an example picture of number 3. Transform it into a numpy to match feed data format
 
 
 ```python
@@ -589,7 +589,7 @@ with fluid.scope_guard(inference_scope):
     lab = numpy.argsort(results)
 
     # Print prediction result of  infer_3.png
-    img=Image.open('image/infer_3.png')
+    img=Image.open(cur_dir + 'image/infer_3.png')
     plt.imshow(img)
     print("Inference result of image/infer_3.png is: %d" % lab[0][0][-1])
 ```
