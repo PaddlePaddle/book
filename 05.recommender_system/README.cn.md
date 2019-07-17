@@ -136,7 +136,7 @@ Paddle在API中提供了自动加载数据的模块。数据模块为 `paddle.da
 ```python
 import paddle
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
 
@@ -152,7 +152,7 @@ print movie_info.values()[0]
 
 ```python
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
     <MovieInfo id(1), title(Toy Story ), categories(['Animation', "Children's", 'Comedy'])>
@@ -163,7 +163,7 @@ print movie_info.values()[0]
 
 ```python
 user_info = paddle.dataset.movielens.user_info()
-print user_info.values()[0]
+print(list(user_info.values())[0])
 ```
 
     <UserInfo id(1), gender(F), age(1), job(10)>
@@ -216,7 +216,7 @@ train_set_creator = paddle.dataset.movielens.train()
 train_sample = next(train_set_creator())
 uid = train_sample[0]
 mov_id = train_sample[len(user_info[uid].value())]
-print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1])
+print("User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1]))
 ```
 
     User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest ), categories(['Drama'])> with Score [5.0]
@@ -533,13 +533,13 @@ train_loop()
 ```python
 infer_movie_id = 783
 infer_movie_name = paddle.dataset.movielens.movie_info()[infer_movie_id].title
-user_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
-gender_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
-age_id = fluid.create_lod_tensor([[np.int64(0)]], [[1]], place)
-job_id = fluid.create_lod_tensor([[np.int64(10)]], [[1]], place)
-movie_id = fluid.create_lod_tensor([[np.int64(783)]], [[1]], place) # Hunchback of Notre Dame
-category_id = fluid.create_lod_tensor([np.array([10, 8, 9], dtype='int64')], [[3]], place) # Animation, Children's, Musical
-movie_title = fluid.create_lod_tensor([np.array([1069, 4140, 2923, 710, 988], dtype='int64')], [[5]],
+user_id = fluid.create_lod_tensor([[1]], [[1]], place)
+gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
+age_id = fluid.create_lod_tensor([[0]], [[1]], place)
+job_id = fluid.create_lod_tensor([[10]], [[1]], place)
+movie_id = fluid.create_lod_tensor([[783]], [[1]], place) # Hunchback of Notre Dame
+category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place) # Animation, Children's, Musical
+movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
                                       place) # 'hunchback','of','notre','dame','the'
 ```
 
