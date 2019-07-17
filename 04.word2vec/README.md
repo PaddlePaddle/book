@@ -201,7 +201,7 @@ First, load packages:
 
 ```python
 
-import paddle as paddle
+import paddle
 import paddle.fluid as fluid
 import six
 import numpy
