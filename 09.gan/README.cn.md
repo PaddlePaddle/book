@@ -1,6 +1,6 @@
 # 生成对抗网络
 
-本教程源代码目录在book/09.gan，初次使用请您参考Book文档使用说明。
+本教程源代码目录在[book/09.gan](https://github.com/kinghuin/book/tree/develop/09.gan)，初次使用请您参考Book文档使用说明。
 
 ### 说明: ###
 1. 硬件环境要求：
