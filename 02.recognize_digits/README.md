@@ -377,14 +377,13 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 prediction, [avg_loss, acc] = train_program()
 
 # input original image data in size of 28*28*1
-img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
 # label layer, called label, correspondent with label category of input picture.
-label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+
 # It is informed that data in network consists of two parts. One is img value, the other is label value.
-feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
+feeder = fluid.DataFeeder(feed_list=['img', 'label'], place=place)
 
 # choose Adam optimizer
-optimizer = fluid.optimizer.Adam(learning_rate=0.001)
+optimizer = optimizer_program()
 optimizer.minimize(avg_loss)
 ```
 
@@ -513,9 +512,13 @@ You can use trained model to classify handwriting pictures of digits. The progra
 
 ```python
 def load_image(file):
+    # open the image file and covert to grayscale
     im = Image.open(file).convert('L')
+    # adjust the input image to a 28*28 high quality image
     im = im.resize((28, 28), Image.ANTIALIAS)
+    # convert img to numpy
     im = numpy.array(im).reshape(1, 1, 28, 28).astype(numpy.float32)
+    # normalize
     im = im / 255.0 * 2.0 - 1.0
     return im
 
