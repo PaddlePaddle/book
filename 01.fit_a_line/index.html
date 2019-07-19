@@ -257,13 +257,14 @@ For details, please refer to:
 `SGD optimizer`, `learning_rate` below are learning rate, which is related to rate of convergence for train of network.
 
 ```python
-sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
-sgd_optimizer.minimize(avg_loss)
-
 #Clone main_program to get test_program
 # operations of some operators are different between train and test. For example, batch_norm use parameter for_test to determine whether the program is for training or for testing.
 #The api will not delete any operator, please apply it before backward and optimization.
 test_program = main_program.clone(for_test=True)
+
+sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
+sgd_optimizer.minimize(avg_loss)
+
 ```
 
 ### Define Training Place

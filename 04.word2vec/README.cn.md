@@ -444,11 +444,11 @@ def infer(use_cuda, params_dirname=None):
         # 用来查询embedding表获取对应的词向量，因此其形状大小是[1]。
         # recursive_sequence_lengths设置的是基于长度的LoD，因此都应该设为[[1]]
         # 注意recursive_sequence_lengths是列表的列表
-        data1 = [[211]]  # 'among'
-        data2 = [[6]]  # 'a'
-        data3 = [[96]]  # 'group'
-        data4 = [[4]]  # 'of'
-        lod = [[1]]
+        data1 = numpy.asarray([[211]], dtype=numpy.int64)  # 'among'
+        data2 = numpy.asarray([[6]], dtype=numpy.int64)  # 'a'
+        data3 = numpy.asarray([[96]], dtype=numpy.int64)  # 'group'
+        data4 = numpy.asarray([[4]], dtype=numpy.int64)  # 'of'
+        lod = numpy.asarray([[1]], dtype=numpy.int64)
 
         first_word = fluid.create_lod_tensor(data1, lod, place)
         second_word = fluid.create_lod_tensor(data2, lod, place)

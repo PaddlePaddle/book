@@ -101,10 +101,10 @@ def main():
     cost = fluid.layers.square_error_cost(input=y_predict, label=y)
     avg_loss = fluid.layers.mean(cost)
 
+    test_program = main_program.clone(for_test=True)
+
     sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
     sgd_optimizer.minimize(avg_loss)
-
-    test_program = main_program.clone(for_test=True)
 
     # can use CPU or GPU
     use_cuda = args.use_gpu
