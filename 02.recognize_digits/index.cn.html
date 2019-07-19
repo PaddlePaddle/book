@@ -438,15 +438,13 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 # 调用train_program 获取预测值，损失值，
 prediction, [avg_loss, acc] = train_program()
 
-# 输入的原始图像数据，大小为28*28*1
-img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+# 输入的原始图像数据，名称为img，大小为28*28*1
 # 标签层，名称为label,对应输入图片的类别标签
-label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 # 告知网络传入的数据分为两部分，第一部分是img值，第二部分是label值
-feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
+feeder = fluid.DataFeeder(feed_list=[‘img’, ‘label’], place=place)
 
 # 选择Adam优化器
-optimizer = fluid.optimizer.Adam(learning_rate=0.001)
+optimizer = optimizer_program()
 optimizer.minimize(avg_loss)
 ```
 
@@ -570,9 +568,13 @@ Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
 
 ```python
 def load_image(file):
+    # 读取图片文件，并将它转成灰度图
     im = Image.open(file).convert('L')
+    # 将输入图片调整为 28*28 的高质量图
     im = im.resize((28, 28), Image.ANTIALIAS)
+    # 将图片转换为numpy
     im = numpy.array(im).reshape(1, 1, 28, 28).astype(numpy.float32)
+    # 对数据作归一化处理
     im = im / 255.0 * 2.0 - 1.0
     return im
 
