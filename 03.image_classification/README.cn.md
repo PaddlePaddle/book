@@ -3,6 +3,18 @@
 
 本教程源代码目录在[book/image_classification](https://github.com/PaddlePaddle/book/tree/develop/03.image_classification),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
+### 说明: ###
+
+1.硬件环境要求：
+本文可支持在CPU、GPU下运行
+
+2.Docker镜像支持的CUDA/cuDNN版本：
+如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
+
+3.文档和脚本中代码的一致性问题：
+请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/train.py)进行验证。
+
+
 ## 背景介绍
 
 图像相比文字能够提供更加生动、容易理解及更具艺术感的信息，是人们转递与交换信息的重要来源。在本教程中，我们专注于图像识别领域的一个重要问题，即图像分类。
@@ -52,7 +64,7 @@
 
   2). **特征编码**: 底层特征中包含了大量冗余与噪声，为了提高特征表达的鲁棒性，需要使用一种特征变换算法对底层特征进行编码，称作特征编码。常用的特征编码方法包括向量量化编码 \[[4](#参考文献)\]、稀疏编码 \[[5](#参考文献)\]、局部线性约束编码 \[[6](#参考文献)\]、Fisher向量编码 \[[7](#参考文献)\] 等。
 
-  3). **空间特征约束**: 特征编码之后一般会经过空间特征约束，也称作**特征汇聚**。特征汇聚是指在一个空间范围内，对每一维特征取最大值或者平均值，可以获得一定特征不变形的特征表达。金字塔特征匹配是一种常用的特征聚会方法，这种方法提出将图像均匀分块，在分块内做特征汇聚。
+  3). **空间特征约束**: 特征编码之后一般会经过空间特征约束，也称作**特征汇聚**。特征汇聚是指在一个空间范围内，对每一维特征取最大值或者平均值，可以获得一定特征不变形的特征表达。金字塔特征匹配是一种常用的特征汇聚方法，这种方法提出将图像均匀分块，在分块内做特征汇聚。
 
   4). **通过分类器分类**: 经过前面步骤之后一张图像可以用一个固定维度的向量进行描述，接下来就是经过分类器对图像进行分类。通常使用的分类器包括SVM(Support Vector Machine, 支持向量机)、随机森林等。而使用核方法的SVM是最为广泛的分类器，在传统图像分类任务上性能很好。
 
@@ -82,7 +94,7 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 
 另外，在训练过程中由于每层参数不断更新，会导致下一次输入分布发生变化，这样导致训练过程需要精心设计超参数。如2015年Sergey Ioffe和Christian Szegedy提出了Batch Normalization (BN)算法 \[[14](#参考文献)\] 中，每个batch对网络中的每一层特征都做归一化，使得每层分布相对稳定。BN算法不仅起到一定的正则作用，而且弱化了一些超参数的设计。经过实验证明，BN算法加速了模型收敛过程，在后来较深的模型中被广泛使用。
 
-接下来我们主要介绍VGG，GoogleNet和ResNet网络结构。
+接下来我们主要介绍VGG，GoogLeNet和ResNet网络结构。
 
 ### VGG
 
@@ -93,9 +105,9 @@ Alex Krizhevsky在2012年ILSVRC提出的CNN模型 \[[9](#参考文献)\] 取得�
 图6. 基于ImageNet的VGG16模型
 </p>
 
-### GoogleNet
+### GoogLeNet
 
-GoogleNet \[[12](#参考文献)\] 在2014年ILSVRC的获得了冠军，在介绍该模型之前我们先来了解NIN(Network in Network)模型 \[[13](#参考文献)\] 和Inception模块，因为GoogleNet模型由多组Inception模块组成，模型设计借鉴了NIN的一些思想。
+GoogLeNet \[[12](#参考文献)\] 在2014年ILSVRC的获得了冠军，在介绍该模型之前我们先来了解NIN(Network in Network)模型 \[[13](#参考文献)\] 和Inception模块，因为GoogLeNet模型由多组Inception模块组成，模型设计借鉴了NIN的一些思想。
 
 NIN模型主要有两个特点：
 
@@ -110,17 +122,17 @@ Inception模块如下图7所示，图(a)是最简单的设计，输出是3个卷
 图7. Inception模块
 </p>
 
-GoogleNet由多组Inception模块堆积而成。另外，在网络最后也没有采用传统的多层全连接层，而是像NIN网络一样采用了均值池化层；但与NIN不同的是，GoogleNet在池化层后加了一个全连接层来映射类别数。除了这两个特点之外，由于网络中间层特征也很有判别性，GoogleNet在中间层添加了两个辅助分类器，在后向传播中增强梯度并且增强正则化，而整个网络的损失函数是这个三个分类器的损失加权求和。
+GoogLeNet由多组Inception模块堆积而成。另外，在网络最后也没有采用传统的多层全连接层，而是像NIN网络一样采用了均值池化层；但与NIN不同的是，GoogLeNet在池化层后加了一个全连接层来映射类别数。除了这两个特点之外，由于网络中间层特征也很有判别性，GoogLeNet在中间层添加了两个辅助分类器，在后向传播中增强梯度并且增强正则化，而整个网络的损失函数是这个三个分类器的损失加权求和。
 
-GoogleNet整体网络结构如图8所示，总共22层网络：开始由3层普通的卷积组成；接下来由三组子网络组成，第一组子网络包含2个Inception模块，第二组包含5个Inception模块，第三组包含2个Inception模块；然后接均值池化层、全连接层。
+GoogLeNet整体网络结构如图8所示，总共22层网络：开始由3层普通的卷积组成；接下来由三组子网络组成，第一组子网络包含2个Inception模块，第二组包含5个Inception模块，第三组包含2个Inception模块；然后接均值池化层、全连接层。
 
 <p align="center">
 <img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/googlenet.jpeg?raw=true" ><br/>
-图8. GoogleNet[12]
+图8. GoogLeNet[12]
 </p>
 
 
-上面介绍的是GoogleNet第一版模型(称作GoogleNet-v1)。GoogleNet-v2 \[[14](#参考文献)\] 引入BN层；GoogleNet-v3 \[[16](#参考文献)\] 对一些卷积层做了分解，进一步提高网络非线性能力和加深网络；GoogleNet-v4 \[[17](#参考文献)\] 引入下面要讲的ResNet设计思路。从v1到v4每一版的改进都会带来准确度的提升，介于篇幅，这里不再详细介绍v2到v4的结构。
+上面介绍的是GoogLeNet第一版模型(称作GoogLeNet-v1)。GoogLeNet-v2 \[[14](#参考文献)\] 引入BN层；GoogLeNet-v3 \[[16](#参考文献)\] 对一些卷积层做了分解，进一步提高网络非线性能力和加深网络；GoogLeNet-v4 \[[17](#参考文献)\] 引入下面要讲的ResNet设计思路。从v1到v4每一版的改进都会带来准确度的提升，介于篇幅，这里不再详细介绍v2到v4的结构。
 
 
 ### ResNet
@@ -209,7 +221,7 @@ def vgg_bn_drop(input):
 ```
 
 
-1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.networks`中预定义的模块，由若干组 Conv->BN->ReLu->Dropout 和 一组 Pooling 组成。
+1. 首先定义了一组卷积网络，即conv_block。卷积核大小为3x3，池化窗口大小为2x2，窗口滑动大小为2，groups决定每组VGG模块是几次连续的卷积操作，dropouts指定Dropout操作的概率。所使用的`img_conv_group`是在`paddle.nets`中预定义的模块，由若干组 Conv->BN->ReLu->Dropout 和 一组 Pooling 组成。
 
 2. 五组卷积操作，即 5个conv_block。 第一、二组采用两次连续的卷积操作。第三、四、五组采用三次连续的卷积操作。每组最后一个卷积后面Dropout概率为0，即不使用Dropout操作。
 
@@ -276,7 +288,7 @@ def layer_warp(block_func, input, ch_in, ch_out, count, stride):
 
 3. 最后对网络做均值池化并返回该层。
 
-注意：除第一层卷积层和最后一层全连接层之外，要求三组 `layer_warp` 总的含参层数能够被6整除，即 `resnet_cifar10` 的 depth 要满足 $(depth - 2) % 6 = 0$ 。
+注意：除第一层卷积层和最后一层全连接层之外，要求三组 `layer_warp` 总的含参层数能够被6整除，即 `resnet_cifar10` 的 depth 要满足(depth-2)%6=0 。
 
 ```python
 def resnet_cifar10(ipt, depth=32):
@@ -294,7 +306,7 @@ def resnet_cifar10(ipt, depth=32):
     return predict
 ```
 
-## Infererence Program 配置
+## Inference Program 配置
 
 网络输入定义为 `data_layer` (数据层)，在图像分类中即为图像像素信息。CIFRAR10是RGB 3通道32x32大小的彩色图，因此输入数据大小为3072(3x32x32)。
 
@@ -358,7 +370,7 @@ test_reader = paddle.batch(
 ```
 
 ### Trainer 程序的实现
-我们需要为训练过程制定一个main_program, 同样的，还需要为测试程序配置一个test_program。定义训练的 `place` ，并使用先前定义的优化器 `optimizer_func`。
+我们需要为训练过程制定一个main_program, 同样的，还需要为测试程序配置一个test_program。定义训练的 `place` ，并使用先前定义的优化器 `optimizer_program`。
 
 
 ```python
@@ -557,7 +569,7 @@ with fluid.scope_guard(inference_scope):
 
 ## 总结
 
-传统图像分类方法由多个阶段构成，框架较为复杂，而端到端的CNN模型结构可一步到位，而且大幅度提升了分类准确率。本文我们首先介绍VGG、GoogleNet、ResNet三个经典的模型；然后基于CIFAR10数据集，介绍如何使用PaddlePaddle配置和训练CNN模型，尤其是VGG和ResNet模型；最后介绍如何使用PaddlePaddle的API接口对图片进行预测和特征提取。对于其他数据集比如ImageNet，配置和训练流程是同样的，大家可以自行进行实验。
+传统图像分类方法由多个阶段构成，框架较为复杂，而端到端的CNN模型结构可一步到位，而且大幅度提升了分类准确率。本文我们首先介绍VGG、GoogLeNet、ResNet三个经典的模型；然后基于CIFAR10数据集，介绍如何使用PaddlePaddle配置和训练CNN模型，尤其是VGG和ResNet模型；最后介绍如何使用PaddlePaddle的API接口对图片进行预测和特征提取。对于其他数据集比如ImageNet，配置和训练流程是同样的，大家可以自行进行实验。
 
 <a name="参考文献"></a>
 ## 参考文献

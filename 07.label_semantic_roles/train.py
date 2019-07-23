@@ -7,6 +7,7 @@ import paddle.dataset.conll05 as conll05
 import paddle.fluid as fluid
 import six
 import time
+import argparse
 
 with_gpu = os.getenv('WITH_GPU', '0') != '0'
 
@@ -27,6 +28,20 @@ PASS_NUM = 10
 BATCH_SIZE = 10
 
 embedding_name = 'emb'
+
+
+def parse_args():
+    parser = argparse.ArgumentParser("label_semantic_roles")
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help="If set, run the task with continuous evaluation logs.")
+    parser.add_argument(
+        '--use_gpu', type=int, default=0, help="Whether to use GPU or not.")
+    parser.add_argument(
+        '--num_epochs', type=int, default=100, help="number of epochs.")
+    args = parser.parse_args()
+    return args
 
 
 def load_parameter(file_name, h, w):
@@ -122,6 +137,10 @@ def train(use_cuda, save_dirname=None, is_local=True):
     mark = fluid.layers.data(
         name='mark_data', shape=[1], dtype='int64', lod_level=1)
 
+    if args.enable_ce:
+        fluid.default_startup_program().random_seed = 90
+        fluid.default_main_program().random_seed = 90
+
     # define network topology
     feature_out = db_lstm(**locals())
     target = fluid.layers.data(
@@ -145,9 +164,13 @@ def train(use_cuda, save_dirname=None, is_local=True):
     crf_decode = fluid.layers.crf_decoding(
         input=feature_out, param_attr=fluid.ParamAttr(name='crfw'))
 
-    train_data = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.conll05.test(), buf_size=8192),
-        batch_size=BATCH_SIZE)
+    if args.enable_ce:
+        train_data = paddle.batch(
+            paddle.dataset.conll05.test(), batch_size=BATCH_SIZE)
+    else:
+        train_data = paddle.batch(
+            paddle.reader.shuffle(paddle.dataset.conll05.test(), buf_size=8192),
+            batch_size=BATCH_SIZE)
 
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
@@ -181,6 +204,9 @@ def train(use_cuda, save_dirname=None, is_local=True):
                             time.time() - start_time) / batch_id))
                     # Set the threshold low to speed up the CI test
                     if float(cost) < 60.0:
+                        if args.enable_ce:
+                            print("kpis\ttrain_cost\t%f" % cost)
+
                         if save_dirname is not None:
                             # TODO(liuyiqun): Change the target to crf_decode
                             fluid.io.save_inference_model(save_dirname, [
@@ -282,4 +308,8 @@ def main(use_cuda, is_local=True):
     infer(use_cuda, save_dirname)
 
 
-main(use_cuda=False)
+if __name__ == '__main__':
+    args = parse_args()
+    use_cuda = args.use_gpu
+    PASS_NUM = args.num_epochs
+    main(use_cuda)

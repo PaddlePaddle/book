@@ -63,6 +63,15 @@
 
 本章我们所要介绍的深度学习模型克服了BOW表示的上述缺陷，它在考虑词顺序的基础上把文本映射到低维度的语义空间，并且以端对端（end to end）的方式进行文本表示及分类，其性能相对于传统方法有显著的提升\[[1](#参考文献)\]。
 
+## 说明:
+1. 硬件环境要求：
+本文可支持在CPU、GPU下运行
+2. Docker镜像支持的CUDA/cuDNN版本：
+如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
+3. 文档和脚本中代码的一致性问题：
+请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/train_stacked_lstm.py)进行验证。
+
+
 ## 模型概览
 本章所使用的文本表示模型为卷积神经网络（Convolutional Neural Networks）和循环神经网络(Recurrent Neural Networks)及其扩展。下面依次介绍这几个模型。
 
@@ -90,7 +99,9 @@
 
 循环神经网络按时间展开后如图2所示：在第$t$时刻，网络读入第$t$个输入$x_t$（向量表示）及前一时刻隐层的状态值$h_{t-1}$（向量表示，$h_0$一般初始化为$0$向量），计算得出本时刻隐层的状态值$h_t$，重复这一步骤直至读完所有输入。如果将循环神经网络所表示的函数记为$f$，则其公式可表示为：
 
-$$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{t-1}+b_h)$$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_rnn.png?raw=true" width = "65%" align="center"/><br/>
+</p>
 
 其中$W_{xh}$是输入到隐层的矩阵参数，$W_{hh}$是隐层到隐层的矩阵参数，$b_h$为隐层的偏置向量（bias）参数，$\sigma$为$sigmoid$函数。  
 
@@ -102,14 +113,17 @@ $$h_t=f(x_t,h_{t-1})=\sigma(W_{xh}x_t+W_{hh}h_{t-1}+b_h)$$
 
 相比于简单的循环神经网络，LSTM增加了记忆单元$c$、输入门$i$、遗忘门$f$及输出门$o$。这些门及记忆单元组合起来大大提升了循环神经网络处理长序列数据的能力。若将基于LSTM的循环神经网络表示的函数记为$F$，则其公式为：
 
-$$ h_t=F(x_t,h_{t-1})$$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_lstm.png?raw=true" width = "30%" align="center"/><br/>
+</p>
+
 
 $F$由下列公式组合而成\[[7](#参考文献)\]：
-$$ i_t = \sigma{(W_{xi}x_t+W_{hi}h_{t-1}+W_{ci}c_{t-1}+b_i)} $$
-$$ f_t = \sigma(W_{xf}x_t+W_{hf}h_{t-1}+W_{cf}c_{t-1}+b_f) $$
-$$ c_t = f_t\odot c_{t-1}+i_t\odot tanh(W_{xc}x_t+W_{hc}h_{t-1}+b_c) $$
-$$ o_t = \sigma(W_{xo}x_t+W_{ho}h_{t-1}+W_{co}c_{t}+b_o) $$
-$$ h_t = o_t\odot tanh(c_t) $$
+
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_lstm_more.png?raw=true" width = "65%" align="center"/><br/>
+</p>
+
 其中，$i_t, f_t, c_t, o_t$分别表示输入门，遗忘门，记忆单元及输出门的向量值，带角标的$W$及$b$为模型参数，$tanh$为双曲正切函数，$\odot$表示逐元素（elementwise）的乘法操作。输入门控制着新输入进入记忆单元$c$的强度，遗忘门控制着记忆单元维持上一时刻值的强度，输出门控制着输出记忆单元的强度。三种门的计算方式类似，但有着完全不同的参数，它们各自以不同的方式控制着记忆单元$c$，如图3所示：
 
 <p align="center">
@@ -119,9 +133,11 @@ $$ h_t = o_t\odot tanh(c_t) $$
 
 LSTM通过给简单的循环神经网络增加记忆及控制门的方式，增强了其处理远距离依赖问题的能力。类似原理的改进还有Gated Recurrent Unit (GRU)\[[8](#参考文献)\]，其设计更为简洁一些。**这些改进虽然各有不同，但是它们的宏观描述却与简单的循环神经网络一样（如图2所示），即隐状态依据当前输入及前一时刻的隐状态来改变，不断地循环这一过程直至输入处理完毕：**
 
-$$ h_t=Recrurent(x_t,h_{t-1})$$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_recrurent.png?raw=true" width = "50%" align="center"/><br/>
+</p>
 
-其中，$Recrurent$可以表示简单的循环神经网络、GRU或LSTM。
+其中，$Recurrent$可以表示简单的循环神经网络、GRU或LSTM。
 
 ### 栈式双向LSTM（Stacked Bidirectional LSTM）
 
