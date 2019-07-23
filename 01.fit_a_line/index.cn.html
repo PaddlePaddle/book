@@ -178,7 +178,7 @@ import sys
 其中，在uci_housing模块中封装了：
 
 1. 数据下载的过程。下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data。
-2. [数据预处理](#数据预处理)的过程。
+2. 数据预处理的过程。
 
 接下来我们定义了用于训练的数据提供器。提供器每次读入一个大小为`BATCH_SIZE`的数据批次。如果用户希望加一些随机性，它可以同时定义一个批次大小和一个缓存大小。这样的话，每次数据提供器会从缓存中随机读取批次大小那么多的数据。
 
@@ -222,14 +222,18 @@ train_data = data[:offset]
 
 test_data = data[offset:]
 
+def reader(data):
+    for d in train_data:
+        yield d[:1], d[-1:]
+
 train_reader = paddle.batch(
     paddle.reader.shuffle(
-        train_data, buf_size=500),
+        reader(train_data), buf_size=500),
         batch_size=BATCH_SIZE)
 
 test_reader = paddle.batch(
     paddle.reader.shuffle(
-        test_data, buf_size=500),
+        reader(test_data), buf_size=500),
         batch_size=BATCH_SIZE)
 
 ### 配置训练程序
@@ -280,7 +284,7 @@ exe = fluid.Executor(place)
 [fluid.executor](http://www.paddlepaddle.org/documentation/docs/zh/develop/api_cn/fluid_cn.html#permalink-15-executor)
 
 ### 创建训练过程
-训练需要有一个训练程序和一些必要参数，并构建了一个获取训练过程中测试误差的函数。必要参数有executor,program,reader,feeder,fetch_list，executor表示之前创建的执行器，program表示执行器所执行的program，是之前创建的program，如果该项参数没有给定的话则默认使用defalut_main_program，reader表示读取到的数据，feeder表示前向输入的变量，fetch_list表示用户想得到的变量或者命名的结果。
+训练需要有一个训练程序和一些必要参数，并构建了一个获取训练过程中测试误差的函数。必要参数有executor,program,reader,feeder,fetch_list，executor表示之前创建的执行器，program表示执行器所执行的program，是之前创建的program，如果该项参数没有给定的话则默认使用default_main_program，reader表示读取到的数据，feeder表示前向输入的变量，fetch_list表示用户想得到的变量或者命名的结果。
 
 ```python
 num_epochs = 100
