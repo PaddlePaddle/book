@@ -399,7 +399,7 @@ prediction, [avg_loss, acc] = train_program()
 # 输入的原始图像数据，名称为img，大小为28*28*1
 # 标签层，名称为label,对应输入图片的类别标签
 # 告知网络传入的数据分为两部分，第一部分是img值，第二部分是label值
-feeder = fluid.DataFeeder(feed_list=[‘img’, ‘label’], place=place)
+feeder = fluid.DataFeeder(feed_list=['img', 'label'], place=place)
 
 # 选择Adam优化器
 optimizer = optimizer_program()
