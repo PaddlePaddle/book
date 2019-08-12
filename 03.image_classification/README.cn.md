@@ -146,7 +146,7 @@ ResNet(Residual Network) \[[15](#参考文献)\] 是2015年ImageNet图像分类�
 图9. 残差模块
 </p>
 
-图10展示了50、101、152层网络连接示意图，使用的是瓶颈模块。这三个模型的区别在于每组中残差模块的重复次数不同(见图右上角)。ResNet训练收敛较快，成功的训练了上百乃至近千层的卷积神经网络。
+图10展示了50、116、152层网络连接示意图，使用的是瓶颈模块。这三个模型的区别在于每组中残差模块的重复次数不同(见图右上角)。ResNet训练收敛较快，成功的训练了上百乃至近千层的卷积神经网络。
 
 <p align="center">
 <img src="https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/image/resnet.png?raw=true"><br/>
