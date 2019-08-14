@@ -180,14 +180,10 @@ train_data = data[:offset]
 
 test_data = data[offset:]
 
-def reader_creator(train_data):
-
-    def reader():
-
-        for d in train_data:
-
-            yield d[:-1], d[-1:]
-
+def reader_creator(train_data):  
+    def reader():  
+        for d in train_data:  
+            yield d[:-1], d[-1:]  
     return reader
 
 train_reader = paddle.batch(
