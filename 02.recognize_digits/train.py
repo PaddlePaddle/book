@@ -15,13 +15,28 @@
 from __future__ import print_function
 
 import os
+import argparse
 from PIL import Image
 import numpy
 import paddle
 import paddle.fluid as fluid
 
-BATCH_SIZE = 64
-PASS_NUM = 5
+
+def parse_args():
+    parser = argparse.ArgumentParser("mnist")
+    parser.add_argument(
+        '--enable_ce',
+        action='store_true',
+        help="If set, run the task with continuous evaluation logs.")
+    parser.add_argument(
+        '--use_gpu',
+        type=bool,
+        default=False,
+        help="Whether to use GPU or not.")
+    parser.add_argument(
+        '--num_epochs', type=int, default=5, help="number of epochs.")
+    args = parser.parse_args()
+    return args
 
 
 def loss_net(hidden, label):
@@ -69,6 +84,23 @@ def train(nn_type,
     if use_cuda and not fluid.core.is_compiled_with_cuda():
         return
 
+    startup_program = fluid.default_startup_program()
+    main_program = fluid.default_main_program()
+
+    if args.enable_ce:
+        train_reader = paddle.batch(
+            paddle.dataset.mnist.train(), batch_size=BATCH_SIZE)
+        test_reader = paddle.batch(
+            paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
+        startup_program.random_seed = 90
+        main_program.random_seed = 90
+    else:
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=500),
+            batch_size=BATCH_SIZE)
+        test_reader = paddle.batch(
+            paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
+
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
     label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 
@@ -81,8 +113,7 @@ def train(nn_type,
 
     prediction, avg_loss, acc = net_conf(img, label)
 
-    test_program = fluid.default_main_program().clone(for_test=True)
-
+    test_program = main_program.clone(for_test=True)
     optimizer = fluid.optimizer.Adam(learning_rate=0.001)
     optimizer.minimize(avg_loss)
 
@@ -105,15 +136,8 @@ def train(nn_type,
 
     exe = fluid.Executor(place)
 
-    train_reader = paddle.batch(
-        paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=500),
-        batch_size=BATCH_SIZE)
-    test_reader = paddle.batch(
-        paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
     feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
-
-    exe.run(fluid.default_startup_program())
-    main_program = fluid.default_main_program()
+    exe.run(startup_program)
     epochs = [epoch_id for epoch_id in range(PASS_NUM)]
 
     lists = []
@@ -125,7 +149,7 @@ def train(nn_type,
                 feed=feeder.feed(data),
                 fetch_list=[avg_loss, acc])
             if step % 100 == 0:
-                print("Pass %d, Batch %d, Cost %f" % (step, epoch_id,
+                print("Pass %d, Epoch %d, Cost %f" % (step, epoch_id,
                                                       metrics[0]))
             step += 1
         # test for epoch
@@ -143,6 +167,11 @@ def train(nn_type,
                 exe,
                 model_filename=model_filename,
                 params_filename=params_filename)
+
+    if args.enable_ce:
+        print("kpis\ttrain_cost\t%f" % metrics[0])
+        print("kpis\ttest_cost\t%s" % avg_loss_val)
+        print("kpis\ttest_acc\t%s" % acc_val)
 
     # find the best pass
     best = sorted(lists, key=lambda list: float(list[1]))[0]
@@ -210,7 +239,10 @@ def main(use_cuda, nn_type):
 
 
 if __name__ == '__main__':
-    use_cuda = False
+    args = parse_args()
+    BATCH_SIZE = 64
+    PASS_NUM = args.num_epochs
+    use_cuda = args.use_gpu
     # predict = 'softmax_regression' # uncomment for Softmax
     # predict = 'multilayer_perceptron' # uncomment for MLP
     predict = 'convolutional_neural_network'  # uncomment for LeNet5
