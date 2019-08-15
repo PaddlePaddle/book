@@ -176,11 +176,12 @@ Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
 让我们从导入 Paddle Fluid API 和辅助模块开始。
 
 ```python
+
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import sys
-from __future__ import print_function
 
 ```
 

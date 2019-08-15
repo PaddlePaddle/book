@@ -87,6 +87,10 @@ DCGAN中的生成器（G）结构如下图所示：
 首先加载 PaddlePaddle 的 Fluid 和其他相关包
 
 ```python
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
 import os
 import matplotlib
@@ -101,9 +105,6 @@ import paddle.fluid as fluid
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 ```
 ### 定义辅助工具
 
