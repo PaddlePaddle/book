@@ -134,9 +134,10 @@ Paddle在API中提供了自动加载数据的模块。数据模块为 `paddle.da
 
 
 ```python
+from __future__ import print_function
 import paddle
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
 
@@ -152,7 +153,7 @@ print movie_info.values()[0]
 
 ```python
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
     <MovieInfo id(1), title(Toy Story ), categories(['Animation', "Children's", 'Comedy'])>
@@ -163,7 +164,7 @@ print movie_info.values()[0]
 
 ```python
 user_info = paddle.dataset.movielens.user_info()
-print user_info.values()[0]
+print(list(user_info.values())[0])
 ```
 
     <UserInfo id(1), gender(F), age(1), job(10)>
@@ -216,7 +217,7 @@ train_set_creator = paddle.dataset.movielens.train()
 train_sample = next(train_set_creator())
 uid = train_sample[0]
 mov_id = train_sample[len(user_info[uid].value())]
-print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1])
+print ("User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1]))
 ```
 
     User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest ), categories(['Drama'])> with Score [5.0]
@@ -232,7 +233,6 @@ print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id]
 
 
 ```python
-from __future__ import print_function
 import math
 import sys
 import numpy as np
