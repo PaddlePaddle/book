@@ -173,7 +173,7 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
     # Calculate word vectorvector
     emb = fluid.layers.embedding(
-        input=data, size=[input_dim, emb_dim], is_sparse=True)=True)
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     #First stack
     #Fully connected layer
