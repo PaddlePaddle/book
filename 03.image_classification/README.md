@@ -170,11 +170,12 @@ After running the command `python train.py`, training will start immediately. Th
 Let's start with importing the Paddle Fluid API package and the helper modules.
 
 ```python
+
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import sys
-from __future__ import print_function
 
 ```
 
