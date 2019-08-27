@@ -238,7 +238,7 @@ dream that one day <e>
 
 from __future__ import print_function
 
-import paddle as paddle
+import paddle
 import paddle.fluid as fluid
 import six
 import numpy
