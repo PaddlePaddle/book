@@ -21,7 +21,7 @@
 请看下面的例子，“遇到” 是谓词（Predicate，通常简写为“Pred”），“小明”是施事者（Agent），“小红”是受事者（Patient），“昨天” 是事件发生的时间（Time），“公园”是事情发生的地点（Location）。
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn1.png"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn1.png?raw=true"><br/>
 </p>
 
 
@@ -101,20 +101,20 @@ CRF是一种概率化结构模型，可以看作是一个概率无向图模型�
 根据线性链条件随机场上的因子分解定理\[[5](#参考文献)\]，在给定观测序列$X$时，一个特定标记序列$Y$的概率可以定义为：
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn2.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn2.gif?raw=true"><br/>
 </p>
 
 其中$Z(X)$是归一化因子，$t_j$ 是定义在边上的特征函数，依赖于当前和前一个位置，称为转移特征，表示对于输入序列$X$及其标注序列在 $i$及$i - 1$位置上标记的转移概率。$s_k$是定义在结点上的特征函数，称为状态特征，依赖于当前位置，表示对于观察序列$X$及其$i$位置的标记概率。$\lambda_j$ 和 $\mu_k$ 分别是转移特征函数和状态特征函数对应的权值。实际上，$t$和$s$可以用相同的数学形式表示，再对转移特征和状态特在各个位置$i$求和有：$f_{k}(Y, X) = \sum_{i=1}^{n}f_k({y_{i - 1}, y_i, X, i})$，把$f$统称为特征函数，于是$P(Y|X)$可表示为：
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn3.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn3.gif?raw=true"><br/>
 </p>
 
 
 $\omega$是特征函数对应的权值，是CRF模型要学习的参数。训练时，对于给定的输入序列和对应的标记序列集合$D = \left[(X_1,  Y_1), (X_2 , Y_2) , ... , (X_N, Y_N)\right]$ ，通过正则化的极大似然估计，求解如下优化目标：
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn4.png"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/07.label_semantic_roles/image/Eqn4.png?raw=true"><br/>
 </p>
 
 这个优化目标可以通过反向传播算法和整个神经网络一起求解。解码时，对于给定的输入序列$X$，通过解码算法（通常有：维特比算法、Beam Search）求令出条件概率$\bar{P}(Y|X)$最大的输出序列 $\bar{Y}$。
