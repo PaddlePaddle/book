@@ -159,7 +159,7 @@ def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
     return prediction
 ```
 
-The network input `input_dim` indicates the size of the dictionary, and `class_dim` indicates the number of categories. Here, we implement the convolution and pooling operations using the [`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API.
+The network input `input_dim` indicates the size of the dictionary, and `class_dim` indicates the number of categories. Here, we implement the convolution and pooling operations using the [`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/fluid/nets.py) API.
 
 <a name="Stack value bidirectional LSTM"></a>
 
