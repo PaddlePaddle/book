@@ -3,10 +3,21 @@
 
 本教程源代码目录在[book/fit_a_line](https://github.com/PaddlePaddle/book/tree/develop/01.fit_a_line)， 初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
+### 说明：
+1.硬件环境要求：
+本文可支持在CPU、GPU下运行
+2. Docker镜像支持的CUDA/cuDNN版本：
+如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
+3. 文档和脚本中代码的一致性问题：
+请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/train.py)进行验证。
+
 ## 背景介绍
 给定一个大小为$n$的数据集  ${\{y_{i}, x_{i1}, ..., x_{id}\}}_{i=1}^{n}$，其中$x_{i1}, \ldots, x_{id}$是第$i$个样本$d$个属性上的取值，$y_i$是该样本待预测的目标。线性回归模型假设目标$y_i$可以被属性间的线性组合描述，即
 
-$$y_i = \omega_1x_{i1} + \omega_2x_{i2} + \ldots + \omega_dx_{id} + b,  i=1,\ldots,n$$
+
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_1.png?raw=true" width=550><br/>
+</p>
 
 例如，在我们将要建模的房价预测问题里，$x_{ij}$是描述房子$i$的各种属性（比如房间的个数、周围学校和医院的个数、交通状况等），而 $y_i$是房屋的价格。
 
@@ -25,7 +36,9 @@ $$y_i = \omega_1x_{i1} + \omega_2x_{i2} + \ldots + \omega_dx_{id} + b,  i=1,\ldo
 
 在波士顿房价数据集中，和房屋相关的值共有14个：前13个用来描述房屋相关的各种信息，即模型中的 $x_i$；最后一个值为我们要预测的该类房屋价格的中位数，即模型中的 $y_i$。因此，我们的模型就可以表示成：
 
-$$\hat{Y} = \omega_1X_{1} + \omega_2X_{2} + \ldots + \omega_{13}X_{13} + b$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_2.png?raw=true" width=350><br/>
+</p>
 
 $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要学习的参数即：$\omega_1, \ldots, \omega_{13}, b$。
 
@@ -33,13 +46,17 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 
 对于线性回归模型来讲，最常见的损失函数就是均方误差（Mean Squared Error， [MSE](https://en.wikipedia.org/wiki/Mean_squared_error)）了，它的形式是：
 
-$$MSE=\frac{1}{n}\sum_{i=1}^{n}{(\hat{Y_i}-Y_i)}^2$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_3.png?raw=true" width=200><br/>
+</p>
 
 即对于一个大小为$n$的测试集，$MSE$是$n$个数据预测结果误差平方的均值。
 
 对损失函数进行优化所采用的方法一般为梯度下降法。梯度下降法是一种一阶最优化算法。如果$f(x)$在点$x_n$有定义且可微，则认为$f(x)$在点$x_n$沿着梯度的负方向$-▽f(x_n)$下降的是最快的。反复调节$x$，使得$f(x)$接近最小值或者极小值，调节的方式为：
 
-$$x_n+1=x_n-λ▽f(x), n≧0$$
+<p align="center">
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/01.fit_a_line/image/formula_fit_a_line_4.png?raw=true" width=250><br/>
+</p>
 
 其中λ代表学习率。这种调节的方法称为梯度下降法。
 
@@ -101,17 +118,17 @@ $$x_n+1=x_n-λ▽f(x), n≧0$$
 
 ## 训练
 
-`fit_a_line/trainer.py`演示了训练的整体过程。
+`fit_a_line/train.py`演示了训练的整体过程。
 
 ### 配置数据提供器(Datafeeder)
 首先我们引入必要的库：
 ```python
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import math
 import sys
-from __future__ import print_function
 ```
 
 我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data)
@@ -119,7 +136,7 @@ from __future__ import print_function
 其中，在uci_housing模块中封装了：
 
 1. 数据下载的过程。下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data。
-2. [数据预处理](#数据预处理)的过程。
+2. 数据预处理的过程。
 
 接下来我们定义了用于训练的数据提供器。提供器每次读入一个大小为`BATCH_SIZE`的数据批次。如果用户希望加一些随机性，它可以同时定义一个批次大小和一个缓存大小。这样的话，每次数据提供器会从缓存中随机读取批次大小那么多的数据。
 
@@ -163,14 +180,18 @@ train_data = data[:offset]
 
 test_data = data[offset:]
 
+def reader(data):
+    for d in train_data:
+        yield d[:1], d[-1:]
+
 train_reader = paddle.batch(
     paddle.reader.shuffle(
-        train_data, buf_size=500),
+        reader(train_data), buf_size=500),
         batch_size=BATCH_SIZE)
 
 test_reader = paddle.batch(
     paddle.reader.shuffle(
-        test_data, buf_size=500),
+        reader(test_data), buf_size=500),
         batch_size=BATCH_SIZE)
 
 ### 配置训练程序
@@ -196,13 +217,14 @@ avg_loss = fluid.layers.mean(cost) # 对方差求均值，得到平均损失
 在下面的 `SGD optimizer`，`learning_rate` 是学习率，与网络的训练收敛速度有关系。
 
 ```python
-sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
-sgd_optimizer.minimize(avg_loss)
-
 #克隆main_program得到test_program
 #有些operator在训练和测试之间的操作是不同的，例如batch_norm，使用参数for_test来区分该程序是用来训练还是用来测试
 #该api不会删除任何操作符,请在backward和optimization之前使用
 test_program = main_program.clone(for_test=True)
+
+sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
+sgd_optimizer.minimize(avg_loss)
+
 ```
 
 ### 定义运算场所
@@ -220,7 +242,7 @@ exe = fluid.Executor(place)
 [fluid.executor](http://www.paddlepaddle.org/documentation/docs/zh/develop/api_cn/fluid_cn.html#permalink-15-executor)
 
 ### 创建训练过程
-训练需要有一个训练程序和一些必要参数，并构建了一个获取训练过程中测试误差的函数。必要参数有executor,program,reader,feeder,fetch_list，executor表示之前创建的执行器，program表示执行器所执行的program，是之前创建的program，如果该项参数没有给定的话则默认使用defalut_main_program，reader表示读取到的数据，feeder表示前向输入的变量，fetch_list表示用户想得到的变量或者命名的结果。
+训练需要有一个训练程序和一些必要参数，并构建了一个获取训练过程中测试误差的函数。必要参数有executor,program,reader,feeder,fetch_list，executor表示之前创建的执行器，program表示执行器所执行的program，是之前创建的program，如果该项参数没有给定的话则默认使用default_main_program，reader表示读取到的数据，feeder表示前向输入的变量，fetch_list表示用户想得到的变量或者命名的结果。
 
 ```python
 num_epochs = 100
@@ -237,24 +259,6 @@ def train_test(executor, program, reader, feeder, fetch_list):
     return [x_d / count for x_d in accumulated] # 计算平均损失
 
 ```
-可以直接输出损失值来观察`训练进程`:
-
-```python
-train_prompt = "train cost"
-test_prompt = "test cost"
-print("%s', out %f" % (train_prompt, out))
-print("%s', out %f" % (test_prompt, out))
-
-```
-
-除此之外，还可以通过画图，来展现`训练进程`：
-
-```python
-from paddle.utils.plot import ploter
-
-plot_prompt = ploter(train_prompt, test_prompt)
-
-```
 
 ### 训练主循环
 
@@ -264,8 +268,11 @@ plot_prompt = ploter(train_prompt, test_prompt)
 %matplotlib inline
 params_dirname = "fit_a_line.inference.model"
 feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
-naive_exe = fluid.Executor(place)
-naive_exe.run(startup_program)
+exe.run(startup_program)
+train_prompt = "train cost"
+test_prompt = "test cost"
+from paddle.utils.plot import Ploter
+plot_prompt = Ploter(train_prompt, test_prompt)
 step = 0
 
 exe_test = fluid.Executor(place)
@@ -280,10 +287,12 @@ for pass_id in range(num_epochs):
         avg_loss_value, = exe.run(main_program,
                                   feed=feeder.feed(data_train),
                                   fetch_list=[avg_loss])
-        if step % 10 == 0: # 每10个批次记录一下训练损失
+        if step % 10 == 0: # 每10个批次记录并输出一下训练损失
             plot_prompt.append(train_prompt, step, avg_loss_value[0])
             plot_prompt.plot()
-        if step % 100 == 0:  # 每100批次记录一下测试损失
+            print("%s, Step %d, Cost %f" %
+	                  (train_prompt, step, avg_loss_value[0]))
+        if step % 100 == 0:  # 每100批次记录并输出一下测试损失
             test_metics = train_test(executor=exe_test,
                                      program=test_program,
                                      reader=test_reader,
@@ -291,6 +300,8 @@ for pass_id in range(num_epochs):
                                      feeder=feeder)
             plot_prompt.append(test_prompt, step, test_metics[0])
             plot_prompt.plot()
+            print("%s, Step %d, Cost %f" %
+	                  (test_prompt, step, test_metics[0]))
             if test_metics[0] < 10.0: # 如果准确率达到要求，则停止训练
                 break
 
@@ -316,6 +327,24 @@ inference_scope = fluid.core.Scope()
 ```
 
 ### 预测
+
+保存图片
+```python
+def save_result(points1, points2):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    x1 = [idx for idx in range(len(points1))]
+    y1 = points1
+    y2 = points2
+    l1 = plt.plot(x1, y1, 'r--', label='predictions')
+    l2 = plt.plot(x1, y2, 'g--', label='GT')
+    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
+    plt.title('predictions VS GT')
+    plt.legend()
+    plt.savefig('./image/prediction_gt.png')
+```
+
 通过fluid.io.load_inference_model，预测器会从`params_dirname`中读取已经训练好的模型，来对从未遇见过的数据进行预测。
 
 ```python
@@ -337,37 +366,19 @@ with fluid.scope_guard(inference_scope):
     results = infer_exe.run(inference_program,
                             feed={feed_target_names[0]: numpy.array(infer_feat)},
                             fetch_list=fetch_targets) # 进行预测
+    #打印预测结果和标签并可视化结果
+    print("infer results: (House Price)")
+    for idx, val in enumerate(results[0]):
+        print("%d: %.2f" % (idx, val)) # 打印预测结果
+
+    print("\nground truth:")
+    for idx, val in enumerate(infer_label):
+        print("%d: %.2f" % (idx, val)) # 打印标签值
+
+    save_result(results[0], infer_label) # 保存图片
 ```
+由于每次都是随机选择一个minibatch的数据作为当前迭代的训练数据，所以每次得到的预测结果会有所不同。
 
-保存图片
-```python
-def save_result(points1, points2):
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    x1 = [idx for idx in range(len(points1))]
-    y1 = points1
-    y2 = points2
-    l1 = plt.plot(x1, y1, 'r--', label='predictions')
-    l2 = plt.plot(x1, y2, 'g--', label='GT')
-    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
-    plt.title('predictions VS GT')
-    plt.legend()
-    plt.savefig('./image/prediction_gt.png')
-```
-
-打印预测结果和标签并可视化结果
-```python
- print("infer results: (House Price)")
- for idx, val in enumerate(results[0]):
-     print("%d: %.2f" % (idx, val)) # 打印预测结果
-
- print("\nground truth:")
- for idx, val in enumerate(infer_label):
-     print("%d: %.2f" % (idx, val)) # 打印标签值
-
-save_result(results[0], infer_label) # 保存图片
-```
 
 ## 总结
 在这章里，我们借助波士顿房价这一数据集，介绍了线性回归模型的基本概念，以及如何使用PaddlePaddle实现训练和测试的过程。很多的模型和技巧都是从简单的线性回归模型演化而来，因此弄清楚线性模型的原理和局限非常重要。
@@ -380,4 +391,4 @@ save_result(results[0], infer_label) # 保存图片
 4. Bishop C M. Pattern recognition[J]. Machine Learning, 2006, 128.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。

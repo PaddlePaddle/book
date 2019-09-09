@@ -2,6 +2,14 @@
 
 本教程源代码目录在[book/recommender_system](https://github.com/PaddlePaddle/book/tree/develop/05.recommender_system),初次使用请您参考[Book文档使用说明](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md#运行这本书)。
 
+### 说明: ###
+1. 硬件环境要求：
+本文可支持在CPU、GPU下运行
+2. Docker镜像支持的CUDA/cuDNN版本：
+如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
+3. 文档和脚本中代码的一致性问题：
+请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/train.py)进行验证。
+
 ## 背景介绍
 
 在网络技术不断发展和电子商务规模不断扩大的背景下，商品数量和种类快速增长，用户需要花费大量时间才能找到自己想买的商品，这就是信息超载问题。为了解决这个难题，个性化推荐系统（Recommender System）应运而生。
@@ -54,7 +62,9 @@ YouTube是世界上最大的视频上传、分享和发现网站，YouTube个性
 
 对于一个用户$U$，预测此刻用户要观看的视频$\omega$为视频$i$的概率公式为：
 
-$$P(\omega=i|u)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/formula1.png?raw=true" width="20%" ><br/>
+</p>
 
 其中$u$为用户$U$的特征表示，$V$为视频库集合，$v_i$为视频库中第$i$个视频的特征表示。$u$和$v_i$为长度相等的向量，两者点积可以通过全连接层实现。
 
@@ -83,11 +93,15 @@ $$P(\omega=i|u)=\frac{e^{v_{i}u}}{\sum_{j \in V}e^{v_{j}u}}$$
 
 其次，进行卷积操作：把卷积核(kernel)$w\in\mathbb{R}^{hk}$应用于包含$h$个词的窗口$x_{i:i+h-1}$，得到特征$c_i=f(w\cdot x_{i:i+h-1}+b)$，其中$b\in\mathbb{R}$为偏置项（bias），$f$为非线性激活函数，如$sigmoid$。将卷积核应用于句子中所有的词窗口${x_{1:h},x_{2:h+1},\ldots,x_{n-h+1:n}}$，产生一个特征图（feature map）：
 
-$$c=[c_1,c_2,\ldots,c_{n-h+1}], c \in \mathbb{R}^{n-h+1}$$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/formula2.png?raw=true" width="40%" ><br/>
+</p>
 
 接下来，对特征图采用时间维度上的最大池化（max pooling over time）操作得到此卷积核对应的整句话的特征$\hat c$，它是特征图中所有元素的最大值：
 
-$$\hat c=max(c)$$
+<p align="center">
+<img src="https://github.com/PaddlePaddle/book/blob/develop/05.recommender_system/image/formula3.png?raw=true" width="15%" ><br/>
+</p>
 
 #### 融合推荐模型概览
 
@@ -120,9 +134,10 @@ Paddle在API中提供了自动加载数据的模块。数据模块为 `paddle.da
 
 
 ```python
+from __future__ import print_function
 import paddle
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
 
@@ -138,7 +153,7 @@ print movie_info.values()[0]
 
 ```python
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
     <MovieInfo id(1), title(Toy Story ), categories(['Animation', "Children's", 'Comedy'])>
@@ -149,7 +164,7 @@ print movie_info.values()[0]
 
 ```python
 user_info = paddle.dataset.movielens.user_info()
-print user_info.values()[0]
+print(list(user_info.values())[0])
 ```
 
     <UserInfo id(1), gender(F), age(1), job(10)>
@@ -202,7 +217,7 @@ train_set_creator = paddle.dataset.movielens.train()
 train_sample = next(train_set_creator())
 uid = train_sample[0]
 mov_id = train_sample[len(user_info[uid].value())]
-print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1])
+print ("User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1]))
 ```
 
     User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest ), categories(['Drama'])> with Score [5.0]
@@ -218,7 +233,6 @@ print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id]
 
 
 ```python
-from __future__ import print_function
 import math
 import sys
 import numpy as np
@@ -519,13 +533,13 @@ train_loop()
 ```python
 infer_movie_id = 783
 infer_movie_name = paddle.dataset.movielens.movie_info()[infer_movie_id].title
-user_id = fluid.create_lod_tensor([[1]], [[1]], place)
-gender_id = fluid.create_lod_tensor([[1]], [[1]], place)
-age_id = fluid.create_lod_tensor([[0]], [[1]], place)
-job_id = fluid.create_lod_tensor([[10]], [[1]], place)
-movie_id = fluid.create_lod_tensor([[783]], [[1]], place) # Hunchback of Notre Dame
-category_id = fluid.create_lod_tensor([[10, 8, 9]], [[3]], place) # Animation, Children's, Musical
-movie_title = fluid.create_lod_tensor([[1069, 4140, 2923, 710, 988]], [[5]],
+user_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
+gender_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
+age_id = fluid.create_lod_tensor([[np.int64(0)]], [[1]], place)
+job_id = fluid.create_lod_tensor([[np.int64(10)]], [[1]], place)
+movie_id = fluid.create_lod_tensor([[np.int64(783)]], [[1]], place) # Hunchback of Notre Dame
+category_id = fluid.create_lod_tensor([np.array([10, 8, 9], dtype='int64')], [[3]], place) # Animation, Children's, Musical
+movie_title = fluid.create_lod_tensor([np.array([1069, 4140, 2923, 710, 988], dtype='int64')], [[5]],
                                       place) # 'hunchback','of','notre','dame','the'
 ```
 
@@ -578,10 +592,10 @@ with fluid.scope_guard(inference_scope):
 2. Sarwar, Badrul, et al. "[Item-based collaborative filtering recommendation algorithms.](http://files.grouplens.org/papers/www10_sarwar.pdf)" *Proceedings of the 10th international conference on World Wide Web*. ACM, 2001.
 3. Kautz, Henry, Bart Selman, and Mehul Shah. "[Referral Web: combining social networks and collaborative filtering.](http://www.cs.cornell.edu/selman/papers/pdf/97.cacm.refweb.pdf)" Communications of the ACM 40.3 (1997): 63-65. APA
 4. [Peter Brusilovsky](https://en.wikipedia.org/wiki/Peter_Brusilovsky) (2007). *The Adaptive Web*. p. 325.
-5. Robin Burke , [Hybrid Web Recommender Systems](http://www.dcs.warwick.ac.uk/~acristea/courses/CS411/2010/Book%20-%20The%20Adaptive%20Web/HybridWebRecommenderSystems.pdf), pp. 377-408, The Adaptive Web, Peter Brusilovsky, Alfred Kobsa, Wolfgang Nejdl (Ed.), Lecture Notes in Computer Science, Springer-Verlag, Berlin, Germany, Lecture Notes in Computer Science, Vol. 4321, May 2007, 978-3-540-72078-2.
+5. Robin Burke , [Hybrid Web Recommender Systems](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.435.7538&rep=rep1&type=pdf), pp. 377-408, The Adaptive Web, Peter Brusilovsky, Alfred Kobsa, Wolfgang Nejdl (Ed.), Lecture Notes in Computer Science, Springer-Verlag, Berlin, Germany, Lecture Notes in Computer Science, Vol. 4321, May 2007, 978-3-540-72078-2.
 6. Yuan, Jianbo, et al. ["Solving Cold-Start Problem in Large-scale Recommendation Engines: A Deep Learning Approach."](https://arxiv.org/pdf/1611.05480v1.pdf) *arXiv preprint arXiv:1611.05480* (2016).
 7. Covington P, Adams J, Sargin E. [Deep neural networks for youtube recommendations](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45530.pdf)[C]//Proceedings of the 10th ACM Conference on Recommender Systems. ACM, 2016: 191-198.
 
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
