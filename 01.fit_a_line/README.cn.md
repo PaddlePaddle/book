@@ -154,7 +154,7 @@ test_reader = paddle.batch(
         batch_size=BATCH_SIZE)
 ```
 
-如果想直接从txt文件中读取数据的话，可以参考以下方式。
+如果想直接从txt文件中读取数据的话，可以参考以下方式(需要自行准备txt文件)。
 ```text
 feature_names = [
     'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',

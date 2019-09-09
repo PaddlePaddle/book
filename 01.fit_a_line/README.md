@@ -156,7 +156,7 @@ test_reader = paddle.batch(
         batch_size=BATCH_SIZE)
 ```
 
-If you want to read data directly from \*.txt file, you can refer to the method as follows.
+If you want to read data directly from \*.txt file, you can refer to the method as follows(need to prepare txt file by yourself).
 ```text
 feature_names = [
     'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
