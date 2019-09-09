@@ -154,30 +154,23 @@ test_reader = paddle.batch(
         batch_size=BATCH_SIZE)
 ```
 
-如果想直接从txt文件中读取数据的话，可以参考以下方式。
-
+如果想直接从txt文件中读取数据的话，可以参考以下方式(需要自行准备txt文件)。
+```text
 feature_names = [
     'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
     'PTRATIO', 'B', 'LSTAT', 'convert'
 ]
-
 feature_num = len(feature_names)
-
 data = numpy.fromfile(filename, sep=' ') # 从文件中读取原始数据
-
 data = data.reshape(data.shape[0] // feature_num, feature_num)
-
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
 
 for i in six.moves.range(feature_num-1):
- data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves可以兼容python2和python3
+   data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves可以兼容python2和python3
 
 ratio = 0.8 # 训练集和验证集的划分比例
-
 offset = int(data.shape[0]*ratio)
-
 train_data = data[:offset]
-
 test_data = data[offset:]
 
 def reader(data):
@@ -193,6 +186,7 @@ test_reader = paddle.batch(
     paddle.reader.shuffle(
         reader(test_data), buf_size=500),
         batch_size=BATCH_SIZE)
+```
 
 ### 配置训练程序
 训练程序的目的是定义一个训练模型的网络结构。对于线性回归来讲，它就是一个从输入到输出的简单的全连接层。更加复杂的结果，比如卷积神经网络，递归神经网络等会在随后的章节中介绍。训练程序必须返回`平均损失`作为第一个返回值，因为它会被后面反向传播算法所用到。
