@@ -199,29 +199,22 @@ test_reader = paddle.batch(
 ```
 
 If you want to read data directly from \*.txt file, you can refer to the method as follows.
-
+```text
 feature_names = [
     'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
     'PTRATIO', 'B', 'LSTAT', 'convert'
 ]
-
 feature_num = len(feature_names)
-
 data = numpy.fromfile(filename, sep=' ') # Read primary data from file
-
 data = data.reshape(data.shape[0] // feature_num, feature_num)
-
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
 
 for i in six.moves.range(feature_num-1):
- data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves is compatible to python2 and python3
+   data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves is compatible to python2 and python3
 
 ratio = 0.8 # distribution ratio of train dataset and verification dataset
-
 offset = int(data.shape[0]\*ratio)
-
 train_data = data[:offset]
-
 test_data = data[offset:]
 
 train_reader = paddle.batch(
@@ -233,6 +226,7 @@ test_reader = paddle.batch(
     paddle.reader.shuffle(
         test_data, buf_size=500),
         batch_size=BATCH_SIZE)
+```
 
 ### Configure Program for Training
 The aim of the program for training is to define a network structure of a training model. For linear regression, it is a simple fully connected layer from input to output. More complex result, such as Convolutional Neural Network and Recurrent Neural Network, will be introduced in later chapters. It must return `mean error` as the first return value in program for training, for that `mean error` will be used for BackPropagation.
