@@ -173,18 +173,20 @@ offset = int(data.shape[0]*ratio)
 train_data = data[:offset]
 test_data = data[offset:]
 
-def reader(data):
-    for d in train_data:
-        yield d[:1], d[-1:]
+def reader_creator(train_data):  
+    def reader():  
+        for d in train_data:  
+            yield d[:-1], d[-1:]  
+    return reader
 
 train_reader = paddle.batch(
     paddle.reader.shuffle(
-        reader(train_data), buf_size=500),
+        reader_creator(train_data), buf_size=500),
         batch_size=BATCH_SIZE)
 
 test_reader = paddle.batch(
     paddle.reader.shuffle(
-        reader(test_data), buf_size=500),
+        reader_creator(test_data), buf_size=500),
         batch_size=BATCH_SIZE)
 ```
 
