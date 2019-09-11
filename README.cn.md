@@ -43,6 +43,12 @@ docker run -d -p 8888:8888 hub.baidubce.com/paddlepaddle/book
 ```bash
 nvidia-docker run -d -p 8888:8888 paddlepaddle/book:latest-gpu
 ```
+如果您安装的是nvidia-docker2.0之后的版本，请使用如下命令运行：
+
+```bash
+docker run --gpus all -d -p 8888:8888 paddlepaddle/book:latest-gpu
+```
+
 
 或者使用国内的镜像请运行：
 
