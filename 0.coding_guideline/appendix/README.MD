@@ -1,0 +1,1 @@
+Stores some images here.

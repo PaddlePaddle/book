@@ -201,13 +201,13 @@ First, load packages:
 
 ```python
 
+from __future__ import print_function
+
 import paddle as paddle
 import paddle.fluid as fluid
 import six
 import numpy
 import math
-
-from __future__ import print_function
 
 ```
 
