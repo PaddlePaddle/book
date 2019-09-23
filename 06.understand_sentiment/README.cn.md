@@ -79,7 +79,7 @@
 $F$由下列公式组合而成\[[7](#参考文献)\]：
 
 <p align="center">
-<img src="https://github.com/lfchener/book/blob/develop/06.understand_sentiment/image/formula_lstm_more.png?raw=true" width = "65%" align="center"/><br/>
+<img src="https://github.com/PaddlePaddle/book/blob/develop/06.understand_sentiment/image/formula_lstm_more.png?raw=true" width = "65%" align="center"/><br/>
 </p>
 
 其中，$i_t, f_t, c_t, o_t$分别表示输入门，遗忘门，记忆单元及输出门的向量值，带角标的$W$及$b$为模型参数，$tanh$为双曲正切函数，$\odot$表示逐元素（elementwise）的乘法操作。输入门控制着新输入进入记忆单元$c$的强度，遗忘门控制着记忆单元维持上一时刻值的强度，输出门控制着输出记忆单元的强度。三种门的计算方式类似，但有着完全不同的参数，它们各自以不同的方式控制着记忆单元$c$，如图3所示：
