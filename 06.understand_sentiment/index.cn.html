@@ -193,7 +193,7 @@ BATCH_SIZE = 128  #batch的大小
 ```python
 #文本卷积神经网络
 def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
-    emb = fluid.layers.embedding(
+    emb = fluid.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
     conv_3 = fluid.nets.sequence_conv_pool(
         input=emb,
@@ -225,7 +225,7 @@ def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
     #计算词向量
-    emb = fluid.layers.embedding(
+    emb = fluid.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     #第一层栈
@@ -260,8 +260,8 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
 ```python
 def inference_program(word_dict):
-    data = fluid.layers.data(
-        name="words", shape=[1], dtype="int64", lod_level=1)
+    data = fluid.data(
+        name="words", shape=[-1], dtype="int64", lod_level=1)
 
     dict_dim = len(word_dict)
     net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
@@ -277,7 +277,7 @@ def inference_program(word_dict):
 
 ```python
 def train_program(prediction):
-    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
+    label = fluid.data(name="label", shape=[-1,1], dtype="int64")
     cost = fluid.layers.cross_entropy(input=prediction, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=prediction, label=label)
@@ -311,12 +311,12 @@ print("Loading IMDB word dict....")
 word_dict = paddle.dataset.imdb.word_dict()
 
 print ("Reading training data....")
-train_reader = paddle.batch(
+train_reader = fluid.io.batch(
     paddle.reader.shuffle(
         paddle.dataset.imdb.train(word_dict), buf_size=25000),
     batch_size=BATCH_SIZE)
 print("Reading testing data....")
-test_reader = paddle.batch(
+test_reader = fluid.io.batch(
     paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
 ```
 word_dict是一个字典序列，是词和label的对应关系，运行下一行可以看到具体内容：
@@ -443,11 +443,15 @@ reviews = [c.split() for c in reviews_str]
 
 UNK = word_dict['<unk>']
 lod = []
+base_shape = []
+
 for c in reviews:
-    lod.append([word_dict.get(words, UNK) for words in c])
+    re = np.array([np.int64(word_dict.get(words, UNK)) for words in c])
+    lod = np.concatenate([lod,re],axis = 0)
+    base_shape.insert(-1, re.shape[0])
 
-base_shape = [[len(c) for c in lod]]
-
+base_shape = [base_shape]
+lod = np.array(lod).astype('int64')
 tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
 ```
 
