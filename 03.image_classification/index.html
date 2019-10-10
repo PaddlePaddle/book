@@ -212,11 +212,12 @@ After running the command `python train.py`, training will start immediately. Th
 Let's start with importing the Paddle Fluid API package and the helper modules.
 
 ```python
+
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import sys
-from __future__ import print_function
 
 ```
 
@@ -582,11 +583,7 @@ with fluid.scope_guard(inference_scope):
     [inference_program, feed_target_names,
      fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
 
-        # The input's dimension of conv should be 4-D or 5-D.
-        # Use inference_transpiler to speedup
-    inference_transpiler_program = inference_program.clone()
-    t = fluid.transpiler.InferenceTranspiler()
-    t.transpile(inference_transpiler_program, place)
+
 
         # Construct feed as a dictionary of {feed_target_name: feed_target_data}
         # and results will contain a list of data corresponding to fetch_targets.
@@ -594,14 +591,7 @@ with fluid.scope_guard(inference_scope):
                       feed={feed_target_names[0]: img},
                       fetch_list=fetch_targets)
 
-    transpiler_results = exe.run(inference_transpiler_program,
-                                 feed={feed_target_names[0]: img},
-                                 fetch_list=fetch_targets)
 
-    assert len(results[0]) == len(transpiler_results[0])
-    for i in range(len(results[0])):
-        numpy.testing.assert_almost_equal(
-            results[0][i], transpiler_results[0][i], decimal=5)
 
     # infer label
     label_list = [
@@ -655,7 +645,7 @@ The traditional image classification method consists of multiple stages. The fra
 
 [17] Szegedy, C., Ioffe, S., Vanhoucke, V. [Inception-v4, inception-resnet and the impact of residual connections on learning](https://arxiv.org/abs/1602.07261). arXiv:1602.07261 (2016).
 
-[18] Everingham, M., Eslami, S. M. A., Van Gool, L., Williams, C. K. I., Winn, J. and Zisserman, A. [The Pascal Visual Object Classes Challenge: A Retrospective]((http://link.springer.com/article/10.1007/s11263-014-0733-5)). International Journal of Computer Vision, 111(1), 98-136, 2015.
+[18] Everingham, M., Eslami, S. M. A., Van Gool, L., Williams, C. K. I., Winn, J. and Zisserman, A. [The Pascal Visual Object Classes Challenge: A Retrospective](http://link.springer.com/article/10.1007/s11263-014-0733-5). International Journal of Computer Vision, 111(1), 98-136, 2015.
 
 [19] He, K., Zhang, X., Ren, S., and Sun, J. [Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification](https://arxiv.org/abs/1502.01852). ArXiv e-prints, February 2015.
 

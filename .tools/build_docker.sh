@@ -59,6 +59,10 @@ fi
 
 cat >> Dockerfile <<EOF
 RUN pip install -U nltk \
+    && python3 -m pip install --user --upgrade pip==9.0.3 \
+    && pip3 install -U nltk \
+    && pip3.6 install -U nltk \
+    && pip3.7 install -U nltk \
     && python /book/.tools/cache_dataset.py
 
 RUN ${update_mirror_cmd}
@@ -67,8 +71,17 @@ RUN ${update_mirror_cmd}
     apt-get -y install gcc curl git vim && \
     apt-get -y clean && \
     localedef -f UTF-8 -i en_US en_US.UTF-8 && \
-    pip install --upgrade pip && \
-    pip install -U notedown pillow matplotlib jupyter numpy requests scipy
+    pip install -U notedown pillow matplotlib jupyter numpy requests scipy && \
+    pip3 install -U notedown pillow matplotlib numpy requests scipy && \
+    pip3.6 install -U notedown pillow matplotlib numpy requests scipy && \
+    pip3.7 install -U notedown pillow matplotlib numpy requests scipy
+
+RUN pip3.6 install ipykernel && \
+    pip3.7 install ipykernel && \
+    python3.6 -m ipykernel install --name python3.6 && \
+    python3.7 -m ipykernel install --name python3.7 && \
+    pip3 install ipykernel && \
+    python3 -m ipykernel install --name python3
 
 RUN curl https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz -o go1.8.linux-amd64.tar.gz && \
     tar -zxvf go1.8.linux-amd64.tar.gz -C /usr/local/ && \
