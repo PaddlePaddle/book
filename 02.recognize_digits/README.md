@@ -174,7 +174,7 @@ import paddle.fluid as fluid
 ### Program Functions Configuration
 
 We need to configure `inference_program` function. We want to use this program to show three different classifiers, each of which is defined as a Python function.
-We need to input the image data into the classifier. Paddle provides a special layer `layer.data` for reading data.
+We need to input the image data into the classifier. Paddle provides a special layer `fluid.data` for reading data.
 Let's create a data layer to read the image and connect it to the network of classification.
 
 -Softmax regression: The results of the classification can be obtained only through a simple layer of simple fully connected layer with softmax as the activation function.
@@ -188,7 +188,7 @@ def softmax_regression():
     predict_image -- result of classification
     """
     # input original image data in size of 28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[-1, 1, 28, 28], dtype='float32')
     # With softmax as the fully connected layer of the activation function, the size of the output layer must be 10
     predict = fluid.layers.fc(
     input=img, size=10, act='softmax')
@@ -208,7 +208,7 @@ def multilayer_perceptron():
     predict_image -- result of classification
     """
     # input raw image data in size of 28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[-1, 1, 28, 28], dtype='float32')
     # the first fully connected layer, whose activation function is ReLU
     hidden = fluid.layers.fc(input=img, size=200, act='relu')
     # the second fully connected layer, whose activation function is ReLU
@@ -230,7 +230,7 @@ def convolutional_neural_network():
     predict -- result of classification
     """
     # input raw image data in size of 28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[-1, 1, 28, 28], dtype='float32')
     # the first convolution-pooling layer
     # Use 20 5*5 filters, the pooling size is 2, the pooling step is 2, and the activation function is Relu.
     conv_pool_1 = fluid.nets.simple_img_conv_pool(
@@ -275,7 +275,7 @@ def train_program():
 
     """
     # label layer, called label, correspondent with label category of input picture
-    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    label = fluid.data(name='label', shape=[-1, 1], dtype='int64')
 
     # predict = softmax_regression() # cancel note and run Softmax regression
     # predict = multilayer_perceptron() # cancel note and run multiple perceptron
