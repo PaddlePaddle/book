@@ -42,44 +42,18 @@ def parse_args():
 
 
 def dynamic_rnn_lstm(data, input_dim, class_dim, emb_dim, lstm_size):
-    emb = fluid.layers.embedding(
-        input=data, size=[input_dim, emb_dim], is_sparse=True)
-    sentence = fluid.layers.fc(input=emb, size=lstm_size, act='tanh')
+    emb = fluid.embedding(input=data, size=[input_dim, emb_dim], is_sparse=True)
+    sentence = fluid.layers.fc(input=emb, size=lstm_size * 4, act='tanh')
 
-    rnn = fluid.layers.DynamicRNN()
-    with rnn.block():
-        word = rnn.step_input(sentence)
-        prev_hidden = rnn.memory(value=0.0, shape=[lstm_size])
-        prev_cell = rnn.memory(value=0.0, shape=[lstm_size])
+    lstm, _ = fluid.layers.dynamic_lstm(sentence, size=lstm_size * 4)
 
-        def gate_common(ipt, hidden, size):
-            gate0 = fluid.layers.fc(input=ipt, size=size, bias_attr=True)
-            gate1 = fluid.layers.fc(input=hidden, size=size, bias_attr=False)
-            return gate0 + gate1
-
-        forget_gate = fluid.layers.sigmoid(x=gate_common(word, prev_hidden,
-                                                         lstm_size))
-        input_gate = fluid.layers.sigmoid(x=gate_common(word, prev_hidden,
-                                                        lstm_size))
-        output_gate = fluid.layers.sigmoid(x=gate_common(word, prev_hidden,
-                                                         lstm_size))
-        cell_gate = fluid.layers.sigmoid(x=gate_common(word, prev_hidden,
-                                                       lstm_size))
-
-        cell = forget_gate * prev_cell + input_gate * cell_gate
-        hidden = output_gate * fluid.layers.tanh(x=cell)
-        rnn.update_memory(prev_cell, cell)
-        rnn.update_memory(prev_hidden, hidden)
-        rnn.output(hidden)
-
-    last = fluid.layers.sequence_last_step(rnn())
+    last = fluid.layers.sequence_last_step(lstm)
     prediction = fluid.layers.fc(input=last, size=class_dim, act="softmax")
     return prediction
 
 
 def inference_program(word_dict):
-    data = fluid.layers.data(
-        name="words", shape=[1], dtype="int64", lod_level=1)
+    data = fluid.data(name="words", shape=[-1], dtype="int64", lod_level=1)
 
     dict_dim = len(word_dict)
     pred = dynamic_rnn_lstm(data, dict_dim, CLASS_DIM, EMB_DIM, LSTM_SIZE)
@@ -87,7 +61,7 @@ def inference_program(word_dict):
 
 
 def train_program(prediction):
-    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
+    label = fluid.data(name="label", shape=[-1, 1], dtype="int64")
     cost = fluid.layers.cross_entropy(input=prediction, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=prediction, label=label)
@@ -105,16 +79,16 @@ def train(use_cuda, params_dirname):
 
     print("Reading training data....")
     if args.enable_ce:
-        train_reader = paddle.batch(
+        train_reader = fluid.io.batch(
             paddle.dataset.imdb.train(word_dict), batch_size=BATCH_SIZE)
     else:
-        train_reader = paddle.batch(
+        train_reader = fluid.io.batch(
             paddle.reader.shuffle(
                 paddle.dataset.imdb.train(word_dict), buf_size=25000),
             batch_size=BATCH_SIZE)
 
     print("Reading testing data....")
-    test_reader = paddle.batch(
+    test_reader = fluid.io.batch(
         paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
 
     feed_order = ['words', 'label']
@@ -226,11 +200,15 @@ def infer(use_cuda, params_dirname=None):
 
         UNK = word_dict['<unk>']
         lod = []
+        base_shape = []
+
         for c in reviews:
-            lod.append([np.int64(word_dict.get(words, UNK)) for words in c])
+            re = np.array([np.int64(word_dict.get(words, UNK)) for words in c])
+            lod = np.concatenate([lod, re], axis=0)
+            base_shape.insert(-1, re.shape[0])
 
-        base_shape = [[len(c) for c in lod]]
-
+        base_shape = [base_shape]
+        lod = np.array(lod).astype('int64')
         tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
         assert feed_target_names[0] == "words"
         results = exe.run(
