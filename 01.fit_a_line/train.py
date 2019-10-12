@@ -87,8 +87,8 @@ def main():
             batch_size=batch_size)
 
     # feature vector of length 13
-    x = fluid.layers.data(name='x', shape=[13], dtype='float32')
-    y = fluid.layers.data(name='y', shape=[1], dtype='float32')
+    x = fluid.data(name='x', shape=[-1, 13], dtype='float32')
+    y = fluid.data(name='y', shape=[-1, 1], dtype='float32')
 
     main_program = fluid.default_main_program()
     startup_program = fluid.default_startup_program()
