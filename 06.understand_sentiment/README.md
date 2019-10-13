@@ -140,7 +140,7 @@ Note that `fluid.nets.sequence_conv_pool` contains both convolution and pooling 
 ```python
 #Textconvolution neural network
 def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
-    emb = fluid.embedding(
+    emb = fluid.layers.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
     conv_3 = fluid.nets.sequence_conv_pool(
         input=emb,
@@ -172,7 +172,7 @@ The code of the stack bidirectional LSTM `stacked_lstm_net` is as follows:
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
     # Calculate word vectorvector
-    emb = fluid.embedding(
+    emb = fluid.layers.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     #First stack
@@ -191,7 +191,7 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
         inputs = [fc, lstm]
 
     #pooling layer
-    fc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
+    pc_last = fluid.layers.sequence_pool(input=inputs[0], pool_type='max')
     lstm_last = fluid.layers.sequence_pool(input=inputs[1], pool_type='max')
 
     #Fully connected layer, softmax prediction
@@ -207,8 +207,8 @@ Next we define the prediction program (`inference_program`). We use `convolution
 
 ```python
 def inference_program(word_dict):
-    data = fluid.data(
-        name="words", shape=[-1], dtype="int64", lod_level=1)
+    data = fluid.layers.data(
+        name="words", shape=[1], dtype="int64", lod_level=1)
 
     dict_dim = len(word_dict)
     net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
@@ -224,7 +224,7 @@ During the testing, the classifier calculates the probability of each output. Th
 
 ```python
 def train_program(prediction):
-    label = fluid.data(name="label", shape=[-1, 1], dtype="int64")
+    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
     cost = fluid.layers.cross_entropy(input=prediction, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=prediction, label=label)
@@ -258,12 +258,12 @@ print("Loading IMDB word dict....")
 word_dict = paddle.dataset.imdb.word_dict()
 
 print ("Reading training data....")
-train_reader = fluid.io.batch(
+train_reader = paddle.batch(
     paddle.reader.shuffle(
         paddle.dataset.imdb.train(word_dict), buf_size=25000),
     batch_size=BATCH_SIZE)
 print("Reading testing data....")
-test_reader = fluid.io.batch(
+test_reader = paddle.batch(
     paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
 ```
 Word_dict is a dictionary sequence, which is the correspondence between words and labels. You can see it specifically by running the next code:
@@ -390,15 +390,11 @@ reviews = [c.split() for c in reviews_str]
 
 UNK = word_dict['<unk>']
 lod = []
-base_shape = []
-
 for c in reviews:
-    re = np.array([np.int64(word_dict.get(words, UNK)) for words in c])
-    lod = np.concatenate([lod,re],axis = 0)
-    base_shape.insert(-1, re.shape[0])
+    lod.append([word_dict.get(words, UNK) for words in c])
 
-base_shape = [base_shape]
-lod = np.array(lod).astype('int64')
+base_shape = [[len(c) for c in lod]]
+
 tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
 ```
 
