@@ -238,8 +238,8 @@ test_reader = paddle.batch(
 The aim of the program for training is to define a network structure of a training model. For linear regression, it is a simple fully connected layer from input to output. More complex result, such as Convolutional Neural Network and Recurrent Neural Network, will be introduced in later chapters. It must return `mean error` as the first return value in program for training, for that `mean error` will be used for BackPropagation.
 
 ```python
-x = fluid.data(name='x', shape=[-1, 13], dtype='float32') # define shape and data type of input
-y = fluid.data(name='y', shape=[-1, 1], dtype='float32') # define shape and data type of output
+x = fluid.layers.data(name='x', shape=[13], dtype='float32') # define shape and data type of input
+y = fluid.layers.data(name='y', shape=[1], dtype='float32') # define shape and data type of output
 y_predict = fluid.layers.fc(input=x, size=1, act=None) # fully connected layer connecting input and output
 
 main_program = fluid.default_main_program() # get default/global main function
