@@ -44,7 +44,7 @@ def get_usr_combined_features():
 
     USR_DICT_SIZE = paddle.dataset.movielens.max_user_id() + 1
 
-    uid = fluid.data(name='user_id', shape=[None], dtype='int64')
+    uid = fluid.data(name='user_id', shape=[-1], dtype='int64')
 
     usr_emb = fluid.embedding(
         input=uid,
@@ -57,7 +57,7 @@ def get_usr_combined_features():
 
     USR_GENDER_DICT_SIZE = 2
 
-    usr_gender_id = fluid.data(name='gender_id', shape=[None], dtype='int64')
+    usr_gender_id = fluid.data(name='gender_id', shape=[-1], dtype='int64')
 
     usr_gender_emb = fluid.embedding(
         input=usr_gender_id,
@@ -68,7 +68,7 @@ def get_usr_combined_features():
     usr_gender_fc = layers.fc(input=usr_gender_emb, size=16)
 
     USR_AGE_DICT_SIZE = len(paddle.dataset.movielens.age_table)
-    usr_age_id = fluid.data(name='age_id', shape=[None], dtype="int64")
+    usr_age_id = fluid.data(name='age_id', shape=[-1], dtype="int64")
 
     usr_age_emb = fluid.embedding(
         input=usr_age_id,
@@ -79,7 +79,7 @@ def get_usr_combined_features():
     usr_age_fc = layers.fc(input=usr_age_emb, size=16)
 
     USR_JOB_DICT_SIZE = paddle.dataset.movielens.max_job_id() + 1
-    usr_job_id = fluid.data(name='job_id', shape=[None], dtype="int64")
+    usr_job_id = fluid.data(name='job_id', shape=[-1], dtype="int64")
 
     usr_job_emb = fluid.embedding(
         input=usr_job_id,
@@ -101,7 +101,7 @@ def get_mov_combined_features():
 
     MOV_DICT_SIZE = paddle.dataset.movielens.max_movie_id() + 1
 
-    mov_id = fluid.data(name='movie_id', shape=[None], dtype='int64')
+    mov_id = fluid.data(name='movie_id', shape=[-1], dtype='int64')
 
     mov_emb = fluid.embedding(
         input=mov_id,
@@ -115,7 +115,7 @@ def get_mov_combined_features():
     CATEGORY_DICT_SIZE = len(paddle.dataset.movielens.movie_categories())
 
     category_id = fluid.data(
-        name='category_id', shape=[None], dtype='int64', lod_level=1)
+        name='category_id', shape=[-1], dtype='int64', lod_level=1)
 
     mov_categories_emb = fluid.embedding(
         input=category_id, size=[CATEGORY_DICT_SIZE, 32], is_sparse=IS_SPARSE)
@@ -126,7 +126,7 @@ def get_mov_combined_features():
     MOV_TITLE_DICT_SIZE = len(paddle.dataset.movielens.get_movie_title_dict())
 
     mov_title_id = fluid.data(
-        name='movie_title', shape=[None], dtype='int64', lod_level=1)
+        name='movie_title', shape=[-1], dtype='int64', lod_level=1)
 
     mov_title_emb = fluid.embedding(
         input=mov_title_id, size=[MOV_TITLE_DICT_SIZE, 32], is_sparse=IS_SPARSE)
@@ -153,7 +153,7 @@ def inference_program():
     inference = layers.cos_sim(X=usr_combined_features, Y=mov_combined_features)
     scale_infer = layers.scale(x=inference, scale=5.0)
 
-    label = fluid.data(name='score', shape=[None, 1], dtype='float32')
+    label = fluid.data(name='score', shape=[-1, 1], dtype='float32')
     square_cost = layers.square_error_cost(input=scale_infer, label=label)
     avg_cost = layers.mean(square_cost)
 
