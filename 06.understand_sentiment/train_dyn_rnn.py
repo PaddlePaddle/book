@@ -54,7 +54,6 @@ def dynamic_rnn_lstm(data, input_dim, class_dim, emb_dim, lstm_size):
 
 def inference_program(word_dict):
     data = fluid.data(name="words", shape=[None], dtype="int64", lod_level=1)
-
     dict_dim = len(word_dict)
     pred = dynamic_rnn_lstm(data, dict_dim, CLASS_DIM, EMB_DIM, LSTM_SIZE)
     return pred

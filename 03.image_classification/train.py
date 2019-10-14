@@ -40,8 +40,8 @@ def parse_args():
 
 def inference_network():
     # The image is 32 * 32 with RGB representation.
-    data_shape = [3, 32, 32]
-    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+    data_shape = [None, 3, 32, 32]
+    images = fluid.data(name='pixel', shape=data_shape, dtype='float32')
 
     predict = resnet_cifar10(images, 32)
     # predict = vgg_bn_drop(images) # un-comment to use vgg net
@@ -49,7 +49,7 @@ def inference_network():
 
 
 def train_network(predict):
-    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=predict, label=label)

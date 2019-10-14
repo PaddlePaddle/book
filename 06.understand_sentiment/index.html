@@ -251,7 +251,6 @@ Next we define the prediction program (`inference_program`). We use `convolution
 def inference_program(word_dict):
     data = fluid.data(
         name="words", shape=[None], dtype="int64", lod_level=1)
-
     dict_dim = len(word_dict)
     net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
     # net = stacked_lstm_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM, STACKED_NUM)

@@ -305,13 +305,13 @@ def resnet_cifar10(ipt, depth=32):
 
 ## Inference Program Configuration
 
-The input to the network is defined as `fluid.layers.data` , corresponding to image pixels in the context of image classification. The images in CIFAR10 are 32x32 coloured images with three channels. Therefore, the size of the input data is 3072 (3x32x32).
+The input to the network is defined as `fluid.data` , corresponding to image pixels in the context of image classification. The images in CIFAR10 are 32x32 coloured images with three channels. Therefore, the size of the input data is 3072 (3x32x32).
 
 ```python
 def inference_program():
     # The image is 32 * 32 with RGB representation.
-    data_shape = [3, 32, 32]
-    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+    data_shape = [None, 3, 32, 32]
+    images = fluid.data(name='pixel', shape=data_shape, dtype='float32')
 
     predict = resnet_cifar10(images, 32)
     # predict = vgg_bn_drop(images) # un-comment to use vgg net
@@ -322,7 +322,7 @@ def inference_program():
 Then we need to set up the the `train_program`. It takes the prediction from the inference_program first.
 During the training, it will calculate the `avg_loss` from the prediction.
 
-In the context of supervised learning, labels of training images are defined in `fluid.layers.data` as well. During training, the multi-class cross-entropy is used as the loss function and becomes the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
+In the context of supervised learning, labels of training images are defined in `fluid.data` as well. During training, the multi-class cross-entropy is used as the loss function and becomes the output of the network. During testing, the outputs are the probabilities calculated in the classifier.
 
 **NOTE:** A training program should return an array and the first returned argument has to be `avg_cost` .
 The trainer always uses it to calculate the gradients.
@@ -331,7 +331,7 @@ The trainer always uses it to calculate the gradients.
 def train_program():
     predict = inference_program()
 
-    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=predict, label=label)
