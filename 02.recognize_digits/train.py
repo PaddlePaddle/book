@@ -101,8 +101,8 @@ def train(nn_type,
         test_reader = paddle.batch(
             paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
 
-    img = fluid.data(name='img', shape=[-1, 1, 28, 28], dtype='float32')
-    label = fluid.data(name='label', shape=[-1, 1], dtype='int64')
+    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 
     if nn_type == 'softmax_regression':
         net_conf = softmax_regression
