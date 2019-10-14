@@ -236,8 +236,8 @@ test_reader = paddle.batch(
 训练程序的目的是定义一个训练模型的网络结构。对于线性回归来讲，它就是一个从输入到输出的简单的全连接层。更加复杂的结果，比如卷积神经网络，递归神经网络等会在随后的章节中介绍。训练程序必须返回`平均损失`作为第一个返回值，因为它会被后面反向传播算法所用到。
 
 ```python
-x = fluid.data(name='x', shape=[-1, 13], dtype='float32') # 定义输入的形状和数据类型
-y = fluid.data(name='y', shape=[-1, 1], dtype='float32') # 定义输出的形状和数据类型
+x = fluid.data(name='x', shape=[None, 13], dtype='float32') # 定义输入的形状和数据类型
+y = fluid.data(name='y', shape=[None, 1], dtype='float32') # 定义输出的形状和数据类型
 y_predict = fluid.layers.fc(input=x, size=1, act=None) # 连接输入和输出的全连接层
 
 main_program = fluid.default_main_program() # 获取默认/全局主函数
