@@ -44,9 +44,9 @@ def get_usr_combined_features():
 
     USR_DICT_SIZE = paddle.dataset.movielens.max_user_id() + 1
 
-    uid = fluid.data(name='user_id', shape=[-1], dtype='int64')
+    uid = layers.data(name='user_id', shape=[1], dtype='int64')
 
-    usr_emb = fluid.embedding(
+    usr_emb = layers.embedding(
         input=uid,
         dtype='float32',
         size=[USR_DICT_SIZE, 32],
@@ -57,9 +57,9 @@ def get_usr_combined_features():
 
     USR_GENDER_DICT_SIZE = 2
 
-    usr_gender_id = fluid.data(name='gender_id', shape=[-1], dtype='int64')
+    usr_gender_id = layers.data(name='gender_id', shape=[1], dtype='int64')
 
-    usr_gender_emb = fluid.embedding(
+    usr_gender_emb = layers.embedding(
         input=usr_gender_id,
         size=[USR_GENDER_DICT_SIZE, 16],
         param_attr='gender_table',
@@ -68,9 +68,9 @@ def get_usr_combined_features():
     usr_gender_fc = layers.fc(input=usr_gender_emb, size=16)
 
     USR_AGE_DICT_SIZE = len(paddle.dataset.movielens.age_table)
-    usr_age_id = fluid.data(name='age_id', shape=[-1], dtype="int64")
+    usr_age_id = layers.data(name='age_id', shape=[1], dtype="int64")
 
-    usr_age_emb = fluid.embedding(
+    usr_age_emb = layers.embedding(
         input=usr_age_id,
         size=[USR_AGE_DICT_SIZE, 16],
         is_sparse=IS_SPARSE,
@@ -79,9 +79,9 @@ def get_usr_combined_features():
     usr_age_fc = layers.fc(input=usr_age_emb, size=16)
 
     USR_JOB_DICT_SIZE = paddle.dataset.movielens.max_job_id() + 1
-    usr_job_id = fluid.data(name='job_id', shape=[-1], dtype="int64")
+    usr_job_id = layers.data(name='job_id', shape=[1], dtype="int64")
 
-    usr_job_emb = fluid.embedding(
+    usr_job_emb = layers.embedding(
         input=usr_job_id,
         size=[USR_JOB_DICT_SIZE, 16],
         param_attr='job_table',
@@ -101,9 +101,9 @@ def get_mov_combined_features():
 
     MOV_DICT_SIZE = paddle.dataset.movielens.max_movie_id() + 1
 
-    mov_id = fluid.data(name='movie_id', shape=[-1], dtype='int64')
+    mov_id = layers.data(name='movie_id', shape=[1], dtype='int64')
 
-    mov_emb = fluid.embedding(
+    mov_emb = layers.embedding(
         input=mov_id,
         dtype='float32',
         size=[MOV_DICT_SIZE, 32],
@@ -114,10 +114,10 @@ def get_mov_combined_features():
 
     CATEGORY_DICT_SIZE = len(paddle.dataset.movielens.movie_categories())
 
-    category_id = fluid.data(
-        name='category_id', shape=[-1], dtype='int64', lod_level=1)
+    category_id = layers.data(
+        name='category_id', shape=[1], dtype='int64', lod_level=1)
 
-    mov_categories_emb = fluid.embedding(
+    mov_categories_emb = layers.embedding(
         input=category_id, size=[CATEGORY_DICT_SIZE, 32], is_sparse=IS_SPARSE)
 
     mov_categories_hidden = layers.sequence_pool(
@@ -125,10 +125,10 @@ def get_mov_combined_features():
 
     MOV_TITLE_DICT_SIZE = len(paddle.dataset.movielens.get_movie_title_dict())
 
-    mov_title_id = fluid.data(
-        name='movie_title', shape=[-1], dtype='int64', lod_level=1)
+    mov_title_id = layers.data(
+        name='movie_title', shape=[1], dtype='int64', lod_level=1)
 
-    mov_title_emb = fluid.embedding(
+    mov_title_emb = layers.embedding(
         input=mov_title_id, size=[MOV_TITLE_DICT_SIZE, 32], is_sparse=IS_SPARSE)
 
     mov_title_conv = nets.sequence_conv_pool(
@@ -153,7 +153,7 @@ def inference_program():
     inference = layers.cos_sim(X=usr_combined_features, Y=mov_combined_features)
     scale_infer = layers.scale(x=inference, scale=5.0)
 
-    label = fluid.data(name='score', shape=[-1, 1], dtype='float32')
+    label = layers.data(name='score', shape=[1], dtype='float32')
     square_cost = layers.square_error_cost(input=scale_infer, label=label)
     avg_cost = layers.mean(square_cost)
 
@@ -168,15 +168,16 @@ def train(use_cuda, params_dirname):
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 
     if args.enable_ce:
-        train_reader = fluid.io.batch(
+        train_reader = paddle.batch(
             paddle.dataset.movielens.train(), batch_size=BATCH_SIZE)
-        test_reader = fluid.io.batch(
+        test_reader = paddle.batch(
             paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
     else:
-        train_reader = fluid.io.batch(
-            fluid.io.shuffle(paddle.dataset.movielens.train(), buf_size=8192),
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.movielens.train(), buf_size=8192),
             batch_size=BATCH_SIZE)
-        test_reader = fluid.io.batch(
+        test_reader = paddle.batch(
             paddle.dataset.movielens.test(), batch_size=BATCH_SIZE)
 
     feed_order = [
@@ -292,27 +293,28 @@ def infer(use_cuda, params_dirname):
         # Correspondingly, recursive_sequence_lengths = [[3, 2]] contains one
         # level of detail info, indicating that `data` consists of two sequences
         # of length 3 and 2, respectively.
-        user_id = np.array([1]).astype("int64").reshape(-1)
+        user_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
 
         assert feed_target_names[1] == "gender_id"
-        gender_id = np.array([1]).astype("int64").reshape(-1)
+        gender_id = fluid.create_lod_tensor([[np.int64(1)]], [[1]], place)
 
         assert feed_target_names[2] == "age_id"
-        age_id = np.array([0]).astype("int64").reshape(-1)
+        age_id = fluid.create_lod_tensor([[np.int64(0)]], [[1]], place)
 
         assert feed_target_names[3] == "job_id"
-        job_id = np.array([10]).astype("int64").reshape(-1)
+        job_id = fluid.create_lod_tensor([[np.int64(10)]], [[1]], place)
 
         assert feed_target_names[4] == "movie_id"
-        movie_id = np.array([783]).astype("int64").reshape(-1)
+        movie_id = fluid.create_lod_tensor([[np.int64(783)]], [[1]], place)
 
         assert feed_target_names[5] == "category_id"
         category_id = fluid.create_lod_tensor(
-            np.array([10, 8, 9], dtype='int64'), [[3]], place)
+            [np.array([10, 8, 9], dtype='int64')], [[3]], place)
 
         assert feed_target_names[6] == "movie_title"
         movie_title = fluid.create_lod_tensor(
-            np.array([1069, 4140, 2923, 710, 988], dtype='int64'), [[5]], place)
+            [np.array([1069, 4140, 2923, 710, 988], dtype='int64')], [[5]],
+            place)
 
         # Construct feed as a dictionary of {feed_target_name: feed_target_data}
         # and results will contain a list of data corresponding to fetch_targets.
