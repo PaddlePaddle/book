@@ -46,7 +46,8 @@ def parse_args():
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
     assert stacked_num % 2 == 1
 
-    emb = fluid.embedding(input=data, size=[input_dim, emb_dim], is_sparse=True)
+    emb = fluid.layers.embedding(
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     fc1 = fluid.layers.fc(input=emb, size=hid_dim)
     lstm1, cell1 = fluid.layers.dynamic_lstm(input=fc1, size=hid_dim)
@@ -68,7 +69,8 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
 
 def inference_program(word_dict):
-    data = fluid.data(name="words", shape=[-1], dtype="int64", lod_level=1)
+    data = fluid.layers.data(
+        name="words", shape=[1], dtype="int64", lod_level=1)
 
     dict_dim = len(word_dict)
     net = stacked_lstm_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM,
@@ -78,7 +80,7 @@ def inference_program(word_dict):
 
 def train_program(prediction):
     # prediction = inference_program(word_dict)
-    label = fluid.data(name="label", shape=[-1, 1], dtype="int64")
+    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
     cost = fluid.layers.cross_entropy(input=prediction, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=prediction, label=label)
@@ -98,16 +100,16 @@ def train(use_cuda, params_dirname):
     print("Reading training data....")
 
     if args.enable_ce:
-        train_reader = fluid.io.batch(
+        train_reader = paddle.batch(
             paddle.dataset.imdb.train(word_dict), batch_size=BATCH_SIZE)
     else:
-        train_reader = fluid.io.batch(
+        train_reader = paddle.batch(
             paddle.reader.shuffle(
                 paddle.dataset.imdb.train(word_dict), buf_size=25000),
             batch_size=BATCH_SIZE)
 
     print("Reading testing data....")
-    test_reader = fluid.io.batch(
+    test_reader = paddle.batch(
         paddle.dataset.imdb.test(word_dict), batch_size=BATCH_SIZE)
 
     feed_order = ['words', 'label']
@@ -221,15 +223,11 @@ def infer(use_cuda, params_dirname=None):
 
         UNK = word_dict['<unk>']
         lod = []
-        base_shape = []
-
         for c in reviews:
-            re = np.array([np.int64(word_dict.get(words, UNK)) for words in c])
-            lod = np.concatenate([lod, re], axis=0)
-            base_shape.insert(-1, re.shape[0])
+            lod.append([np.int64(word_dict.get(words, UNK)) for words in c])
 
-        base_shape = [base_shape]
-        lod = np.array(lod).astype('int64')
+        base_shape = [[len(c) for c in lod]]
+
         tensor_words = fluid.create_lod_tensor(lod, base_shape, place)
         assert feed_target_names[0] == "words"
         results = exe.run(
