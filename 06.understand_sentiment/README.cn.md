@@ -219,8 +219,7 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 ```python
 def inference_program(word_dict):
     data = fluid.data(
-        name="words", shape=[-1], dtype="int64", lod_level=1)
-
+        name="words", shape=[None], dtype="int64", lod_level=1)
     dict_dim = len(word_dict)
     net = convolution_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM)
     # net = stacked_lstm_net(data, dict_dim, CLASS_DIM, EMB_DIM, HID_DIM, STACKED_NUM)
@@ -235,7 +234,7 @@ def inference_program(word_dict):
 
 ```python
 def train_program(prediction):
-    label = fluid.data(name="label", shape=[-1,1], dtype="int64")
+    label = fluid.data(name="label", shape=[None, 1], dtype="int64")
     cost = fluid.layers.cross_entropy(input=prediction, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=prediction, label=label)
