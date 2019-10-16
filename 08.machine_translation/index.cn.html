@@ -321,7 +321,7 @@ def encoder(src_embedding, src_sequence_length):
             self.gru_cell = layers.GRUCell(hidden_size)
 
         def attention(self, hidden, encoder_output, encoder_output_proj,
-                    encoder_padding_mask):
+                      encoder_padding_mask):
             # 定义attention用以计算context，即 c_i，这里使用Bahdanau attention机制
             decoder_state_proj = layers.unsqueeze(
                 layers.fc(hidden, size=self.hidden_size, bias_attr=False), [1])
@@ -345,11 +345,11 @@ def encoder(src_embedding, src_sequence_length):
             return context
 
         def call(self,
-                step_input,
-                hidden,
-                encoder_output,
-                encoder_output_proj,
-                encoder_padding_mask=None):
+                 step_input,
+                 hidden,
+                 encoder_output,
+                 encoder_output_proj,
+                 encoder_padding_mask=None):
             # Bahdanau attention
             context = self.attention(hidden, encoder_output, encoder_output_proj,
                                     encoder_padding_mask)
@@ -363,11 +363,11 @@ def encoder(src_embedding, src_sequence_length):
 
     ```python
     def decoder(encoder_output,
-            encoder_output_proj,
-            encoder_state,
-            encoder_padding_mask,
-            trg=None,
-            is_train=True):
+                encoder_output_proj,
+                encoder_state,
+                encoder_padding_mask,
+                trg=None,
+                is_train=True):
         # 定义 RNN 所需要的组件
         decoder_cell = DecoderCell(hidden_size=decoder_size)
         decoder_initial_states = layers.fc(encoder_state,
@@ -379,10 +379,10 @@ def encoder(src_embedding, src_sequence_length):
                                                 param_attr=fluid.ParamAttr(
                                                     name="trg_emb_table"))
         output_layer = lambda x: layers.fc(x,
-                                        size=target_dict_size,
-                                        num_flatten_dims=len(x.shape) - 1,
-                                        param_attr=fluid.ParamAttr(name=
-                                                                    "output_w"))
+                                           size=target_dict_size,
+                                           num_flatten_dims=len(x.shape) - 1,
+                                           param_attr=fluid.ParamAttr(name=
+                                                                      "output_w"))
         if is_train:  # 训练
             # 训练时使用 `layers.rnn` 构造由 `cell` 指定的循环神经网络
             # 循环的每一步从 `inputs` 中切片产生输入，并执行 `cell.call`
@@ -405,11 +405,11 @@ def encoder(src_embedding, src_sequence_length):
                 encoder_padding_mask, beam_size)
             # BeamSearchDecoder 定义了单步解码的操作：`cell.call` + `beam_search_step`
             beam_search_decoder = layers.BeamSearchDecoder(cell=decoder_cell,
-                                                          start_token=bos_id,
-                                                          end_token=eos_id,
-                                                          beam_size=beam_size,
-                                                          embedding_fn=trg_embeder,
-                                                          output_fn=output_layer)
+                                                           start_token=bos_id,
+                                                           end_token=eos_id,
+                                                           beam_size=beam_size,
+                                                           embedding_fn=trg_embeder,
+                                                           output_fn=output_layer)
             # 使用 layers.dynamic_decode 动态解码
             # 重复执行 `decoder.step()` 直到其返回的表示完成状态的张量中的值全部为True或解码步骤达到 `max_step_num`
             decoder_output, _ = layers.dynamic_decode(
