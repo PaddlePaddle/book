@@ -312,42 +312,42 @@ is_local = True
 
 ```python
 # 句子序列
-word = fluid.layers.data(
-    name='word_data', shape=[1], dtype='int64', lod_level=1)
+word = fluid.data(
+    name='word_data', shape=[None, 1], dtype='int64', lod_level=1)
 
 # 谓词
-predicate = fluid.layers.data(
-    name='verb_data', shape=[1], dtype='int64', lod_level=1)
+predicate = fluid.data(
+    name='verb_data', shape=[None, 1], dtype='int64', lod_level=1)
 
 # 谓词上下文5个特征
-ctx_n2 = fluid.layers.data(
-    name='ctx_n2_data', shape=[1], dtype='int64', lod_level=1)
-ctx_n1 = fluid.layers.data(
-    name='ctx_n1_data', shape=[1], dtype='int64', lod_level=1)
-ctx_0 = fluid.layers.data(
-    name='ctx_0_data', shape=[1], dtype='int64', lod_level=1)
-ctx_p1 = fluid.layers.data(
-    name='ctx_p1_data', shape=[1], dtype='int64', lod_level=1)
-ctx_p2 = fluid.layers.data(
-    name='ctx_p2_data', shape=[1], dtype='int64', lod_level=1)
+ctx_n2 = fluid.data(
+    name='ctx_n2_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_n1 = fluid.data(
+    name='ctx_n1_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_0 = fluid.data(
+    name='ctx_0_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_p1 = fluid.data(
+    name='ctx_p1_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_p2 = fluid.data(
+    name='ctx_p2_data', shape=[None, 1], dtype='int64', lod_level=1)
 
 # 谓词上下区域标志
-mark = fluid.layers.data(
-    name='mark_data', shape=[1], dtype='int64', lod_level=1)
+mark = fluid.data(
+    name='mark_data', shape=[None, 1], dtype='int64', lod_level=1)
 ```
 ### 定义网络结构
 首先预训练并定义模型输入层
 
 ```python
 #预训练谓词和谓词上下区域标志
-predicate_embedding = fluid.layers.embedding(
+predicate_embedding = fluid.embedding(
     input=predicate,
     size=[pred_dict_len, word_dim],
     dtype='float32',
     is_sparse=IS_SPARSE,
     param_attr='vemb')
 
-mark_embedding = fluid.layers.embedding(
+mark_embedding = fluid.embedding(
     input=mark,
     size=[mark_dict_len, mark_dim],
     dtype='float32',
@@ -358,7 +358,7 @@ word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
 # 因词向量是预训练好的，这里不再训练embedding表，
 # 参数属性trainable设置成False阻止了embedding表在训练过程中被更新
 emb_layers = [
-    fluid.layers.embedding(
+    fluid.embedding(
         size=[word_dict_len, word_dim],
         input=x,
         param_attr=fluid.ParamAttr(
@@ -416,8 +416,8 @@ feature_out = fluid.layers.sums(input=[
 ])
 
 # 标注序列
-target = fluid.layers.data(
-    name='target', shape=[1], dtype='int64', lod_level=1)
+target = fluid.data(
+    name='target', shape=[None, 1], dtype='int64', lod_level=1)
 
 # 学习 CRF 的转移特征
 crf_cost = fluid.layers.linear_chain_crf(

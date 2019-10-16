@@ -227,32 +227,32 @@ dict_size = len(word_dict)
 ```
 
 A larger `BATCH_SIZE` will make the training converge faster, but it will also consume more memory. Since the word vector calculation is large, if the environment allows, please turn on the GPU for training, and get results faster.
-Unlike the previous PaddlePaddle v2 version, in the new Fluid version, we don't have to manually calculate the word vector. PaddlePaddle provides a built-in method `fluid.layers.embedding`, which we can use directly to construct an N-gram neural network.
+Unlike the previous PaddlePaddle v2 version, in the new Fluid version, we don't have to manually calculate the word vector. PaddlePaddle provides a built-in method `fluid.embedding`, which we can use directly to construct an N-gram neural network.
 
 - Let's define our N-gram neural network structure. This structure is used in both training and predicting. Because the word vector is sparse, we pass the parameter `is_sparse == True` to speed up the update of the sparse matrix.
 
 ```python
 def inference_program(words, is_sparse):
 
-    embed_first = fluid.layers.embedding(
+    embed_first = fluid.embedding(
         input=words[0],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_second = fluid.layers.embedding(
+    embed_second = fluid.embedding(
         input=words[1],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_third = fluid.layers.embedding(
+    embed_third = fluid.embedding(
         input=words[2],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_fourth = fluid.layers.embedding(
+    embed_fourth = fluid.embedding(
         input=words[3],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
@@ -275,7 +275,7 @@ def train_program(predict_word):
     # The definition of'next_word' must be after the declaration of inference_program.
     # Otherwise the sequence of the train program input data becomes [next_word, firstw, secondw,
     #thirdw, fourthw], This is not true.
-    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    next_word = fluid.data(name='nextw', shape=[None, 1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
     avg_cost = fluid.layers.mean(cost)
     return avg_cost
@@ -300,11 +300,11 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
     test_reader = paddle.batch(
         paddle.dataset.imikolov.test(word_dict, N), BATCH_SIZE)
 
-    first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
-    second_word = fluid.layers.data(name='secondw', shape=[1], dtype='int64')
-    third_word = fluid.layers.data(name='thirdw', shape=[1], dtype='int64')
-    forth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
-    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    first_word = fluid.data(name='firstw', shape=[None, 1], dtype='int64')
+    second_word = fluid.data(name='secondw', shape=[None, 1], dtype='int64')
+    third_word = fluid.data(name='thirdw', shape=[None, 1], dtype='int64')
+    forth_word = fluid.data(name='fourthw', shape=[None, 1], dtype='int64')
+    next_word = fluid.data(name='nextw', shape=[None, 1], dtype='int64')
 
     word_list = [first_word, second_word, third_word, forth_word, next_word]
     feed_order = ['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw']

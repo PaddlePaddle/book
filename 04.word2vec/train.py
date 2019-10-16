@@ -45,25 +45,25 @@ def parse_args():
 
 def inference_program(words, is_sparse):
 
-    embed_first = fluid.layers.embedding(
+    embed_first = fluid.embedding(
         input=words[0],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_second = fluid.layers.embedding(
+    embed_second = fluid.embedding(
         input=words[1],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_third = fluid.layers.embedding(
+    embed_third = fluid.embedding(
         input=words[2],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_fourth = fluid.layers.embedding(
+    embed_fourth = fluid.embedding(
         input=words[3],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
@@ -82,7 +82,7 @@ def train_program(predict_word):
     # The declaration of 'next_word' must be after the invoking of inference_program,
     # or the data input order of train program would be [next_word, firstw, secondw,
     # thirdw, fourthw], which is not correct.
-    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    next_word = fluid.data(name='nextw', shape=[None, 1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
     avg_cost = fluid.layers.mean(cost)
     return avg_cost
@@ -102,11 +102,11 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
     test_reader = paddle.batch(
         paddle.dataset.imikolov.test(word_dict, N), BATCH_SIZE)
 
-    first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
-    second_word = fluid.layers.data(name='secondw', shape=[1], dtype='int64')
-    third_word = fluid.layers.data(name='thirdw', shape=[1], dtype='int64')
-    forth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
-    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    first_word = fluid.data(name='firstw', shape=[None, 1], dtype='int64')
+    second_word = fluid.data(name='secondw', shape=[None, 1], dtype='int64')
+    third_word = fluid.data(name='thirdw', shape=[None, 1], dtype='int64')
+    forth_word = fluid.data(name='fourthw', shape=[None, 1], dtype='int64')
+    next_word = fluid.data(name='nextw', shape=[None, 1], dtype='int64')
 
     word_list = [first_word, second_word, third_word, forth_word, next_word]
     feed_order = ['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw']
