@@ -197,10 +197,14 @@ from __future__ import print_function
 import os
 import six
 
+import numpy as np
 import paddle
 import paddle.fluid as fluid
+import paddle.fluid.layers as layers
 
 dict_size = 30000  # 词典大小
+bos_id = 0  # 词典中start token对应的id
+eos_id = 1  # 词典中end token对应的id
 source_dict_size = target_dict_size = dict_size  # 源/目标语言字典大小
 word_dim = 512  # 词向量维度
 hidden_dim = 512  # 编码器中的隐层大小
@@ -209,123 +213,226 @@ max_length = 256  # 解码生成句子的最大长度
 beam_size = 4  # beam search的柱宽度
 batch_size = 64  # batch 中的样本数
 
-is_sparse = True
 model_save_dir = "machine_translation.inference.model"
 ```
 
-然后如下实现编码器框架：
+接着定义所需要的数据输入：
 
 ```python
-def encoder():
-    # 定义源语言id序列的输入数据
-    src_word_id = fluid.layers.data(
-        name="src_word_id", shape=[1], dtype='int64', lod_level=1)
-    # 将上述编码映射到低维语言空间的词向量
-    src_embedding = fluid.layers.embedding(
-        input=src_word_id,
-        size=[source_dict_size, word_dim],
-        dtype='float32',
-        is_sparse=is_sparse)
-    # 用双向GRU编码源语言序列，拼接两个GRU的编码结果得到h
-    fc_forward = fluid.layers.fc(
-        input=src_embedding, size=hidden_dim * 3, bias_attr=False)
-    src_forward = fluid.layers.dynamic_gru(input=fc_forward, size=hidden_dim)
-    fc_backward = fluid.layers.fc(
-        input=src_embedding, size=hidden_dim * 3, bias_attr=False)
-    src_backward = fluid.layers.dynamic_gru(
-        input=fc_backward, size=hidden_dim, is_reverse=True)
-    encoded_vector = fluid.layers.concat(
-        input=[src_forward, src_backward], axis=1)
-    return encoded_vector
+def data_func(is_train=True):
+    # 源语言source数据
+    src = fluid.data(name="src", shape=[None, None], dtype="int64")
+    src_sequence_length = fluid.data(name="src_sequence_length",
+                                     shape=[None],
+                                     dtype="int64")
+    inputs = [src, src_sequence_length]
+    # 训练时还需要目标语言target和label数据
+    if is_train:
+        trg = fluid.data(name="trg", shape=[None, None], dtype="int64")
+        trg_sequence_length = fluid.data(name="trg_sequence_length",
+                                        shape=[None],
+                                        dtype="int64")
+        label = fluid.data(name="label", shape=[None, None], dtype="int64")
+        inputs += [trg, trg_sequence_length, label]
+    # data loader
+    loader = fluid.io.DataLoader.from_generator(feed_list=inputs,
+                                                capacity=10,
+                                                iterable=True,
+                                                use_double_buffer=True)
+    return inputs, loader
+```
+
+然后如下实现使用双向GRU的编码器：
+
+```python
+def encoder(src_embedding, src_sequence_length):
+    # 使用GRUCell构建前向RNN
+    encoder_fwd_cell = layers.GRUCell(hidden_size=hidden_dim)
+    encoder_fwd_output, fwd_state = layers.rnn(
+        cell=encoder_fwd_cell,
+        inputs=src_embedding,
+        sequence_length=src_sequence_length,
+        time_major=False,
+        is_reverse=False)
+    # 使用GRUCell构建反向RNN
+    encoder_bwd_cell = layers.GRUCell(hidden_size=hidden_dim)
+    encoder_bwd_output, bwd_state = layers.rnn(
+        cell=encoder_bwd_cell,
+        inputs=src_embedding,
+        sequence_length=src_sequence_length,
+        time_major=False,
+        is_reverse=True)
+    # 拼接前向与反向GRU的编码结果得到h
+    encoder_output = layers.concat(
+        input=[encoder_fwd_output, encoder_bwd_output], axis=2)
+    encoder_state = layers.concat(input=[fwd_state, bwd_state], axis=1)
+    return encoder_output, encoder_state
 ```
 
 再实现基于注意力机制的解码器：
-  - 首先定义解码器中单步的计算，即$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$，如下：
+  - 首先通过 Cell 定义解码器中单步的计算，即$z_{i+1}=\phi _{\theta '}\left ( c_i,u_i,z_i \right )$，这里使用 GRU 并加上注意力机制（Additive Attention），代码如下：
 
     ```python
-    # 定义RNN中的单步计算
-    def cell(x, hidden, encoder_out, encoder_out_proj):
-        # 定义attention用以计算context，即 c_i，这里使用Bahdanau attention机制
-        def simple_attention(encoder_vec, encoder_proj, decoder_state):
-            decoder_state_proj = fluid.layers.fc(
-                input=decoder_state, size=decoder_size, bias_attr=False)
-            # sequence_expand将单步内容扩展为与encoder输出相同的序列
-            decoder_state_expand = fluid.layers.sequence_expand(
-                x=decoder_state_proj, y=encoder_proj)
-            mixed_state = fluid.layers.elementwise_add(encoder_proj,
-                                                    decoder_state_expand)
-            attention_weights = fluid.layers.fc(
-                input=mixed_state, size=1, bias_attr=False)
-            attention_weights = fluid.layers.sequence_softmax(
-                input=attention_weights)
-            weigths_reshape = fluid.layers.reshape(x=attention_weights, shape=[-1])
-            scaled = fluid.layers.elementwise_mul(
-                x=encoder_vec, y=weigths_reshape, axis=0)
-            context = fluid.layers.sequence_pool(input=scaled, pool_type='sum')
+    class DecoderCell(layers.RNNCell):
+        def __init__(self, hidden_size):
+            self.hidden_size = hidden_size
+            self.gru_cell = layers.GRUCell(hidden_size)
+
+        def attention(self, hidden, encoder_output, encoder_output_proj,
+                    encoder_padding_mask):
+            # 定义attention用以计算context，即 c_i，这里使用Bahdanau attention机制
+            decoder_state_proj = layers.unsqueeze(
+                layers.fc(hidden, size=self.hidden_size, bias_attr=False), [1])
+            mixed_state = fluid.layers.elementwise_add(
+                encoder_output_proj,
+                layers.expand(decoder_state_proj,
+                            [1, layers.shape(decoder_state_proj)[1], 1]))
+            attn_scores = layers.squeeze(
+                layers.fc(input=mixed_state,
+                        size=1,
+                        num_flatten_dims=2,
+                        bias_attr=False), [2])
+            if encoder_padding_mask is not None:
+                attn_scores = layers.elementwise_add(attn_scores,
+                                                    encoder_padding_mask)
+            attn_scores = layers.softmax(attn_scores)
+            context = layers.reduce_sum(layers.elementwise_mul(encoder_output,
+                                                            attn_scores,
+                                                            axis=0),
+                                        dim=1)
             return context
 
-        context = simple_attention(encoder_out, encoder_out_proj, hidden)
-        out = fluid.layers.fc(
-            input=[x, context], size=decoder_size * 3, bias_attr=False)
-        out = fluid.layers.gru_unit(
-            input=out, hidden=hidden, size=decoder_size * 3)[0]
-        return out, out
+        def call(self,
+                step_input,
+                hidden,
+                encoder_output,
+                encoder_output_proj,
+                encoder_padding_mask=None):
+            # Bahdanau attention
+            context = self.attention(hidden, encoder_output, encoder_output_proj,
+                                    encoder_padding_mask)
+            step_input = layers.concat([step_input, context], axis=1)
+            # GRU
+            output, new_hidden = self.gru_cell(step_input, hidden)
+            return output, new_hidden
     ```
 
-  - 基于定义的单步计算，使用`DynamicRNN`实现多步循环的训练模式下解码器，如下：
+  - 基于定义的单步计算，使用 `fluid.layers.rnn` 和 `fluid.layers.dynamic_decode` 分别实现用于训练和预测生成的多步循环解码器，如下：
 
     ```python
-    def train_decoder(encoder_out):
-        # 获取编码器输出的最后一步并进行非线性映射以构造解码器RNN的初始状态
-        encoder_last = fluid.layers.sequence_last_step(input=encoder_out)
-        encoder_last_proj = fluid.layers.fc(
-            input=encoder_last, size=decoder_size, act='tanh')
-        # 编码器输出在attention中计算结果的cache
-        encoder_out_proj = fluid.layers.fc(
-            input=encoder_out, size=decoder_size, bias_attr=False)
+    def decoder(encoder_output,
+            encoder_output_proj,
+            encoder_state,
+            encoder_padding_mask,
+            trg=None,
+            is_train=True):
+        # 定义 RNN 所需要的组件
+        decoder_cell = DecoderCell(hidden_size=decoder_size)
+        decoder_initial_states = layers.fc(encoder_state,
+                                        size=decoder_size,
+                                        act="tanh")
+        trg_embeder = lambda x: fluid.embedding(input=x,
+                                                size=[target_dict_size, hidden_dim],
+                                                dtype="float32",
+                                                param_attr=fluid.ParamAttr(
+                                                    name="trg_emb_table"))
+        output_layer = lambda x: layers.fc(x,
+                                        size=target_dict_size,
+                                        num_flatten_dims=len(x.shape) - 1,
+                                        param_attr=fluid.ParamAttr(name=
+                                                                    "output_w"))
+        if is_train:  # 训练
+            # 训练时使用 `layers.rnn` 构造由 `cell` 指定的循环神经网络
+            # 循环的每一步从 `inputs` 中切片产生输入，并执行 `cell.call`
+            decoder_output, _ = layers.rnn(
+                cell=decoder_cell,
+                inputs=trg_embeder(trg),
+                initial_states=decoder_initial_states,
+                time_major=False,
+                encoder_output=encoder_output,
+                encoder_output_proj=encoder_output_proj,
+                encoder_padding_mask=encoder_padding_mask)
+            decoder_output = output_layer(decoder_output)
+        else:  # 基于 beam search 的预测生成
+            # beam search 时需要将用到的形为 `[batch_size, ...]` 的张量扩展为 `[batch_size* beam_size, ...]`
+            encoder_output = layers.BeamSearchDecoder.tile_beam_merge_with_batch(
+                encoder_output, beam_size)
+            encoder_output_proj = layers.BeamSearchDecoder.tile_beam_merge_with_batch(
+                encoder_output_proj, beam_size)
+            encoder_padding_mask = layers.BeamSearchDecoder.tile_beam_merge_with_batch(
+                encoder_padding_mask, beam_size)
+            # BeamSearchDecoder 定义了单步解码的操作：`cell.call` + `beam_search_step`
+            beam_search_decoder = layers.BeamSearchDecoder(cell=decoder_cell,
+                                                          start_token=bos_id,
+                                                          end_token=eos_id,
+                                                          beam_size=beam_size,
+                                                          embedding_fn=trg_embeder,
+                                                          output_fn=output_layer)
+            # 使用 layers.dynamic_decode 动态解码
+            # 重复执行 `decoder.step()` 直到其返回的表示完成状态的张量中的值全部为True或解码步骤达到 `max_step_num`
+            decoder_output, _ = layers.dynamic_decode(
+                decoder=beam_search_decoder,
+                inits=decoder_initial_states,
+                max_step_num=max_length,
+                output_time_major=False,
+                encoder_output=encoder_output,
+                encoder_output_proj=encoder_output_proj,
+                encoder_padding_mask=encoder_padding_mask)
 
-        # 定义目标语言id序列的输入数据，并映射到低维语言空间的词向量
-        trg_language_word = fluid.layers.data(
-            name="target_language_word", shape=[1], dtype='int64', lod_level=1)
-        trg_embedding = fluid.layers.embedding(
-            input=trg_language_word,
-            size=[target_dict_size, word_dim],
-            dtype='float32',
-            is_sparse=is_sparse)
-
-        rnn = fluid.layers.DynamicRNN()
-        with rnn.block():
-            # 获取当前步目标语言输入的词向量
-            x = rnn.step_input(trg_embedding)
-            # 获取隐层状态
-            pre_state = rnn.memory(init=encoder_last_proj, need_reorder=True)
-            # 在DynamicRNN中需使用static_input获取encoder相关的内容
-            # 对decoder来说这些内容在每个时间步都是固定的
-            encoder_out = rnn.static_input(encoder_out)
-            encoder_out_proj = rnn.static_input(encoder_out_proj)
-            # 执行单步的计算单元
-            out, current_state = cell(x, pre_state, encoder_out, encoder_out_proj)
-            # 计算归一化的单词预测概率
-            prob = fluid.layers.fc(input=out, size=target_dict_size, act='softmax')
-            # 更新隐层状态
-            rnn.update_memory(pre_state, current_state)
-            # 输出预测概率
-            rnn.output(prob)
-
-        return rnn()
+        return decoder_output
     ```
 
-接着就可以使用编码器和解码器定义整个训练网络；为了进行训练还需要定义优化器，如下：
+接着就可以使用编码器和解码器定义整个网络，如下：
 
 ```python
-def train_model():
-    encoder_out = encoder()
-    rnn_out = train_decoder(encoder_out)
-    label = fluid.layers.data(
-        name="target_language_next_word", shape=[1], dtype='int64', lod_level=1)
-    # 定义损失函数
-    cost = fluid.layers.cross_entropy(input=rnn_out, label=label)
-    avg_cost = fluid.layers.mean(cost)
+def model_func(inputs, is_train=True):
+    # 源语言输入
+    src = inputs[0]
+    src_sequence_length = inputs[1]
+    src_embeder = lambda x: fluid.embedding(
+        input=x,
+        size=[source_dict_size, hidden_dim],
+        dtype="float32",
+        param_attr=fluid.ParamAttr(name="src_emb_table"))
+    src_embedding = src_embeder(src)
+
+    # 编码器
+    encoder_output, encoder_state = encoder(src_embedding, src_sequence_length)
+
+    encoder_output_proj = layers.fc(input=encoder_output,
+                                    size=decoder_size,
+                                    num_flatten_dims=2,
+                                    bias_attr=False)
+    src_mask = layers.sequence_mask(src_sequence_length,
+                                    maxlen=layers.shape(src)[1],
+                                    dtype="float32")
+    encoder_padding_mask = (src_mask - 1.0) * 1e9
+
+    # 目标语言输入，训练时有、预测生成时无该输入
+    trg = inputs[2] if is_train else None
+
+    # 解码器
+    output = decoder(encoder_output=encoder_output,
+                     encoder_output_proj=encoder_output_proj,
+                     encoder_state=encoder_state,
+                     encoder_padding_mask=encoder_padding_mask,
+                     trg=trg,
+                     is_train=is_train)
+    return output
+```
+
+为了进行训练还需要定义损失函数和优化器，如下：
+
+```python
+def loss_func(logits, label, trg_sequence_length):
+    probs = layers.softmax(logits)
+    # 使用交叉熵损失函数
+    loss = layers.cross_entropy(input=probs, label=label)
+    # 根据长度生成掩码，并依此剔除 padding 部分计算的损失
+    trg_mask = layers.sequence_mask(trg_sequence_length,
+                                    maxlen=layers.shape(logits)[1],
+                                    dtype="float32")
+    avg_cost = layers.reduce_sum(loss * trg_mask) / layers.reduce_sum(trg_mask)
     return avg_cost
 
 def optimizer_func():
@@ -340,101 +447,44 @@ def optimizer_func():
             regularization_coeff=1e-4))
 ```
 
-以上是训练所需的模型构件，预测（生成）模式下基于beam search的解码器需要借助`while_op`实现，如下：
-
-```python
-def infer_decoder(encoder_out):
-    # 获取编码器输出的最后一步并进行非线性映射以构造解码器RNN的初始状态
-    encoder_last = fluid.layers.sequence_last_step(input=encoder_out)
-    encoder_last_proj = fluid.layers.fc(
-        input=encoder_last, size=decoder_size, act='tanh')
-    # 编码器输出在attention中计算结果的cache
-    encoder_out_proj = fluid.layers.fc(
-        input=encoder_out, size=decoder_size, bias_attr=False)
-
-    # 最大解码步数
-    max_len = fluid.layers.fill_constant(
-        shape=[1], dtype='int64', value=max_length)
-    # 解码步数计数变量
-    counter = fluid.layers.zeros(shape=[1], dtype='int64', force_cpu=True)
-
-    # 定义 tensor array 用以保存各个时间步的内容，并写入初始id，score和state
-    init_ids = fluid.layers.data(
-        name="init_ids", shape=[1], dtype="int64", lod_level=2)
-    init_scores = fluid.layers.data(
-        name="init_scores", shape=[1], dtype="float32", lod_level=2)
-    ids_array = fluid.layers.array_write(init_ids, i=counter)
-    scores_array = fluid.layers.array_write(init_scores, i=counter)
-    state_array = fluid.layers.array_write(encoder_last_proj, i=counter)
-
-    # 定义循环终止条件变量
-    cond = fluid.layers.less_than(x=counter, y=max_len)
-    while_op = fluid.layers.While(cond=cond)
-    with while_op.block():
-        # 获取解码器在当前步的输入，包括上一步选择的id，对应的score和上一步的state
-        pre_ids = fluid.layers.array_read(array=ids_array, i=counter)
-        pre_score = fluid.layers.array_read(array=scores_array, i=counter)
-        pre_state = fluid.layers.array_read(array=state_array, i=counter)
-
-        # 同train_decoder中的内容，进行RNN的单步计算
-        pre_ids_emb = fluid.layers.embedding(
-            input=pre_ids,
-            size=[target_dict_size, word_dim],
-            dtype='float32',
-            is_sparse=is_sparse)
-        out, current_state = cell(pre_ids_emb, pre_state, encoder_out,
-                            encoder_out_proj)
-        prob = fluid.layers.fc(
-            input=current_state, size=target_dict_size, act='softmax')
-
-        # 计算累计得分，进行beam search
-        topk_scores, topk_indices = fluid.layers.topk(prob, k=beam_size)
-        accu_scores = fluid.layers.elementwise_add(
-            x=fluid.layers.log(topk_scores),
-            y=fluid.layers.reshape(pre_score, shape=[-1]),
-            axis=0)
-        accu_scores = fluid.layers.lod_reset(x=accu_scores, y=pre_ids)
-        selected_ids, selected_scores = fluid.layers.beam_search(
-            pre_ids, pre_score, topk_indices, accu_scores, beam_size, end_id=1)
-
-        fluid.layers.increment(x=counter, value=1, in_place=True)
-        # 将 search 结果写入 tensor array 中
-        fluid.layers.array_write(selected_ids, array=ids_array, i=counter)
-        fluid.layers.array_write(selected_scores, array=scores_array, i=counter)
-        # sequence_expand 作为 gather 使用以获取search结果对应的状态，并更新
-        current_state = fluid.layers.sequence_expand(current_state,
-                                                     selected_ids)
-        fluid.layers.array_write(current_state, array=state_array, i=counter)
-        current_enc_out = fluid.layers.sequence_expand(encoder_out,
-                                                       selected_ids)
-        fluid.layers.assign(current_enc_out, encoder_out)
-        current_enc_out_proj = fluid.layers.sequence_expand(
-            encoder_out_proj, selected_ids)
-        fluid.layers.assign(current_enc_out_proj, encoder_out_proj)
-
-        # 更新循环终止条件
-        length_cond = fluid.layers.less_than(x=counter, y=max_len)
-        finish_cond = fluid.layers.logical_not(
-            fluid.layers.is_empty(x=selected_ids))
-        fluid.layers.logical_and(x=length_cond, y=finish_cond, out=cond)
-
-    # 根据保存的每一步的结果，回溯生成最终解码结果
-    translation_ids, translation_scores = fluid.layers.beam_search_decode(
-        ids=ids_array, scores=scores_array, beam_size=beam_size, end_id=1)
-
-    return translation_ids, translation_scores
-```
-
-使用编码器和预测模式的解码器，预测网络定义如下：
-
-```python
-def infer_model():
-    encoder_out = encoder()
-    translation_ids, translation_scores = infer_decoder(encoder_out)
-    return translation_ids, translation_scores
-```
-
 ## 训练模型
+
+### 定义数据生成器
+
+使用内置的`paddle.dataset.wmt16.train`接口定义数据生成器，其每次产生一条样本，shuffle和组完batch后对batch内的样本进行padding作为训练的输入；同时定义预测使用的数据生成器，如下：
+
+```python
+def inputs_generator(batch_size, pad_id, is_train=True):
+    data_generator = fluid.io.shuffle(
+        paddle.dataset.wmt16.train(source_dict_size, target_dict_size),
+        buf_size=10000) if is_train else paddle.dataset.wmt16.test(
+            source_dict_size, target_dict_size)
+    batch_generator = fluid.io.batch(data_generator, batch_size=batch_size)
+
+    # 对 batch 内的数据进行 padding
+    def _pad_batch_data(insts, pad_id):
+        seq_lengths = np.array(list(map(len, insts)), dtype="int64")
+        max_len = max(seq_lengths)
+        pad_data = np.array(
+            [inst + [pad_id] * (max_len - len(inst)) for inst in insts],
+            dtype="int64")
+        return pad_data, seq_lengths
+
+    def _generator():
+        for batch in batch_generator():
+            batch_src = [ins[0] for ins in batch]
+            src_data, src_lengths = _pad_batch_data(batch_src, pad_id)
+            inputs = [src_data, src_lengths]
+            if is_train:  #训练时包含 target 和 label 数据
+                batch_trg = [ins[1] for ins in batch]
+                trg_data, trg_lengths = _pad_batch_data(batch_trg, pad_id)
+                batch_lbl = [ins[2] for ins in batch]
+                lbl_data, _ = _pad_batch_data(batch_lbl, pad_id)
+                inputs += [trg_data, trg_lengths, lbl_data]
+            yield inputs
+
+    return _generator
+```
 
 ### 构建训练程序
 
@@ -445,40 +495,33 @@ train_prog = fluid.Program()
 startup_prog = fluid.Program()
 with fluid.program_guard(train_prog, startup_prog):
     with fluid.unique_name.guard():
-        avg_cost = train_model()
+        # 训练时：
+        # inputs = [src, src_sequence_length, trg, trg_sequence_length, label]
+        inputs, loader = data_func(is_train=True)
+        logits = model_func(inputs, is_train=True)
+        loss = loss_func(logits, inputs[-1], inputs[-2])
         optimizer = optimizer_func()
-        optimizer.minimize(avg_cost)
+        optimizer.minimize(loss)
 ```
 
-### 定义训练环境与执行器
+### 定义训练环境
 
-定义您的训练环境，可以指定训练是发生在CPU还是GPU上；并基于这个训练环境定义执行器。
+定义您的训练环境，包括指定所用的设备、绑定训练使用的数据源和定义执行器。
 
 ```python
+# 设置训练设备
 use_cuda = False
-# 定义使用设备和执行器
-place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-exe = fluid.Executor(place)
-```
-
-### 构建数据提供器
-
-使用封装的`paddle.dataset.wmt16.train`接口定义数据生成器，其每次产生一条样本，shuffle和组完batch后作为训练的输入；另外还需要指明输入数据中各字段和`data_layer`定义的各输入的对应关系，这可以通过`DataFeeder`完成, 下面的feeder将产生数据的第一列映射到`src_word_id`这个输入。
-
-```python
-# 定义训练数据生成器
-train_data = paddle.batch(
-    paddle.reader.shuffle(
-        paddle.dataset.wmt16.train(source_dict_size, target_dict_size),
-        buf_size=10000),
-    batch_size=batch_size)
-# DataFeeder完成
-feeder = fluid.DataFeeder(
-    feed_list=[
-        'src_word_id', 'target_language_word', 'target_language_next_word'
-    ],
-    place=place,
-    program=train_prog)
+places = fluid.cuda_places() if use_cuda else fluid.cpu_places()
+# 设置数据源
+loader.set_batch_generator(inputs_generator(batch_size,
+                                            eos_id,
+                                            is_train=True),
+                            places=places)
+# 定义执行器，初始化参数并绑定Program
+exe = fluid.Executor(places[0])
+exe.run(startup_prog)
+prog = fluid.CompiledProgram(train_prog).with_data_parallel(
+    loss_name=loss.name)
 ```
 
 ### 训练主循环
@@ -486,17 +529,13 @@ feeder = fluid.DataFeeder(
 通过训练循环数（EPOCH_NUM）来进行训练循环，并且每次循环都保存训练好的参数。注意，循环训练前要首先执行初始化的`Program`来初始化参数。另外作为示例这里EPOCH_NUM设置较小，该数据集上实际大概需要20个epoch左右收敛。
 
 ```python
-# 执行初始化 Program，进行参数初始化
-exe.run(startup_prog)
-# 循环迭代执行训练
 EPOCH_NUM = 2
 for pass_id in six.moves.xrange(EPOCH_NUM):
     batch_id = 0
-    for data in train_data():
-        cost = exe.run(
-            train_prog, feed=feeder.feed(data), fetch_list=[avg_cost])[0]
-        print('pass_id: %d, batch_id: %d, loss: %f' % (pass_id, batch_id,
-                                                        cost))
+    for data in loader():
+        loss_val = exe.run(prog, feed=data, fetch_list=[loss])[0]
+        print('pass_id: %d, batch_id: %d, loss: %f' %
+                (pass_id, batch_id, loss_val))
         batch_id += 1
     # 保存模型
     fluid.io.save_params(exe, model_save_dir, main_program=train_prog)
@@ -513,81 +552,67 @@ infer_prog = fluid.Program()
 startup_prog = fluid.Program()
 with fluid.program_guard(infer_prog, startup_prog):
     with fluid.unique_name.guard():
-        translation_ids, translation_scores = infer_model()
+        inputs, loader = data_func(is_train=False)
+        predict_seqs = model_func(inputs, is_train=False)
 ```
 
-### 构建数据提供器
+### 定义预测环境
 
-和训练类似，这里使用封装的`paddle.dataset.wmt16.test`接口定义测试数据生成器，测试数据共1000条，组完batch后作为预测的输入；另外我们获取源语言和目标语言id到word的词典，以将id序列转换为明文序列打印输出。
+定义您的预测环境，和训练类似，包括指定所用的设备、绑定训练使用的数据源和定义执行器。
 
 ```python
-test_data = paddle.batch(
-    paddle.dataset.wmt16.test(source_dict_size, target_dict_size),
-    batch_size=batch_size)
+use_cuda = False
+# 设置训练设备
+places = fluid.cuda_places() if use_cuda else fluid.cpu_places()
+# 设置数据源
+loader.set_batch_generator(inputs_generator(batch_size,
+                                            eos_id,
+                                            is_train=False),
+                            places=places)
+# 定义执行器，加载参数并绑定Program
+exe = fluid.Executor(places[0])
+exe.run(startup_prog)
+fluid.io.load_params(exe, model_save_dir, main_program=infer_prog)
+prog = fluid.CompiledProgram(infer_prog).with_data_parallel()
+```
+
+### 测试
+循环测试数据进行预测，生成过程对于每个测试数据都会将源语言句子和`beam_size`个生成句子打印输出，为打印出正确的句子还需要使用id到word映射的词典。如下：
+
+```python
+# 获取 id 到 word 映射的词典
 src_idx2word = paddle.dataset.wmt16.get_dict(
     "en", source_dict_size, reverse=True)
 trg_idx2word = paddle.dataset.wmt16.get_dict(
     "de", target_dict_size, reverse=True)
+# 循环测试数据
+for data in loader():
+    seq_ids = exe.run(prog, feed=data, fetch_list=[predict_seqs])[0]
+    for ins_idx in range(seq_ids.shape[0]):
+        print("Original sentence:")
+        src_seqs = np.array(data[0]["src"])
+        print(" ".join([
+            src_idx2word[idx] for idx in src_seqs[ins_idx][1:]
+            if idx != eos_id
+        ]))
+        print("Translated score and sentence:")
+        for beam_idx in range(beam_size):
+            seq = [
+                trg_idx2word[idx] for idx in seq_ids[ins_idx, :, beam_idx]
+                if idx != eos_id
+            ]
+            print(" ".join(seq).encode("utf8"))
 ```
 
-### 测试
-首先要加载训练过程保存下来的模型，然后就可以循环测试数据进行预测了。这里每次运行我们都会创建`data_layer`对应输入数据的`dict`传入，这个和`DataFeeder`相同的效果。生成过程对于每个测试数据都会将源语言句子和`beam_size`个生成句子打印输出。
-
-```python
-    fluid.io.load_params(exe, model_save_dir, main_program=infer_prog)
-
-    for data in test_data():
-        src_word_id = fluid.create_lod_tensor(
-            data=[x[0] for x in data],
-            recursive_seq_lens=[[len(x[0]) for x in data]],
-            place=place)
-        # init_ids内容为start token
-        init_ids = fluid.create_lod_tensor(
-            data=np.array([[0]] * len(data), dtype='int64'),
-            recursive_seq_lens=[[1] * len(data)] * 2,
-            place=place)
-        # init_scores为beam search过程累积得分的初值
-        init_scores = fluid.create_lod_tensor(
-            data=np.array([[0.]] * len(data), dtype='float32'),
-            recursive_seq_lens=[[1] * len(data)] * 2,
-            place=place)
-        seq_ids, seq_scores = exe.run(
-            infer_prog,
-            feed={
-                'src_word_id': src_word_id,
-                'init_ids': init_ids,
-                'init_scores': init_scores
-            },
-            fetch_list=[translation_ids, translation_scores],
-            return_numpy=False)
-        # 如何解析翻译结果详见 train.py 中对应代码的注释说明
-        hyps = [[] for i in range(len(seq_ids.lod()[0]) - 1)]
-        scores = [[] for i in range(len(seq_scores.lod()[0]) - 1)]
-        for i in range(len(seq_ids.lod()[0]) - 1):
-            start = seq_ids.lod()[0][i]
-            end = seq_ids.lod()[0][i + 1]
-            print("Original sentence:")
-            print(" ".join([src_idx2word[idx] for idx in data[i][0][1:-1]]))
-            print("Translated score and sentence:")
-            for j in range(end - start):
-                sub_start = seq_ids.lod()[1][start + j]
-                sub_end = seq_ids.lod()[1][start + j + 1]
-                hyps[i].append(" ".join([
-                    trg_idx2word[idx]
-                    for idx in np.array(seq_ids)[sub_start:sub_end][1:-1]
-                ]))
-                scores[i].append(np.array(seq_scores)[sub_end - 1])
-                print(scores[i][-1], hyps[i][-1].encode('utf8'))
-```
 可以观察到如下的预测结果输出：
 ```txt
 Original sentence:
-Two adults and two children sit on a park bench .
+A man in an orange hat starring at something .
 Translated score and sentence:
--2.5993705 Zwei Erwachsene und zwei Kinder sitzen auf einer Parkbank .
--2.6617606 Zwei Erwachsene und zwei Kinder spielen auf einer Parkbank .
--3.186554 Zwei Erwachsene und zwei Kinder sitzen auf einer Bank .
--3.4353821 Zwei Erwachsene und zwei Kinder spielen auf einer Bank .
+Ein Mann mit einem orangen Schutzhelm starrt auf etwas .
+Ein Mann mit einem gelben Schutzhelm starrt auf etwas .
+Ein Mann mit einem gelben Schutzhelm starrt etwas an .
+Ein Mann mit einem orangen Schutzhelm starrt etwas an .
 ```
 
 ## 总结
