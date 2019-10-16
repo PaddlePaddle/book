@@ -323,7 +323,7 @@ def infer(use_cuda):
                 src_idx2word[idx] for idx in src_seqs[ins_idx][1:]
                 if idx != eos_id
             ]))
-            print("Translated score and sentence:")
+            print("Translated sentence:")
             for beam_idx in range(beam_size):
                 seq = [
                     trg_idx2word[idx] for idx in seq_ids[ins_idx, :, beam_idx]
