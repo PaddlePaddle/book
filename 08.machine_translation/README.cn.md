@@ -5,7 +5,7 @@
 ### 说明
 1. 硬件要求 本文可支持在CPU、GPU下运行
 2. 对docker file cuda/cudnn的支持 如果您使用了本文配套的docker镜像，请注意：该镜像对GPU的支持仅限于CUDA 8，cuDNN 5
-3. 文档中代码和train.py不一致的问题 请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，如希望直接看到训练脚本输出效果，可运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/train.py)。
+3. 文档中代码和seq2seq.py不一致的问题 请注意：为使本文更加易读易用，我们拆分、调整了seq2seq.py的代码并放入本文。本文中代码与seq2seq.py的运行结果一致，如希望直接看到训练脚本输出效果，可运行[seq2seq.py](https://github.com/PaddlePaddle/book/blob/develop/08.machine_translation/seq2seq.py)。
 
 ## 背景介绍
 
