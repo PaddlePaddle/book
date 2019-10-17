@@ -159,7 +159,7 @@ def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
     return prediction
 ```
 
-The network input `input_dim` indicates the size of the dictionary, and `class_dim` indicates the number of categories. Here, we implement the convolution and pooling operations using the [`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/trainer_config_helpers/networks.py) API.
+The network input `input_dim` indicates the size of the dictionary, and `class_dim` indicates the number of categories. Here, we implement the convolution and pooling operations using the [`sequence_conv_pool`](https://github.com/PaddlePaddle/Paddle/blob/develop/python/paddle/fluid/nets.py) API.
 
 <a name="Stack value bidirectional LSTM"></a>
 
@@ -173,7 +173,7 @@ def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
     # Calculate word vectorvector
     emb = fluid.layers.embedding(
-        input=data, size=[input_dim, emb_dim], is_sparse=True)=True)
+        input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     #First stack
     #Fully connected layer
@@ -440,4 +440,4 @@ In this chapter, we take sentiment analysis as an example to introduce end-to-en
 9. Zhou J, Xu W. [End-to-end learning of semantic role labeling using recurrent neural networks](http://www.aclweb.org/anthology/P/P15/P15-1109.pdf)[C]//Proceedings of the Annual Meeting of the Association for Computational Linguistics. 2015.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.

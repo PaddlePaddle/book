@@ -29,7 +29,7 @@ One-hot vector虽然自然，但是用处有限。比如，在互联网广告系
 词向量模型可以是概率模型、共生矩阵(co-occurrence matrix)模型或神经元网络模型。在用神经网络求词向量之前，传统做法是统计一个词语的共生矩阵$X$。$X$是一个$|V| \times |V|$ 大小的矩阵，$X_{ij}$表示在所有语料中，词汇表$V$(vocabulary)中第i个词和第j个词同时出现的词数，$|V|$为词汇表的大小。对$X$做矩阵分解（如奇异值分解，Singular Value Decomposition \[[5](#参考文献)\]），得到的$U$即视为所有词的词向量：
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn1.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn1.gif?raw=true"><br/>
 </p>
 
 但这样的传统做法有很多问题：
@@ -81,14 +81,14 @@ similarity: -0.0997506977351
 
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn2.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn2.gif?raw=true"><br/>
 </p>
 
 
 然而我们知道语句中的每个词出现的概率都与其前面的词紧密相关, 所以实际上通常用条件概率表示语言模型：
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn3.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn3.gif?raw=true"><br/>
 </p>
 
 
@@ -102,14 +102,14 @@ Yoshua Bengio等科学家就于2003年在著名论文 Neural Probabilistic Langu
 我们在上文中已经讲到用条件概率建模语言模型，即一句话中第$t$个词的概率和该句话的前$t-1$个词相关。可实际上越远的词语其实对该词的影响越小，那么如果考虑一个n-gram, 每个词都只受其前面`n-1`个词的影响，则有：
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn4.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn4.gif?raw=true"><br/>
 </p>
 
 
 给定一些真实语料，这些语料中都是有意义的句子，N-gram模型的优化目标则是最大化目标函数:
 
 <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn5.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn5.gif?raw=true"><br/>
 </p>
 
 其中$f(w_t, w_{t-1}, ..., w_{t-n+1})$表示根据历史n-1个词得到当前词$w_t$的条件概率，$R(\theta)$表示参数正则项。
@@ -127,7 +127,7 @@ Yoshua Bengio等科学家就于2003年在著名论文 Neural Probabilistic Langu
  - 然后所有词语的词向量拼接成一个大向量，并经过一个非线性映射得到历史词语的隐层表示：
 
     <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn6.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn6.gif?raw=true"><br/>
 </p>
 
     其中，$x$为所有词语的词向量拼接成的大向量，表示文本历史特征；$\theta$、$U$、$b_1$、$b_2$和$W$分别为词向量层到隐层连接的参数。$g$表示未经归一化的所有输出单词概率，$g_i$表示未经归一化的字典中第$i$个单词的输出概率。
@@ -135,13 +135,13 @@ Yoshua Bengio等科学家就于2003年在著名论文 Neural Probabilistic Langu
  - 根据softmax的定义，通过归一化$g_i$, 生成目标词$w_t$的概率为：
 
       <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn7.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn7.gif?raw=true"><br/>
 </p>
 
  - 整个网络的损失值(cost)为多类分类交叉熵，用公式表示为
 
        <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn8.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn8.gif?raw=true"><br/>
 </p>
 
    其中$y_k^i$表示第$i$个样本第$k$类的真实标签(0或1)，$\text{softmax}(g_k^i)$表示第i个样本第k类softmax输出的概率。
@@ -160,7 +160,7 @@ CBOW模型通过一个词的上下文（各N个词）预测当前词。当N=2时
 
 
    <p align="center">
-    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn9.gif"><br/>
+    <img src = "https://github.com/PaddlePaddle/book/blob/develop/04.word2vec/image/Eqn9.gif?raw=true"><br/>
 </p>
 
 其中$x_t$为第$t$个词的词向量，分类分数（score）向量 $z=U*context$，最终的分类$y$采用softmax，损失函数采用多类分类交叉熵。
@@ -236,13 +236,13 @@ dream that one day <e>
 
 ```python
 
-import paddle as paddle
+from __future__ import print_function
+
+import paddle
 import paddle.fluid as fluid
 import six
 import numpy
 import math
-
-from __future__ import print_function
 
 ```
 
@@ -444,11 +444,11 @@ def infer(use_cuda, params_dirname=None):
         # 用来查询embedding表获取对应的词向量，因此其形状大小是[1]。
         # recursive_sequence_lengths设置的是基于长度的LoD，因此都应该设为[[1]]
         # 注意recursive_sequence_lengths是列表的列表
-        data1 = [[211]]  # 'among'
-        data2 = [[6]]  # 'a'
-        data3 = [[96]]  # 'group'
-        data4 = [[4]]  # 'of'
-        lod = [[1]]
+        data1 = numpy.asarray([[211]], dtype=numpy.int64)  # 'among'
+        data2 = numpy.asarray([[6]], dtype=numpy.int64)  # 'a'
+        data3 = numpy.asarray([[96]], dtype=numpy.int64)  # 'group'
+        data4 = numpy.asarray([[4]], dtype=numpy.int64)  # 'of'
+        lod = numpy.asarray([[1]], dtype=numpy.int64)
 
         first_word = fluid.create_lod_tensor(data1, lod, place)
         second_word = fluid.create_lod_tensor(data2, lod, place)
@@ -524,4 +524,4 @@ main(use_cuda=use_cuda, is_sparse=True)
 5. https://en.wikipedia.org/wiki/Singular_value_decomposition
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。

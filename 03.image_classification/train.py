@@ -40,8 +40,8 @@ def parse_args():
 
 def inference_network():
     # The image is 32 * 32 with RGB representation.
-    data_shape = [3, 32, 32]
-    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+    data_shape = [None, 3, 32, 32]
+    images = fluid.data(name='pixel', shape=data_shape, dtype='float32')
 
     predict = resnet_cifar10(images, 32)
     # predict = vgg_bn_drop(images) # un-comment to use vgg net
@@ -49,7 +49,7 @@ def inference_network():
 
 
 def train_network(predict):
-    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=predict, label=label)
@@ -191,28 +191,12 @@ def infer(use_cuda, params_dirname=None):
         [inference_program, feed_target_names,
          fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
 
-        # The input's dimension of conv should be 4-D or 5-D.
-        # Use inference_transpiler to speedup
-        inference_transpiler_program = inference_program.clone()
-        t = fluid.transpiler.InferenceTranspiler()
-        t.transpile(inference_transpiler_program, place)
-
         # Construct feed as a dictionary of {feed_target_name: feed_target_data}
         # and results will contain a list of data corresponding to fetch_targets.
         results = exe.run(
             inference_program,
             feed={feed_target_names[0]: img},
             fetch_list=fetch_targets)
-
-        transpiler_results = exe.run(
-            inference_transpiler_program,
-            feed={feed_target_names[0]: img},
-            fetch_list=fetch_targets)
-
-        assert len(results[0]) == len(transpiler_results[0])
-        for i in range(len(results[0])):
-            numpy.testing.assert_almost_equal(
-                results[0][i], transpiler_results[0][i], decimal=5)
 
         # infer label
         label_list = [

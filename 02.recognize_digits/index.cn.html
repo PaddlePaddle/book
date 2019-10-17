@@ -79,7 +79,7 @@ MNIST吸引了大量的科学家基于此数据集训练模型，1998年，LeCun
 
 - $Y$是输出：分类器的输出是10类数字（0-9），即$Y=\left ( y_0, y_1, \dots, y_9 \right )$，每一维$y_i$代表图片分类为第$i$类数字的概率。
 
-- $Label$是图片的真实标签：$Label=\left ( l_0, l_1, \dots, l_9 \right )$也是10维，但只有一维为1，其他都为0。例如某张图片上的数字为2，则它的标签为$(0,0,1,0, \dot, 0)$
+- $Label$是图片的真实标签：$Label=\left ( l_0, l_1, \dots, l_9 \right )$也是10维，但只有一维为1，其他都为0。例如某张图片上的数字为2，则它的标签为$(0,0,1,0, \dots, 0)$
 
 ### Softmax回归(Softmax Regression)
 
@@ -155,7 +155,7 @@ Softmax回归模型采用了最简单的两层神经网络，即只有输入层�
 
 - 局部连接：每个神经元仅与输入神经元的一块区域连接，这块局部区域称作感受野（receptive field）。在图像卷积操作中，即神经元在空间维度（spatial dimension，即上图示例H和W所在的平面）是局部连接，但在深度上是全部连接。对于二维图像本身而言，也是局部像素关联较强。这种局部连接保证了学习后的过滤器能够对于局部的输入特征有最强的响应。局部连接的思想，也是受启发于生物学里面的视觉系统结构，视觉皮层的神经元就是局部接受信息的。
 
-- 权重共享：计算同一个深度切片的神经元时采用的滤波器是共享的。例如图4中计算$o[:,:,0]$的每个每个神经元的滤波器均相同，都为$W_0$，这样可以很大程度上减少参数。共享权重在一定程度上讲是有意义的，例如图片的底层边缘特征与特征在图中的具体位置无关。但是在一些场景中是无意的，比如输入的图片是人脸，眼睛和头发位于不同的位置，希望在不同的位置学到不同的特征 (参考[斯坦福大学公开课]( http://cs231n.github.io/convolutional-networks/))。请注意权重只是对于同一深度切片的神经元是共享的，在卷积层，通常采用多组卷积核提取不同特征，即对应不同深度切片的特征，不同深度切片的神经元权重是不共享。另外，偏重对同一深度切片的所有神经元都是共享的。
+- 权重共享：计算同一个深度切片的神经元时采用的滤波器是共享的。例如图5中计算$o[:,:,0]$的每个每个神经元的滤波器均相同，都为$W_0$，这样可以很大程度上减少参数。共享权重在一定程度上讲是有意义的，例如图片的底层边缘特征与特征在图中的具体位置无关。但是在一些场景中是无意的，比如输入的图片是人脸，眼睛和头发位于不同的位置，希望在不同的位置学到不同的特征 (参考[斯坦福大学公开课]( http://cs231n.github.io/convolutional-networks/))。请注意权重只是对于同一深度切片的神经元是共享的，在卷积层，通常采用多组卷积核提取不同特征，即对应不同深度切片的特征，不同深度切片的神经元权重是不共享。另外，偏重对同一深度切片的所有神经元都是共享的。
 
 通过介绍卷积计算过程及其特性，可以看出卷积是线性操作，并具有平移不变性（shift-invariant），平移不变性即在图像每个位置执行相同的操作。卷积层的局部连接和权重共享使得需要学习的参数大大减小，这样也有利于训练较大卷积神经网络。
 
@@ -225,13 +225,13 @@ PaddlePaddle在API中提供了自动加载[MNIST](http://yann.lecun.com/exdb/mni
 加载 PaddlePaddle 的 Fluid API 包。
 
 ```python
+from __future__ import print_function # 将python3中的print特性导入当前版本
 import os
 from PIL import Image # 导入图像处理模块
 import matplotlib.pyplot as plt
 import numpy
 import paddle # 导入paddle模块
 import paddle.fluid as fluid
-from __future__ import print_function # 将python3中的print特性导入当前版本
 ```
 
 ### Program Functions 配置
@@ -438,15 +438,13 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 # 调用train_program 获取预测值，损失值，
 prediction, [avg_loss, acc] = train_program()
 
-# 输入的原始图像数据，大小为28*28*1
-img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+# 输入的原始图像数据，名称为img，大小为28*28*1
 # 标签层，名称为label,对应输入图片的类别标签
-label = fluid.layers.data(name='label', shape=[1], dtype='int64')
 # 告知网络传入的数据分为两部分，第一部分是img值，第二部分是label值
-feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
+feeder = fluid.DataFeeder(feed_list=['img', 'label'], place=place)
 
 # 选择Adam优化器
-optimizer = fluid.optimizer.Adam(learning_rate=0.001)
+optimizer = optimizer_program()
 optimizer.minimize(avg_loss)
 ```
 
@@ -570,9 +568,13 @@ Test with Epoch 0, avg_cost: 0.053097883707459624, acc: 0.9822850318471338
 
 ```python
 def load_image(file):
+    # 读取图片文件，并将它转成灰度图
     im = Image.open(file).convert('L')
+    # 将输入图片调整为 28*28 的高质量图
     im = im.resize((28, 28), Image.ANTIALIAS)
+    # 将图片转换为numpy
     im = numpy.array(im).reshape(1, 1, 28, 28).astype(numpy.float32)
+    # 对数据作归一化处理
     im = im / 255.0 * 2.0 - 1.0
     return im
 
@@ -630,7 +632,7 @@ with fluid.scope_guard(inference_scope):
 10. Bishop, Christopher M. ["Pattern recognition."](http://users.isr.ist.utl.pt/~wurmd/Livros/school/Bishop%20-%20Pattern%20Recognition%20And%20Machine%20Learning%20-%20Springer%20%202006.pdf) Machine Learning 128 (2006): 1-58.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
 
 </div>
 <!-- You can change the lines below now. -->

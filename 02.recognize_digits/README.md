@@ -29,7 +29,7 @@ To train a classifier based on MNIST dataset, before the introduction of three b
 
 - $Y$ is the output: the output of the classifier is number (0-9), ie $Y=\left ( y_0, y_1, \dots, y_9 \right )$, and each dimension $y_i$ represents the probability of image classification as $i$th number.
 
-- $Label$ is the actual label of the picture: $Label=\left ( l_0, l_1, \dots, l_9 \right ) $ is also 10 dimensions, but only one dimension represents 1, and the rest is 0. For example, if the number on an image is 2, its label is $(0,0,1,0, \dot, 0)$
+- $Label$ is the actual label of the picture: $Label=\left ( l_0, l_1, \dots, l_9 \right ) $ is also 10 dimensions, but only one dimension represents 1, and the rest is 0. For example, if the number on an image is 2, its label is $(0,0,1,0, \dots, 0)$
 
 ### Softmax Regression
 
@@ -98,7 +98,7 @@ The convolutional kernel is a learnable parameter in the convolution operation. 
 
 - Local connection: Each neuron is connected to only one region of the input neuron, which is called Receptive Field. In the image convolution operation, that is, the neurons are locally connected in the spatial dimension (the plane in which the above examples H and W are located), but are fully connected in depth. For the two-dimensional image itself, the local pixels are strongly related. This local connection ensures that the learned filter makes the strongest response to local input features. The idea of local connection is also inspired by the structure of visual system in biology. The neurons in the visual cortex receive information locally.
 
-- Weight sharing: The filters used to calculate neurons in the same deep slice are shared. For example, in Figure 4, the filter for each neuron calculated by $o[:,:,0]$ is the same, both are $W_0$, which can greatly reduce the parameters. The sharing weight is meaningful to a certain extent, for example, the bottom edge feature of the image is independent of the specific location of the feature in the graph. However, it is unintentional in some cases. For example, the input picture is a face, eyes and hair are in different positions. And to learn different features in different positions, please (refer to [Stanford University Open Class](http://cs231n.Github.io/convolutional-networks/)). Note that the weights are only shared for the neurons of the same depth slice. In the convolutional layer, multiple sets of convolutional kernels are usually used to extract different features, that is, the weights of neurons with different depth slices are not shared by the features with different depth slices. In addition, bias are shared by all neurons with the same depth.
+- Weight sharing: The filters used to calculate neurons in the same deep slice are shared. For example, in Figure 5, the filter for each neuron calculated by $o[:,:,0]$ is the same, both are $W_0$, which can greatly reduce the parameters. The sharing weight is meaningful to a certain extent, for example, the bottom edge feature of the image is independent of the specific location of the feature in the graph. However, it is unintentional in some cases. For example, the input picture is a face, eyes and hair are in different positions. And to learn different features in different positions, please (refer to [Stanford University Open Class](http://cs231n.Github.io/convolutional-networks/)). Note that the weights are only shared for the neurons of the same depth slice. In the convolutional layer, multiple sets of convolutional kernels are usually used to extract different features, that is, the weights of neurons with different depth slices are not shared by the features with different depth slices. In addition, bias are shared by all neurons with the same depth.
 
 By introducing the calculation process of convolution and its features, convolution could be seen as a linear operation with shift-invariant, which is the same operation performed at each position of the image. The local connection and weight sharing of the convolutional layer greatly reduce the parameters that need to be learned, which helps with training larger convolutional neural networks.
 
@@ -162,13 +162,13 @@ In the code examples below, we'll take a closer look at them.
 Load the Fluid API package for PaddlePaddle.
 
 ```python
+from __future__ import print_function #load print of python3 into current version
 import os
 from PIL import Image # load module of image processing
 import matplotlib.pyplot as plt
 import numpy
 import paddle # load paddle module
 import paddle.fluid as fluid
-from __future__ import print_function #load print of python3 into current version
 ```
 
 ### Program Functions Configuration
@@ -377,14 +377,13 @@ place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
 prediction, [avg_loss, acc] = train_program()
 
 # input original image data in size of 28*28*1
-img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
 # label layer, called label, correspondent with label category of input picture.
-label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+
 # It is informed that data in network consists of two parts. One is img value, the other is label value.
-feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
+feeder = fluid.DataFeeder(feed_list=['img', 'label'], place=place)
 
 # choose Adam optimizer
-optimizer = fluid.optimizer.Adam(learning_rate=0.001)
+optimizer = optimizer_program()
 optimizer.minimize(avg_loss)
 ```
 
@@ -513,9 +512,13 @@ You can use trained model to classify handwriting pictures of digits. The progra
 
 ```python
 def load_image(file):
+    # open the image file and covert to grayscale
     im = Image.open(file).convert('L')
+    # adjust the input image to a 28*28 high quality image
     im = im.resize((28, 28), Image.ANTIALIAS)
+    # convert img to numpy
     im = numpy.array(im).reshape(1, 1, 28, 28).astype(numpy.float32)
+    # normalize
     im = im / 255.0 * 2.0 - 1.0
     return im
 
@@ -579,4 +582,4 @@ Softmax regression, multilayer perceptron and convolutional neural network are t
 10. Bishop, Christopher M. ["Pattern recognition."](http://users.isr.ist.utl.pt/~wurmd/Livros/school/Bishop%20-%20Pattern%20Recognition%20And%20Machine%20Learning%20-%20Springer%20%202006.pdf) Machine Learning 128 (2006): 1-58.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.

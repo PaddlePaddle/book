@@ -123,12 +123,12 @@ $\hat{Y}$ 表示模型的预测结果，用来和真实值$Y$区分。模型要�
 ### 配置数据提供器(Datafeeder)
 首先我们引入必要的库：
 ```python
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import math
 import sys
-from __future__ import print_function
 ```
 
 我们通过uci_housing模块引入了数据集合[UCI Housing Data Set](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data)
@@ -136,7 +136,7 @@ from __future__ import print_function
 其中，在uci_housing模块中封装了：
 
 1. 数据下载的过程。下载数据保存在~/.cache/paddle/dataset/uci_housing/housing.data。
-2. [数据预处理](#数据预处理)的过程。
+2. 数据预处理的过程。
 
 接下来我们定义了用于训练的数据提供器。提供器每次读入一个大小为`BATCH_SIZE`的数据批次。如果用户希望加一些随机性，它可以同时定义一个批次大小和一个缓存大小。这样的话，每次数据提供器会从缓存中随机读取批次大小那么多的数据。
 
@@ -154,41 +154,41 @@ test_reader = paddle.batch(
         batch_size=BATCH_SIZE)
 ```
 
-如果想直接从txt文件中读取数据的话，可以参考以下方式。
-
+如果想直接从txt文件中读取数据的话，可以参考以下方式(需要自行准备txt文件)。
+```text
 feature_names = [
     'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
     'PTRATIO', 'B', 'LSTAT', 'convert'
 ]
-
 feature_num = len(feature_names)
-
 data = numpy.fromfile(filename, sep=' ') # 从文件中读取原始数据
-
 data = data.reshape(data.shape[0] // feature_num, feature_num)
-
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
 
 for i in six.moves.range(feature_num-1):
- data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves可以兼容python2和python3
+   data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves可以兼容python2和python3
 
 ratio = 0.8 # 训练集和验证集的划分比例
-
 offset = int(data.shape[0]*ratio)
-
 train_data = data[:offset]
-
 test_data = data[offset:]
+
+def reader_creator(train_data):  
+    def reader():  
+        for d in train_data:  
+            yield d[:-1], d[-1:]  
+    return reader
 
 train_reader = paddle.batch(
     paddle.reader.shuffle(
-        train_data, buf_size=500),
+        reader_creator(train_data), buf_size=500),
         batch_size=BATCH_SIZE)
 
 test_reader = paddle.batch(
     paddle.reader.shuffle(
-        test_data, buf_size=500),
+        reader_creator(test_data), buf_size=500),
         batch_size=BATCH_SIZE)
+```
 
 ### 配置训练程序
 训练程序的目的是定义一个训练模型的网络结构。对于线性回归来讲，它就是一个从输入到输出的简单的全连接层。更加复杂的结果，比如卷积神经网络，递归神经网络等会在随后的章节中介绍。训练程序必须返回`平均损失`作为第一个返回值，因为它会被后面反向传播算法所用到。
@@ -213,13 +213,14 @@ avg_loss = fluid.layers.mean(cost) # 对方差求均值，得到平均损失
 在下面的 `SGD optimizer`，`learning_rate` 是学习率，与网络的训练收敛速度有关系。
 
 ```python
-sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
-sgd_optimizer.minimize(avg_loss)
-
 #克隆main_program得到test_program
 #有些operator在训练和测试之间的操作是不同的，例如batch_norm，使用参数for_test来区分该程序是用来训练还是用来测试
 #该api不会删除任何操作符,请在backward和optimization之前使用
 test_program = main_program.clone(for_test=True)
+
+sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
+sgd_optimizer.minimize(avg_loss)
+
 ```
 
 ### 定义运算场所
@@ -237,7 +238,7 @@ exe = fluid.Executor(place)
 [fluid.executor](http://www.paddlepaddle.org/documentation/docs/zh/develop/api_cn/fluid_cn.html#permalink-15-executor)
 
 ### 创建训练过程
-训练需要有一个训练程序和一些必要参数，并构建了一个获取训练过程中测试误差的函数。必要参数有executor,program,reader,feeder,fetch_list，executor表示之前创建的执行器，program表示执行器所执行的program，是之前创建的program，如果该项参数没有给定的话则默认使用defalut_main_program，reader表示读取到的数据，feeder表示前向输入的变量，fetch_list表示用户想得到的变量或者命名的结果。
+训练需要有一个训练程序和一些必要参数，并构建了一个获取训练过程中测试误差的函数。必要参数有executor,program,reader,feeder,fetch_list，executor表示之前创建的执行器，program表示执行器所执行的program，是之前创建的program，如果该项参数没有给定的话则默认使用default_main_program，reader表示读取到的数据，feeder表示前向输入的变量，fetch_list表示用户想得到的变量或者命名的结果。
 
 ```python
 num_epochs = 100
@@ -386,4 +387,4 @@ with fluid.scope_guard(inference_scope):
 4. Bishop C M. Pattern recognition[J]. Machine Learning, 2006, 128.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。

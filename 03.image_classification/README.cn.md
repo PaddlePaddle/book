@@ -176,11 +176,12 @@ Paddle API提供了自动加载cifar数据集模块 `paddle.dataset.cifar`。
 让我们从导入 Paddle Fluid API 和辅助模块开始。
 
 ```python
+
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import sys
-from __future__ import print_function
 
 ```
 
@@ -313,8 +314,8 @@ def resnet_cifar10(ipt, depth=32):
 ```python
 def inference_program():
     # The image is 32 * 32 with RGB representation.
-    data_shape = [3, 32, 32]
-    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
+    data_shape = [None, 3, 32, 32]
+    images = fluid.data(name='pixel', shape=data_shape, dtype='float32')
 
     predict = resnet_cifar10(images, 32)
     # predict = vgg_bn_drop(images) # un-comment to use vgg net
@@ -325,7 +326,7 @@ def inference_program():
 
 然后我们需要设置训练程序 `train_program`。它首先从推理程序中进行预测。
 在训练期间，它将从预测中计算 `avg_cost`。
-在有监督训练中需要输入图像对应的类别信息，同样通过`fluid.layers.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
+在有监督训练中需要输入图像对应的类别信息，同样通过`fluid.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
 
 **注意:** 训练程序应该返回一个数组，第一个返回参数必须是 `avg_cost`。训练器使用它来计算梯度。
 
@@ -333,7 +334,7 @@ def inference_program():
 def train_program():
     predict = inference_program()
 
-    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=predict, label=label)
@@ -537,11 +538,7 @@ with fluid.scope_guard(inference_scope):
     [inference_program, feed_target_names,
      fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
 
-        # The input's dimension of conv should be 4-D or 5-D.
-        # Use inference_transpiler to speedup
-    inference_transpiler_program = inference_program.clone()
-    t = fluid.transpiler.InferenceTranspiler()
-    t.transpile(inference_transpiler_program, place)
+
 
         # Construct feed as a dictionary of {feed_target_name: feed_target_data}
         # and results will contain a list of data corresponding to fetch_targets.
@@ -549,14 +546,6 @@ with fluid.scope_guard(inference_scope):
                       feed={feed_target_names[0]: img},
                       fetch_list=fetch_targets)
 
-    transpiler_results = exe.run(inference_transpiler_program,
-                                 feed={feed_target_names[0]: img},
-                                 fetch_list=fetch_targets)
-
-    assert len(results[0]) == len(transpiler_results[0])
-    for i in range(len(results[0])):
-        numpy.testing.assert_almost_equal(
-            results[0][i], transpiler_results[0][i], decimal=5)
 
     # infer label
     label_list = [
@@ -608,7 +597,7 @@ with fluid.scope_guard(inference_scope):
 
 [17] Szegedy, C., Ioffe, S., Vanhoucke, V. [Inception-v4, inception-resnet and the impact of residual connections on learning](https://arxiv.org/abs/1602.07261). arXiv:1602.07261 (2016).
 
-[18] Everingham, M., Eslami, S. M. A., Van Gool, L., Williams, C. K. I., Winn, J. and Zisserman, A. [The Pascal Visual Object Classes Challenge: A Retrospective]((http://link.springer.com/article/10.1007/s11263-014-0733-5)). International Journal of Computer Vision, 111(1), 98-136, 2015.
+[18] Everingham, M., Eslami, S. M. A., Van Gool, L., Williams, C. K. I., Winn, J. and Zisserman, A. [The Pascal Visual Object Classes Challenge: A Retrospective](http://link.springer.com/article/10.1007/s11263-014-0733-5). International Journal of Computer Vision, 111(1), 98-136, 2015.
 
 [19] He, K., Zhang, X., Ren, S., and Sun, J. [Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification](https://arxiv.org/abs/1502.01852). ArXiv e-prints, February 2015.
 
@@ -619,4 +608,4 @@ with fluid.scope_guard(inference_scope):
 [22] http://cs231n.github.io/classification/
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">本教程</span> 由 <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a> 创作，采用 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">知识共享 署名-相同方式共享 4.0 国际 许可协议</a>进行许可。

@@ -125,12 +125,12 @@ In a more complex model training process, we often need more than one dataset: t
 First we import the libraries:
 
 ```python
+from __future__ import print_function
 import paddle
 import paddle.fluid as fluid
 import numpy
 import math
 import sys
-from __future__ import print_function
 ```
 
 We introduced the dataset [UCI Housing dataset](http://paddlemodels.bj.bcebos.com/uci_housing/housing.data) via the uci_housing module
@@ -156,41 +156,41 @@ test_reader = paddle.batch(
         batch_size=BATCH_SIZE)
 ```
 
-If you want to read data directly from \*.txt file, you can refer to the method as follows.
-
+If you want to read data directly from \*.txt file, you can refer to the method as follows(need to prepare txt file by yourself).
+```text
 feature_names = [
     'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
     'PTRATIO', 'B', 'LSTAT', 'convert'
 ]
-
 feature_num = len(feature_names)
-
 data = numpy.fromfile(filename, sep=' ') # Read primary data from file
-
 data = data.reshape(data.shape[0] // feature_num, feature_num)
-
 maximums, minimums, avgs = data.max(axis=0), data.min(axis=0), data.sum(axis=0)/data.shape[0]
 
 for i in six.moves.range(feature_num-1):
- data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves is compatible to python2 and python3
+   data[:, i] = (data[:, i] - avgs[i]) / (maximums[i] - minimums[i]) # six.moves is compatible to python2 and python3
 
 ratio = 0.8 # distribution ratio of train dataset and verification dataset
-
 offset = int(data.shape[0]\*ratio)
-
 train_data = data[:offset]
-
 test_data = data[offset:]
+
+def reader_creator(train_data):  
+    def reader():  
+        for d in train_data:  
+            yield d[:-1], d[-1:]  
+    return reader
 
 train_reader = paddle.batch(
     paddle.reader.shuffle(
-        train_data, buf_size=500),
+        reader_creator(train_data), buf_size=500),
         batch_size=BATCH_SIZE)
 
 test_reader = paddle.batch(
     paddle.reader.shuffle(
-        test_data, buf_size=500),
+        reader_creator(test_data), buf_size=500),
         batch_size=BATCH_SIZE)
+```
 
 ### Configure Program for Training
 The aim of the program for training is to define a network structure of a training model. For linear regression, it is a simple fully connected layer from input to output. More complex result, such as Convolutional Neural Network and Recurrent Neural Network, will be introduced in later chapters. It must return `mean error` as the first return value in program for training, for that `mean error` will be used for BackPropagation.
@@ -215,13 +215,14 @@ For details, please refer to:
 `SGD optimizer`, `learning_rate` below are learning rate, which is related to rate of convergence for train of network.
 
 ```python
-sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
-sgd_optimizer.minimize(avg_loss)
-
 #Clone main_program to get test_program
 # operations of some operators are different between train and test. For example, batch_norm use parameter for_test to determine whether the program is for training or for testing.
 #The api will not delete any operator, please apply it before backward and optimization.
 test_program = main_program.clone(for_test=True)
+
+sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001)
+sgd_optimizer.minimize(avg_loss)
+
 ```
 
 ### Define Training Place
@@ -388,4 +389,4 @@ In this chapter, we analyzed dataset of Boston House Price to introduce the basi
 4. Bishop C M. Pattern recognition[J]. Machine Learning, 2006, 128.
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.

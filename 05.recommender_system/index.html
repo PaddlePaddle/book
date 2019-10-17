@@ -162,9 +162,10 @@ Paddle provides modules for automatically loading data in the API. The data modu
 
 
 ```python
+from __future__ import print_function
 import paddle
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
 
@@ -180,7 +181,7 @@ For example, one of the movie features is:
 
 ```python
 movie_info = paddle.dataset.movielens.movie_info()
-print movie_info.values()[0]
+print(list(movie_info.values())[0])
 ```
 
     <MovieInfo id(1), title(Toy Story ), categories(['Animation', "Children's", 'Comedy'])>
@@ -191,7 +192,7 @@ This means that the movie id is 1, and the title is 《Toy Story》, which is di
 
 ```python
 user_info = paddle.dataset.movielens.user_info()
-print user_info.values()[0]
+print(list(user_info.values())[0])
 ```
 
     <UserInfo id(1), gender(F), age(1), job(10)>
@@ -244,12 +245,11 @@ train_set_creator = paddle.dataset.movielens.train()
 train_sample = next(train_set_creator())
 uid = train_sample[0]
 mov_id = train_sample[len(user_info[uid].value())]
-print "User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1])
+print("User %s rates Movie %s with Score %s"%(user_info[uid], movie_info[mov_id], train_sample[-1]))
 ```
 
-```python
-User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest ), categories(['Drama'])> with Score [5.0]
-```
+    User <UserInfo id(1), gender(F), age(1), job(10)> rates Movie <MovieInfo id(1193), title(One Flew Over the Cuckoo's Nest ), categories(['Drama'])> with Score [5.0]
+
 
 That is, the user 1 evaluates the movie 1193 as 5 points.
 
@@ -262,7 +262,6 @@ Below we begin to configure the model based on the form of the input data. First
 
 
 ```python
-from __future__ import print_function
 import math
 import sys
 import numpy as np
@@ -623,13 +622,13 @@ This chapter introduced the traditional personalized recommendation system metho
 2. Sarwar, Badrul, et al. "[Item-based collaborative filtering recommendation algorithms.](http://files.grouplens.org/papers/www10_sarwar.pdf)" *Proceedings of the 10th international conference on World Wide Web*. ACM, 2001.
 3. Kautz, Henry, Bart Selman, and Mehul Shah. "[Referral Web: combining social networks and collaborative filtering.](http://www.cs.cornell.edu/selman/papers/pdf/97.cacm.refweb.pdf)" Communications of the ACM 40.3 (1997): 63-65. APA
 4. [Peter Brusilovsky](https://en.wikipedia.org/wiki/Peter_Brusilovsky) (2007). *The Adaptive Web*. p. 325.
-5. Robin Burke , [Hybrid Web recommendation systems](http://www.dcs.warwick.ac.uk/~acristea/courses/CS411/2010/Book%20-%20The%20Adaptive%20Web/HybridWebRecommenderSystems.pdf), pp. 377-408, The Adaptive Web, Peter Brusilovsky, Alfred Kobsa, Wolfgang Nejdl (Ed.), Lecture Notes in Computer Science, Springer-Verlag, Berlin, Germany, Lecture Notes in Computer Science, Vol. 4321, May 2007, 978-3-540-72078-2.
+5. Robin Burke , [Hybrid Web recommendation systems](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.435.7538&rep=rep1&type=pdf), pp. 377-408, The Adaptive Web, Peter Brusilovsky, Alfred Kobsa, Wolfgang Nejdl (Ed.), Lecture Notes in Computer Science, Springer-Verlag, Berlin, Germany, Lecture Notes in Computer Science, Vol. 4321, May 2007, 978-3-540-72078-2.
 6. Yuan, Jianbo, et al. ["Solving Cold-Start Problem in Large-scale Recommendation Engines: A Deep Learning Approach."](https://arxiv.org/pdf/1611.05480v1.pdf) *arXiv preprint arXiv:1611.05480* (2016).
 7. Covington P, Adams J, Sargin E. [Deep neural networks for youtube recommendations](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45530.pdf)[C]//Proceedings of the 10th ACM Conference on recommendation systems. ACM, 2016: 191-198.
 
 
 <br/>
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://paddlepaddleimage.cdn.bcebos.com/bookimage/camo.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">This tutorial</span> is contributed by <a xmlns:cc="http://creativecommons.org/ns#" href="http://book.paddlepaddle.org" property="cc:attributionName" rel="cc:attributionURL">PaddlePaddle</a>, and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
 
 </div>
 <!-- You can change the lines below now. -->

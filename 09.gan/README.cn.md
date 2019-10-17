@@ -8,7 +8,7 @@
 2. Docker镜像支持的CUDA/cuDNN版本：
 如果使用了Docker运行Book，请注意：这里所提供的默认镜像的GPU环境为 CUDA 8/cuDNN 5，对于NVIDIA Tesla V100等要求CUDA 9的 GPU，使用该镜像可能会运行失败。
 3. 文档和脚本中代码的一致性问题：
-请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/09.gan/dc_gan.py)进行验证。
+请注意：为使本文更加易读易用，我们拆分、调整了dc_gan.py的代码并放入本文。本文中代码与dc_gan.py的运行结果一致，可直接运行[dc_gan.py](https://github.com/PaddlePaddle/book/blob/develop/09.gan/dc_gan.py)进行验证。
 
 ## 背景介绍
 
@@ -87,6 +87,10 @@ DCGAN中的生成器（G）结构如下图所示：
 首先加载 PaddlePaddle 的 Fluid 和其他相关包
 
 ```python
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
 import os
 import matplotlib
@@ -101,9 +105,6 @@ import paddle.fluid as fluid
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 ```
 ### 定义辅助工具
 
@@ -161,7 +162,7 @@ def bn(x, name=None, act='relu'):
 
 - 卷积层
 
-调用 `fluid.nets.simple_img_conv_pool` 实现卷积池化组，卷积核大小为3x3，池化窗口大小为2x2，窗口滑动步长为2，激活函数类型由具体网络结构指定。
+调用 `fluid.nets.simple_img_conv_pool` 实现卷积池化组，卷积核大小为5x5，池化窗口大小为2x2，窗口滑动步长为2，激活函数类型由具体网络结构指定。
 
 ```python
 def conv(x, num_filters, name=None, act=None):
@@ -367,7 +368,7 @@ for pass_id in range(epoch):
         # 虚假图片
         generated_image = exe.run(g_program,
                                   feed={'noise': noise_data},
-                                  fetch_list={g_img})[0]
+                                  fetch_list=[g_img])[0]
 
         total_images = np.concatenate([real_image, generated_image])
 
@@ -377,7 +378,7 @@ for pass_id in range(epoch):
                                'img': generated_image,
                                'label': fake_labels,
                            },
-                           fetch_list={d_loss})[0][0]
+                           fetch_list=[d_loss])[0][0]
 
         # D 判断真实图片为真的loss
         d_loss_2 = exe.run(d_program,
@@ -385,7 +386,7 @@ for pass_id in range(epoch):
                                'img': real_image,
                                'label': real_labels,
                            },
-                           fetch_list={d_loss})[0][0]
+                           fetch_list=[d_loss])[0][0]
 
         d_loss_n = d_loss_1 + d_loss_2
         losses[0].append(d_loss_n)
@@ -397,7 +398,7 @@ for pass_id in range(epoch):
                 size=[batch_size, NOISE_SIZE]).astype('float32')
             dg_loss_n = exe.run(dg_program,
                                  feed={'noise': noise_data},
-                                 fetch_list={dg_loss})[0][0]
+                                 fetch_list=[dg_loss])[0][0]
             losses[1].append(dg_loss_n)
         t_time += (time.time() - s_time)
         if batch_id % 10 == 0 :
@@ -406,7 +407,7 @@ for pass_id in range(epoch):
             # 每轮的生成结果
             generated_images = exe.run(g_program_test,
                                        feed={'noise': const_n},
-                                       fetch_list={g_img})[0]
+                                       fetch_list=[g_img])[0]
             # 将真实图片和生成图片连接
             total_images = np.concatenate([real_image, generated_images])
             fig = plot(total_images)
