@@ -14,6 +14,7 @@
 3.文档和脚本中代码的一致性问题：
 请注意：为使本文更加易读易用，我们拆分、调整了train.py的代码并放入本文。本文中代码与train.py的运行结果一致，可直接运行[train.py](https://github.com/PaddlePaddle/book/blob/develop/03.image_classification/train.py)进行验证。
 
+4. PaddlePaddle版本：PaddlePaddle 1.6及以上版本或适当的develop版本。
 
 ## 背景介绍
 
