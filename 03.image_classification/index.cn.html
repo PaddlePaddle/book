@@ -356,8 +356,8 @@ def resnet_cifar10(ipt, depth=32):
 ```python
 def inference_program():
     # The image is 32 * 32 with RGB representation.
-    data_shape = [None, 3, 32, 32]
-    images = fluid.data(name='pixel', shape=data_shape, dtype='float32')
+    data_shape = [3, 32, 32]
+    images = fluid.layers.data(name='pixel', shape=data_shape, dtype='float32')
 
     predict = resnet_cifar10(images, 32)
     # predict = vgg_bn_drop(images) # un-comment to use vgg net
@@ -368,7 +368,7 @@ def inference_program():
 
 然后我们需要设置训练程序 `train_program`。它首先从推理程序中进行预测。
 在训练期间，它将从预测中计算 `avg_cost`。
-在有监督训练中需要输入图像对应的类别信息，同样通过`fluid.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
+在有监督训练中需要输入图像对应的类别信息，同样通过`fluid.layers.data`来定义。训练中采用多类交叉熵作为损失函数，并作为网络的输出，预测阶段定义网络的输出为分类器得到的概率信息。
 
 **注意:** 训练程序应该返回一个数组，第一个返回参数必须是 `avg_cost`。训练器使用它来计算梯度。
 
@@ -376,7 +376,7 @@ def inference_program():
 def train_program():
     predict = inference_program()
 
-    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
+    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=predict, label=label)
