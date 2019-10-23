@@ -208,17 +208,17 @@ print('pred_dict_len: ', pred_dict_len)
 
 ```python
 mark_dict_len = 2    # The dimension of the context area flag, which is a 0-1 2 value feature, so the dimension is 2
-Word_dim = 32        # Word vector dimension
-Mark_dim = 5         # The predicate context area is mapped to a real vector by the vocabulary, which is the adjacent dimension
-Hidden_dim = 512     # LSTM Hidden Layer Vector Dimensions : 512 / 4
-Depth = 8            # depth of stack LSTM
-Mix_hidden_lr = 1e-3 # Basic learning rate of fundamental_chain_crf layer
+word_dim = 32        # Word vector dimension
+mark_dim = 5         # The predicate context area is mapped to a real vector by the vocabulary, which is the adjacent dimension
+hidden_dim = 512     # LSTM Hidden Layer Vector Dimensions : 512 / 4
+depth = 8            # depth of stack LSTM
+mix_hidden_lr = 1e-3 # Basic learning rate of fundamental_chain_crf layer
 
 IS_SPARSE = True     # Whether to update embedding in sparse way
 PASS_NUM = 10        # Training epoches
 BATCH_SIZE = 10      # Batch size
 
-Embeddding_name = 'emb'
+embedding_name = 'emb'
 ```
 
 It should be specially noted that the parameter `hidden_dim = 512` actually specifies the dimension of the LSTM hidden layer's vector is 128. For this, please refer to the description of `dynamic_lstm` in the official PaddlePaddle API documentation.
