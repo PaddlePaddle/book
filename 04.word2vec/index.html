@@ -245,7 +245,7 @@ First, load packages:
 
 from __future__ import print_function
 
-import paddle as paddle
+import paddle
 import paddle.fluid as fluid
 import six
 import numpy
@@ -256,13 +256,13 @@ import math
 Then, define the parameters:
 
 ```python
-EMBED_SIZE = 32 # embedding dimensions
+EMBED_SIZE = 32   # embedding dimensions
 HIDDEN_SIZE = 256 # hidden layer size
-N = 5 # ngram size, here fixed 5
-BATCH_SIZE = 100 # batch size
-PASS_NUM = 100 # Training rounds
+N = 5             # ngram size, here fixed 5
+BATCH_SIZE = 100  # batch size
+PASS_NUM = 100    # Training rounds
 
-use_cuda = False # Set to True if trained with GPU
+use_cuda = False  # Set to True if trained with GPU
 
 word_dict = paddle.dataset.imikolov.build_dict()
 dict_size = len(word_dict)
@@ -379,7 +379,7 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
             accumulated = [
                 x[0] + x[1][0] for x in zip(accumulated, avg_cost_np)
             ]
-        count += 1
+            count += 1
         return [x / count for x in accumulated]
 
     def train_loop():
@@ -445,7 +445,7 @@ def infer(use_cuda, params_dirname=None):
         #Get the inference program using fluid.io.load_inference_model,
         #feed variable name by feed_target_names and fetch fetch_targets from scope
         [inferencer, feed_target_names,
-        fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
+         fetch_targets] = fluid.io.load_inference_model(params_dirname, exe)
 
         # Set the input and use 4 LoDTensor to represent 4 words. Each word here is an id,
         # Used to query the embedding table to get the corresponding word vector, so its shape size is [1].
