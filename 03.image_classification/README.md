@@ -339,7 +339,7 @@ def train_program():
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     avg_cost = fluid.layers.mean(cost)
     accuracy = fluid.layers.accuracy(input=predict, label=label)
-    return [avg_cost, accuracy]
+    return [avg_cost, accuracy, predict]
 ```
 
 ## Optimizer Function Configuration
@@ -387,7 +387,7 @@ feed_order = ['pixel', 'label']
 main_program = fluid.default_main_program()
 star_program = fluid.default_startup_program()
 
-avg_cost, acc = train_program()
+avg_cost, acc, predict = train_program()
 
 # Test program
 test_program = main_program.clone(for_test=True)
