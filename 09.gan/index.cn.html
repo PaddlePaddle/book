@@ -204,7 +204,7 @@ def bn(x, name=None, act='relu'):
 
 - 卷积层
 
-调用 `fluid.nets.simple_img_conv_pool` 实现卷积池化组，卷积核大小为3x3，池化窗口大小为2x2，窗口滑动步长为2，激活函数类型由具体网络结构指定。
+调用 `fluid.nets.simple_img_conv_pool` 实现卷积池化组，卷积核大小为5x5，池化窗口大小为2x2，窗口滑动步长为2，激活函数类型由具体网络结构指定。
 
 ```python
 def conv(x, num_filters, name=None, act=None):
