@@ -260,6 +260,36 @@ def multilayer_perceptron():
     return prediction
 ```
 
+-Conv_pool layer: LeNet-5 has multiple convolution-pooling operations. In order to avoid repeated code writing, the convolution-pooling in series is written as conv_pool function.
+
+```python
+def conv_pool(input, num_filters, filter_size, pool_size, pool_stride, act="relu"):
+    """
+    Define convolution-pooling layer：
+        Conv_pool layer has a convolutional layer and a pooling layer
+    Args：
+        input —— Input
+        num_filters —— The number of filter
+        filter_size —— The filter size
+        pool_size —— The pool kernel size
+        pool_stride —— The pool stride size
+        act —— Activation type
+
+    Return:
+        out -- output
+    """
+    conv_out = fluid.layers.conv2d(
+        input=input,
+        num_filters=num_filters,
+        filter_size=filter_size,
+        act=act)
+    out = fluid.layers.pool2d(
+        input=conv_out,
+        pool_size=pool_size,
+        pool_stride=pool_stride)
+    return out
+
+```
 -Convolutional neural network LeNet-5: The input two-dimensional image first passes through two convolutional layers to the pooling layer, then passes through the fully connected layer, and finally fully connection layer with softmax as activation function is used as output layer.
 
 ```python
@@ -275,7 +305,7 @@ def convolutional_neural_network():
     img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
     # the first convolution-pooling layer
     # Use 20 5*5 filters, the pooling size is 2, the pooling step is 2, and the activation function is Relu.
-    conv_pool_1 = fluid.nets.simple_img_conv_pool(
+    conv_pool_1 = conv_pool(
         input=img,
         filter_size=5,
         num_filters=20,
@@ -285,7 +315,7 @@ def convolutional_neural_network():
     conv_pool_1 = fluid.layers.batch_norm(conv_pool_1)
     # the second convolution-pooling layer
     # Use 20 5*5 filters, the pooling size is 2, the pooling step is 2, and the activation function is Relu.
-    conv_pool_2 = fluid.nets.simple_img_conv_pool(
+    conv_pool_2 = conv_pool(
         input=conv_pool_1,
         filter_size=5,
         num_filters=50,
