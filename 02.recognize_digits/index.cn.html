@@ -281,6 +281,37 @@ def multilayer_perceptron():
     return prediction
 ```
 
+- 卷积池化层：在LeNet-5中会出现多个卷积-池化的操作，为避免代码重复书写，将串联的卷积-池化写成conv_pool函数。
+
+```python
+def conv_pool(input, num_filters, filter_size, pool_size, pool_stride, act="relu"):
+    """
+    定义卷积池化层：
+        含有一个卷积层和一个池化层
+    Args：
+        input —— 网络输入
+        num_filters —— 卷积核的个数
+        filter_size —— 卷积核的大小
+        pool_size —— 池化核的大小
+        pool_stride —— 池化的步长
+        act —— 卷积层的激活函数
+
+    Return:
+        out -- 经过卷积池化后的特征图
+    """
+    conv_out = fluid.layers.conv2d(
+        input=input,
+        num_filters=num_filters,
+        filter_size=filter_size,
+        act=act)
+    out = fluid.layers.pool2d(
+        input=conv_out,
+        pool_size=pool_size,
+        pool_stride=pool_stride)
+    return out
+```
+
+
 - 卷积神经网络LeNet-5: 输入的二维图像，首先经过两次卷积层到池化层，再经过全连接层，最后使用以softmax为激活函数的全连接层作为输出层。
 
 ```python
@@ -296,7 +327,7 @@ def convolutional_neural_network():
     img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
     # 第一个卷积-池化层
     # 使用20个5*5的滤波器，池化大小为2，池化步长为2，激活函数为Relu
-    conv_pool_1 = fluid.nets.simple_img_conv_pool(
+    conv_pool_1 = conv_pool(
         input=img,
         filter_size=5,
         num_filters=20,
@@ -306,7 +337,7 @@ def convolutional_neural_network():
     conv_pool_1 = fluid.layers.batch_norm(conv_pool_1)
     # 第二个卷积-池化层
     # 使用50个5*5的滤波器，池化大小为2，池化步长为2，激活函数为Relu
-    conv_pool_2 = fluid.nets.simple_img_conv_pool(
+    conv_pool_2 = conv_pool(
         input=conv_pool_1,
         filter_size=5,
         num_filters=50,
