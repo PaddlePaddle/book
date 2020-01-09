@@ -393,8 +393,8 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
     avg_cost = train_program(predict_word)
     test_program = main_program.clone(for_test=True)
 
-    sgd_optimizer = optimizer_func()
-    sgd_optimizer.minimize(avg_cost)
+    optimizer = optimizer_func()
+    optimizer.minimize(avg_cost)
 
     exe = fluid.Executor(place)
 
