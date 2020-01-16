@@ -53,14 +53,14 @@ def load_parameter(file_name, h, w):
 def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
             **ignored):
     # 8 features
-    predicate_embedding = fluid.layers.embedding(
+    predicate_embedding = fluid.embedding(
         input=predicate,
         size=[pred_dict_len, word_dim],
         dtype='float32',
         is_sparse=IS_SPARSE,
         param_attr='vemb')
 
-    mark_embedding = fluid.layers.embedding(
+    mark_embedding = fluid.embedding(
         input=mark,
         size=[mark_dict_len, mark_dim],
         dtype='float32',
@@ -68,7 +68,7 @@ def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
 
     word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
     emb_layers = [
-        fluid.layers.embedding(
+        fluid.embedding(
             size=[word_dict_len, word_dim],
             input=x,
             param_attr=fluid.ParamAttr(name=embedding_name, trainable=False))
@@ -120,22 +120,22 @@ def db_lstm(word, predicate, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2, mark,
 
 def train(use_cuda, save_dirname=None, is_local=True):
     # define data layers
-    word = fluid.layers.data(
-        name='word_data', shape=[1], dtype='int64', lod_level=1)
-    predicate = fluid.layers.data(
-        name='verb_data', shape=[1], dtype='int64', lod_level=1)
-    ctx_n2 = fluid.layers.data(
-        name='ctx_n2_data', shape=[1], dtype='int64', lod_level=1)
-    ctx_n1 = fluid.layers.data(
-        name='ctx_n1_data', shape=[1], dtype='int64', lod_level=1)
-    ctx_0 = fluid.layers.data(
-        name='ctx_0_data', shape=[1], dtype='int64', lod_level=1)
-    ctx_p1 = fluid.layers.data(
-        name='ctx_p1_data', shape=[1], dtype='int64', lod_level=1)
-    ctx_p2 = fluid.layers.data(
-        name='ctx_p2_data', shape=[1], dtype='int64', lod_level=1)
-    mark = fluid.layers.data(
-        name='mark_data', shape=[1], dtype='int64', lod_level=1)
+    word = fluid.data(
+        name='word_data', shape=[None, 1], dtype='int64', lod_level=1)
+    predicate = fluid.data(
+        name='verb_data', shape=[None, 1], dtype='int64', lod_level=1)
+    ctx_n2 = fluid.data(
+        name='ctx_n2_data', shape=[None, 1], dtype='int64', lod_level=1)
+    ctx_n1 = fluid.data(
+        name='ctx_n1_data', shape=[None, 1], dtype='int64', lod_level=1)
+    ctx_0 = fluid.data(
+        name='ctx_0_data', shape=[None, 1], dtype='int64', lod_level=1)
+    ctx_p1 = fluid.data(
+        name='ctx_p1_data', shape=[None, 1], dtype='int64', lod_level=1)
+    ctx_p2 = fluid.data(
+        name='ctx_p2_data', shape=[None, 1], dtype='int64', lod_level=1)
+    mark = fluid.data(
+        name='mark_data', shape=[None, 1], dtype='int64', lod_level=1)
 
     if args.enable_ce:
         fluid.default_startup_program().random_seed = 90

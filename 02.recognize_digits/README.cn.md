@@ -209,7 +209,7 @@ def softmax_regression():
         predict_image -- 分类的结果
     """
     # 输入的原始图像数据，大小为28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
     # 以softmax为激活函数的全连接层，输出层的大小必须为数字的个数10
     predict = fluid.layers.fc(
         input=img, size=10, act='softmax')
@@ -229,7 +229,7 @@ def multilayer_perceptron():
         predict_image -- 分类的结果
     """
     # 输入的原始图像数据，大小为28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
     # 第一个全连接层，激活函数为ReLU
     hidden = fluid.layers.fc(input=img, size=200, act='relu')
     # 第二个全连接层，激活函数为ReLU
@@ -282,7 +282,7 @@ def convolutional_neural_network():
         predict -- 分类的结果
     """
     # 输入的原始图像数据，大小为28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
     # 第一个卷积-池化层
     # 使用20个5*5的滤波器，池化大小为2，池化步长为2，激活函数为Relu
     conv_pool_1 = conv_pool(
@@ -327,7 +327,7 @@ def train_program():
 
     """
     # 标签层，名称为label,对应输入图片的类别标签
-    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
 
     # predict = softmax_regression() # 取消注释将使用 Softmax回归
     # predict = multilayer_perceptron() # 取消注释将使用 多层感知器

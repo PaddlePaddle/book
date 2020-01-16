@@ -188,7 +188,7 @@ def softmax_regression():
     predict_image -- result of classification
     """
     # input original image data in size of 28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
     # With softmax as the fully connected layer of the activation function, the size of the output layer must be 10
     predict = fluid.layers.fc(
     input=img, size=10, act='softmax')
@@ -208,7 +208,7 @@ def multilayer_perceptron():
     predict_image -- result of classification
     """
     # input raw image data in size of 28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
     # the first fully connected layer, whose activation function is ReLU
     hidden = fluid.layers.fc(input=img, size=200, act='relu')
     # the second fully connected layer, whose activation function is ReLU
@@ -260,7 +260,7 @@ def convolutional_neural_network():
     predict -- result of classification
     """
     # input raw image data in size of 28*28*1
-    img = fluid.layers.data(name='img', shape=[1, 28, 28], dtype='float32')
+    img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
     # the first convolution-pooling layer
     # Use 20 5*5 filters, the pooling size is 2, the pooling step is 2, and the activation function is Relu.
     conv_pool_1 = conv_pool(
@@ -305,7 +305,7 @@ def train_program():
 
     """
     # label layer, called label, correspondent with label category of input picture
-    label = fluid.layers.data(name='label', shape=[1], dtype='int64')
+    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
 
     # predict = softmax_regression() # cancel note and run Softmax regression
     # predict = multilayer_perceptron() # cancel note and run multiple perceptron
