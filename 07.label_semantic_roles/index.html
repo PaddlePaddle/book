@@ -294,42 +294,42 @@ Defines the format of the model input features, including the sentence sequence,
 
 ```python
 # Sentence sequences
-word = fluid.layers.data(
-    name='word_data', shape=[1], dtype='int64', lod_level=1)
+word = fluid.data(
+    name='word_data', shape=[None, 1], dtype='int64', lod_level=1)
 
 # predicate
-predicate = fluid.layers.data(
-    name='verb_data', shape=[1], dtype='int64', lod_level=1)
+predicate = fluid.data(
+    name='verb_data', shape=[None, 1], dtype='int64', lod_level=1)
 
 # predicate context's 5 features
-ctx_n2 = fluid.layers.data(
-    name='ctx_n2_data', shape=[1], dtype='int64', lod_level=1)
-ctx_n1 = fluid.layers.data(
-    name='ctx_n1_data', shape=[1], dtype='int64', lod_level=1)
-ctx_0 = fluid.layers.data(
-    name='ctx_0_data', shape=[1], dtype='int64', lod_level=1)
-ctx_p1 = fluid.layers.data(
-    name='ctx_p1_data', shape=[1], dtype='int64', lod_level=1)
-ctx_p2 = fluid.layers.data(
-    name='ctx_p2_data', shape=[1], dtype='int64', lod_level=1)
+ctx_n2 = fluid.data(
+    name='ctx_n2_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_n1 = fluid.data(
+    name='ctx_n1_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_0 = fluid.data(
+    name='ctx_0_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_p1 = fluid.data(
+    name='ctx_p1_data', shape=[None, 1], dtype='int64', lod_level=1)
+ctx_p2 = fluid.data(
+    name='ctx_p2_data', shape=[None, 1], dtype='int64', lod_level=1)
 
 # Predicate conotext area flag
-mark = fluid.layers.data(
-    name='mark_data', shape=[1], dtype='int64', lod_level=1)
+mark = fluid.data(
+    name='mark_data', shape=[None, 1], dtype='int64', lod_level=1)
 ```
 ### Defining the network structure
 First pre-train and define the model input layer
 
 ```python
 #pre-training predicate and predicate context area flags
-predicate_embedding = fluid.layers.embedding(
+predicate_embedding = fluid.embedding(
     input=predicate,
     size=[pred_dict_len, word_dim],
     dtype='float32',
     is_sparse=IS_SPARSE,
     param_attr='vemb')
 
-mark_embedding = fluid.layers.embedding(
+mark_embedding = fluid.embedding(
     input=mark,
     size=[mark_dict_len, mark_dim],
     dtype='float32',
@@ -340,7 +340,7 @@ word_input = [word, ctx_n2, ctx_n1, ctx_0, ctx_p1, ctx_p2]
 #Because word vector is pre-trained, no longer training embedding table,
 # The trainable's parameter attribute set to False prevents the embedding table from being updated during training
 emb_layers = [
-    fluid.layers.embedding(
+    fluid.embedding(
         size=[word_dict_len, word_dim],
         input=x,
         param_attr=fluid.ParamAttr(
@@ -398,7 +398,7 @@ feature_out = fluid.layers.sums(input=[
 ])
 
 # tag/label sequence
-target = fluid.layers.data(
+target = fluid.data(
     name='target', shape=[1], dtype='int64', lod_level=1)
 
 # Learning CRF transfer features

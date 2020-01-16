@@ -262,32 +262,32 @@ dict_size = len(word_dict)
 ```
 
 更大的`BATCH_SIZE`将使得训练更快收敛，但也会消耗更多内存。由于词向量计算规模较大，如果环境允许，请开启使用GPU进行训练，能更快得到结果。
-不同于之前的PaddlePaddle v2版本，在新的Fluid版本里，我们不必再手动计算词向量。PaddlePaddle提供了一个内置的方法`fluid.layers.embedding`，我们就可以直接用它来构造 N-gram 神经网络。
+不同于之前的PaddlePaddle v2版本，在新的Fluid版本里，我们不必再手动计算词向量。PaddlePaddle提供了一个内置的方法`fluid.embedding`，我们就可以直接用它来构造 N-gram 神经网络。
 
 - 我们来定义我们的 N-gram 神经网络结构。这个结构在训练和预测中都会使用到。因为词向量比较稀疏，我们传入参数 `is_sparse == True`, 可以加速稀疏矩阵的更新。
 
 ```python
 def inference_program(words, is_sparse):
 
-    embed_first = fluid.layers.embedding(
+    embed_first = fluid.embedding(
         input=words[0],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_second = fluid.layers.embedding(
+    embed_second = fluid.embedding(
         input=words[1],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_third = fluid.layers.embedding(
+    embed_third = fluid.embedding(
         input=words[2],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
         is_sparse=is_sparse,
         param_attr='shared_w')
-    embed_fourth = fluid.layers.embedding(
+    embed_fourth = fluid.embedding(
         input=words[3],
         size=[dict_size, EMBED_SIZE],
         dtype='float32',
@@ -310,7 +310,7 @@ def train_program(predict_word):
     # 'next_word'的定义必须要在inference_program的声明之后，
     # 否则train program输入数据的顺序就变成了[next_word, firstw, secondw,
     # thirdw, fourthw], 这是不正确的.
-    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    next_word = fluid.data(name='nextw', shape=[None, 1], dtype='int64')
     cost = fluid.layers.cross_entropy(input=predict_word, label=next_word)
     avg_cost = fluid.layers.mean(cost)
     return avg_cost
@@ -335,11 +335,11 @@ def train(if_use_cuda, params_dirname, is_sparse=True):
     test_reader = paddle.batch(
         paddle.dataset.imikolov.test(word_dict, N), BATCH_SIZE)
 
-    first_word = fluid.layers.data(name='firstw', shape=[1], dtype='int64')
-    second_word = fluid.layers.data(name='secondw', shape=[1], dtype='int64')
-    third_word = fluid.layers.data(name='thirdw', shape=[1], dtype='int64')
-    forth_word = fluid.layers.data(name='fourthw', shape=[1], dtype='int64')
-    next_word = fluid.layers.data(name='nextw', shape=[1], dtype='int64')
+    first_word = fluid.data(name='firstw', shape=[None, 1], dtype='int64')
+    second_word = fluid.data(name='secondw', shape=[None, 1], dtype='int64')
+    third_word = fluid.data(name='thirdw', shape=[None, 1], dtype='int64')
+    forth_word = fluid.data(name='fourthw', shape=[None, 1], dtype='int64')
+    next_word = fluid.data(name='nextw', shape=[None, 1], dtype='int64')
 
     word_list = [first_word, second_word, third_word, forth_word, next_word]
     feed_order = ['firstw', 'secondw', 'thirdw', 'fourthw', 'nextw']
