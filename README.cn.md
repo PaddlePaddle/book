@@ -12,7 +12,7 @@
 1. [情感分析](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/understand_sentiment/index.html)
 1. [语义角色标注](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/label_semantic_roles/index.html)
 1. [机器翻译](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/machine_translation/index.html)
-1. [生成对抗网络](https://www.paddlepaddle.org.cn/documentation/docs/develop/develop/beginners_guide/basics/gan/index.html)
+1. [生成对抗网络](https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/beginners_guide/basics/gan/index.html)
 
 更多学习内容请访问PaddlePaddle[视频课堂](http://bit.baidu.com/Course/datalist/column/117.html)。
 
