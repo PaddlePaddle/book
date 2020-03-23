@@ -42,8 +42,7 @@ def parse_args():
 
 
 def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
-    emb = fluid.layers.embedding(
-        input=data, size=[input_dim, emb_dim], is_sparse=True)
+    emb = fluid.embedding(input=data, size=[input_dim, emb_dim], is_sparse=True)
     conv_3 = fluid.nets.sequence_conv_pool(
         input=emb,
         num_filters=hid_dim,
