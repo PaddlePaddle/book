@@ -46,8 +46,7 @@ def parse_args():
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
     assert stacked_num % 2 == 1
 
-    emb = fluid.layers.embedding(
-        input=data, size=[input_dim, emb_dim], is_sparse=True)
+    emb = fluid.embedding(input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     fc1 = fluid.layers.fc(input=emb, size=hid_dim)
     lstm1, cell1 = fluid.layers.dynamic_lstm(input=fc1, size=hid_dim)

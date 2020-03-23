@@ -140,7 +140,7 @@ Note that `fluid.nets.sequence_conv_pool` contains both convolution and pooling 
 ```python
 #Textconvolution neural network
 def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
-    emb = fluid.layers.embedding(
+    emb = fluid.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
     conv_3 = fluid.nets.sequence_conv_pool(
         input=emb,
@@ -172,7 +172,7 @@ The code of the stack bidirectional LSTM `stacked_lstm_net` is as follows:
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
     # Calculate word vectorvector
-    emb = fluid.layers.embedding(
+    emb = fluid.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     #First stack

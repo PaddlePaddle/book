@@ -151,7 +151,7 @@ BATCH_SIZE = 128  #batch的大小
 ```python
 #文本卷积神经网络
 def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
-    emb = fluid.layers.embedding(
+    emb = fluid.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
     conv_3 = fluid.nets.sequence_conv_pool(
         input=emb,
@@ -183,7 +183,7 @@ def convolution_net(data, input_dim, class_dim, emb_dim, hid_dim):
 def stacked_lstm_net(data, input_dim, class_dim, emb_dim, hid_dim, stacked_num):
 
     #计算词向量
-    emb = fluid.layers.embedding(
+    emb = fluid.embedding(
         input=data, size=[input_dim, emb_dim], is_sparse=True)
 
     #第一层栈
