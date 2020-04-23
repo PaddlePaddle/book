@@ -155,15 +155,6 @@ import paddle.fluid.layers as pd
 from paddle.fluid.executor import Executor
 from functools import partial
 import os
-try:
-    from paddle.fluid.contrib.trainer import *
-    from paddle.fluid.contrib.inferencer import *
-except ImportError:
-    print(
-        "In the fluid 1.0, the trainer and inferencer are moving to paddle.fluid.contrib",
-        file=sys.stderr)
-    from paddle.fluid.trainer import *
-    from paddle.fluid.inferencer import *
 
 dict_size = 30000 # dictionary dimension
 source_dict_dim = target_dict_dim = dict_size # source/target language dictionary dimension
