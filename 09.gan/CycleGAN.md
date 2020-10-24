@@ -514,43 +514,43 @@ train(PLACE, print_interval=10, max_step=50, load_model=True)
 
 
 
-![png](output_20_1.png)
+![png](image/output_20_1.png)
 
 
 
-![png](output_20_2.png)
+![png](image/output_20_2.png)
 
 
 
-![png](output_20_3.png)
+![png](image/output_20_3.png)
 
 
 
-![png](output_20_4.png)
+![png](image/output_20_4.png)
 
 
 
-![png](output_20_5.png)
+![png](image/output_20_5.png)
 
 
 
-![png](output_20_6.png)
+![png](image/output_20_6.png)
 
 
 
-![png](output_20_7.png)
+![png](image/output_20_7.png)
 
 
 
-![png](output_20_8.png)
+![png](image/output_20_8.png)
 
 
 
-![png](output_20_9.png)
+![png](image/output_20_9.png)
 
 
 
-![png](output_20_10.png)
+![png](image/output_20_10.png)
 
 
 ## 用训练好的模型进行预测
@@ -588,5 +588,5 @@ infer('./data/data10040/horse2zebra/testA/n02381460_1300.jpg', PLACE)
 
 
 
-![png](output_22_1.png)
+![png](image/output_22_1.png)
 
