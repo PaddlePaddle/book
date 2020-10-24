@@ -185,7 +185,7 @@ show_pics([data_a.numpy(), data_b.numpy()])
 ```
 
 
-![png](output_10_0.png)
+![png](image/output_10_0.png)
 
 
 ## 定义判别器
