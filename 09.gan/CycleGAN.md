@@ -1,9 +1,7 @@
 # Paddle 2.0 API 示例教程（CycleGAN）
 作者：吕坤
 
-编写日期：2020/10/24
-
-修改日期：2020/10/24
+日期：2020/10/24
 
 简介：在horse2zebra数据集上实现CycleGAN风格迁移网络
 
@@ -12,7 +10,6 @@
 CycleGAN，即循环生成对抗网络，是一种用于图片风格迁移的模型。原来的图片风格迁移模型通过在两组一一匹配的图片进行上训练，来学习输入图片组与输出图片组的特征映射关系，从而实现将输入图片的特征迁移到输出图片上，比如将A组图片的斑马的条纹外观特征迁移到B组普通马匹图片上。但是，训练所要求的两组一一对应训练集图片往往难以获得。CycleGAN通过给GAN网络添加循环一致性损失（consistency loss）的方法打破了训练集图片数据的一一对应限制。
 * 论文原文：[Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks](https://arxiv.org/pdf/1703.10593.pdf)
 * 论文原版代码：[https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
-* AI Studio 可执行项目地址：[https://aistudio.baidu.com/aistudio/projectdetail/1147248](https://aistudio.baidu.com/aistudio/projectdetail/1147248)
 
 ## 框架导入设置
 
