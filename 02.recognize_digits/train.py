@@ -14,16 +14,18 @@
 
 from __future__ import print_function
 
-import os
+import sys
 import argparse
-from PIL import Image
+
+import math
 import numpy
+
 import paddle
 import paddle.fluid as fluid
 
 
 def parse_args():
-    parser = argparse.ArgumentParser("mnist")
+    parser = argparse.ArgumentParser("fit_a_line")
     parser.add_argument(
         '--enable_ce',
         action='store_true',
@@ -34,216 +36,166 @@ def parse_args():
         default=False,
         help="Whether to use GPU or not.")
     parser.add_argument(
-        '--num_epochs', type=int, default=5, help="number of epochs.")
+        '--num_epochs', type=int, default=100, help="number of epochs.")
     args = parser.parse_args()
     return args
 
 
-def loss_net(hidden, label):
-    prediction = fluid.layers.fc(input=hidden, size=10, act='softmax')
-    loss = fluid.layers.cross_entropy(input=prediction, label=label)
-    avg_loss = fluid.layers.mean(loss)
-    acc = fluid.layers.accuracy(input=prediction, label=label)
-    return prediction, avg_loss, acc
+# For training test cost 创建训练过程
+def train_test(executor, program, reader, feeder, fetch_list):
+    accumulated = 1 * [0]
+    count = 0
+    for data_test in reader():
+        outs = executor.run(
+            program=program, feed=feeder.feed(data_test), fetch_list=fetch_list)
+        accumulated = [x_c[0] + x_c[1][0] for x_c in zip(accumulated, outs)] # 累加测试过程中的损失值
+        count += 1 # 累加测试集中的样本数量
+    return [x_d / count for x_d in accumulated] # 计算平均损失
+
+# 预测: 保存图片
+def save_result(points1, points2):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    x1 = [idx for idx in range(len(points1))]
+    y1 = points1
+    y2 = points2
+    l1 = plt.plot(x1, y1, 'r--', label='predictions')
+    l2 = plt.plot(x1, y2, 'g--', label='GT')
+    plt.plot(x1, y1, 'ro-', x1, y2, 'g+-')
+    plt.title('predictions VS GT')
+    plt.legend()
+    plt.savefig('./image/prediction_gt.png')
 
 
-def multilayer_perceptron(img, label):
-    img = fluid.layers.fc(input=img, size=200, act='tanh')
-    hidden = fluid.layers.fc(input=img, size=200, act='tanh')
-    return loss_net(hidden, label)
-
-
-def softmax_regression(img, label):
-    return loss_net(img, label)
-
-
-def convolutional_neural_network(img, label):
-    conv_pool_1 = fluid.nets.simple_img_conv_pool(
-        input=img,
-        filter_size=5,
-        num_filters=20,
-        pool_size=2,
-        pool_stride=2,
-        act="relu")
-    conv_pool_1 = fluid.layers.batch_norm(conv_pool_1)
-    conv_pool_2 = fluid.nets.simple_img_conv_pool(
-        input=conv_pool_1,
-        filter_size=5,
-        num_filters=50,
-        pool_size=2,
-        pool_stride=2,
-        act="relu")
-    return loss_net(conv_pool_2, label)
-
-
-def train(nn_type,
-          use_cuda,
-          save_dirname=None,
-          model_filename=None,
-          params_filename=None):
-    if use_cuda and not fluid.core.is_compiled_with_cuda():
-        return
-
-    startup_program = fluid.default_startup_program()
-    main_program = fluid.default_main_program()
+def main(): 
+    batch_size = 20 #configure data provider 配置数据提供器(Datafeeder)
 
     if args.enable_ce:
         train_reader = paddle.batch(
-            paddle.dataset.mnist.train(), batch_size=BATCH_SIZE)
+            paddle.dataset.uci_housing.train(), batch_size=batch_size)
         test_reader = paddle.batch(
-            paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
-        startup_program.random_seed = 90
+            paddle.dataset.uci_housing.test(), batch_size=batch_size)
+    else:
+        train_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.uci_housing.train(), buf_size=500),
+            batch_size=batch_size)
+        test_reader = paddle.batch(
+            paddle.reader.shuffle(
+                paddle.dataset.uci_housing.test(), buf_size=500),
+            batch_size=batch_size)
+
+    # feature vector of length 13 #configure training program 配置训练程序
+    x = fluid.data(name='x', shape=[None, 13], dtype='float32')  # 定义输入的形状和数据类型
+    y = fluid.data(name='y', shape=[None, 1], dtype='float32') # 定义输出的形状和数据类型
+
+    main_program = fluid.default_main_program() # 获取默认/全局主函数
+    startup_program = fluid.default_startup_program() # 获取默认/全局启动程序
+
+    if args.enable_ce:
         main_program.random_seed = 90
-    else:
-        train_reader = paddle.batch(
-            paddle.reader.shuffle(paddle.dataset.mnist.train(), buf_size=500),
-            batch_size=BATCH_SIZE)
-        test_reader = paddle.batch(
-            paddle.dataset.mnist.test(), batch_size=BATCH_SIZE)
+        startup_program.random_seed = 90
 
-    img = fluid.data(name='img', shape=[None, 1, 28, 28], dtype='float32')
-    label = fluid.data(name='label', shape=[None, 1], dtype='int64')
+    y_predict = fluid.layers.fc(input=x, size=1, act=None)
+    cost = fluid.layers.square_error_cost(input=y_predict, label=y) # 利用标签数据和输出的预测数据估计方差
+    avg_loss = fluid.layers.mean(cost) # 对方差求均值，得到平均损失
 
-    if nn_type == 'softmax_regression':
-        net_conf = softmax_regression
-    elif nn_type == 'multilayer_perceptron':
-        net_conf = multilayer_perceptron
-    else:
-        net_conf = convolutional_neural_network
+    test_program = main_program.clone(for_test=True) # 克隆main_program得到test_program
 
-    prediction, avg_loss, acc = net_conf(img, label)
+    sgd_optimizer = fluid.optimizer.SGD(learning_rate=0.001) # learning_rate 是学习率 # 选择优化方法
+    sgd_optimizer.minimize(avg_loss)
 
-    test_program = main_program.clone(for_test=True)
-    optimizer = fluid.optimizer.Adam(learning_rate=0.001)
-    optimizer.minimize(avg_loss)
-
-    def train_test(train_test_program, train_test_feed, train_test_reader):
-        acc_set = []
-        avg_loss_set = []
-        for test_data in train_test_reader():
-            acc_np, avg_loss_np = exe.run(
-                program=train_test_program,
-                feed=train_test_feed.feed(test_data),
-                fetch_list=[acc, avg_loss])
-            acc_set.append(float(acc_np))
-            avg_loss_set.append(float(avg_loss_np))
-        # get test acc and loss
-        acc_val_mean = numpy.array(acc_set).mean()
-        avg_loss_val_mean = numpy.array(avg_loss_set).mean()
-        return avg_loss_val_mean, acc_val_mean
-
+    # can use CPU or GPU # 网络参数初始化
+    use_cuda = args.use_gpu
     place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-
     exe = fluid.Executor(place)
 
-    feeder = fluid.DataFeeder(feed_list=[img, label], place=place)
+    # Specify the directory to save the parameters
+    params_dirname = "fit_a_line.inference.model"
+    num_epochs = args.num_epochs
+
+    # main train loop. # 给出需要存储的目录名，并初始化一个执行器
+    feeder = fluid.DataFeeder(place=place, feed_list=[x, y])
     exe.run(startup_program)
-    epochs = [epoch_id for epoch_id in range(PASS_NUM)]
 
-    lists = []
+    train_prompt = "Train cost"
+    test_prompt = "Test cost"
     step = 0
-    for epoch_id in epochs:
-        for step_id, data in enumerate(train_reader()):
-            metrics = exe.run(
+
+    exe_test = fluid.Executor(place)
+    # 设置训练主循环
+    for pass_id in range(num_epochs):
+        for data_train in train_reader():
+            avg_loss_value, = exe.run(
                 main_program,
-                feed=feeder.feed(data),
-                fetch_list=[avg_loss, acc])
-            if step % 100 == 0:
-                print("Pass %d, Epoch %d, Cost %f" % (step, epoch_id,
-                                                      metrics[0]))
+                feed=feeder.feed(data_train),
+                fetch_list=[avg_loss])
+            if step % 10 == 0:  # record a train cost every 10 batches  每10个批次记录并输出一下训练损失
+                print("%s, Step %d, Cost %f" %
+                      (train_prompt, step, avg_loss_value[0]))
+
+            if step % 100 == 0:  # record a test cost every 100 batches 每100批次记录并输出一下测试损失
+                test_metics = train_test(
+                    executor=exe_test,
+                    program=test_program,
+                    reader=test_reader,
+                    fetch_list=[avg_loss],
+                    feeder=feeder)
+                print("%s, Step %d, Cost %f" %
+                      (test_prompt, step, test_metics[0]))
+                # If the accuracy is good enough, we can stop the training. 如果准确率达到要求，则停止训练
+                if test_metics[0] < 10.0:
+                    break
+
             step += 1
-        # test for epoch
-        avg_loss_val, acc_val = train_test(
-            train_test_program=test_program,
-            train_test_reader=test_reader,
-            train_test_feed=feeder)
 
-        print("Test with Epoch %d, avg_cost: %s, acc: %s" %
-              (epoch_id, avg_loss_val, acc_val))
-        lists.append((epoch_id, avg_loss_val, acc_val))
-        if save_dirname is not None:
-            fluid.io.save_inference_model(
-                save_dirname, ["img"], [prediction],
-                exe,
-                model_filename=model_filename,
-                params_filename=params_filename)
+            if math.isnan(float(avg_loss_value[0])):
+                sys.exit("got NaN loss, training failed.")
+        if params_dirname is not None:
+            # We can save the trained parameters for the inferences later  保存训练参数到之前给定的路径中
+            fluid.io.save_inference_model(params_dirname, ['x'], [y_predict],
+                                          exe)
 
-    if args.enable_ce:
-        print("kpis\ttrain_cost\t%f" % metrics[0])
-        print("kpis\ttest_cost\t%s" % avg_loss_val)
-        print("kpis\ttest_acc\t%s" % acc_val)
-
-    # find the best pass
-    best = sorted(lists, key=lambda list: float(list[1]))[0]
-    print('Best pass is %s, testing Avgcost is %s' % (best[0], best[1]))
-    print('The classification accuracy is %.2f%%' % (float(best[2]) * 100))
-
-
-def infer(use_cuda,
-          save_dirname=None,
-          model_filename=None,
-          params_filename=None):
-    if save_dirname is None:
-        return
-
-    place = fluid.CUDAPlace(0) if use_cuda else fluid.CPUPlace()
-    exe = fluid.Executor(place)
-
-    def load_image(file):
-        im = Image.open(file).convert('L')
-        im = im.resize((28, 28), Image.ANTIALIAS)
-        im = numpy.array(im).reshape(1, 1, 28, 28).astype(numpy.float32)
-        im = im / 255.0 * 2.0 - 1.0
-        return im
-
-    cur_dir = os.path.dirname(os.path.realpath(__file__))
-    tensor_img = load_image(cur_dir + '/image/infer_3.png')
-
+        if args.enable_ce and pass_id == args.num_epochs - 1:
+            print("kpis\ttrain_cost\t%f" % avg_loss_value[0])
+            print("kpis\ttest_cost\t%f" % test_metics[0])
+    # 准备预测环境
+    infer_exe = fluid.Executor(place)
     inference_scope = fluid.core.Scope()
+
+    # infer 预测：通过fluid.io.load_inference_model，预测器会从params_dirname中读取已经训练好的模型，来对从未遇见过的数据进行预测
     with fluid.scope_guard(inference_scope):
-        # Use fluid.io.load_inference_model to obtain the inference program desc,
-        # the feed_target_names (the names of variables that will be feeded
-        # data using feed operators), and the fetch_targets (variables that
-        # we want to obtain data from using fetch operators).
-        [inference_program, feed_target_names,
-         fetch_targets] = fluid.io.load_inference_model(
-             save_dirname, exe, model_filename, params_filename)
+        [inference_program, feed_target_names, fetch_targets
+         ] = fluid.io.load_inference_model(params_dirname, infer_exe)  # 载入预训练模型
+        batch_size = 10
 
-        # Construct feed as a dictionary of {feed_target_name: feed_target_data}
-        # and results will contain a list of data corresponding to fetch_targets.
-        results = exe.run(
+        infer_reader = paddle.batch(
+            paddle.dataset.uci_housing.test(), batch_size=batch_size) # 准备测试集
+
+        infer_data = next(infer_reader())
+        infer_feat = numpy.array(
+            [data[0] for data in infer_data]).astype("float32") # 提取测试集中的数据
+        infer_label = numpy.array(
+            [data[1] for data in infer_data]).astype("float32") # 提取测试集中的标签
+
+        assert feed_target_names[0] == 'x'
+        results = infer_exe.run(
             inference_program,
-            feed={feed_target_names[0]: tensor_img},
-            fetch_list=fetch_targets)
-        lab = numpy.argsort(results)
-        print("Inference result of image/infer_3.png is: %d" % lab[0][0][-1])
+            feed={feed_target_names[0]: numpy.array(infer_feat)}, 
+            fetch_list=fetch_targets) # 进行预测
+        #打印预测结果和标签并可视化结果
+        print("infer results: (House Price)")
+        for idx, val in enumerate(results[0]):
+            print("%d: %.2f" % (idx, val)) # 打印预测结果
 
+        print("\nground truth:")
+        for idx, val in enumerate(infer_label):
+            print("%d: %.2f" % (idx, val)) # 打印标签值
 
-def main(use_cuda, nn_type):
-    model_filename = None
-    params_filename = None
-    save_dirname = "recognize_digits_" + nn_type + ".inference.model"
-
-    # call train() with is_local argument to run distributed train
-    train(
-        nn_type=nn_type,
-        use_cuda=use_cuda,
-        save_dirname=save_dirname,
-        model_filename=model_filename,
-        params_filename=params_filename)
-    infer(
-        use_cuda=use_cuda,
-        save_dirname=save_dirname,
-        model_filename=model_filename,
-        params_filename=params_filename)
+        save_result(results[0], infer_label) # 保存图片
 
 
 if __name__ == '__main__':
     args = parse_args()
-    BATCH_SIZE = 64
-    PASS_NUM = args.num_epochs
-    use_cuda = args.use_gpu
-    # predict = 'softmax_regression' # uncomment for Softmax
-    # predict = 'multilayer_perceptron' # uncomment for MLP
-    predict = 'convolutional_neural_network'  # uncomment for LeNet5
-    main(use_cuda=use_cuda, nn_type=predict)
+    main()
