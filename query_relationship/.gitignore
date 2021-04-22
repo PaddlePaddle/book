@@ -1,0 +1,8 @@
+data/MQ2007
+data/train.list
+data/test.list
+data/pred.list
+*.log
+output/
+*.pyc
+core
