@@ -1,2 +1,2 @@
 flask>=1.0.0
-Flask-CORS==3.0.3
+Flask-CORS==3.0.9
