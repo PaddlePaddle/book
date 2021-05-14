@@ -12,10 +12,16 @@ cd ..
 export PATH=/usr/bin:$PATH
 pre-commit install
 
-if ! pre-commit run -a ; then
-  ls -lh
-  git diff  --exit-code
-  exit 1
+for file_name in `git diff --numstat upstream/$BRANCH |awk '{print $NF}'`;do
+        if ! pre-commit run --files $file_name ; then
+            commit_files=off
+        fi
+    done 
+    
+if [ $commit_files == 'off' ];then
+    ls -lh
+    git diff 2>&1
+    exit 1
 fi
 
 trap : 0
