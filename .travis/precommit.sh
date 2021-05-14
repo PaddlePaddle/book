@@ -10,6 +10,7 @@ set -e
 cd `dirname $0`
 cd ..
 export PATH=/usr/bin:$PATH
+export BRANCH=develop
 pre-commit install
 
 for file_name in `git diff --numstat upstream/$BRANCH |awk '{print $NF}'`;do
