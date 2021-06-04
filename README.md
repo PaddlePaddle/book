@@ -1,5 +1,7 @@
 # Deep Learning with PaddlePaddle
 
+**Note:** please check https://github.com/PaddlePaddle/book/tree/develop/paddle2.0_docs for paddle2.0 compatiable tutorials.
+
 [![Build Status](https://travis-ci.org/PaddlePaddle/book.svg?branch=develop)](https://travis-ci.org/PaddlePaddle/book)
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://github.com/PaddlePaddle/book/blob/develop/README.md)
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](https://github.com/PaddlePaddle/book/blob/develop/README.cn.md)
