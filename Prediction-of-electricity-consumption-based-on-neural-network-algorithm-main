@@ -5,9 +5,22 @@
 我在AI Studio上获得白银等级，点亮1个徽章，来互关呀~ https://aistudio.baidu.com/aistudio/personalcenter/thirdview/134639
 
 ## 1. 简要介绍
-    开展电力系统用电量及负荷预测的目的是：为了电力系统供电范围内电力工业的发展能够适应国民经济和社会发展的需要。
-    用电量及负荷预测是电力工业生产建设计划及经营管理的基础，又是电力系统规划设计的基础。
-    本项目以A地区一年的用电量和相应的气象因素为依据，使用神经网络算法进行电量及负荷预测。
+开展电力系统用电量及负荷预测的目的是：为了电力系统供电范围内电力工业的发展能够适应国民经济和社会发展的需要。
+
+用电量及负荷预测是电力工业生产建设计划及经营管理的基础，又是电力系统规划设计的基础。
+
+本项目以A地区一年的用电量和相应的气象因素为依据，使用神经网络算法进行电量及负荷预测。
+    
+![](https://ai-studio-static-online.cdn.bcebos.com/e5c095b80f4c458ab07f6ef66875f913dfe2e89f147846d5b269ef43275390d1)
+
+本项目使用神经网络模型进行预测，其基本流程如图
+
+![](https://ai-studio-static-online.cdn.bcebos.com/dfd2960f92bb4491800d192b9c4a933bf4cbb6af514142a1be05bf80749bb92b)
+
+神经网络模型预测的基本原理如下
+
+![](https://ai-studio-static-online.cdn.bcebos.com/de13ac95dd754ab187cc22d76ed7b29b765c73a267064c42b6f19ea7b7329d66)
+     
 
 ## 2. 环境设置
 导入包，设置所用的归一化方法、神经网络结构、训练轮数和预测时间段等信息
@@ -202,9 +215,6 @@ def LSTM_pre(x):
 
 3、定义训练程序
 
-效果如下
-
-![](https://ai-studio-static-online.cdn.bcebos.com/9422192be2204a229ac65dfa63b6b2ce035c843c5f8143f8b8aa944ebe53806a)
 
 ```python
 #定义数据生成器
@@ -277,10 +287,15 @@ plt.show()
 
 ```
 
+效果如下
+
+![](https://ai-studio-static-online.cdn.bcebos.com/9422192be2204a229ac65dfa63b6b2ce035c843c5f8143f8b8aa944ebe53806a)
+
+
 ## 6. 模型评估
 使用评估数据评估训练好的模型，检查预测值与真实值的差异。
 
-![](https://ai-studio-static-online.cdn.bcebos.com/37305efb9e394f2ba863081c399916380c0ca6f030464157b35ea4f92e50abe7)
+
 
 ```python
 infer_exe = fluid.Executor(place)
@@ -374,13 +389,10 @@ error.resize((31-day_num,96))
 
 ```
 
+![](https://ai-studio-static-online.cdn.bcebos.com/37305efb9e394f2ba863081c399916380c0ca6f030464157b35ea4f92e50abe7)
 
 ## 7. 模型预测
-利用模型对30天后的用电量进行预测，展示效果如下。
-
-![](https://ai-studio-static-online.cdn.bcebos.com/368aa0d887544cc3900633dc45f3e83aa77db0e5ddcf4ac9b121ea1f9939ed53)
-![](https://ai-studio-static-online.cdn.bcebos.com/f16cd1257ff646ea8f5bd46be539a9fa2eafc371b95a443a9d6f51ec8e54aba0)
-
+利用模型对30天后的用电量进行预测，
 
 ```python
 df_test_y = pd.DataFrame(test_y)
@@ -457,4 +469,9 @@ plt.show()
 #********************画误差图
 
 ```
+
+展示效果如下。
+
+![](https://ai-studio-static-online.cdn.bcebos.com/368aa0d887544cc3900633dc45f3e83aa77db0e5ddcf4ac9b121ea1f9939ed53)
+![](https://ai-studio-static-online.cdn.bcebos.com/f16cd1257ff646ea8f5bd46be539a9fa2eafc371b95a443a9d6f51ec8e54aba0)
 
